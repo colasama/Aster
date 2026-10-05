@@ -83,39 +83,40 @@
     }
   },
   "last_cycle": {
-    "id": 35,
-    "time": "2026-10-04T23:40:33.390Z",
+    "id": 36,
+    "time": "2026-10-05T00:08:14.281Z",
     "milestone": "M2",
-    "task": "M2-T6",
+    "task": "M2-T7",
     "outcome": "passed",
-    "commit": "8e9b55e92b7cdce56beba370a21c3447b6b4fb6e",
-    "verification": "artifacts/migration/verify-2026-10-04T23-33-00-742Z-bb6f2260.json",
-    "verification_sha256": "98058c7ae20a53f4ac08505cf20b94f3bd88c9e3d8a7737f2dbaf4ca479075ec",
+    "commit": "b12b0ade97289c34d1f1208c24760f59700bf8fb",
+    "verification": "artifacts/migration/verify-2026-10-05T00-00-47-081Z-2fa95c3c.json",
+    "verification_sha256": "5e97d45ca19ac1203dd7973af8650997edf3ecbeb187bfae25358554b7e67874",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 96030
+        "duration_ms": 73822
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 5151
+        "duration_ms": 4939
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 316619
+        "duration_ms": 270345
       }
     ],
-    "verification_duration_ms": 419041,
-    "next_step": "Start M2-T7: plan material, HDR and LUT inputs for supplied-data execution.",
+    "verification_duration_ms": 350380,
+    "next_step": "Continue M2-T7: extract material scalar settings and normal/HDR/LUT selection into supplied binding plans.",
     "notes": [
-      "Production temporal encoding can expose an owned pass snapshot and borrowed sample owners to a diagnostic observer. Ordinary preview performs no readbacks; submission-scoped ownership remains unchanged.",
-      "G3 captures 16 actual sample textures across full/entering/exiting exposures plus the transparent-only pass. Each actual FPLN pass round-trips through Rust before replay.",
-      "The original GPU device and page are destroyed. A separate consumer imports no authoring evaluators and receives only returned FPLN, output descriptors and decoded sample pixels. It allocates new GPU textures/uniforms, executes supplied accumulation/resolve and compares against frozen exact outputs.",
-      "The maintained audit validates saved FPLN bytes, sample hashes/dimensions/scopes, resource payloads and independent output bytes. Rust admits 60 resource messages. A static negative test rejects changed pass/output evidence and missing sample coverage.",
-      "Full M2 G0/G1/G3 passed with 42 FPLN fixtures, 1819 exact whole-frame comparisons and four exact independent temporal pass replays. M2-T6 is complete; complete submitted-frame planning/capture/replay remains under later M2 tasks."
+      "Added closed packed texture_pixels resources with explicit 2D/3D dimensions and RGBA8/RGBA16F formats. TS/Rust validate extents, payload sizes and domain-separated descriptor/pixel hashes; registries account binary payload bytes.",
+      "Production LUT preparation now owns little-endian RGBA16F voxels. The GPU consumer accepts only supplied messages/pixels and rejects descriptor/hash/device-limit mismatches before allocation; existing LUT selection and labels are preserved.",
+      "G1 admits identity/custom 3D LUTs, RGBA8 normal texels and RGBA16F HDR texels through the Rust CLI, then exercises the production upload consumer with exact bytes and layouts. Corrupted payloads fail without publishing Rust output.",
+      "Full M2 G0/G1/G3 passed with 42 FPLN fixtures, four packed texture resources, 1819 exact whole-frame comparisons and four exact independent temporal GPU replays.",
+      "M2-T7 remains in progress: material scalar settings and normal/HDR/LUT-selection bindings still require supplied plan extraction.",
+      "The first full run failed G0 because the precomposition GPU mock omitted maxTextureDimension3D. Its G1/G3 passed. Added the real device capability to the mock; all 15 affected tests passed. The failed report is retained, and the final full run reused the unchanged renderer/bridge capture."
     ]
   },
   "milestones": [
@@ -13560,11 +13561,69 @@
           "required_full_gates": ["G0", "G1", "G3"],
           "status": "in_progress",
           "remaining_work": [
-            "Transport packed texture dimensions/formats/pixels across TS/Rust and use supplied resources for LUT upload.",
-            "Move material scalar settings, normal/HDR resource selection and draw bindings into supplied plans; preserve readiness and LUT-selection behavior."
+            "Move material scalar settings and normal/HDR resource selection into supplied draw plans.",
+            "Use hash-addressed normal/HDR GPU owners and preserve readiness/retirement behavior; extract LUT-selection bindings and validate decoded texture replay."
           ],
           "failed_verifications": [
             "artifacts/migration/verify-2026-10-04T23-54-08-699Z-793466b8.json"
+          ],
+          "increments": [
+            {
+              "cycle": 36,
+              "status": "passed",
+              "commit": "b12b0ade97289c34d1f1208c24760f59700bf8fb",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-05T00-00-47-081Z-2fa95c3c.json",
+                "sha256": "5e97d45ca19ac1203dd7973af8650997edf3ecbeb187bfae25358554b7e67874"
+              },
+              "pixel_comparison": {
+                "path": "artifacts/parity/ts-check/2026-10-05T00-02-06-481Z-0738c00c/report.json",
+                "sha256": "bd410c2068d12fcb5d7a936c4a0424488406542293e069b78f74b6a69cc9699d"
+              },
+              "capture": {
+                "path": "artifacts/parity/capture-2026-10-04T23-47-52-804Z-0e11d194.json",
+                "sha256": "9eed28a6651c5dc9d8921848be9996a38073bbcadce2797c618b7de6aeff95be"
+              },
+              "manifest": {
+                "path": "artifacts/parity/runs/2026-10-04T23-47-52-804Z-0e11d194/candidate/manifest.json",
+                "sha256": "fbb3f6af0414aa21113c0224a86000666885b7c3aa261a8a45fb2094301a1043"
+              },
+              "renderer_source_sha256": "85c381bfa80e6ba11285b65b369fc1ce047e1ca042d0c6677358c4efa369e813",
+              "bridge_sha256": "82ccf02fefd4c54e78a82a4de08df6906714ecd0b198864ec72cb0c0394dd80c",
+              "temporal_report": {
+                "path": "artifacts/parity/ts-check/2026-10-05T00-02-06-481Z-0738c00c/temporal-text/gpu.json",
+                "sha256": "62645b71d92704d36fbdbe09d3f857e846328b956d050c81e7c55f16b540058e"
+              },
+              "temporal_reference": {
+                "path": "tests/parity/temporal-text/reference/manifest.json",
+                "sha256": "e3e3b1184d5bc969dcd5cf76a424a551a0cac1a85484e157c5b549e5d6c811d1"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 73822
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 4939
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 270345
+                }
+              ],
+              "notes": [
+                "Added closed packed texture_pixels resources with explicit 2D/3D dimensions and RGBA8/RGBA16F formats. TS/Rust validate extents, payload sizes and domain-separated descriptor/pixel hashes; registries account binary payload bytes.",
+                "Production LUT preparation now owns little-endian RGBA16F voxels. The GPU consumer accepts only supplied messages/pixels and rejects descriptor/hash/device-limit mismatches before allocation; existing LUT selection and labels are preserved.",
+                "G1 admits identity/custom 3D LUTs, RGBA8 normal texels and RGBA16F HDR texels through the Rust CLI, then exercises the production upload consumer with exact bytes and layouts. Corrupted payloads fail without publishing Rust output.",
+                "Full M2 G0/G1/G3 passed with 42 FPLN fixtures, four packed texture resources, 1819 exact whole-frame comparisons and four exact independent temporal GPU replays.",
+                "M2-T7 remains in progress: material scalar settings and normal/HDR/LUT-selection bindings still require supplied plan extraction.",
+                "The first full run failed G0 because the precomposition GPU mock omitted maxTextureDimension3D. Its G1/G3 passed. Added the real device capability to the mock; all 15 affected tests passed. The failed report is retained, and the final full run reused the unchanged renderer/bridge capture."
+              ]
+            }
           ]
         },
         {
@@ -13755,7 +13814,7 @@
       ],
       "preview_baseline_path": "benchmarks/results/m2-preview-baseline.json",
       "preview_baseline_sha256": "a1c62e224c008e731c252142ab1b9de7d31ecf592452c00da1dff42516772375",
-      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T23-26-16-079Z-e7bb792e/candidate/manifest.json",
+      "active_candidate_manifest": "artifacts/parity/runs/2026-10-04T23-47-52-804Z-0e11d194/candidate/manifest.json",
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
@@ -13764,17 +13823,17 @@
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 96030
+            "duration_ms": 73822
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 5151
+            "duration_ms": 4939
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 316619
+            "duration_ms": 270345
           }
         ],
         "optional_gates": [
@@ -13785,7 +13844,7 @@
           }
         ],
         "performance_policy": "rust-delivery-v1",
-        "report": "artifacts/migration/verify-2026-10-04T23-33-00-742Z-bb6f2260.json"
+        "report": "artifacts/migration/verify-2026-10-05T00-00-47-081Z-2fa95c3c.json"
       },
       "performance_series_history": [
         {
@@ -15091,12 +15150,5 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 36,
-    "milestone": "M2",
-    "task": "M2-T7",
-    "started_at": "2026-10-04T23:42:26.824Z",
-    "scope": "Add typed packed 2D/3D texture resource transport in TS/Rust and move production LUT uploads to supplied hash-addressed pixels.",
-    "previous_turn_classification": "progress: cycle35 completed M2-T6 with exact independent temporal GPU replay and full gates."
-  }
+  "active_cycle": null
 }
