@@ -9,6 +9,7 @@ use crate::{RenderError, SuppliedFrame};
 pub(crate) struct OutputPipelines {
     post: wgpu::RenderPipeline,
     linear_post: wgpu::RenderPipeline,
+    effects: Option<wgpu::RenderPipeline>,
     post_layout: wgpu::BindGroupLayout,
     aa: BTreeMap<u8, wgpu::RenderPipeline>,
     sampler: wgpu::Sampler,
@@ -160,12 +161,33 @@ impl OutputPipelines {
         Ok(Self {
             post,
             linear_post,
+            effects: None,
             post_layout,
             aa,
             sampler,
             lut,
             operations,
         })
+    }
+
+    pub(crate) fn prepare_effects(&mut self, device: &wgpu::Device) -> Result<(), RenderError> {
+        if self.effects.is_none() {
+            let catalog = ShaderCatalog::embedded()?;
+            let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("Supplied layer program layout"),
+                bind_group_layouts: &[Some(&self.post_layout)],
+                immediate_size: 0,
+            });
+            self.effects = Some(Self::pipeline(
+                device,
+                &catalog.program("post-process")?.source,
+                Some(&layout),
+                "fragment_main",
+                &[],
+                wgpu::TextureFormat::Rgba16Float,
+            ));
+        }
+        Ok(())
     }
 
     fn pipeline(
@@ -214,6 +236,7 @@ impl OutputPipelines {
         &self,
         device: &wgpu::Device,
         bytes: &[u8],
+        operations: &wgpu::Buffer,
         scene: &wgpu::TextureView,
     ) -> wgpu::BindGroup {
         let uniforms = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -240,7 +263,7 @@ impl OutputPipelines {
                 },
                 wgpu::BindGroupEntry {
                     binding: 3,
-                    resource: self.operations.as_entire_binding(),
+                    resource: operations.as_entire_binding(),
                 },
                 wgpu::BindGroupEntry {
                     binding: 4,
@@ -266,11 +289,27 @@ impl OutputPipelines {
         &self,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
-        uniforms: &[u8],
+        plan: &crate::layer_plan::LayerPlan,
         source: &wgpu::TextureView,
         output: &wgpu::TextureView,
-    ) {
-        let bindings = self.post_bindings(device, uniforms, source);
+    ) -> Result<(), RenderError> {
+        let operations = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Supplied layer operations"),
+            contents: if plan.operations.is_empty() {
+                &[0; 64]
+            } else {
+                &plan.operations
+            },
+            usage: wgpu::BufferUsages::STORAGE,
+        });
+        let pipeline = if plan.operations.is_empty() {
+            &self.linear_post
+        } else {
+            self.effects
+                .as_ref()
+                .ok_or_else(|| RenderError::Invalid("effect pipeline absent".into()))?
+        };
+        let bindings = self.post_bindings(device, &plan.uniforms, &operations, source);
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Supplied linear layer pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -284,9 +323,10 @@ impl OutputPipelines {
             })],
             ..Default::default()
         });
-        pass.set_pipeline(&self.linear_post);
+        pass.set_pipeline(pipeline);
         pass.set_bind_group(0, &bindings, &[]);
         pass.draw(0..3, 0..1);
+        Ok(())
     }
 
     pub(crate) fn record(
@@ -298,7 +338,7 @@ impl OutputPipelines {
         display: &wgpu::TextureView,
         output: &wgpu::TextureView,
     ) -> Result<(), RenderError> {
-        let bindings = self.post_bindings(device, &frame.post, scene);
+        let bindings = self.post_bindings(device, &frame.post, &self.operations, scene);
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Linear HDR to sRGB display"),

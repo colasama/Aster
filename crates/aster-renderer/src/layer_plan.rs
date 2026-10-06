@@ -11,6 +11,8 @@ use crate::RenderError;
 pub(crate) struct LayerPlan {
     pub blend: u8,
     pub uniforms: Vec<u8>,
+    pub operations: Vec<u8>,
+    pub composite: EffectComposite,
 }
 
 impl LayerPlan {
@@ -53,16 +55,30 @@ impl LayerPlan {
             let Some(PlanSlice::EffectExecution(route)) = execution.metadata.slices.first() else {
                 return Err(RenderError::Invalid("layer route missing".into()));
             };
-            if effect.operation_count != 0
-                || effect.uses_blur
-                || effect.uses_glow
-                || effect.route != EffectRoute::Layer
-                || route.route != EffectExecutionRoute::Layer
-                || route.composite != EffectComposite::Backdrop
-            {
-                return Err(RenderError::Unsupported(
-                    "effect program, pyramid or non-backdrop layer".into(),
+            if effect.uses_blur || effect.uses_glow {
+                return Err(RenderError::Unsupported("effect pyramid".into()));
+            }
+            let expected_route = match effect.route {
+                EffectRoute::Layer => EffectExecutionRoute::Layer,
+                EffectRoute::Adjustment => EffectExecutionRoute::Adjustment,
+            };
+            if route.route != expected_route {
+                return Err(RenderError::Invalid(
+                    "effect route differs from program".into(),
                 ));
+            }
+            let bytes = plan.blob(effect.blob_index as usize)?;
+            let operations = bytes[96..96 + effect.operation_count as usize * 64].to_vec();
+            for operation in operations.chunks_exact(64) {
+                let code = f32::from_le_bytes(
+                    operation[..4]
+                        .try_into()
+                        .map_err(|_| RenderError::Invalid("operation lane".into()))?,
+                );
+                // These operations use only the supplied source and uniforms, without a LUT or pyramid.
+                if ![38.0, 98.0, 106.0, 107.0, 174.0, 210.0].contains(&code) {
+                    return Err(RenderError::Unsupported(format!("layer operation {code}")));
+                }
             }
             if effect.instance_id != *instance_id
                 || route.instance_id != *instance_id
@@ -102,6 +118,9 @@ impl LayerPlan {
                 }
             }
             let blend = match effect.blend_mode {
+                EffectBlendMode::Normal => 0,
+                EffectBlendMode::Add => 1,
+                EffectBlendMode::Screen => 3,
                 EffectBlendMode::Multiply => 2,
                 EffectBlendMode::Overlay => 4,
                 EffectBlendMode::Darken => 5,
@@ -112,10 +131,17 @@ impl LayerPlan {
                 EffectBlendMode::HardLight => 10,
                 EffectBlendMode::Difference => 11,
                 EffectBlendMode::Exclusion => 12,
-                _ => return Err(RenderError::Invalid("backdrop blend required".into())),
             };
             if layers
-                .insert(original.blob_index, Self { blend, uniforms })
+                .insert(
+                    original.blob_index,
+                    Self {
+                        blend,
+                        uniforms,
+                        operations,
+                        composite: route.composite.clone(),
+                    },
+                )
                 .is_some()
             {
                 return Err(RenderError::Invalid("duplicate layer execution".into()));

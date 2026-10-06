@@ -163,6 +163,20 @@ impl ScenePipelines {
         });
         let mut index = 0;
         while index < frame.root.commands.len() {
+            if let RootCommandRecord::Adjustment { effect_blob_index } = &frame.root.commands[index]
+            {
+                let plan = frame
+                    .layers
+                    .get(effect_blob_index)
+                    .ok_or_else(|| RenderError::Invalid("adjustment program absent".into()))?;
+                let targets = layer_targets
+                    .as_ref()
+                    .ok_or_else(|| RenderError::Invalid("adjustment targets absent".into()))?;
+                self.layers
+                    .finish(device, encoder, plan, targets, output, scene)?;
+                index += 1;
+                continue;
+            }
             let (
                 color_view,
                 depth_view,

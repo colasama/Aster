@@ -126,6 +126,7 @@ impl SuppliedFrame {
                     Self::blend_index(blend_mode)?;
                 }
                 RootCommandRecord::BeginLayer { effect_blob_index }
+                | RootCommandRecord::Adjustment { effect_blob_index }
                     if layers.contains_key(effect_blob_index) => {}
                 RootCommandRecord::FinishLayer => {}
                 _ => {

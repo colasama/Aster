@@ -1,5 +1,6 @@
 //! Native, GPU-resident execution of supplied frame plans.
 mod device;
+mod fixed_composite;
 mod frame;
 mod geometry_pipelines;
 mod image_cache;

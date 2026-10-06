@@ -13,6 +13,7 @@ pub(crate) struct LayerTargets {
 }
 
 pub(crate) struct LayerPipelines {
+    fixed: crate::fixed_composite::FixedComposite,
     layout: wgpu::BindGroupLayout,
     pipelines: BTreeMap<u8, wgpu::RenderPipeline>,
 }
@@ -41,7 +42,7 @@ impl LayerTargets {
             output: create(
                 "Linear layer output",
                 wgpu::TextureFormat::Rgba16Float,
-                usage,
+                usage | wgpu::TextureUsages::COPY_SRC,
             ),
             depth: create(
                 "Isolated layer depth",
@@ -117,7 +118,11 @@ impl LayerPipelines {
                 }),
             );
         }
-        Ok(Self { layout, pipelines })
+        Ok(Self {
+            layout,
+            pipelines,
+            fixed: crate::fixed_composite::FixedComposite::new(device, catalog)?,
+        })
     }
 
     pub fn finish(
@@ -131,7 +136,34 @@ impl LayerPipelines {
     ) -> Result<(), RenderError> {
         let source = targets.input.create_view(&Default::default());
         let effected = targets.output.create_view(&Default::default());
-        output.record_layer(device, encoder, &plan.uniforms, &source, &effected);
+        if plan.composite == aster_render_ir::EffectComposite::Replace {
+            if plan.operations.is_empty() {
+                return Ok(());
+            }
+            encoder.copy_texture_to_texture(
+                scene.as_image_copy(),
+                targets.input.raw().as_image_copy(),
+                scene.size(),
+            );
+        }
+        output.record_layer(device, encoder, plan, &source, &effected)?;
+        if plan.composite == aster_render_ir::EffectComposite::Replace {
+            encoder.copy_texture_to_texture(
+                targets.output.raw().as_image_copy(),
+                scene.as_image_copy(),
+                scene.size(),
+            );
+            return Ok(());
+        }
+        if plan.composite == aster_render_ir::EffectComposite::Fixed {
+            return self.fixed.record(
+                device,
+                encoder,
+                plan.blend,
+                &effected,
+                &scene.create_view(&Default::default()),
+            );
+        }
         encoder.copy_texture_to_texture(
             scene.as_image_copy(),
             targets.input.raw().as_image_copy(),

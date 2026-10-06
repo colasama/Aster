@@ -72,8 +72,16 @@ submission has its own module. Frame buffers remain GPU-resident until an explic
 Its initial capability covers solid/vector draws, supplied still-image pixels, fixed and backdrop
 blends, display conversion and all four AA modes. It consumes shared WGSL and exact supplied geometry, lighting, clear and
 post-process buffers; it does not evaluate projects or open media paths. Unsupported operations
-return explicit errors before rendering. Masks, adjustments and recursive surfaces remain
-pending native capabilities, and production preview/export still use the TS execution path.
+return explicit errors before rendering. Supplied layer programs now execute mask groups, channel
+mattes, feathering, exposure and inversion through the shared post shader. Fixed composites blend
+isolated output once; adjustment passes snapshot the accumulated scene and replace it after processing.
+Recursive surfaces and the wider effect catalog remain pending; production preview/export still use TS.
+
+The application host may supply an explicit DXC library through `NativeOptions.dxcompiler`
+(`render-plan --dxcompiler` for diagnostics). The renderer has no dependency on a development install
+path. Full layer pipelines compile lazily and remain cached on the device; zero-operation display
+passes retain their existing specialization. Windows migration verification pins and uses the DXC
+library already shipped with the installed Electron runtime; no compiler download is performed.
 
 Linear HDR scene and isolated layer intermediates stay on the GPU. Frame targets are reused by
 extent under a configured allocation budget; a returned frame leases its output until released,

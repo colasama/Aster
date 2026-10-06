@@ -52,6 +52,14 @@ export async function runNativeRejections(context, { reader, base, binary }, exe
     results.push({ id, rejected: true, output_unchanged: true, step, error: error.error });
   };
   await invoke("existing-output", "layer-solid", [], /output already exists/, true);
+  if (process.platform === "win32") {
+    await invoke(
+      "missing-compiler",
+      "layer-solid",
+      ["--dxcompiler", join(context.output, "missing-dxcompiler.dll")],
+      /DXC library/,
+    );
+  }
   await invoke("resource-budget", "layer-solid", ["--resource-byte-budget", "16"], /budget/i);
   await invoke("gpu-budget", "layer-solid", ["--gpu-budget-bytes", "16"], /GPU allocation budget/);
   await invoke(
@@ -63,7 +71,7 @@ export async function runNativeRejections(context, { reader, base, binary }, exe
   for (const id of [
     "media-image-sequence",
     "nested-precompositions",
-    "scene-masks-mattes-0",
+    "effect-brightness-contrast",
     "scene-particles-billboard",
     "scene-motion-blur",
     "effect-gaussian-blur",

@@ -19,6 +19,8 @@ mod image_cache_tests;
 pub struct NativeOptions {
     pub backend: NativeBackend,
     pub adapter_name: Option<String>,
+    /// Explicit DXC library supplied by the application host on Windows.
+    pub dxcompiler: Option<std::path::PathBuf>,
     pub gpu_budget_bytes: u64,
     pub timeout: Duration,
 }
@@ -74,7 +76,7 @@ impl FrameTargets {
                 "Linear HDR scene",
                 render_size,
                 wgpu::TextureFormat::Rgba16Float,
-                sampled | wgpu::TextureUsages::COPY_SRC,
+                sampled | wgpu::TextureUsages::COPY_SRC | wgpu::TextureUsages::COPY_DST,
             ),
             depth: texture(
                 "Scene depth",
@@ -110,10 +112,25 @@ impl NativeRenderer {
             NativeBackend::Metal => wgpu::Backends::METAL,
             NativeBackend::Vulkan => wgpu::Backends::VULKAN,
         };
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends,
-            ..wgpu::InstanceDescriptor::new_without_display_handle()
-        });
+        let mut descriptor = wgpu::InstanceDescriptor::new_without_display_handle();
+        descriptor.backends = backends;
+        if let Some(path) = &options.dxcompiler {
+            let absolute = path
+                .canonicalize()
+                .map_err(|error| RenderError::Invalid(format!("DXC library: {error}")))?;
+            if !absolute.is_file() || backends != wgpu::Backends::DX12 {
+                return Err(RenderError::Invalid(
+                    "DXC requires a regular library file and DX12".into(),
+                ));
+            }
+            descriptor.backend_options.dx12.shader_compiler = wgpu::Dx12Compiler::DynamicDxc {
+                dxc_path: absolute
+                    .to_str()
+                    .ok_or_else(|| RenderError::Invalid("DXC path is not Unicode".into()))?
+                    .to_owned(),
+            };
+        }
+        let instance = wgpu::Instance::new(descriptor);
         let adapter = pollster::block_on(instance.enumerate_adapters(backends))
             .into_iter()
             .filter(|adapter| {
@@ -184,6 +201,11 @@ impl NativeRenderer {
             * (16 + if frame.layers.is_empty() { 0 } else { 20 })
             + u64::from(size.width) * u64::from(size.height) * 4
             + frame.vertices.len() as u64
+            + frame
+                .layers
+                .values()
+                .map(|layer| layer.operations.len() as u64 + layer.uniforms.len() as u64)
+                .sum::<u64>()
             + 8192;
         if bytes > self.options.gpu_budget_bytes
             || [
@@ -202,6 +224,13 @@ impl NativeRenderer {
         let memory = self.device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
         let internal = self.device.push_error_scope(wgpu::ErrorFilter::Internal);
         let validation = self.device.push_error_scope(wgpu::ErrorFilter::Validation);
+        if frame
+            .layers
+            .values()
+            .any(|layer| !layer.operations.is_empty())
+        {
+            self.output.prepare_effects(&self.device)?;
+        }
         let resized = self.targets.as_ref().is_none_or(|targets| {
             targets.render_size != render_size || targets.output_size != size
         });

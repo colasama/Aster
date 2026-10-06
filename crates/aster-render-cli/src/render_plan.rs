@@ -38,6 +38,9 @@ pub struct RenderPlanArgs {
     /// Exact adapter name; omission selects a hardware high-performance adapter.
     #[arg(long)]
     adapter: Option<String>,
+    /// Explicit existing DXC library for native DX12 effect programs.
+    #[arg(long)]
+    dxcompiler: Option<PathBuf>,
     #[arg(long, default_value_t = 536_870_912)]
     gpu_budget_bytes: u64,
     #[arg(long, default_value_t = 67_108_864)]
@@ -142,6 +145,7 @@ impl RenderPlanArgs {
         let mut renderer = NativeRenderer::new(NativeOptions {
             backend,
             adapter_name: self.adapter,
+            dxcompiler: self.dxcompiler,
             gpu_budget_bytes: self.gpu_budget_bytes,
             timeout: Duration::from_millis(self.timeout_ms),
         })?;

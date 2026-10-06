@@ -36,6 +36,13 @@ export const coreGeometryCases = [
   "blend-exclusion",
 ];
 
+export const coreLayerCases = [
+  "scene-masks-mattes-0",
+  "scene-masks-mattes-3",
+  "scene-masks-mattes-4",
+  "layer-adjustment",
+];
+
 export const coreImageCases = ["media-png", "media-jpg"];
 
 export function validateNativeReceipt(receipt, expected) {
@@ -60,7 +67,7 @@ export async function runNativeCoreGate(context, execute = runStep) {
   const report = {
     id: "G3",
     status: "failed",
-    scope: "native-core-geometry-and-stills-v2",
+    scope: "native-core-geometry-stills-and-layers-v3",
     native_image_decode: true,
     full_coverage: false,
     milestone_exit_eligible: false,
@@ -103,7 +110,15 @@ export async function runNativeCoreGate(context, execute = runStep) {
     report.binary = { path: local(binary), sha256: await hashFile(binary) };
     const base = posix.dirname(milestone.input_manifest.path);
     const candidate = { schema_version: 1, frames: [] };
-    const cases = [...coreGeometryCases, ...coreImageCases];
+    const cases = [...coreGeometryCases, ...coreImageCases, ...coreLayerCases];
+    const compiler =
+      process.platform === "win32"
+        ? join(context.root, "node_modules", "electron", "dist", "dxcompiler.dll")
+        : null;
+    if (compiler) {
+      const pinned = await reader.bytes(local(compiler));
+      report.dxcompiler = { path: local(compiler), sha256: pinned.sha256 };
+    }
     for (const id of cases) {
       const item = corpus.cases.find((value) => value.id === id);
       assert(item, `Required native core case absent: ${id}`);
@@ -139,6 +154,7 @@ export async function runNativeCoreGate(context, execute = runStep) {
               `${base}/${id}/frame-resources`,
               "--out",
               output,
+              ...(compiler && coreLayerCases.includes(id) ? ["--dxcompiler", compiler] : []),
             ],
             timeout_ms: 120_000,
           },

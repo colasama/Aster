@@ -346,7 +346,7 @@ pixels. It materializes hash-pinned source files, grants each source and scope e
 native decode receipts plus the same frozen-reference GPU comparisons and self-reviews. Missing
 grants, incorrect scopes/hashes and source/pixel budget violations must reject without publication.
 The packaged FFmpeg executable and all source inputs are pinned for the run. These eight renders
-supplement the 96 supplied-resource frames; complete core coverage is still required.
+supplement the 112 supplied-resource frames; complete core coverage is still required.
 
 EXR has the recorded `ts-exr-import` reference boundary. G0 checks the real hash-pinned EXR asset's
 linear sample values and rejects malformed extents, budgets and non-finite values. G1 round-trips
@@ -356,3 +356,19 @@ survive exactly, proving that values were neither clipped to SDR nor sampled as 
 budget rejection and reuse are checked on the GPU. A supplemental EXR frame-plan run replaces only
 the captured image resource closure and records its native receipt and output; its report explicitly
 does not claim unavailable TS EXR pixel parity. No frozen references or tolerances are modified.
+
+The native layer increment adds all four frames of the three mask/matte scenes and the adjustment
+layer case. These execute original supplied operation bytes, fixed alpha composition and scene
+replacement on DX12, using the existing Electron DXC library with its hash recorded in G3. The
+library is an explicit CLI input, never inferred from the frame plan. Every result uses the frozen
+TS reference and the same GPU structural checks and self-review. Unsupported effect operations,
+pyramids and recursive surfaces still reject; nested adjustment coverage belongs to recursive
+surface execution and this increment does not establish full M3 exit.
+
+The native layer increment adds all four frames of the three mask/matte scenes and the adjustment
+layer case. These execute original supplied operation bytes, fixed alpha composition and scene
+replacement on DX12, using the existing Electron DXC library with its hash recorded in G3. The
+library is an explicit CLI input, never inferred from the frame plan. Every result uses the frozen
+TS reference and the same GPU structural checks and self-review. Unsupported effect operations,
+pyramids and recursive surfaces still reject; nested adjustment coverage belongs to recursive
+surface execution and this increment does not establish full M3 exit.
