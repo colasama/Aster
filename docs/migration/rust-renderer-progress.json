@@ -146,48 +146,48 @@
     }
   },
   "last_cycle": {
-    "id": 78,
-    "time": "2026-10-05T23:35:15.639Z",
+    "id": 79,
+    "time": "2026-10-06T00:03:14.368Z",
     "milestone": "M3",
     "task": "M3-T2",
     "outcome": "passed",
-    "commit": "18243bd3475546dc333beb90f073f79adcfc7c3e",
-    "verification": "artifacts/migration/verify-2026-10-05T23-29-43-732Z-477086f7.json",
-    "verification_sha256": "51a8dfd066f07280775c4f7c3800055d409f1276829994cfd90fb4b0b163bfc2",
+    "commit": "4b15b821bc921145d177cb1b738b8a4eebf21f92",
+    "verification": "artifacts/migration/verify-2026-10-05T23-57-22-338Z-e887bc48.json",
+    "verification_sha256": "9c18e980df74d05e1a73042fbd47e641f41bde38c8dc08ef6efd95c30cb589e4",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 83757
+        "duration_ms": 82651
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 58143
+        "duration_ms": 28302
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 152439
+        "duration_ms": 160952
       }
     ],
-    "verification_duration_ms": 295774,
-    "next_step": "Complete M3-T2 native EXR linear HDR decode, GPU texture support and sample validation, then continue masks/mattes/adjustments.",
+    "verification_duration_ms": 273352,
+    "next_step": "Implement M3-T3 masks, mattes and adjustment-layer composition using supplied plans and shared shaders.",
     "notes": [
-      "Added internal aster-media-native broker using existing bounded FFmpeg process support. Explicit source/scope/path grants, SHA-256 plus imported content identity and immutable stdin snapshots prevent unauthorized or changed inputs from decoding. No new external dependency or shipped FFmpeg change.",
-      "Original PNG/JPEG frame plans now render without TS pixel attachments. Eight native-decoded outputs supplement the existing 96 supplied-resource outputs. All current G0/G1/G3 gates pass.",
-      "Initial PNG comparison was rejected at max error 4 despite aligned structures. Matching browser associated-alpha precision reduced max error to 1. JPEG max error is 2. All GPU metrics and structural checks pass; inspected contact sheets/heatmaps and recorded accepted reviews. No tolerance or reference changes.",
-      "Five native CLI authorization/budget rejection cases and CPU tests verify rejection ordering, source identity, cancellation and malformed/changed encoded extents. Existing GPU cache and eleven supplied-path rejection cases still pass.",
-      "M3-T2 remains in progress for EXR/HDR. Production preview and export remain TS; the final migration goal is not complete."
+      "Authorized EXR snapshots decode through the existing Rust exr library into linear rgba16float. Input/header/offset-table bounds, source identity, supported channels/primaries/windows, cancellation and timeout are enforced; unsupported or non-finite values reject explicitly. No new external package or shipped codec changes.",
+      "The additive frame-plan format is round-tripped exactly by TS and Rust. GPU allocation, upload and cache byte accounting distinguish SDR bytes from linear half floats; browser raster captures remain eight-bit.",
+      "G0 real EXR sample assertions and HDR/negative/alpha/invalid-input checks pass. G3 decodes an authorized EXR file through the production image shader and cache and exactly recovers associated (4,-2,0.25,0.5), including rejection below the float texture budget and unchanged texture reuse.",
+      "The supplemental real-asset EXR original-plan CLI execution passes, with a native source hash/format/adapter/texture receipt. Direct inspection shows the expected bars and gradients. The existing ts-exr-import boundary remains explicit: this is native numeric/GPU evidence, not a fabricated TS EXR reference.",
+      "All prior 96 supplied-resource and eight native PNG/JPEG frame comparisons retain their accepted reviews; tolerances and frozen references are unchanged. M3-T2 is complete for the declared supported still formats; M3 remains open for masks, mattes, adjustments, precompositions and its full exit audit. Production preview/export still use TS."
     ],
     "verification_attempts": [
       {
-        "path": "artifacts/migration/verify-2026-10-05T23-22-15-739Z-caf342b5.json",
+        "path": "artifacts/migration/verify-2026-10-05T23-49-03-361Z-3505b208.json",
         "status": "failed",
-        "reason": "G0 Clippy manual_checked_ops; replaced alpha branch division with checked_div. G1/G3 passed."
+        "reason": "G0 migration tests and G1 expected 11 media scene fixtures; rgba16float adds the twelfth fixture and the 129th exact roundtrip. Updated explicit coverage counts; G3 already passed."
       },
       {
-        "path": "artifacts/migration/verify-2026-10-05T23-29-43-732Z-477086f7.json",
+        "path": "artifacts/migration/verify-2026-10-05T23-57-22-338Z-e887bc48.json",
         "status": "passed"
       }
     ]
@@ -19650,11 +19650,8 @@
         {
           "id": "M3-T2",
           "title": "Decode authorized PNG, JPEG and EXR stills and execute image draws with cached GPU resources",
-          "status": "in_progress",
-          "remaining": [
-            "Authorized native EXR decode preserving linear HDR samples",
-            "EXR GPU texture execution and real-byte sample checks"
-          ],
+          "status": "done",
+          "remaining": [],
           "increments": [
             {
               "id": 77,
@@ -19738,6 +19735,53 @@
                   "status": "passed"
                 }
               ]
+            },
+            {
+              "id": 79,
+              "time": "2026-10-06T00:03:14.368Z",
+              "milestone": "M3",
+              "task": "M3-T2",
+              "outcome": "passed",
+              "commit": "4b15b821bc921145d177cb1b738b8a4eebf21f92",
+              "verification": "artifacts/migration/verify-2026-10-05T23-57-22-338Z-e887bc48.json",
+              "verification_sha256": "9c18e980df74d05e1a73042fbd47e641f41bde38c8dc08ef6efd95c30cb589e4",
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 82651
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 28302
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 160952
+                }
+              ],
+              "verification_duration_ms": 273352,
+              "next_step": "Implement M3-T3 masks, mattes and adjustment-layer composition using supplied plans and shared shaders.",
+              "notes": [
+                "Authorized EXR snapshots decode through the existing Rust exr library into linear rgba16float. Input/header/offset-table bounds, source identity, supported channels/primaries/windows, cancellation and timeout are enforced; unsupported or non-finite values reject explicitly. No new external package or shipped codec changes.",
+                "The additive frame-plan format is round-tripped exactly by TS and Rust. GPU allocation, upload and cache byte accounting distinguish SDR bytes from linear half floats; browser raster captures remain eight-bit.",
+                "G0 real EXR sample assertions and HDR/negative/alpha/invalid-input checks pass. G3 decodes an authorized EXR file through the production image shader and cache and exactly recovers associated (4,-2,0.25,0.5), including rejection below the float texture budget and unchanged texture reuse.",
+                "The supplemental real-asset EXR original-plan CLI execution passes, with a native source hash/format/adapter/texture receipt. Direct inspection shows the expected bars and gradients. The existing ts-exr-import boundary remains explicit: this is native numeric/GPU evidence, not a fabricated TS EXR reference.",
+                "All prior 96 supplied-resource and eight native PNG/JPEG frame comparisons retain their accepted reviews; tolerances and frozen references are unchanged. M3-T2 is complete for the declared supported still formats; M3 remains open for masks, mattes, adjustments, precompositions and its full exit audit. Production preview/export still use TS."
+              ],
+              "verification_attempts": [
+                {
+                  "path": "artifacts/migration/verify-2026-10-05T23-49-03-361Z-3505b208.json",
+                  "status": "failed",
+                  "reason": "G0 migration tests and G1 expected 11 media scene fixtures; rgba16float adds the twelfth fixture and the 129th exact roundtrip. Updated explicit coverage counts; G3 already passed."
+                },
+                {
+                  "path": "artifacts/migration/verify-2026-10-05T23-57-22-338Z-e887bc48.json",
+                  "status": "passed"
+                }
+              ]
             }
           ],
           "completed_scope": {
@@ -19755,8 +19799,24 @@
               "profile": "gpu",
               "native_image_decode": true,
               "authorization_rejections": 5
+            },
+            "native_exr": {
+              "commit": "4b15b821bc921145d177cb1b738b8a4eebf21f92",
+              "verification": "artifacts/migration/verify-2026-10-05T23-57-22-338Z-e887bc48.json",
+              "reference_boundary": "ts-exr-import",
+              "real_asset_samples": "G0 checked against pinned linear sample values",
+              "gpu_shader": "exact associated HDR and negative values, half-float budgets and reuse",
+              "original_plan": {
+                "path": "artifacts/migration/2026-10-05T23-57-22-338Z-e887bc48/G3/native-exr/frame.png",
+                "sha256": "80ee66f6898d92eb53de31465a7a7aced57cf4f1a9bcdc0c5939ee88d873c99c"
+              },
+              "ts_pixel_parity": false
             }
-          }
+          },
+          "completed_at": "2026-10-06T00:03:14.368Z",
+          "commit": "4b15b821bc921145d177cb1b738b8a4eebf21f92",
+          "verification": "artifacts/migration/verify-2026-10-05T23-57-22-338Z-e887bc48.json",
+          "verification_sha256": "9c18e980df74d05e1a73042fbd47e641f41bde38c8dc08ef6efd95c30cb589e4"
         },
         {
           "id": "M3-T3",
@@ -31383,6 +31443,53 @@
         },
         {
           "path": "artifacts/migration/verify-2026-10-05T23-29-43-732Z-477086f7.json",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "id": 79,
+      "time": "2026-10-06T00:03:14.368Z",
+      "milestone": "M3",
+      "task": "M3-T2",
+      "outcome": "passed",
+      "commit": "4b15b821bc921145d177cb1b738b8a4eebf21f92",
+      "verification": "artifacts/migration/verify-2026-10-05T23-57-22-338Z-e887bc48.json",
+      "verification_sha256": "9c18e980df74d05e1a73042fbd47e641f41bde38c8dc08ef6efd95c30cb589e4",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 82651
+        },
+        {
+          "id": "G1",
+          "status": "passed",
+          "duration_ms": 28302
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 160952
+        }
+      ],
+      "verification_duration_ms": 273352,
+      "next_step": "Implement M3-T3 masks, mattes and adjustment-layer composition using supplied plans and shared shaders.",
+      "notes": [
+        "Authorized EXR snapshots decode through the existing Rust exr library into linear rgba16float. Input/header/offset-table bounds, source identity, supported channels/primaries/windows, cancellation and timeout are enforced; unsupported or non-finite values reject explicitly. No new external package or shipped codec changes.",
+        "The additive frame-plan format is round-tripped exactly by TS and Rust. GPU allocation, upload and cache byte accounting distinguish SDR bytes from linear half floats; browser raster captures remain eight-bit.",
+        "G0 real EXR sample assertions and HDR/negative/alpha/invalid-input checks pass. G3 decodes an authorized EXR file through the production image shader and cache and exactly recovers associated (4,-2,0.25,0.5), including rejection below the float texture budget and unchanged texture reuse.",
+        "The supplemental real-asset EXR original-plan CLI execution passes, with a native source hash/format/adapter/texture receipt. Direct inspection shows the expected bars and gradients. The existing ts-exr-import boundary remains explicit: this is native numeric/GPU evidence, not a fabricated TS EXR reference.",
+        "All prior 96 supplied-resource and eight native PNG/JPEG frame comparisons retain their accepted reviews; tolerances and frozen references are unchanged. M3-T2 is complete for the declared supported still formats; M3 remains open for masks, mattes, adjustments, precompositions and its full exit audit. Production preview/export still use TS."
+      ],
+      "verification_attempts": [
+        {
+          "path": "artifacts/migration/verify-2026-10-05T23-49-03-361Z-3505b208.json",
+          "status": "failed",
+          "reason": "G0 migration tests and G1 expected 11 media scene fixtures; rgba16float adds the twelfth fixture and the 129th exact roundtrip. Updated explicit coverage counts; G3 already passed."
+        },
+        {
+          "path": "artifacts/migration/verify-2026-10-05T23-57-22-338Z-e887bc48.json",
           "status": "passed"
         }
       ]
