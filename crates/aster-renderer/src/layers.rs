@@ -10,16 +10,19 @@ pub(crate) struct LayerTargets {
     pub input: TextureResource,
     pub output: TextureResource,
     pub depth: TextureResource,
+    pub blur: Option<crate::pyramid::Pyramid>,
+    pub glow: Option<crate::pyramid::Pyramid>,
 }
 
 pub(crate) struct LayerPipelines {
+    pyramids: crate::pyramid::PyramidPipelines,
     fixed: crate::fixed_composite::FixedComposite,
     layout: wgpu::BindGroupLayout,
     pipelines: BTreeMap<u8, wgpu::RenderPipeline>,
 }
 
 impl LayerTargets {
-    pub fn new(device: &wgpu::Device, size: Extent2d) -> Self {
+    pub fn new(device: &wgpu::Device, size: Extent2d, blur: bool, glow: bool) -> Self {
         let create = |label, format, usage| {
             TextureResource::create(
                 device,
@@ -34,6 +37,8 @@ impl LayerTargets {
         };
         let usage = wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING;
         Self {
+            blur: blur.then(|| crate::pyramid::Pyramid::new(device, size)),
+            glow: glow.then(|| crate::pyramid::Pyramid::new(device, size)),
             input: create(
                 "Layer source and backdrop",
                 wgpu::TextureFormat::Rgba16Float,
@@ -119,6 +124,7 @@ impl LayerPipelines {
             );
         }
         Ok(Self {
+            pyramids: crate::pyramid::PyramidPipelines::new(device, catalog)?,
             layout,
             pipelines,
             fixed: crate::fixed_composite::FixedComposite::new(device, catalog)?,
@@ -146,7 +152,33 @@ impl LayerPipelines {
                 scene.size(),
             );
         }
-        output.record_layer(device, encoder, plan, &source, &effected)?;
+        if plan.uses_blur {
+            let pyramid = targets
+                .blur
+                .as_ref()
+                .ok_or_else(|| RenderError::Invalid("blur pyramid absent".into()))?;
+            self.pyramids
+                .record(device, encoder, &source, pyramid, None);
+        }
+        if plan.uses_glow {
+            let pyramid = targets
+                .glow
+                .as_ref()
+                .ok_or_else(|| RenderError::Invalid("glow pyramid absent".into()))?;
+            self.pyramids
+                .record(device, encoder, &source, pyramid, Some(plan.glow_threshold));
+        }
+        output.record_layer(
+            device,
+            encoder,
+            plan,
+            &source,
+            &effected,
+            (
+                targets.blur.as_ref().map_or(&source, |p| &p.view),
+                targets.glow.as_ref().map_or(&source, |p| &p.view),
+            ),
+        )?;
         if plan.composite == aster_render_ir::EffectComposite::Replace {
             encoder.copy_texture_to_texture(
                 targets.output.raw().as_image_copy(),

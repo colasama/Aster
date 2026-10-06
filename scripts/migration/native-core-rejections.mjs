@@ -70,11 +70,11 @@ export async function runNativeRejections(context, { reader, base, binary }, exe
   );
   for (const id of [
     "media-image-sequence",
-    "nested-precompositions",
+    "layer-text",
     "effect-brightness-contrast",
     "scene-particles-billboard",
     "scene-motion-blur",
-    "effect-gaussian-blur",
+    "lut-tetrahedral",
   ]) {
     await invoke(id, id, [], /unsupported native feature/);
   }

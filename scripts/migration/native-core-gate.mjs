@@ -43,6 +43,8 @@ export const coreLayerCases = [
   "layer-adjustment",
 ];
 
+export const coreSurfaceCases = ["nested-precompositions", "scene-nested-adjustment"];
+
 export const coreImageCases = ["media-png", "media-jpg"];
 
 export function validateNativeReceipt(receipt, expected) {
@@ -67,7 +69,7 @@ export async function runNativeCoreGate(context, execute = runStep) {
   const report = {
     id: "G3",
     status: "failed",
-    scope: "native-core-geometry-stills-and-layers-v3",
+    scope: "native-core-surfaces-v4",
     native_image_decode: true,
     full_coverage: false,
     milestone_exit_eligible: false,
@@ -110,7 +112,7 @@ export async function runNativeCoreGate(context, execute = runStep) {
     report.binary = { path: local(binary), sha256: await hashFile(binary) };
     const base = posix.dirname(milestone.input_manifest.path);
     const candidate = { schema_version: 1, frames: [] };
-    const cases = [...coreGeometryCases, ...coreImageCases, ...coreLayerCases];
+    const cases = [...coreGeometryCases, ...coreImageCases, ...coreLayerCases, ...coreSurfaceCases];
     const compiler =
       process.platform === "win32"
         ? join(context.root, "node_modules", "electron", "dist", "dxcompiler.dll")
@@ -154,7 +156,9 @@ export async function runNativeCoreGate(context, execute = runStep) {
               `${base}/${id}/frame-resources`,
               "--out",
               output,
-              ...(compiler && coreLayerCases.includes(id) ? ["--dxcompiler", compiler] : []),
+              ...(compiler && (coreLayerCases.includes(id) || coreSurfaceCases.includes(id))
+                ? ["--dxcompiler", compiler]
+                : []),
             ],
             timeout_ms: 120_000,
           },
@@ -175,6 +179,13 @@ export async function runNativeCoreGate(context, execute = runStep) {
         if (coreImageCases.includes(id)) {
           assert(receipt.image_cache.uploads > 0, "Native image case uploaded no texture");
           assert(receipt.image_cache.resident_bytes > 0);
+        }
+        if (coreSurfaceCases.includes(id)) {
+          assert(
+            receipt.surface_cache.allocations > 0,
+            "Native surface case allocated no GPU target",
+          );
+          assert(receipt.surface_cache.resident_bytes > 0);
         }
         const entry = {
           case_id: id,
@@ -217,7 +228,7 @@ export async function runNativeCoreGate(context, execute = runStep) {
       {
         id: "native-image-cache",
         file: "cargo",
-        args: ["test", "-p", "aster-renderer", "native_image_cache", "--", "--ignored"],
+        args: ["test", "-p", "aster-renderer", "native_", "--", "--ignored"],
       },
       context,
     );

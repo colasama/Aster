@@ -15,6 +15,9 @@ mod hdr_image_tests;
 #[cfg(test)]
 #[path = "image_cache_tests.rs"]
 mod image_cache_tests;
+#[cfg(test)]
+#[path = "surface_cache_tests.rs"]
+mod surface_cache_tests;
 
 pub struct NativeOptions {
     pub backend: NativeBackend,
@@ -30,6 +33,7 @@ pub struct RenderedFrame {
     pub size: Extent2d,
     pub submission: wgpu::SubmissionIndex,
     pub image_cache: crate::ImageCacheStatistics,
+    pub surface_cache: crate::SurfaceCacheStatistics,
     _lease: Arc<()>,
 }
 
@@ -52,6 +56,7 @@ pub struct NativeRenderer {
     targets: Option<FrameTargets>,
     output_lease: Weak<()>,
     images: crate::image_cache::ImageCache,
+    surfaces: crate::surface_cache::SurfaceCache,
 }
 
 impl FrameTargets {
@@ -180,6 +185,7 @@ impl NativeRenderer {
             targets: None,
             output_lease: Weak::new(),
             images,
+            surfaces: Default::default(),
         })
     }
 
@@ -194,20 +200,24 @@ impl NativeRenderer {
                 "previous output frame is still leased".into(),
             ));
         }
-        let render_size = frame.header.render_target;
-        let size = frame.header.target;
-        let bytes = u64::from(render_size.width)
-            * u64::from(render_size.height)
-            * (16 + if frame.layers.is_empty() { 0 } else { 20 })
+        let render_size = frame.scene.header.render_target;
+        let size = frame.scene.header.target;
+        let surface_bytes = frame
+            .surfaces
+            .targets
+            .iter()
+            .map(|t| u64::from(t.size.width) * u64::from(t.size.height) * 12)
+            .sum::<u64>();
+        let bytes = u64::from(render_size.width) * u64::from(render_size.height) * 16
             + u64::from(size.width) * u64::from(size.height) * 4
-            + frame.vertices.len() as u64
+            + frame.scene.transient_bytes()
             + frame
-                .layers
-                .values()
-                .map(|layer| layer.operations.len() as u64 + layer.uniforms.len() as u64)
-                .sum::<u64>()
-            + 8192;
-        if bytes > self.options.gpu_budget_bytes
+                .surfaces
+                .targets
+                .iter()
+                .map(|t| t.scene.transient_bytes())
+                .sum::<u64>();
+        if bytes + surface_bytes > self.options.gpu_budget_bytes
             || [
                 render_size.width,
                 render_size.height,
@@ -224,10 +234,9 @@ impl NativeRenderer {
         let memory = self.device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
         let internal = self.device.push_error_scope(wgpu::ErrorFilter::Internal);
         let validation = self.device.push_error_scope(wgpu::ErrorFilter::Validation);
-        if frame
-            .layers
-            .values()
-            .any(|layer| !layer.operations.is_empty())
+        if std::iter::once(&frame.scene)
+            .chain(frame.surfaces.targets.iter().map(|s| &s.scene))
+            .any(|s| s.layers.values().any(|l| !l.operations.is_empty()))
         {
             self.output.prepare_effects(&self.device)?;
         }
@@ -247,7 +256,14 @@ impl NativeRenderer {
             (&self.device, &self.queue),
             &frame.images,
             registry,
-            self.options.gpu_budget_bytes - bytes,
+            self.options.gpu_budget_bytes - bytes - surface_bytes,
+            self.options.timeout,
+        )?;
+        self.surfaces.prepare(
+            &self.device,
+            &self.images.layout,
+            &frame.surfaces,
+            self.options.gpu_budget_bytes - bytes - self.images.statistics.resident_bytes,
             self.options.timeout,
         )?;
         if resized {
@@ -266,12 +282,23 @@ impl NativeRenderer {
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("Supplied native frame"),
             });
+        for input in &frame.surfaces.targets {
+            let target = self.surfaces.target(&input.key)?;
+            self.scene.record(
+                &self.device,
+                &mut encoder,
+                &input.scene,
+                (&target.color, &target.depth),
+                (&self.images, &self.surfaces, &frame.surfaces),
+                &self.output,
+            )?;
+        }
         self.scene.record(
             &self.device,
             &mut encoder,
-            frame,
+            &frame.scene,
             (targets.scene.raw(), &depth),
-            &self.images,
+            (&self.images, &self.surfaces, &frame.surfaces),
             &self.output,
         )?;
         self.output.record(
@@ -279,7 +306,7 @@ impl NativeRenderer {
             &mut encoder,
             frame,
             &scene,
-            if frame.header.aa == AntiAliasing::Off {
+            if frame.scene.header.aa == AntiAliasing::Off {
                 &output
             } else {
                 &display
@@ -292,6 +319,7 @@ impl NativeRenderer {
         let memory_error = pollster::block_on(memory.pop());
         if let Some(error) = validation_error.or(internal_error).or(memory_error) {
             self.images.invalidate();
+            self.surfaces.invalidate();
             return Err(RenderError::Gpu(error.to_string()));
         }
         let lease = Arc::new(());
@@ -301,6 +329,7 @@ impl NativeRenderer {
             size,
             submission,
             image_cache: self.images.statistics,
+            surface_cache: self.surfaces.statistics,
             _lease: lease,
         })
     }

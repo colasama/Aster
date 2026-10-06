@@ -191,7 +191,7 @@ export async function verifyMigration(options, dependencies = {}) {
               ),
         );
         report.milestone_exit_reason =
-          "Native core increments do not establish recursive precomposition coverage or the complete M3 exit";
+          "Native core increments require the complete core corpus and M3 exit audit";
       } else if (id === "G3") {
         const pixelContext = { ...context, output: join(output, "G3") };
         const build = await execute(

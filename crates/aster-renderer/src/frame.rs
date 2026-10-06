@@ -1,21 +1,17 @@
 use aster_render_ir::{
     BundleDependencies, ContractLevel, DecodeLimits, EffectBlendMode, FinalBeautySource,
-    FinalOutputRoute, FplnCodec, FrameHeaderSlice, MotionReconstructionStatus, OwnedFpln,
-    PlanSlice, ResourceRegistry, RootCommandRecord, RootSceneCommandsSlice, RootTextureReference,
+    FinalOutputRoute, FplnCodec, MotionReconstructionStatus, OwnedFpln, PlanSlice,
+    ResourceRegistry,
 };
 
 use crate::RenderError;
 
 /// Validated, owned execution inputs. No project evaluation or filesystem access occurs here.
 pub struct SuppliedFrame {
-    pub(crate) header: FrameHeaderSlice,
-    pub(crate) lighting: Vec<u8>,
-    pub(crate) vertices: Vec<u8>,
-    pub(crate) root: RootSceneCommandsSlice,
-    pub(crate) clears: Vec<[f64; 5]>,
+    pub(crate) scene: crate::scene_input::SceneInput,
+    pub(crate) surfaces: crate::surface_plan::SurfacePlan,
     pub(crate) post: Vec<u8>,
     pub(crate) output_clear: wgpu::Color,
-    pub(crate) layers: std::collections::BTreeMap<u32, crate::layer_plan::LayerPlan>,
     pub(crate) images:
         std::collections::BTreeMap<aster_render_ir::ResourceHash, crate::image_input::ImageInput>,
 }
@@ -36,12 +32,11 @@ impl SuppliedFrame {
         BundleDependencies::default().validate(&plan.metadata, registry, limits)?;
         if bundle.auxiliary.is_some()
             || bundle.effect.is_some()
-            || bundle.precompositions.is_some()
             || !bundle.temporal.is_empty()
             || !bundle.generators.is_empty()
         {
             return Err(RenderError::Unsupported(
-                "effect, auxiliary, temporal, generator or precomposition pass".into(),
+                "effect, auxiliary, temporal or generator pass".into(),
             ));
         }
         let stage =
@@ -58,7 +53,6 @@ impl SuppliedFrame {
             };
         let scene = stage(&bundle.scene, ContractLevel::SceneBuffersSliceV1)?;
         let root = stage(&bundle.root, ContractLevel::RootSceneCommandsSliceV1)?;
-        let layers = crate::layer_plan::LayerPlan::collect(bundle, &root, registry, limits)?;
         let post = stage(&bundle.post, ContractLevel::PostUniformsSliceV1)?;
         if post.blob(0)?[64..80]
             .chunks_exact(4)
@@ -77,76 +71,43 @@ impl SuppliedFrame {
                 "motion or diagnostic output".into(),
             ));
         }
-        let Some(PlanSlice::SceneBuffers(scene_slice)) = scene.metadata.slices.first() else {
-            return Err(RenderError::Invalid("scene buffers required".into()));
-        };
-        if scene_slice.shadows_enabled && scene_slice.draws.iter().any(|draw| draw.casts_shadow) {
-            return Err(RenderError::Unsupported("shadow draws".into()));
-        }
-        let Some(PlanSlice::RootSceneCommands(commands)) = root.metadata.slices.first() else {
-            return Err(RenderError::Invalid("root commands required".into()));
-        };
         if !decoded_images.is_empty() && !bundle.media_pixels.is_empty() {
             return Err(RenderError::Invalid(
                 "native and supplied image generations cannot be mixed".into(),
             ));
         }
-        let images = crate::image_input::ImageInput::collect(
+        let scene = crate::scene_input::SceneInput::new(
+            &scene,
+            &root,
+            &bundle.effects,
             if decoded_images.is_empty() {
                 &bundle.media_pixels
             } else {
                 decoded_images
             },
-            scene_slice,
-            commands,
             registry,
+            limits,
+            false,
         )?;
-        for draw in &commands.draws {
-            if !matches!(
-                draw.texture,
-                RootTextureReference::None | RootTextureReference::Media { .. }
-            ) || draw.material_blob_index.is_some()
-            {
-                return Err(RenderError::Unsupported("texture or material draw".into()));
-            }
-            if draw
-                .first_vertex
-                .checked_add(draw.vertex_count)
-                .is_none_or(|end| end > scene_slice.vertex_count)
-            {
-                return Err(RenderError::Invalid(
-                    "draw exceeds supplied vertices".into(),
-                ));
-            }
-        }
-        for command in &commands.commands {
-            match command {
-                RootCommandRecord::BeginScene { .. } | RootCommandRecord::EndScene => {}
-                RootCommandRecord::Geometry { blend_mode, .. } => {
-                    Self::blend_index(blend_mode)?;
-                }
-                RootCommandRecord::BeginLayer { effect_blob_index }
-                | RootCommandRecord::Adjustment { effect_blob_index }
-                    if layers.contains_key(effect_blob_index) => {}
-                RootCommandRecord::FinishLayer => {}
-                _ => {
-                    return Err(RenderError::Unsupported(
-                        "layer, adjustment or generator command".into(),
+        let surfaces = crate::surface_plan::SurfacePlan::collect(
+            bundle.precompositions.as_ref(),
+            &scene,
+            registry,
+            limits,
+        )?;
+        let mut images = scene.images.clone();
+        for surface in &surfaces.targets {
+            for (hash, image) in &surface.scene.images {
+                if images
+                    .get(hash)
+                    .is_some_and(|old| old.pixels != image.pixels)
+                {
+                    return Err(RenderError::Invalid(
+                        "root and surface image generations differ".into(),
                     ));
                 }
+                images.insert(hash.clone(), image.clone());
             }
-        }
-        let scene_bytes = scene.blob(scene_slice.blob_index as usize)?;
-        let mut clears = Vec::new();
-        for bytes in root.blob(commands.blob_index as usize)?.chunks_exact(40) {
-            let mut values = [0.0; 5];
-            for (value, lane) in values.iter_mut().zip(bytes.chunks_exact(8)) {
-                *value = f64::from_le_bytes(
-                    lane.try_into()
-                        .map_err(|_| RenderError::Invalid("clear lane".into()))?,
-                );
-            }
-            clears.push(values);
         }
         let mut clear = [0.0; 4];
         for (value, bytes) in clear.iter_mut().zip(output.blob(0)?.chunks_exact(4)) {
@@ -157,13 +118,9 @@ impl SuppliedFrame {
             ));
         }
         Ok(Self {
-            header: plan.metadata.header,
-            lighting: scene_bytes[..592].to_vec(),
-            vertices: scene_bytes[592..592 + scene_slice.vertex_count as usize * 160].to_vec(),
-            root: commands.clone(),
-            clears,
+            scene,
+            surfaces,
             post: post.blob(0)?.to_vec(),
-            layers,
             images,
             output_clear: wgpu::Color {
                 r: clear[0],

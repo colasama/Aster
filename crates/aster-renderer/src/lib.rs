@@ -8,11 +8,16 @@ mod image_input;
 mod layer_plan;
 mod layers;
 mod output;
+mod pyramid;
 mod scene;
+mod scene_input;
+mod surface_cache;
+mod surface_plan;
 
 pub use device::{NativeOptions, NativeRenderer, RenderedFrame};
 pub use frame::SuppliedFrame;
 pub use image_cache::ImageCacheStatistics;
+pub use surface_cache::SurfaceCacheStatistics;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RenderError {

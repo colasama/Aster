@@ -2,8 +2,7 @@ use std::collections::BTreeMap;
 
 use aster_render_ir::{
     ContractLevel, DecodeLimits, EffectBlendMode, EffectComposite, EffectExecutionRoute,
-    EffectRoute, FplnCodec, FrameBundleSlice, OwnedFpln, PlanSlice, PrecompositionEffectRecord,
-    ResourceRegistry,
+    EffectRoute, FplnCodec, OwnedFpln, PlanSlice, PrecompositionEffectRecord, ResourceRegistry,
 };
 
 use crate::RenderError;
@@ -13,17 +12,21 @@ pub(crate) struct LayerPlan {
     pub uniforms: Vec<u8>,
     pub operations: Vec<u8>,
     pub composite: EffectComposite,
+    pub uses_blur: bool,
+    pub uses_glow: bool,
+    pub glow_threshold: f32,
 }
 
 impl LayerPlan {
     pub(crate) fn collect(
-        bundle: &FrameBundleSlice,
+        effects: &[PrecompositionEffectRecord],
         root: &OwnedFpln,
         registry: &ResourceRegistry,
         limits: &DecodeLimits,
+        nested: bool,
     ) -> Result<BTreeMap<u32, Self>, RenderError> {
         let mut layers = BTreeMap::new();
-        for record in &bundle.effects {
+        for record in effects {
             let (instance_id, plan_hash, execution_hash) = match record {
                 PrecompositionEffectRecord::Direct { .. } => continue,
                 PrecompositionEffectRecord::Ready {
@@ -40,10 +43,14 @@ impl LayerPlan {
             };
             let plan = FplnCodec::decode(registry.resolve(plan_hash)?.to_vec(), limits)?;
             let execution = FplnCodec::decode(registry.resolve(execution_hash)?.to_vec(), limits)?;
+            let mut effect_header = root.metadata.header.clone();
+            if nested {
+                effect_header.snapshot_scope = "precomposition-effects".into();
+            }
             if plan.metadata.contract_level != ContractLevel::LayerEffectsSliceV1
                 || execution.metadata.contract_level != ContractLevel::EffectExecutionSliceV1
-                || plan.metadata.header != root.metadata.header
-                || execution.metadata.header != root.metadata.header
+                || plan.metadata.header != effect_header
+                || execution.metadata.header != effect_header
             {
                 return Err(RenderError::Invalid(
                     "layer identity or contract differs".into(),
@@ -55,9 +62,6 @@ impl LayerPlan {
             let Some(PlanSlice::EffectExecution(route)) = execution.metadata.slices.first() else {
                 return Err(RenderError::Invalid("layer route missing".into()));
             };
-            if effect.uses_blur || effect.uses_glow {
-                return Err(RenderError::Unsupported("effect pyramid".into()));
-            }
             let expected_route = match effect.route {
                 EffectRoute::Layer => EffectExecutionRoute::Layer,
                 EffectRoute::Adjustment => EffectExecutionRoute::Adjustment,
@@ -75,8 +79,8 @@ impl LayerPlan {
                         .try_into()
                         .map_err(|_| RenderError::Invalid("operation lane".into()))?,
                 );
-                // These operations use only the supplied source and uniforms, without a LUT or pyramid.
-                if ![38.0, 98.0, 106.0, 107.0, 174.0, 210.0].contains(&code) {
+                // These operations use supplied source pixels and optional pyramids, without an external LUT.
+                if ![38.0, 98.0, 101.0, 102.0, 106.0, 107.0, 174.0, 210.0].contains(&code) {
                     return Err(RenderError::Unsupported(format!("layer operation {code}")));
                 }
             }
@@ -140,6 +144,13 @@ impl LayerPlan {
                         uniforms,
                         operations,
                         composite: route.composite.clone(),
+                        uses_blur: effect.uses_blur,
+                        uses_glow: effect.uses_glow,
+                        glow_threshold: f64::from_le_bytes(
+                            bytes[4192..4200]
+                                .try_into()
+                                .map_err(|_| RenderError::Invalid("glow threshold".into()))?,
+                        ) as f32,
                     },
                 )
                 .is_some()

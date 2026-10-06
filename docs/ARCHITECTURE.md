@@ -75,7 +75,18 @@ post-process buffers; it does not evaluate projects or open media paths. Unsuppo
 return explicit errors before rendering. Supplied layer programs now execute mask groups, channel
 mattes, feathering, exposure and inversion through the shared post shader. Fixed composites blend
 isolated output once; adjustment passes snapshot the accumulated scene and replace it after processing.
-Recursive surfaces and the wider effect catalog remain pending; production preview/export still use TS.
+Child-first precomposition surfaces use the shared premultiplied surface shader and the same scene
+executor, including nested adjustments and their blur/glow pyramids. The wider effect catalog remains
+pending; production preview/export still use TS.
+
+Surface routing is checked against the graph, geometry mappings and exact resource closure before
+GPU execution. Child scene/effect headers retain their own time and composition identity. Cached
+HDR/depth allocations are admitted for the complete frame before replacement; exact matches are kept,
+unused compatible targets are reassigned, and old incompatible targets retire after GPU completion.
+Pixels are rerendered from supplied inputs every frame, so allocation reuse cannot serve stale content.
+Image and surface caches share the configured GPU budget with frame, layer and pyramid intermediates.
+Blur and bright-pass chains currently retain the shared TS mip semantics; radius-bound optimization
+and cross-layer result caching remain separate effect-stage work.
 
 The application host may supply an explicit DXC library through `NativeOptions.dxcompiler`
 (`render-plan --dxcompiler` for diagnostics). The renderer has no dependency on a development install

@@ -322,8 +322,9 @@ precomposition test changes authored effects/blend after planning and verifies r
 ## Native geometry, blend and supplied-image acceptance
 
 M3 G3 executes the current release `aster-render-cli render-plan` against complete captured FPLN
-bundles and their hash-pinned resource closure. The current increment covers 24 cases (96 frames):
-solid/vector geometry, every blend mode, off/FXAA/SSAA2x/SSAA4x and supplied PNG/JPEG image pixels. Each receipt binds the native
+bundles and their hash-pinned resource closure. The current increment covers 30 cases (120 frames):
+solid/vector geometry, every blend mode, off/FXAA/SSAA2x/SSAA4x, supplied PNG/JPEG images, masks,
+mattes, adjustments and recursive precomposition surfaces. Each receipt binds the native
 adapter, plan hash, dimensions and decoded PNG pixels. Comparisons use the independently frozen
 TS references under the specified `gpu` profile, including every structural check and recorded
 section 6.6 self-review. M1/M2 retain their separate whole-corpus `exact` requirements.
@@ -332,8 +333,7 @@ The gate also checks rejection without output publication for unsupported featur
 budgets and corrupt resources, and preserves pre-existing output. Binary and input hashes must
 remain stable throughout the run. This is explicitly an incremental gate: its report sets
 `full_coverage` and `milestone_exit_eligible` to false. Passing G0/G1/G3 permits the increment's
-commit but cannot complete M3 while masks, adjustment layers or precomposition surfaces
-remain unimplemented. M3 exit requires the complete core corpus and an exit audit.
+commit but cannot complete M3 without the complete core corpus and an exit audit.
 
 Supplied-image receipts require actual native texture uploads and report `native_image_decode: false`.
 Supplied pixel hashes are bound to matching frame
@@ -346,7 +346,7 @@ pixels. It materializes hash-pinned source files, grants each source and scope e
 native decode receipts plus the same frozen-reference GPU comparisons and self-reviews. Missing
 grants, incorrect scopes/hashes and source/pixel budget violations must reject without publication.
 The packaged FFmpeg executable and all source inputs are pinned for the run. These eight renders
-supplement the 112 supplied-resource frames; complete core coverage is still required.
+supplement the 120 supplied-resource frames; complete core coverage is still required.
 
 EXR has the recorded `ts-exr-import` reference boundary. G0 checks the real hash-pinned EXR asset's
 linear sample values and rejects malformed extents, budgets and non-finite values. G1 round-trips
@@ -361,14 +361,13 @@ The native layer increment adds all four frames of the three mask/matte scenes a
 layer case. These execute original supplied operation bytes, fixed alpha composition and scene
 replacement on DX12, using the existing Electron DXC library with its hash recorded in G3. The
 library is an explicit CLI input, never inferred from the frame plan. Every result uses the frozen
-TS reference and the same GPU structural checks and self-review. Unsupported effect operations,
-pyramids and recursive surfaces still reject; nested adjustment coverage belongs to recursive
-surface execution and this increment does not establish full M3 exit.
+TS reference and the same GPU structural checks and self-review. Unsupported effect operations
+and external-LUT effects still reject. This incremental gate does not establish full M3 exit.
 
-The native layer increment adds all four frames of the three mask/matte scenes and the adjustment
-layer case. These execute original supplied operation bytes, fixed alpha composition and scene
-replacement on DX12, using the existing Electron DXC library with its hash recorded in G3. The
-library is an explicit CLI input, never inferred from the frame plan. Every result uses the frozen
-TS reference and the same GPU structural checks and self-review. Unsupported effect operations,
-pyramids and recursive surfaces still reject; nested adjustment coverage belongs to recursive
-surface execution and this increment does not establish full M3 exit.
+The recursive-surface increment additionally runs all eight original nested-precomposition and
+nested-adjustment frames, including the captured blur/glow dependencies. Receipts require real GPU
+surface allocations. G3 runs a GPU cache test for whole-set admission, unchanged state on rejected
+budgets/dimensions, exact-identity hits, compatible-allocation reassignment, dimension changes and
+retirement after shrink. Child-first routes are cross-checked with each captured geometry mapping.
+Surface pixels remain linear and premultiplied until the root display pass. No pre-rendered child
+pixels replace native child-scene execution.

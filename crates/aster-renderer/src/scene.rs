@@ -10,6 +10,7 @@ pub(crate) struct ScenePipelines {
     layout: wgpu::BindGroupLayout,
     pipelines: BTreeMap<u8, wgpu::RenderPipeline>,
     image_pipelines: BTreeMap<u8, wgpu::RenderPipeline>,
+    surface_pipelines: BTreeMap<u8, wgpu::RenderPipeline>,
     shadow: wgpu::Texture,
     shadow_sampler: wgpu::Sampler,
     layers: crate::layers::LayerPipelines,
@@ -67,6 +68,21 @@ impl ScenePipelines {
             &image_module,
             image_layout,
         );
+        let surface_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Shared premultiplied surface"),
+            source: wgpu::ShaderSource::Wgsl(
+                catalog
+                    .program("precomposition-surface")?
+                    .source
+                    .clone()
+                    .into(),
+            ),
+        });
+        let surface_pipelines = crate::geometry_pipelines::GeometryPipelines::create(
+            device,
+            &surface_module,
+            image_layout,
+        );
         let shadow = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Unoccluded shadow fallback"),
             size: wgpu::Extent3d {
@@ -91,6 +107,7 @@ impl ScenePipelines {
             layout,
             pipelines,
             image_pipelines,
+            surface_pipelines,
             shadow,
             shadow_sampler,
         })
@@ -100,12 +117,17 @@ impl ScenePipelines {
         &self,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
-        frame: &SuppliedFrame,
+        frame: &crate::scene_input::SceneInput,
         target: (&wgpu::Texture, &wgpu::TextureView),
-        images: &crate::image_cache::ImageCache,
+        resources: (
+            &crate::image_cache::ImageCache,
+            &crate::surface_cache::SurfaceCache,
+            &crate::surface_plan::SurfacePlan,
+        ),
         output: &crate::output::OutputPipelines,
     ) -> Result<(), RenderError> {
         let (scene, depth) = target;
+        let (images, surfaces, surface_plan) = resources;
         let lighting = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Supplied lighting"),
             contents: &frame.lighting,
@@ -153,8 +175,14 @@ impl ScenePipelines {
             ..Default::default()
         }));
         let scene_view = scene.create_view(&Default::default());
-        let layer_targets = (!frame.layers.is_empty())
-            .then(|| crate::layers::LayerTargets::new(device, frame.header.render_target));
+        let layer_targets = (!frame.layers.is_empty()).then(|| {
+            crate::layers::LayerTargets::new(
+                device,
+                frame.header.render_target,
+                frame.layers.values().any(|l| l.uses_blur),
+                frame.layers.values().any(|l| l.uses_glow),
+            )
+        });
         let layer_views = layer_targets.as_ref().map(|targets| {
             (
                 targets.input.create_view(&Default::default()),
@@ -294,6 +322,16 @@ impl ScenePipelines {
                                     })?;
                                     pass.set_bind_group(0, images.binding(image)?, &[]);
                                     &self.image_pipelines
+                                } else if let aster_render_ir::RootTextureReference::Surface {
+                                    instance_id,
+                                } = &draw.texture
+                                {
+                                    pass.set_bind_group(
+                                        0,
+                                        surfaces.binding(surface_plan, instance_id)?,
+                                        &[],
+                                    );
+                                    &self.surface_pipelines
                                 } else {
                                     pass.set_bind_group(0, &bindings, &[]);
                                     &self.pipelines

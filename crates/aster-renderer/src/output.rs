@@ -178,14 +178,24 @@ impl OutputPipelines {
                 bind_group_layouts: &[Some(&self.post_layout)],
                 immediate_size: 0,
             });
-            self.effects = Some(Self::pipeline(
+            let memory = device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
+            let internal = device.push_error_scope(wgpu::ErrorFilter::Internal);
+            let validation = device.push_error_scope(wgpu::ErrorFilter::Validation);
+            let pipeline = Self::pipeline(
                 device,
                 &catalog.program("post-process")?.source,
                 Some(&layout),
                 "fragment_main",
                 &[],
                 wgpu::TextureFormat::Rgba16Float,
-            ));
+            );
+            let validation_error = pollster::block_on(validation.pop());
+            let internal_error = pollster::block_on(internal.pop());
+            let memory_error = pollster::block_on(memory.pop());
+            if let Some(error) = validation_error.or(internal_error).or(memory_error) {
+                return Err(RenderError::Gpu(error.to_string()));
+            }
+            self.effects = Some(pipeline);
         }
         Ok(())
     }
@@ -238,6 +248,7 @@ impl OutputPipelines {
         bytes: &[u8],
         operations: &wgpu::Buffer,
         scene: &wgpu::TextureView,
+        pyramids: (&wgpu::TextureView, &wgpu::TextureView),
     ) -> wgpu::BindGroup {
         let uniforms = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Supplied root post uniforms"),
@@ -275,11 +286,11 @@ impl OutputPipelines {
                 },
                 wgpu::BindGroupEntry {
                     binding: 6,
-                    resource: wgpu::BindingResource::TextureView(scene),
+                    resource: wgpu::BindingResource::TextureView(pyramids.0),
                 },
                 wgpu::BindGroupEntry {
                     binding: 7,
-                    resource: wgpu::BindingResource::TextureView(scene),
+                    resource: wgpu::BindingResource::TextureView(pyramids.1),
                 },
             ],
         })
@@ -292,6 +303,7 @@ impl OutputPipelines {
         plan: &crate::layer_plan::LayerPlan,
         source: &wgpu::TextureView,
         output: &wgpu::TextureView,
+        pyramids: (&wgpu::TextureView, &wgpu::TextureView),
     ) -> Result<(), RenderError> {
         let operations = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Supplied layer operations"),
@@ -309,7 +321,7 @@ impl OutputPipelines {
                 .as_ref()
                 .ok_or_else(|| RenderError::Invalid("effect pipeline absent".into()))?
         };
-        let bindings = self.post_bindings(device, &plan.uniforms, &operations, source);
+        let bindings = self.post_bindings(device, &plan.uniforms, &operations, source, pyramids);
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Supplied linear layer pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -338,7 +350,8 @@ impl OutputPipelines {
         display: &wgpu::TextureView,
         output: &wgpu::TextureView,
     ) -> Result<(), RenderError> {
-        let bindings = self.post_bindings(device, &frame.post, &self.operations, scene);
+        let bindings =
+            self.post_bindings(device, &frame.post, &self.operations, scene, (scene, scene));
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Linear HDR to sRGB display"),
@@ -357,7 +370,7 @@ impl OutputPipelines {
             pass.set_bind_group(0, &bindings, &[]);
             pass.draw(0..3, 0..1);
         }
-        let mode = match frame.header.aa {
+        let mode = match frame.scene.header.aa {
             AntiAliasing::Off => return Ok(()),
             AntiAliasing::Fxaa => 1,
             AntiAliasing::Ssaa2x => 2,
