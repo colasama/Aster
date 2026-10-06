@@ -146,38 +146,61 @@
     }
   },
   "last_cycle": {
-    "id": 80,
-    "time": "2026-10-06T00:17:01.743Z",
+    "id": 81,
+    "time": "2026-10-06T00:46:13.737Z",
     "milestone": "M3",
-    "task": "M3-T3",
+    "task": "M3-T4",
     "outcome": "passed",
-    "commit": "faf7d38308cdf99aed62a9df547f6dd2f51662db",
-    "verification": "artifacts/migration/verify-2026-10-06T00-10-34-740Z-0fdf2c38.json",
-    "verification_sha256": "a231db4a9a2989a7fb007f2eed2496a2291e34898c50e8bd8d0f573b122b5798",
+    "commit": "228b17e48c59876e04065985f291b939537b70b1",
+    "verification": "artifacts/migration/verify-2026-10-06T00-36-09-330Z-e5f9195e.json",
+    "verification_sha256": "7c004ef63fdb79a96c87f4ce2e1d3216de4b2eb8a61aea2a440d60b7cc5eb239",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 83796
+        "duration_ms": 81074
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 60986
+        "duration_ms": 62054
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 211188
+        "duration_ms": 234748
       }
     ],
-    "verification_duration_ms": 357435,
-    "next_step": "Implement M3-T4 recursive precomposition GPU surfaces, including nested adjustments, with explicit cache budgets and lifetime.",
+    "verification_duration_ms": 379312,
+    "next_step": "Audit all M3 core corpus features, add remaining core cases and complete the M3 exit gate before moving to M4.",
     "notes": [
-      "Execute supplied layer mask groups, channel mattes, feathering, exposure and inversion through unchanged shared WGSL. Fixed blend passes composite isolated output once; adjustment passes snapshot and replace the accumulated HDR scene. Unsupported effect operations and pyramids continue to reject.",
-      "The native host accepts an explicit DXC library path; G3 pins the existing Electron DXC 1.9.2602.0 library. Full effect pipelines are compiled lazily and retained per device, resolving the old FXC full-program compilation failure without downloading or adding a compiler dependency.",
-      "All 16 new frames pass: twelve exact, four mask/matte frames with three one-code-value channel differences. Direct contact-sheet and heatmap inspections are accepted under section 6.6; no tolerance or reference changes. Existing 96 supplied-resource comparisons, eight native PNG/JPEG comparisons, EXR numeric/GPU evidence and rejections remain green.",
-      "M3-T3 non-recursive core coverage is complete. Nested adjustments depend on recursive surface execution in M3-T4; wider effect catalog coverage remains M4. M3 is not complete and production preview/export remain TS."
+      "Execute captured precomposition scenes child-first using the shared premultiplied surface shader and the same native scene executor. Graph routes, geometry mappings, child extents, effect headers and media closure are validated; no supplied child raster replaces native rendering.",
+      "Added shared blur and brightpass downsample chains required by the original nested fixtures. Per-layer thresholds are immutable buffers; intermediate HDR surfaces remain GPU-resident and only the root display pass converts to sRGB. Existing TS mip semantics are retained; effect-stage radius/caching optimizations remain pending.",
+      "Surface cache admits the whole target set before mutation, reserves exact matches, reassigns unused matching dimensions and retires incompatible textures after GPU completion. Every scene rerenders its supplied inputs. Frame/image/surface/layer/pyramid bytes share one GPU budget. GPU tests prove unchanged state on rejected budgets/dimensions, hits, reassignments, resize and shrink.",
+      "All eight new nested frames pass every GPU metric and structural check with maximum one-code-value residuals. Inspected all five distinct contact sheets and heatmaps and accepted self-reviews. Existing 112 supplied-resource comparisons, eight native PNG/JPEG comparisons, EXR numeric/GPU checks and rejection cases remain green; no reference or tolerance changes.",
+      "M3-T4 is complete; M3 still needs its full core-corpus and exit audit. Production preview/export remain TS."
+    ],
+    "diagnostics": [
+      {
+        "path": "artifacts/migration/cycle81-nested-first.log",
+        "outcome": "rejected",
+        "reason": "Initial root-header equality incorrectly rejected the separately scoped child graph. Preserved child identities, validated graph/header against its first supplied scene and retained root binding/hash closure checks."
+      },
+      {
+        "path": "artifacts/migration/cycle81-surfaces-first/report.json",
+        "outcome": "metrics-passed-self-reviewed"
+      }
+    ],
+    "verification_attempts": [
+      {
+        "path": "artifacts/migration/verify-2026-10-06T00-29-22-469Z-82103ba0.json",
+        "status": "failed",
+        "reason": "G0/G1 and all 120 native pixel comparisons passed. The old Gaussian-blur unsupported-feature test became obsolete after implementing nested blur dependencies; it reached shader compilation instead. Replaced it with still-unsupported external LUT rejection."
+      },
+      {
+        "path": "artifacts/migration/verify-2026-10-06T00-36-09-330Z-e5f9195e.json",
+        "status": "passed"
+      }
     ]
   },
   "milestones": [
@@ -19873,7 +19896,76 @@
         {
           "id": "M3-T4",
           "title": "Execute recursive precomposition surfaces with explicit GPU cache budgets and lifetime",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-10-06T00:46:13.737Z",
+          "commit": "228b17e48c59876e04065985f291b939537b70b1",
+          "verification": "artifacts/migration/verify-2026-10-06T00-36-09-330Z-e5f9195e.json",
+          "verification_sha256": "7c004ef63fdb79a96c87f4ce2e1d3216de4b2eb8a61aea2a440d60b7cc5eb239",
+          "increments": [
+            {
+              "id": 81,
+              "time": "2026-10-06T00:46:13.737Z",
+              "milestone": "M3",
+              "task": "M3-T4",
+              "outcome": "passed",
+              "commit": "228b17e48c59876e04065985f291b939537b70b1",
+              "verification": "artifacts/migration/verify-2026-10-06T00-36-09-330Z-e5f9195e.json",
+              "verification_sha256": "7c004ef63fdb79a96c87f4ce2e1d3216de4b2eb8a61aea2a440d60b7cc5eb239",
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 81074
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 62054
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 234748
+                }
+              ],
+              "verification_duration_ms": 379312,
+              "next_step": "Audit all M3 core corpus features, add remaining core cases and complete the M3 exit gate before moving to M4.",
+              "notes": [
+                "Execute captured precomposition scenes child-first using the shared premultiplied surface shader and the same native scene executor. Graph routes, geometry mappings, child extents, effect headers and media closure are validated; no supplied child raster replaces native rendering.",
+                "Added shared blur and brightpass downsample chains required by the original nested fixtures. Per-layer thresholds are immutable buffers; intermediate HDR surfaces remain GPU-resident and only the root display pass converts to sRGB. Existing TS mip semantics are retained; effect-stage radius/caching optimizations remain pending.",
+                "Surface cache admits the whole target set before mutation, reserves exact matches, reassigns unused matching dimensions and retires incompatible textures after GPU completion. Every scene rerenders its supplied inputs. Frame/image/surface/layer/pyramid bytes share one GPU budget. GPU tests prove unchanged state on rejected budgets/dimensions, hits, reassignments, resize and shrink.",
+                "All eight new nested frames pass every GPU metric and structural check with maximum one-code-value residuals. Inspected all five distinct contact sheets and heatmaps and accepted self-reviews. Existing 112 supplied-resource comparisons, eight native PNG/JPEG comparisons, EXR numeric/GPU checks and rejection cases remain green; no reference or tolerance changes.",
+                "M3-T4 is complete; M3 still needs its full core-corpus and exit audit. Production preview/export remain TS."
+              ],
+              "diagnostics": [
+                {
+                  "path": "artifacts/migration/cycle81-nested-first.log",
+                  "outcome": "rejected",
+                  "reason": "Initial root-header equality incorrectly rejected the separately scoped child graph. Preserved child identities, validated graph/header against its first supplied scene and retained root binding/hash closure checks."
+                },
+                {
+                  "path": "artifacts/migration/cycle81-surfaces-first/report.json",
+                  "outcome": "metrics-passed-self-reviewed"
+                }
+              ],
+              "verification_attempts": [
+                {
+                  "path": "artifacts/migration/verify-2026-10-06T00-29-22-469Z-82103ba0.json",
+                  "status": "failed",
+                  "reason": "G0/G1 and all 120 native pixel comparisons passed. The old Gaussian-blur unsupported-feature test became obsolete after implementing nested blur dependencies; it reached shader compilation instead. Replaced it with still-unsupported external LUT rejection."
+                },
+                {
+                  "path": "artifacts/migration/verify-2026-10-06T00-36-09-330Z-e5f9195e.json",
+                  "status": "passed"
+                }
+              ]
+            }
+          ],
+          "scope": {
+            "cases": ["nested-precompositions", "scene-nested-adjustment"],
+            "frames": 8,
+            "cache": "allocation reuse with fresh GPU scene rendering, whole-set budget admission and retirement"
+          }
         },
         {
           "id": "M3-T5",
@@ -32209,6 +32301,686 @@
       },
       "inspection": "Directly inspected all four distinct full-resolution contact sheets and heatmaps, grouped by exact reference/candidate RGBA hashes. Ellipse and rectangle masks, overlapping translucent shapes, matte gradients, adjustment colors and alpha silhouettes agree with the reference. Three scene-masks-mattes-0 channel samples differ by one code value; other cases are exact. No shifted edges, missing elements or structural residuals. Every metric and structural check passes without tolerance changes.",
       "inspection_groups": "artifacts/migration/cycle80-layers-first/inspection-groups.json"
+    },
+    {
+      "case_id": "nested-precompositions",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M3 native recursive surface, blur/glow and nested adjustment acceptance",
+      "reviewed_at": "2026-10-06T00:29:07.377Z",
+      "reference_rgba_sha256": "280c53d056267a0f52f98917526351ad03cc448e5f6770d28c9ee88f92771e58",
+      "candidate_rgba_sha256": "2d261037387f13f65e4cde00b47d885557b4c46b90bf6f9b06538bd47ba90d11",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.0002734375,
+        "mean_squared_error": 0.0002734375,
+        "rgb_mean_squared_error": 0.00036458333333333335,
+        "psnr": {
+          "kind": "finite",
+          "db": 82.51283549557202
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 83.76222286165502
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999940543829368, 0.9999944663651823, 0.9999980541497824, 1],
+        "mean": 0.9999955249659672,
+        "rgba_mean": 0.9999966437244754,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [-0.00045138888888888887, -0.0005034722222222222, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.19490671036703847,
+          "candidate_rms": 0.19490557293090008,
+          "reference_axis_ratio": 0.2957510265785725,
+          "candidate_axis_ratio": 0.29574918884299517,
+          "reference_window_energy_fraction": 0.9753233077026546,
+          "candidate_window_energy_fraction": 0.9753233712266454,
+          "active_frequencies": 7490,
+          "spectral_bins": 524288,
+          "peak_ratio": 11.14712494441445,
+          "peak_to_sidelobe_ratio": 128.53454934162642,
+          "peak_coherence": 0.999999999599664,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle81-surfaces-first/pixels/frames/nested-precompositions-0/report.json",
+        "heatmap": "artifacts/migration/cycle81-surfaces-first/pixels/frames/nested-precompositions-0/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle81-surfaces-first/pixels/frames/nested-precompositions-0/contact-sheet.png",
+        "report_sha256": "d3c1c54370d59a9a2f50bc606bb42878efb1962a99cdc7cc46198a5dc2b6d8b2",
+        "heatmap_sha256": "a1aa2040eeccff8803bb7c845a2a4afc11ab51d6c506a5839d5f7ed64aac7802",
+        "contact_sheet_sha256": "d6eb29751c4f5e9c62f9f2530e0a110310da128abbacbc610e67f919321a0504"
+      },
+      "inspection": "Directly inspected every distinct full-resolution contact sheet and heatmap (five RGBA image pairs, with identical static frames grouped by hash). Nested ellipse color and alpha contours, child rotation and animated circle position, outer backdrop blend, yellow foreground square and adjustment colors match. Residuals are sparse one-code-value native GPU arithmetic differences; no displaced edges, stale child content, double color conversion or structural residuals were observed. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle81-surfaces-first/inspection-groups.json"
+    },
+    {
+      "case_id": "nested-precompositions",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "M3 native recursive surface, blur/glow and nested adjustment acceptance",
+      "reviewed_at": "2026-10-06T00:29:07.377Z",
+      "reference_rgba_sha256": "280c53d056267a0f52f98917526351ad03cc448e5f6770d28c9ee88f92771e58",
+      "candidate_rgba_sha256": "2d261037387f13f65e4cde00b47d885557b4c46b90bf6f9b06538bd47ba90d11",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.0002734375,
+        "mean_squared_error": 0.0002734375,
+        "rgb_mean_squared_error": 0.00036458333333333335,
+        "psnr": {
+          "kind": "finite",
+          "db": 82.51283549557202
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 83.76222286165502
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999940543829368, 0.9999944663651823, 0.9999980541497824, 1],
+        "mean": 0.9999955249659672,
+        "rgba_mean": 0.9999966437244754,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [-0.00045138888888888887, -0.0005034722222222222, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.19490671036703847,
+          "candidate_rms": 0.19490557293090008,
+          "reference_axis_ratio": 0.2957510265785725,
+          "candidate_axis_ratio": 0.29574918884299517,
+          "reference_window_energy_fraction": 0.9753233077026546,
+          "candidate_window_energy_fraction": 0.9753233712266454,
+          "active_frequencies": 7490,
+          "spectral_bins": 524288,
+          "peak_ratio": 11.14712494441445,
+          "peak_to_sidelobe_ratio": 128.53454934162642,
+          "peak_coherence": 0.999999999599664,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle81-surfaces-first/pixels/frames/nested-precompositions-15/report.json",
+        "heatmap": "artifacts/migration/cycle81-surfaces-first/pixels/frames/nested-precompositions-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle81-surfaces-first/pixels/frames/nested-precompositions-15/contact-sheet.png",
+        "report_sha256": "98e39ea61b7bdf06db15084d35e12e3a2fd1223cda41bb21be51322808b310ce",
+        "heatmap_sha256": "a1aa2040eeccff8803bb7c845a2a4afc11ab51d6c506a5839d5f7ed64aac7802",
+        "contact_sheet_sha256": "d6eb29751c4f5e9c62f9f2530e0a110310da128abbacbc610e67f919321a0504"
+      },
+      "inspection": "Directly inspected every distinct full-resolution contact sheet and heatmap (five RGBA image pairs, with identical static frames grouped by hash). Nested ellipse color and alpha contours, child rotation and animated circle position, outer backdrop blend, yellow foreground square and adjustment colors match. Residuals are sparse one-code-value native GPU arithmetic differences; no displaced edges, stale child content, double color conversion or structural residuals were observed. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle81-surfaces-first/inspection-groups.json"
+    },
+    {
+      "case_id": "nested-precompositions",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "M3 native recursive surface, blur/glow and nested adjustment acceptance",
+      "reviewed_at": "2026-10-06T00:29:07.377Z",
+      "reference_rgba_sha256": "280c53d056267a0f52f98917526351ad03cc448e5f6770d28c9ee88f92771e58",
+      "candidate_rgba_sha256": "2d261037387f13f65e4cde00b47d885557b4c46b90bf6f9b06538bd47ba90d11",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.0002734375,
+        "mean_squared_error": 0.0002734375,
+        "rgb_mean_squared_error": 0.00036458333333333335,
+        "psnr": {
+          "kind": "finite",
+          "db": 82.51283549557202
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 83.76222286165502
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999940543829368, 0.9999944663651823, 0.9999980541497824, 1],
+        "mean": 0.9999955249659672,
+        "rgba_mean": 0.9999966437244754,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [-0.00045138888888888887, -0.0005034722222222222, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.19490671036703847,
+          "candidate_rms": 0.19490557293090008,
+          "reference_axis_ratio": 0.2957510265785725,
+          "candidate_axis_ratio": 0.29574918884299517,
+          "reference_window_energy_fraction": 0.9753233077026546,
+          "candidate_window_energy_fraction": 0.9753233712266454,
+          "active_frequencies": 7490,
+          "spectral_bins": 524288,
+          "peak_ratio": 11.14712494441445,
+          "peak_to_sidelobe_ratio": 128.53454934162642,
+          "peak_coherence": 0.999999999599664,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle81-surfaces-first/pixels/frames/nested-precompositions-30/report.json",
+        "heatmap": "artifacts/migration/cycle81-surfaces-first/pixels/frames/nested-precompositions-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle81-surfaces-first/pixels/frames/nested-precompositions-30/contact-sheet.png",
+        "report_sha256": "0aec872ddd6f23a7ea348c8901f2324fad44ace2b6db24e1ca561d8e95b8ad1b",
+        "heatmap_sha256": "a1aa2040eeccff8803bb7c845a2a4afc11ab51d6c506a5839d5f7ed64aac7802",
+        "contact_sheet_sha256": "d6eb29751c4f5e9c62f9f2530e0a110310da128abbacbc610e67f919321a0504"
+      },
+      "inspection": "Directly inspected every distinct full-resolution contact sheet and heatmap (five RGBA image pairs, with identical static frames grouped by hash). Nested ellipse color and alpha contours, child rotation and animated circle position, outer backdrop blend, yellow foreground square and adjustment colors match. Residuals are sparse one-code-value native GPU arithmetic differences; no displaced edges, stale child content, double color conversion or structural residuals were observed. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle81-surfaces-first/inspection-groups.json"
+    },
+    {
+      "case_id": "nested-precompositions",
+      "frame": 59,
+      "profile": "gpu",
+      "purpose": "M3 native recursive surface, blur/glow and nested adjustment acceptance",
+      "reviewed_at": "2026-10-06T00:29:07.377Z",
+      "reference_rgba_sha256": "280c53d056267a0f52f98917526351ad03cc448e5f6770d28c9ee88f92771e58",
+      "candidate_rgba_sha256": "2d261037387f13f65e4cde00b47d885557b4c46b90bf6f9b06538bd47ba90d11",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.0002734375,
+        "mean_squared_error": 0.0002734375,
+        "rgb_mean_squared_error": 0.00036458333333333335,
+        "psnr": {
+          "kind": "finite",
+          "db": 82.51283549557202
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 83.76222286165502
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999940543829368, 0.9999944663651823, 0.9999980541497824, 1],
+        "mean": 0.9999955249659672,
+        "rgba_mean": 0.9999966437244754,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [-0.00045138888888888887, -0.0005034722222222222, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.19490671036703847,
+          "candidate_rms": 0.19490557293090008,
+          "reference_axis_ratio": 0.2957510265785725,
+          "candidate_axis_ratio": 0.29574918884299517,
+          "reference_window_energy_fraction": 0.9753233077026546,
+          "candidate_window_energy_fraction": 0.9753233712266454,
+          "active_frequencies": 7490,
+          "spectral_bins": 524288,
+          "peak_ratio": 11.14712494441445,
+          "peak_to_sidelobe_ratio": 128.53454934162642,
+          "peak_coherence": 0.999999999599664,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle81-surfaces-first/pixels/frames/nested-precompositions-59/report.json",
+        "heatmap": "artifacts/migration/cycle81-surfaces-first/pixels/frames/nested-precompositions-59/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle81-surfaces-first/pixels/frames/nested-precompositions-59/contact-sheet.png",
+        "report_sha256": "8da25a5b359e1a87acb9ee2d4509445bdca5ff09478414b00ba39adc76478e88",
+        "heatmap_sha256": "a1aa2040eeccff8803bb7c845a2a4afc11ab51d6c506a5839d5f7ed64aac7802",
+        "contact_sheet_sha256": "d6eb29751c4f5e9c62f9f2530e0a110310da128abbacbc610e67f919321a0504"
+      },
+      "inspection": "Directly inspected every distinct full-resolution contact sheet and heatmap (five RGBA image pairs, with identical static frames grouped by hash). Nested ellipse color and alpha contours, child rotation and animated circle position, outer backdrop blend, yellow foreground square and adjustment colors match. Residuals are sparse one-code-value native GPU arithmetic differences; no displaced edges, stale child content, double color conversion or structural residuals were observed. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle81-surfaces-first/inspection-groups.json"
+    },
+    {
+      "case_id": "scene-nested-adjustment",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M3 native recursive surface, blur/glow and nested adjustment acceptance",
+      "reviewed_at": "2026-10-06T00:29:07.377Z",
+      "reference_rgba_sha256": "587a40dccc80a258aa6e5e579ab1deaa6a9fad9f961442283026bef6deecd6e6",
+      "candidate_rgba_sha256": "28ed32fd5dc5ed16bb46a18e4f2829643e4a602b32ed43adddd47c6e124ef169",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00002170138888888889,
+        "mean_squared_error": 0.00002170138888888889,
+        "rgb_mean_squared_error": 0.000028935185185185186,
+        "psnr": {
+          "kind": "finite",
+          "db": 93.51654094674765
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 94.76592831283065
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 0.9999997184708497, 0.9999998381466737, 1],
+        "mean": 0.9999998522058412,
+        "rgba_mean": 0.9999998891543809,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, -0.00003472222222222222, -0.00001736111111111111, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.30523172224065975,
+          "candidate_rms": 0.30523170768139424,
+          "reference_axis_ratio": 0.34816150274672986,
+          "candidate_axis_ratio": 0.348161617686288,
+          "reference_window_energy_fraction": 0.5562337038480479,
+          "candidate_window_energy_fraction": 0.5562337353703427,
+          "active_frequencies": 4096,
+          "spectral_bins": 524288,
+          "peak_ratio": 3.5061037832840647,
+          "peak_to_sidelobe_ratio": 76.07450807914412,
+          "peak_coherence": 0.9999999999765302,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle81-surfaces-first/pixels/frames/scene-nested-adjustment-0/report.json",
+        "heatmap": "artifacts/migration/cycle81-surfaces-first/pixels/frames/scene-nested-adjustment-0/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle81-surfaces-first/pixels/frames/scene-nested-adjustment-0/contact-sheet.png",
+        "report_sha256": "e2820fd3efce9ca830231066286c7fe19e9dcd0c5705a38db0abab99bda3f945",
+        "heatmap_sha256": "24e7755637e4e5fea3cb293597923606f57b0d75bc2a89469eea6403cf558e16",
+        "contact_sheet_sha256": "8e4b60e9e6dce151d4257e37172d0f75a584d169f1c070aa0e47a16ed24d8aae"
+      },
+      "inspection": "Directly inspected every distinct full-resolution contact sheet and heatmap (five RGBA image pairs, with identical static frames grouped by hash). Nested ellipse color and alpha contours, child rotation and animated circle position, outer backdrop blend, yellow foreground square and adjustment colors match. Residuals are sparse one-code-value native GPU arithmetic differences; no displaced edges, stale child content, double color conversion or structural residuals were observed. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle81-surfaces-first/inspection-groups.json"
+    },
+    {
+      "case_id": "scene-nested-adjustment",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "M3 native recursive surface, blur/glow and nested adjustment acceptance",
+      "reviewed_at": "2026-10-06T00:29:07.377Z",
+      "reference_rgba_sha256": "b1fed0c0c5df2d90a502936afdfefc54fe36758c48033a50502bf9c471e0aa97",
+      "candidate_rgba_sha256": "fd95dbd453706de82120f1d20f150d73fc42e3dc28e0120dea3a1df42a493884",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00001736111111111111,
+        "mean_squared_error": 0.00001736111111111111,
+        "rgb_mean_squared_error": 0.000023148148148148147,
+        "psnr": {
+          "kind": "finite",
+          "db": 94.48564107682822
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 95.73502844291122
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 0.9999994304423291, 0.9999999555801925, 1],
+        "mean": 0.9999997953408406,
+        "rgba_mean": 0.9999998465056305,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, -0.00005208333333333334, -0.00001736111111111111, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.3052958011727575,
+          "candidate_rms": 0.305295782038554,
+          "reference_axis_ratio": 0.34804425939051153,
+          "candidate_axis_ratio": 0.34804432748916186,
+          "reference_window_energy_fraction": 0.5562283755123549,
+          "candidate_window_energy_fraction": 0.5562284150724378,
+          "active_frequencies": 4082,
+          "spectral_bins": 524288,
+          "peak_ratio": 3.376892864122516,
+          "peak_to_sidelobe_ratio": 75.86405743353362,
+          "peak_coherence": 0.9999999999854714,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle81-surfaces-first/pixels/frames/scene-nested-adjustment-15/report.json",
+        "heatmap": "artifacts/migration/cycle81-surfaces-first/pixels/frames/scene-nested-adjustment-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle81-surfaces-first/pixels/frames/scene-nested-adjustment-15/contact-sheet.png",
+        "report_sha256": "a9150bc6d43f98c738a47889e95af6d87fc437829bc798ecba181d07239078a0",
+        "heatmap_sha256": "477c353bc14114e6ecf38f87cda6184fa61b1c2147895d8ef88e08370571a82e",
+        "contact_sheet_sha256": "e54c20ba506b9c9cb7b1104b7b9efa9e5b790a414cb175d46912cbdc7fcbb045"
+      },
+      "inspection": "Directly inspected every distinct full-resolution contact sheet and heatmap (five RGBA image pairs, with identical static frames grouped by hash). Nested ellipse color and alpha contours, child rotation and animated circle position, outer backdrop blend, yellow foreground square and adjustment colors match. Residuals are sparse one-code-value native GPU arithmetic differences; no displaced edges, stale child content, double color conversion or structural residuals were observed. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle81-surfaces-first/inspection-groups.json"
+    },
+    {
+      "case_id": "scene-nested-adjustment",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "M3 native recursive surface, blur/glow and nested adjustment acceptance",
+      "reviewed_at": "2026-10-06T00:29:07.377Z",
+      "reference_rgba_sha256": "f6a9126a275c6bd7a7ee138ceb26d532f462f0177ab17272b365879cdba1914a",
+      "candidate_rgba_sha256": "5b6272bb64c6bc64b4ea45aaa2875bccdb1dcf44494f7fcc9d941c27dd703795",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00001736111111111111,
+        "mean_squared_error": 0.00001736111111111111,
+        "rgb_mean_squared_error": 0.000023148148148148147,
+        "psnr": {
+          "kind": "finite",
+          "db": 94.48564107682822
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 95.73502844291122
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999997007002515, 0.9999996149876688, 1, 1],
+        "mean": 0.9999997718959733,
+        "rgba_mean": 0.99999982892198,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [-0.00003472222222222222, -0.00003472222222222222, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.3052396565388319,
+          "candidate_rms": 0.3052396560932921,
+          "reference_axis_ratio": 0.3474604033187347,
+          "candidate_axis_ratio": 0.34746033549655336,
+          "reference_window_energy_fraction": 0.556235253082488,
+          "candidate_window_energy_fraction": 0.5562353170096513,
+          "active_frequencies": 4118,
+          "spectral_bins": 524288,
+          "peak_ratio": 3.2509173717972466,
+          "peak_to_sidelobe_ratio": 76.17432085459158,
+          "peak_coherence": 0.9999999999904711,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle81-surfaces-first/pixels/frames/scene-nested-adjustment-30/report.json",
+        "heatmap": "artifacts/migration/cycle81-surfaces-first/pixels/frames/scene-nested-adjustment-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle81-surfaces-first/pixels/frames/scene-nested-adjustment-30/contact-sheet.png",
+        "report_sha256": "8a645acb71a78c36bd7c49423937f7c7784a85a0a0bb4b2b73628abc10792f15",
+        "heatmap_sha256": "92d3f9c15b36a06ddf181d0c2c88796e295839f4ee8d7b087471c8b2464c6277",
+        "contact_sheet_sha256": "508501d3415886692f788625ee4b565205c6761cdbadef940408851c93ca137d"
+      },
+      "inspection": "Directly inspected every distinct full-resolution contact sheet and heatmap (five RGBA image pairs, with identical static frames grouped by hash). Nested ellipse color and alpha contours, child rotation and animated circle position, outer backdrop blend, yellow foreground square and adjustment colors match. Residuals are sparse one-code-value native GPU arithmetic differences; no displaced edges, stale child content, double color conversion or structural residuals were observed. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle81-surfaces-first/inspection-groups.json"
+    },
+    {
+      "case_id": "scene-nested-adjustment",
+      "frame": 59,
+      "profile": "gpu",
+      "purpose": "M3 native recursive surface, blur/glow and nested adjustment acceptance",
+      "reviewed_at": "2026-10-06T00:29:07.377Z",
+      "reference_rgba_sha256": "7383c458c038c0806caa414d14c1659ed3506ebd92750a687bc1ee27170b434d",
+      "candidate_rgba_sha256": "7421d9bc2e6b4ac4b49e3afc44e97667cf996123c495c19362a88e8755167156",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.000008680555555555556,
+        "mean_squared_error": 0.000008680555555555556,
+        "rgb_mean_squared_error": 0.000011574074074074073,
+        "psnr": {
+          "kind": "finite",
+          "db": 97.49594103346803
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 98.74532839955103
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 0.9999996127909657, 1, 1],
+        "mean": 0.9999998709303219,
+        "rgba_mean": 0.9999999031977415,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, -0.00003472222222222222, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.3051271209049828,
+          "candidate_rms": 0.3051271163797412,
+          "reference_axis_ratio": 0.34682947781545026,
+          "candidate_axis_ratio": 0.3468294998414933,
+          "reference_window_energy_fraction": 0.5563758339129464,
+          "candidate_window_energy_fraction": 0.5563758633386391,
+          "active_frequencies": 4098,
+          "spectral_bins": 524288,
+          "peak_ratio": 3.4548563161781543,
+          "peak_to_sidelobe_ratio": 76.2075355761073,
+          "peak_coherence": 0.9999999999928849,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle81-surfaces-first/pixels/frames/scene-nested-adjustment-59/report.json",
+        "heatmap": "artifacts/migration/cycle81-surfaces-first/pixels/frames/scene-nested-adjustment-59/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle81-surfaces-first/pixels/frames/scene-nested-adjustment-59/contact-sheet.png",
+        "report_sha256": "13e88321b23e795440c34fc109a4de5b00c51446160ff12b1583f0de9501d9b6",
+        "heatmap_sha256": "fc3ebf4f1f60132c75e15388aef90d27f72962f1308cbb245ee7d13a11fab191",
+        "contact_sheet_sha256": "3734da14140178320593e32bbb2132f11d5bd7844d00ef5daead54abcdc2b8c2"
+      },
+      "inspection": "Directly inspected every distinct full-resolution contact sheet and heatmap (five RGBA image pairs, with identical static frames grouped by hash). Nested ellipse color and alpha contours, child rotation and animated circle position, outer backdrop blend, yellow foreground square and adjustment colors match. Residuals are sparse one-code-value native GPU arithmetic differences; no displaced edges, stale child content, double color conversion or structural residuals were observed. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle81-surfaces-first/inspection-groups.json"
     }
   ],
   "history": [
@@ -32903,6 +33675,64 @@
         "The native host accepts an explicit DXC library path; G3 pins the existing Electron DXC 1.9.2602.0 library. Full effect pipelines are compiled lazily and retained per device, resolving the old FXC full-program compilation failure without downloading or adding a compiler dependency.",
         "All 16 new frames pass: twelve exact, four mask/matte frames with three one-code-value channel differences. Direct contact-sheet and heatmap inspections are accepted under section 6.6; no tolerance or reference changes. Existing 96 supplied-resource comparisons, eight native PNG/JPEG comparisons, EXR numeric/GPU evidence and rejections remain green.",
         "M3-T3 non-recursive core coverage is complete. Nested adjustments depend on recursive surface execution in M3-T4; wider effect catalog coverage remains M4. M3 is not complete and production preview/export remain TS."
+      ]
+    },
+    {
+      "id": 81,
+      "time": "2026-10-06T00:46:13.737Z",
+      "milestone": "M3",
+      "task": "M3-T4",
+      "outcome": "passed",
+      "commit": "228b17e48c59876e04065985f291b939537b70b1",
+      "verification": "artifacts/migration/verify-2026-10-06T00-36-09-330Z-e5f9195e.json",
+      "verification_sha256": "7c004ef63fdb79a96c87f4ce2e1d3216de4b2eb8a61aea2a440d60b7cc5eb239",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 81074
+        },
+        {
+          "id": "G1",
+          "status": "passed",
+          "duration_ms": 62054
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 234748
+        }
+      ],
+      "verification_duration_ms": 379312,
+      "next_step": "Audit all M3 core corpus features, add remaining core cases and complete the M3 exit gate before moving to M4.",
+      "notes": [
+        "Execute captured precomposition scenes child-first using the shared premultiplied surface shader and the same native scene executor. Graph routes, geometry mappings, child extents, effect headers and media closure are validated; no supplied child raster replaces native rendering.",
+        "Added shared blur and brightpass downsample chains required by the original nested fixtures. Per-layer thresholds are immutable buffers; intermediate HDR surfaces remain GPU-resident and only the root display pass converts to sRGB. Existing TS mip semantics are retained; effect-stage radius/caching optimizations remain pending.",
+        "Surface cache admits the whole target set before mutation, reserves exact matches, reassigns unused matching dimensions and retires incompatible textures after GPU completion. Every scene rerenders its supplied inputs. Frame/image/surface/layer/pyramid bytes share one GPU budget. GPU tests prove unchanged state on rejected budgets/dimensions, hits, reassignments, resize and shrink.",
+        "All eight new nested frames pass every GPU metric and structural check with maximum one-code-value residuals. Inspected all five distinct contact sheets and heatmaps and accepted self-reviews. Existing 112 supplied-resource comparisons, eight native PNG/JPEG comparisons, EXR numeric/GPU checks and rejection cases remain green; no reference or tolerance changes.",
+        "M3-T4 is complete; M3 still needs its full core-corpus and exit audit. Production preview/export remain TS."
+      ],
+      "diagnostics": [
+        {
+          "path": "artifacts/migration/cycle81-nested-first.log",
+          "outcome": "rejected",
+          "reason": "Initial root-header equality incorrectly rejected the separately scoped child graph. Preserved child identities, validated graph/header against its first supplied scene and retained root binding/hash closure checks."
+        },
+        {
+          "path": "artifacts/migration/cycle81-surfaces-first/report.json",
+          "outcome": "metrics-passed-self-reviewed"
+        }
+      ],
+      "verification_attempts": [
+        {
+          "path": "artifacts/migration/verify-2026-10-06T00-29-22-469Z-82103ba0.json",
+          "status": "failed",
+          "reason": "G0/G1 and all 120 native pixel comparisons passed. The old Gaussian-blur unsupported-feature test became obsolete after implementing nested blur dependencies; it reached shader compilation instead. Replaced it with still-unsupported external LUT rejection."
+        },
+        {
+          "path": "artifacts/migration/verify-2026-10-06T00-36-09-330Z-e5f9195e.json",
+          "status": "passed"
+        }
       ]
     }
   ],
