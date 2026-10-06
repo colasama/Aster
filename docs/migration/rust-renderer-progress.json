@@ -65,7 +65,17 @@
       "remaining_percent": 20,
       "scope": "Minimum remaining percentage among available Codex primary and secondary usage windows; missing windows are unavailable, not zero.",
       "action": "Stop new work, preserve a valid resumable state, and pause the goal.",
-      "checkpoints": ["Before a long verification", "At each migration cycle boundary"]
+      "checkpoints": ["Before a long verification", "At each migration cycle boundary"],
+      "last_trigger": {
+        "recorded_at": "2026-10-06T02:45:14.292Z",
+        "used_percent": 80,
+        "remaining_percent": 20,
+        "source": "mcp__codex_app__get_usage_limits codex primary window",
+        "action": "Paused after completing verification and committing the current cycle; no new migration cycle started.",
+        "resume_milestone": "M4",
+        "resume_task": "M4-T2",
+        "cycle": 85
+      }
     }
   },
   "reference_baseline": {
@@ -146,34 +156,48 @@
     }
   },
   "last_cycle": {
-    "id": 84,
-    "time": "2026-10-06T01:47:25.155Z",
+    "id": 85,
+    "time": "2026-10-06T02:45:14.292Z",
     "milestone": "M4",
     "task": "M4-T2",
     "outcome": "passed",
-    "commit": "b8331bc7e053c61a15d8aec1b314f99ff04b7f14",
-    "verification": "artifacts/migration/verify-2026-10-06T01-40-13-161Z-c3a2ac94.json",
-    "verification_sha256": "cd6d8060aad8d3dc723efc77ede06e7a3be5040da2b4b3fa69aee05b3ecabdd7",
+    "commit": "692bd3089d4fbc2009435d51dc95566195bf669d",
+    "verification": "artifacts/migration/verify-2026-10-06T02-32-51-379Z-b30df8de.json",
+    "verification_sha256": "6b3ab94fcff94ec3d2531ac1104c4a67f1ac92111f14049d8f64d68fd18535fc",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 77655
+        "duration_ms": 84682
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 313705
+        "duration_ms": 587547
       }
     ],
-    "verification_duration_ms": 392820,
-    "failed_verifications": ["artifacts/migration/verify-2026-10-06T01-32-43-049Z-59dd906c.json"],
-    "next_step": "Render and compare all 270 captured effect/style cases, then repair any unsupported semantics or pixel differences before expanding required M4 coverage.",
+    "verification_duration_ms": 673921,
+    "effect_diagnostic": {
+      "report": "artifacts/migration/cycle85-all-effects-first/report.json",
+      "report_sha256": "1953fd8cc06e780998267ba935fc400d856bc8719e465b9a323b943d078103fe",
+      "cases": 270,
+      "frames": 1083,
+      "metric_and_structural_passed": 1083,
+      "exact_frames": 69,
+      "max_abs_channel_error": 1,
+      "new_frame_reviews": 986,
+      "required_new_frame_reviews": 986,
+      "inspection_pages": "artifacts/migration/cycle85-all-effects-first/inspection/groups.json",
+      "inspection_pages_sha256": "a9e147e8182332cd454d6f132b44b591a4f88e209220596463c571ceb9c590da",
+      "formal_gate_coverage_pending": false
+    },
+    "next_step": "Resume M4-T2: verify supplied base-effect controls and the combined layer-style fixture, repairing unsupported routes before advancing to native blur/glow optimization. M4-T3 through M4-T6 and production migration remain open.",
     "notes": [
-      "Known shared fused integer operations execute directly from supplied program bytes. Unknown, fractional and non-finite operation codes remain rejected. The shared WGSL and reference pixels are unchanged.",
-      "Diagnostic render-plan --batch retains the native device, pipelines and GPU caches across bounded frame jobs. Each frame has independent validation, atomic PNG publication and a plan/pixel/adapter receipt. Actual GPU tests reject duplicate destinations and frame limits, and preserve completed output on a subsequent unsupported frame.",
-      "G3 passed 145 retained core frames and 97 effect frames across 24 cases, plus native stills, EXR and GPU cache tests. All 89 newly admitted frame reviews were directly inspected using lossless contact-sheet/heatmap pages; four are pixel-exact and the remaining 85 differ by at most one code value. Existing eight LUT acceptance records remain applicable. No tolerance or reference changes.",
-      "The diagnostic 97-frame batch receipts total 13613 ms in the initial capture. This includes diagnostic readback and PNG work and is not production export FPS. M4-T2 remains in progress; production preview/export remain TS and the full M0-M12 goal is incomplete."
+      "All 270 captured effect-tagged cases now execute in required G3: 1083 effect frames plus 145 retained core frames. The explicit admission list rejects catalog additions, omissions and duplicates.",
+      "All 986 newly required frame reviews were directly inspected and accepted at unchanged profile limits. All 1228 formal replay comparisons passed and matched accepted reference/candidate pixel hashes. Color-range and twister fixtures are transparent on both sides; acceptance does not establish nonempty behavior.",
+      "The complete effect batch passed in 12193 ms with 1082 device reuses. Per-case LUT hits increase without upload. Duplicate destinations and limits reject before output; later invalid frames preserve complete earlier output. This is diagnostic timing, not production export FPS.",
+      "Full M4 G0/G3 also retains native PNG/JPEG, EXR and GPU cache tests. Source did not change during verification. M4-T2 remains in progress because supplied base controls and combined routes need separate coverage; M4 exit and production Rust preview/export are not achieved.",
+      "Owner allowance checkpoint reached 80 percent used / 20 percent remaining. New work stopped; this cycle is committed green before pausing the goal."
     ]
   },
   "milestones": [
@@ -20079,14 +20103,14 @@
           "title": "Execute supplied fused layer programs and base effects through retained native pipelines",
           "status": "in_progress",
           "last_increment": {
-            "cycle": 84,
-            "commit": "b8331bc7e053c61a15d8aec1b314f99ff04b7f14",
-            "verification": "artifacts/migration/verify-2026-10-06T01-40-13-161Z-c3a2ac94.json",
-            "verification_sha256": "cd6d8060aad8d3dc723efc77ede06e7a3be5040da2b4b3fa69aee05b3ecabdd7",
-            "effect_cases": 24,
-            "effect_frames": 97,
+            "cycle": 85,
+            "commit": "692bd3089d4fbc2009435d51dc95566195bf669d",
+            "verification": "artifacts/migration/verify-2026-10-06T02-32-51-379Z-b30df8de.json",
+            "verification_sha256": "6b3ab94fcff94ec3d2531ac1104c4a67f1ac92111f14049d8f64d68fd18535fc",
+            "effect_cases": 270,
+            "effect_frames": 1083,
             "core_regression_frames": 145,
-            "device_reuses": 96
+            "device_reuses": 1082
           }
         },
         {
@@ -152366,6 +152390,51 @@
         "G3 passed 145 retained core frames and 97 effect frames across 24 cases, plus native stills, EXR and GPU cache tests. All 89 newly admitted frame reviews were directly inspected using lossless contact-sheet/heatmap pages; four are pixel-exact and the remaining 85 differ by at most one code value. Existing eight LUT acceptance records remain applicable. No tolerance or reference changes.",
         "The diagnostic 97-frame batch receipts total 13613 ms in the initial capture. This includes diagnostic readback and PNG work and is not production export FPS. M4-T2 remains in progress; production preview/export remain TS and the full M0-M12 goal is incomplete."
       ]
+    },
+    {
+      "id": 85,
+      "time": "2026-10-06T02:45:14.292Z",
+      "milestone": "M4",
+      "task": "M4-T2",
+      "outcome": "passed",
+      "commit": "692bd3089d4fbc2009435d51dc95566195bf669d",
+      "verification": "artifacts/migration/verify-2026-10-06T02-32-51-379Z-b30df8de.json",
+      "verification_sha256": "6b3ab94fcff94ec3d2531ac1104c4a67f1ac92111f14049d8f64d68fd18535fc",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 84682
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 587547
+        }
+      ],
+      "verification_duration_ms": 673921,
+      "effect_diagnostic": {
+        "report": "artifacts/migration/cycle85-all-effects-first/report.json",
+        "report_sha256": "1953fd8cc06e780998267ba935fc400d856bc8719e465b9a323b943d078103fe",
+        "cases": 270,
+        "frames": 1083,
+        "metric_and_structural_passed": 1083,
+        "exact_frames": 69,
+        "max_abs_channel_error": 1,
+        "new_frame_reviews": 986,
+        "required_new_frame_reviews": 986,
+        "inspection_pages": "artifacts/migration/cycle85-all-effects-first/inspection/groups.json",
+        "inspection_pages_sha256": "a9e147e8182332cd454d6f132b44b591a4f88e209220596463c571ceb9c590da",
+        "formal_gate_coverage_pending": false
+      },
+      "next_step": "Resume M4-T2: verify supplied base-effect controls and the combined layer-style fixture, repairing unsupported routes before advancing to native blur/glow optimization. M4-T3 through M4-T6 and production migration remain open.",
+      "notes": [
+        "All 270 captured effect-tagged cases now execute in required G3: 1083 effect frames plus 145 retained core frames. The explicit admission list rejects catalog additions, omissions and duplicates.",
+        "All 986 newly required frame reviews were directly inspected and accepted at unchanged profile limits. All 1228 formal replay comparisons passed and matched accepted reference/candidate pixel hashes. Color-range and twister fixtures are transparent on both sides; acceptance does not establish nonempty behavior.",
+        "The complete effect batch passed in 12193 ms with 1082 device reuses. Per-case LUT hits increase without upload. Duplicate destinations and limits reject before output; later invalid frames preserve complete earlier output. This is diagnostic timing, not production export FPS.",
+        "Full M4 G0/G3 also retains native PNG/JPEG, EXR and GPU cache tests. Source did not change during verification. M4-T2 remains in progress because supplied base controls and combined routes need separate coverage; M4 exit and production Rust preview/export are not achieved.",
+        "Owner allowance checkpoint reached 80 percent used / 20 percent remaining. New work stopped; this cycle is committed green before pausing the goal."
+      ]
     }
   ],
   "known_boundaries": [
@@ -152538,27 +152607,5 @@
         "sha256": "2a52867f6da0c4ad4e8cd1ef9831d5eb9be11743fe6f26fa9f12fe8d5c83797a"
       }
     }
-  ],
-  "active_cycle": {
-    "id": 85,
-    "started_at": "2026-10-06T01:47:50.348Z",
-    "milestone": "M4",
-    "task": "M4-T2",
-    "base_commit": "47a0ef3edc5ecc1d0183b1d932543ba85c35e0cf",
-    "intent": "Execute the complete captured effect/style inventory and expand verified native fused-effect coverage, repairing concrete parity failures.",
-    "effect_diagnostic": {
-      "report": "artifacts/migration/cycle85-all-effects-first/report.json",
-      "report_sha256": "1953fd8cc06e780998267ba935fc400d856bc8719e465b9a323b943d078103fe",
-      "cases": 270,
-      "frames": 1083,
-      "metric_and_structural_passed": 1083,
-      "exact_frames": 69,
-      "max_abs_channel_error": 1,
-      "new_frame_reviews": 986,
-      "required_new_frame_reviews": 986,
-      "inspection_pages": "artifacts/migration/cycle85-all-effects-first/inspection/groups.json",
-      "inspection_pages_sha256": "a9e147e8182332cd454d6f132b44b591a4f88e209220596463c571ceb9c590da",
-      "formal_gate_coverage_pending": true
-    }
-  }
+  ]
 }
