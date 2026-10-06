@@ -4,48 +4,28 @@ import { join, posix, relative } from "node:path";
 import { validateFrameArtifacts } from "../parity/frame-artifacts.mjs";
 import { runPixelGate } from "../parity/pixel-gate.mjs";
 import { M0Evidence } from "./m0-evidence.mjs";
+import {
+  coreAdditionalGeometryCases,
+  coreCases,
+  coreCorpus,
+  coreImageCases,
+  coreLayerCases,
+  coreSurfaceCases,
+} from "./native-core-scope.mjs";
+
+export {
+  coreGeometryCases,
+  coreImageCases,
+  coreLayerCases,
+  coreSurfaceCases,
+} from "./native-core-scope.mjs";
+
 import { runNativeRejections } from "./native-core-rejections.mjs";
 import { runNativeExrGate } from "./native-exr-gate.mjs";
 import { runNativeStillGate } from "./native-still-gate.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile } from "./source.mjs";
-
-export const coreGeometryCases = [
-  "layer-solid",
-  "shape-bezier",
-  "shape-ellipse",
-  "shape-line",
-  "shape-rectangle",
-  "aa-off",
-  "aa-fxaa",
-  "aa-ssaa2x",
-  "aa-ssaa4x",
-  "blend-normal",
-  "blend-add",
-  "blend-multiply",
-  "blend-screen",
-  "blend-overlay",
-  "blend-darken",
-  "blend-lighten",
-  "blend-color-burn",
-  "blend-color-dodge",
-  "blend-soft-light",
-  "blend-hard-light",
-  "blend-difference",
-  "blend-exclusion",
-];
-
-export const coreLayerCases = [
-  "scene-masks-mattes-0",
-  "scene-masks-mattes-3",
-  "scene-masks-mattes-4",
-  "layer-adjustment",
-];
-
-export const coreSurfaceCases = ["nested-precompositions", "scene-nested-adjustment"];
-
-export const coreImageCases = ["media-png", "media-jpg"];
 
 export function validateNativeReceipt(receipt, expected) {
   assert.equal(receipt.schema_version, 1);
@@ -69,7 +49,7 @@ export async function runNativeCoreGate(context, execute = runStep) {
   const report = {
     id: "G3",
     status: "failed",
-    scope: "native-core-surfaces-v4",
+    scope: "native-core-v5",
     native_image_decode: true,
     full_coverage: false,
     milestone_exit_eligible: false,
@@ -112,7 +92,8 @@ export async function runNativeCoreGate(context, execute = runStep) {
     report.binary = { path: local(binary), sha256: await hashFile(binary) };
     const base = posix.dirname(milestone.input_manifest.path);
     const candidate = { schema_version: 1, frames: [] };
-    const cases = [...coreGeometryCases, ...coreImageCases, ...coreLayerCases, ...coreSurfaceCases];
+    const cases = coreCorpus(corpus).cases.map((item) => item.id);
+    assert.deepEqual(cases, coreCases);
     const compiler =
       process.platform === "win32"
         ? join(context.root, "node_modules", "electron", "dist", "dxcompiler.dll")
@@ -156,7 +137,10 @@ export async function runNativeCoreGate(context, execute = runStep) {
               `${base}/${id}/frame-resources`,
               "--out",
               output,
-              ...(compiler && (coreLayerCases.includes(id) || coreSurfaceCases.includes(id))
+              ...(compiler &&
+              (coreLayerCases.includes(id) ||
+                coreSurfaceCases.includes(id) ||
+                coreAdditionalGeometryCases.includes(id))
                 ? ["--dxcompiler", compiler]
                 : []),
             ],
@@ -252,6 +236,8 @@ export async function runNativeCoreGate(context, execute = runStep) {
     );
     report.checked_files = await reader.stable();
     report.status = "passed";
+    report.full_coverage = true;
+    report.milestone_exit_eligible = true;
   } catch (error) {
     report.error = error.stack ?? error.message;
   }

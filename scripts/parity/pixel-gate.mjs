@@ -7,7 +7,7 @@ import { writeAtomicJson } from "../migration/report.mjs";
 import { PixelInputs } from "./pixel-inputs.mjs";
 import { reviewStatus } from "./pixel-review.mjs";
 
-function validateReport(report, prepared, result, inputs) {
+export function validateReport(report, prepared, result, inputs) {
   const { entry, reference, context, neighbors } = prepared;
   const comparison = report.comparison;
   assert.equal(report.schema_version, 1, "Unknown comparison report schema");

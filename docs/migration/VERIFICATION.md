@@ -322,7 +322,7 @@ precomposition test changes authored effects/blend after planning and verifies r
 ## Native geometry, blend and supplied-image acceptance
 
 M3 G3 executes the current release `aster-render-cli render-plan` against complete captured FPLN
-bundles and their hash-pinned resource closure. The current increment covers 30 cases (120 frames):
+bundles and their hash-pinned resource closure. The complete core scope covers 36 cases (145 frames):
 solid/vector geometry, every blend mode, off/FXAA/SSAA2x/SSAA4x, supplied PNG/JPEG images, masks,
 mattes, adjustments and recursive precomposition surfaces. Each receipt binds the native
 adapter, plan hash, dimensions and decoded PNG pixels. Comparisons use the independently frozen
@@ -331,9 +331,12 @@ section 6.6 self-review. M1/M2 retain their separate whole-corpus `exact` requir
 
 The gate also checks rejection without output publication for unsupported features, allocation
 budgets and corrupt resources, and preserves pre-existing output. Binary and input hashes must
-remain stable throughout the run. This is explicitly an incremental gate: its report sets
-`full_coverage` and `milestone_exit_eligible` to false. Passing G0/G1/G3 permits the increment's
-commit but cannot complete M3 without the complete core corpus and an exit audit.
+remain stable throughout the run. Core coverage includes parented transforms, captured cloner
+geometry, ellipse/rectangle effect masks and the existing path-mask schema case. `full_coverage`
+is scoped to M3, not the entire migration corpus. The M3 exit auditor independently rereads every
+actual native output, execution receipt, comparison and matching self-review. It rejects missing,
+duplicate, stale or inconsistent evidence, and requires all three GPU cache/HDR tests and every
+capability/resource rejection. G0/G1/G3 must pass together against unchanged source.
 
 Supplied-image receipts require actual native texture uploads and report `native_image_decode: false`.
 Supplied pixel hashes are bound to matching frame
@@ -346,7 +349,7 @@ pixels. It materializes hash-pinned source files, grants each source and scope e
 native decode receipts plus the same frozen-reference GPU comparisons and self-reviews. Missing
 grants, incorrect scopes/hashes and source/pixel budget violations must reject without publication.
 The packaged FFmpeg executable and all source inputs are pinned for the run. These eight renders
-supplement the 120 supplied-resource frames; complete core coverage is still required.
+supplement the 145 supplied-resource frames.
 
 EXR has the recorded `ts-exr-import` reference boundary. G0 checks the real hash-pinned EXR asset's
 linear sample values and rejects malformed extents, budgets and non-finite values. G1 round-trips
@@ -362,7 +365,7 @@ layer case. These execute original supplied operation bytes, fixed alpha composi
 replacement on DX12, using the existing Electron DXC library with its hash recorded in G3. The
 library is an explicit CLI input, never inferred from the frame plan. Every result uses the frozen
 TS reference and the same GPU structural checks and self-review. Unsupported effect operations
-and external-LUT effects still reject. This incremental gate does not establish full M3 exit.
+and external-LUT effects still reject. The full M3 exit additionally requires all core cases and its independent audit.
 
 The recursive-surface increment additionally runs all eight original nested-precomposition and
 nested-adjustment frames, including the captured blur/glow dependencies. Receipts require real GPU
@@ -371,3 +374,9 @@ budgets/dimensions, exact-identity hits, compatible-allocation reassignment, dim
 retirement after shrink. Child-first routes are cross-checked with each captured geometry mapping.
 Surface pixels remain linear and premultiplied until the root display pass. No pre-rendered child
 pixels replace native child-scene execution.
+
+Core acceptance preserves three reference boundaries: EXR uses native linear-sample and GPU proof
+because TS cannot import it; the path-mask schema case retains the TS ellipse fallback; the
+minimal golden animation is hidden by its opaque background. Animated parented transforms and
+cloner geometry have separate visible cases. Native evaluation and native cloner generation remain
+later milestones. M3 completion does not switch production preview/export away from TS.
