@@ -383,8 +383,10 @@ later milestones. M3 completion does not switch production preview/export away f
 
 ## Native effect increments
 
-M4 G3 retains the complete 145-frame M3 regression scope and adds 97 frames across 24
-color, tone, temporal-posterization and LUT cases. The eight LUT frames (`effect-lut` trilinear and
+M4 G3 retains the complete 145-frame M3 regression scope and adds 1083 frames across all 270
+captured cases tagged `effect:*`, including color, tone, distortion, temporal effects,
+individual layer styles and LUTs. The explicit admission list is checked against the frozen corpus;
+a new or omitted effect case fails coverage validation. This gives 1228 native replay frames. The eight LUT frames (`effect-lut` trilinear and
 `lut-tetrahedral`) each require a real native LUT upload and resident
 bytes, frozen-reference GPU comparisons and section 6.6 self-review. Root and recursive layer
 programs bind their captured LUT hash, preserving the shared shader's interpolation and domain
@@ -403,9 +405,14 @@ caches across frames, but validates each supplied plan and resource closure inde
 must be unique absolute paths that do not already exist. Each PNG is published atomically, followed
 by a receipt with its plan/pixel hashes, zero-based `frame_index` and `renderer_reused` flag. A later
 invalid frame fails the command while preserving complete prior frames and leaving no failed-frame
-PNG. G3 verifies all 97 receipts, 96 device reuses, duplicate/limit rejection and partial-failure
+PNG. G3 verifies all 1083 effect receipts, 1082 device reuses, duplicate/limit rejection and partial-failure
 output integrity. This diagnostic readback path is not the production export pipeline.
 
 Known shared integer effect opcodes are admitted without rewriting the supplied program. Unknown,
 non-finite or fractional codes still fail; pyramid-dependent base blur/glow remain unsupported.
-The current 24-case scope does not establish coverage of the entire effect registry.
+The 270-case scope proves supplied fused-program parity at the captured parameters. Base-effect
+controls, combined layer-style chains, surface post effects and native optimizations still require
+separate evidence before M4 exit. The color-range and twister fixtures are transparent in both
+reference and candidate, so their acceptance does not prove nonempty behavior. Repeated frames
+within each LUT case must increase cache hits without another upload; this check is independent
+of the case position in the batch.

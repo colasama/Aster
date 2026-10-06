@@ -53,7 +53,7 @@ export async function runNativeCoreGate(context, execute = runStep) {
   const report = {
     id: "G3",
     status: "failed",
-    scope: effects ? "native-effects-fused-v2" : "native-core-v5",
+    scope: effects ? "native-effects-fused-v3" : "native-core-v5",
     native_image_decode: true,
     full_coverage: false,
     milestone_exit_eligible: false,

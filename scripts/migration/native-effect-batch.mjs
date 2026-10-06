@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile, stat } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { validateFrameArtifacts } from "../parity/frame-artifacts.mjs";
-import { nativeEffectCases } from "./native-effect-scope.mjs";
+import { nativeEffectCases, validateNativeEffectScope } from "./native-effect-scope.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile } from "./source.mjs";
 
@@ -10,6 +10,7 @@ import { hashFile } from "./source.mjs";
 export async function runNativeEffectBatch(context, inputs, execute) {
   const { reader, binary, base, manifest, corpus, compiler, validateReceipt } = inputs;
   const local = (path) => relative(context.root, path).replaceAll("\\", "/");
+  validateNativeEffectScope(corpus);
   const jobs = [],
     frames = [],
     candidate = [];
@@ -62,6 +63,7 @@ export async function runNativeEffectBatch(context, inputs, execute) {
     .filter((line) => line.startsWith('{"schema_version":'))
     .map((line) => JSON.parse(line));
   assert.equal(receipts.length, frames.length);
+  const lutFrames = new Map();
   for (const [index, frame] of frames.entries()) {
     const receipt = receipts[index],
       output = jobs[index].out;
@@ -77,7 +79,15 @@ export async function runNativeEffectBatch(context, inputs, execute) {
     assert.equal(receipt.native_image_decode, false);
     if (["effect-lut", "lut-tetrahedral"].includes(frame.case_id)) {
       assert(receipt.lut_cache.uploads > 0 && receipt.lut_cache.resident_bytes > 0);
-      if (index > 0) assert(receipt.lut_cache.hits > 0);
+      const previous = lutFrames.get(frame.case_id);
+      if (previous) {
+        assert.equal(receipt.lut_cache.uploads, previous.uploads);
+        assert(
+          receipt.lut_cache.hits > previous.hits,
+          "Repeated LUT frame did not reuse its texture",
+        );
+      }
+      lutFrames.set(frame.case_id, receipt.lut_cache);
     }
     delete frame.expected;
     Object.assign(frame, {

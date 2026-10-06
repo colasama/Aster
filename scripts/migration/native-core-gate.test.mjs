@@ -1,7 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { coreGeometryCases, coreImageCases, validateNativeReceipt } from "./native-core-gate.mjs";
+import { nativeEffectCases, validateNativeEffectScope } from "./native-effect-scope.mjs";
 import { selectRequiredGates } from "./performance-policy.mjs";
+
+test("native effect admission rejects added, omitted and duplicate catalog cases", () => {
+  const corpus = { cases: nativeEffectCases.map((id) => ({ id, features: ["effect:test"] })) };
+  validateNativeEffectScope(corpus);
+  for (const cases of [
+    corpus.cases.slice(1),
+    [...corpus.cases, { id: "new-effect", features: ["effect:new"] }],
+    [...corpus.cases, corpus.cases[0]],
+  ])
+    assert.throws(() => validateNativeEffectScope({ cases }), /differs from catalog/);
+});
 
 test("native execution receipts reject foreign plans, pixels, dimensions and adapters", () => {
   const expected = {
