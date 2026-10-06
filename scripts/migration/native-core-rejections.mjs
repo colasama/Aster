@@ -71,7 +71,7 @@ export async function runNativeRejections(context, { reader, base, binary }, exe
   for (const id of [
     "media-image-sequence",
     "layer-text",
-    "effect-brightness-contrast",
+    "scene-dof-15",
     "scene-particles-billboard",
     "scene-motion-blur",
     "scene-lighting-directional",

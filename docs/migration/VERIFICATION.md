@@ -383,8 +383,9 @@ later milestones. M3 completion does not switch production preview/export away f
 
 ## Native effect increments
 
-M4 G3 retains the complete 145-frame M3 regression scope and adds eight original LUT frames
-(`effect-lut` trilinear and `lut-tetrahedral`). Each requires a real native LUT upload and resident
+M4 G3 retains the complete 145-frame M3 regression scope and adds 97 frames across 24
+color, tone, temporal-posterization and LUT cases. The eight LUT frames (`effect-lut` trilinear and
+`lut-tetrahedral`) each require a real native LUT upload and resident
 bytes, frozen-reference GPU comparisons and section 6.6 self-review. Root and recursive layer
 programs bind their captured LUT hash, preserving the shared shader's interpolation and domain
 semantics. A GPU test verifies exact half-float upload (including negative/HDR values), repeated
@@ -393,5 +394,18 @@ budget shrink. G0 rejects invalid shapes and non-finite samples. The former LUT 
 probe is replaced by the still-unsupported lighting route.
 
 M4 increments report incomplete milestone coverage until every registered effect, layer style and
-required native optimization has evidence. Passing this LUT increment does not claim M4 completion
+required native optimization has evidence. Passing this effect increment does not claim M4 completion
 or switch the production preview/export path.
+
+The diagnostic `render-plan --batch <jobs.json>` command accepts a bounded JSON array of
+`{plan, resources, resource_manifest?, out}` jobs. It retains one native device, pipelines and GPU
+caches across frames, but validates each supplied plan and resource closure independently. Outputs
+must be unique absolute paths that do not already exist. Each PNG is published atomically, followed
+by a receipt with its plan/pixel hashes, zero-based `frame_index` and `renderer_reused` flag. A later
+invalid frame fails the command while preserving complete prior frames and leaving no failed-frame
+PNG. G3 verifies all 97 receipts, 96 device reuses, duplicate/limit rejection and partial-failure
+output integrity. This diagnostic readback path is not the production export pipeline.
+
+Known shared integer effect opcodes are admitted without rewriting the supplied program. Unknown,
+non-finite or fractional codes still fail; pyramid-dependent base blur/glow remain unsupported.
+The current 24-case scope does not establish coverage of the entire effect registry.

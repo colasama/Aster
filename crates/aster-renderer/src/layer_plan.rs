@@ -85,9 +85,10 @@ impl LayerPlan {
                         .try_into()
                         .map_err(|_| RenderError::Invalid("operation lane".into()))?,
                 );
-                // Keep unsupported programs explicit until their native dependencies are implemented.
+                // The current shared program defines contiguous integer opcodes 1 through 268.
+                // Unknown revisions reject rather than silently producing unchanged pixels.
                 uses_lut |= code == 32.0;
-                if ![32.0, 38.0, 98.0, 101.0, 102.0, 106.0, 107.0, 174.0, 210.0].contains(&code) {
+                if !code.is_finite() || code.fract() != 0.0 || !(1.0..=268.0).contains(&code) {
                     return Err(RenderError::Unsupported(format!("layer operation {code}")));
                 }
             }

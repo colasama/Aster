@@ -21,6 +21,8 @@ export {
 } from "./native-core-scope.mjs";
 
 import { runNativeRejections } from "./native-core-rejections.mjs";
+import { runNativeEffectBatch } from "./native-effect-batch.mjs";
+import { nativeEffectCases } from "./native-effect-scope.mjs";
 import { runNativeExrGate } from "./native-exr-gate.mjs";
 import { runNativeStillGate } from "./native-still-gate.mjs";
 import { runStep } from "./process.mjs";
@@ -47,11 +49,11 @@ export function validateNativeReceipt(receipt, expected) {
 export async function runNativeCoreGate(context, execute = runStep) {
   const started = Date.now();
   const effects = context.milestone === "M4";
-  const extraCases = effects ? ["effect-lut", "lut-tetrahedral"] : [];
+  const extraCases = effects ? nativeEffectCases : [];
   const report = {
     id: "G3",
     status: "failed",
-    scope: effects ? "native-effects-lut-v1" : "native-core-v5",
+    scope: effects ? "native-effects-fused-v2" : "native-core-v5",
     native_image_decode: true,
     full_coverage: false,
     milestone_exit_eligible: false,
@@ -106,7 +108,7 @@ export async function runNativeCoreGate(context, execute = runStep) {
       const pinned = await reader.bytes(local(compiler));
       report.dxcompiler = { path: local(compiler), sha256: pinned.sha256 };
     }
-    for (const id of cases) {
+    for (const id of coreCases) {
       const item = corpus.cases.find((value) => value.id === id);
       assert(item, `Required native core case absent: ${id}`);
       const source = manifest.cases.find((value) => value.case_id === id);
@@ -144,8 +146,7 @@ export async function runNativeCoreGate(context, execute = runStep) {
               ...(compiler &&
               (coreLayerCases.includes(id) ||
                 coreSurfaceCases.includes(id) ||
-                coreAdditionalGeometryCases.includes(id) ||
-                extraCases.includes(id))
+                coreAdditionalGeometryCases.includes(id))
                 ? ["--dxcompiler", compiler]
                 : []),
             ],
@@ -165,10 +166,6 @@ export async function runNativeCoreGate(context, execute = runStep) {
           adapter: meta.adapter.gpuMemory.device,
         });
         assert.equal(receipt.native_image_decode, false);
-        if (extraCases.includes(id)) {
-          assert(receipt.lut_cache.uploads > 0, "Native LUT was not uploaded");
-          assert(receipt.lut_cache.resident_bytes > 0);
-        }
         if (coreImageCases.includes(id)) {
           assert(receipt.image_cache.uploads > 0, "Native image case uploaded no texture");
           assert(receipt.image_cache.resident_bytes > 0);
@@ -196,6 +193,25 @@ export async function runNativeCoreGate(context, execute = runStep) {
           output: { path: local(output), sha256: pixels.png_sha256 },
         });
       }
+    }
+    if (effects) {
+      const extra = await runNativeEffectBatch(
+        context,
+        {
+          reader,
+          binary,
+          base,
+          manifest,
+          corpus,
+          compiler,
+          validateReceipt: validateNativeReceipt,
+        },
+        execute,
+      );
+      report.cases.push(...extra.cases);
+      report.frames.push(...extra.frames);
+      candidate.frames.push(...extra.candidate);
+      report.effect_batch = extra.batch;
     }
     report.required_count = cases.reduce(
       (count, id) => count + corpus.cases.find((item) => item.id === id).frames.length,

@@ -2,6 +2,7 @@ mod bundle;
 mod compare;
 mod ir;
 mod native_stills;
+mod render_input;
 mod render_plan;
 
 use std::process::ExitCode;
@@ -25,7 +26,7 @@ enum Command {
     /// Generate schemas and round-trip the bounded partial frame-plan transport.
     Ir(ir::IrArgs),
     /// Execute a complete supplied frame on a native GPU, with optional diagnostic PNG output.
-    RenderPlan(render_plan::RenderPlanArgs),
+    RenderPlan(Box<render_plan::RenderPlanArgs>),
 }
 
 #[derive(Serialize)]

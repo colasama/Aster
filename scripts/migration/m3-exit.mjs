@@ -104,7 +104,7 @@ export async function auditM3Exit(root, report) {
         "image-budget",
         "media-image-sequence",
         "layer-text",
-        "effect-brightness-contrast",
+        "scene-dof-15",
         "scene-particles-billboard",
         "scene-motion-blur",
         "scene-lighting-directional",
