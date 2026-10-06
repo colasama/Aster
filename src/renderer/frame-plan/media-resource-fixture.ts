@@ -71,5 +71,10 @@ export async function mediaResourceFixtures(): Promise<PutResource[]> {
       },
     });
   }
+  const image = messages.find(
+    (message) => message.kind === "media_frame" && message.descriptor.sample.kind === "image",
+  );
+  if (image?.kind === "media_frame")
+    await put({ kind: "media_frame", descriptor: { ...image.descriptor, format: "rgba16float" } });
   return messages;
 }

@@ -135,8 +135,11 @@ version = "0.3.5"
 dependencies = [
  "aster-render-ir",
  "aster-video",
+ "base64",
  "clap",
+ "exr",
  "serde",
+ "serde_json",
  "sha2",
  "thiserror",
  "uuid",
@@ -245,12 +248,17 @@ dependencies = [
 name = "aster-renderer"
 version = "0.3.5"
 dependencies = [
+ "aster-media-native",
  "aster-render",
  "aster-render-ir",
  "aster-shaders",
+ "aster-video",
+ "exr",
  "pollster",
  "serde",
+ "sha2",
  "thiserror",
+ "uuid",
  "wgpu",
 ]
 

@@ -830,7 +830,7 @@
       "type": "object"
     },
     "MediaTextureFormat": {
-      "enum": ["rgba8unorm-srgb"],
+      "enum": ["rgba8unorm-srgb", "rgba16float"],
       "type": "string"
     },
     "MotionReconstructionInput": {

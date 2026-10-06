@@ -10,7 +10,9 @@ import type { PutResource } from "./types";
 /** Own the input before hashing so a caller cannot mutate accepted pixel generations. */
 export async function createRasterPixels(frame: PutResource, input: Uint8Array) {
   requirePlan(
-    frame.kind === "media_frame" && frame.descriptor.sample.kind === "raster",
+    frame.kind === "media_frame" &&
+      frame.descriptor.sample.kind === "raster" &&
+      frame.descriptor.format === "rgba8unorm-srgb",
     "invalid_resource",
     "Pixel resources require a raster frame",
   );

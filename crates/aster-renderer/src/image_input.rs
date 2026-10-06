@@ -15,6 +15,7 @@ pub(crate) struct ImageInput {
     pub pixels: ResourceHash,
     pub width: u32,
     pub height: u32,
+    pub format: aster_render_ir::MediaTextureFormat,
 }
 
 impl ImageInput {
@@ -41,7 +42,10 @@ impl ImageInput {
             };
             let bytes = registry.resolve(&record.pixels)?;
             if pixels.element_type != ElementType::U8
-                || u64::from(frame.width) * u64::from(frame.height) * 4 != bytes.len() as u64
+                || u64::from(frame.width)
+                    * u64::from(frame.height)
+                    * u64::from(frame.format.bytes_per_pixel())
+                    != bytes.len() as u64
             {
                 return Err(RenderError::Invalid("image pixel extent differs".into()));
             }
@@ -53,6 +57,7 @@ impl ImageInput {
                         pixels: record.pixels.clone(),
                         width: frame.width,
                         height: frame.height,
+                        format: frame.format,
                     },
                 )
                 .is_some()

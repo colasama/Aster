@@ -60,7 +60,11 @@ impl NativeStillArgs {
         for hash in &plan.metadata.resources {
             if let ResourceDescriptor::MediaFrame(frame) = registry.descriptor(hash)? {
                 requested = requested
-                    .checked_add(u64::from(frame.width) * u64::from(frame.height) * 4)
+                    .checked_add(
+                        u64::from(frame.width)
+                            * u64::from(frame.height)
+                            * u64::from(frame.format.bytes_per_pixel()),
+                    )
                     .ok_or("native still allocation overflow")?;
                 frames.push(hash.clone());
             }

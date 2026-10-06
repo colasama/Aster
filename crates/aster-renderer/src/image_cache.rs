@@ -88,7 +88,9 @@ impl ImageCache {
         let mut requested = 0_u64;
         let mut missing = 0_u64;
         for input in inputs.values() {
-            let bytes = u64::from(input.width) * u64::from(input.height) * 4;
+            let bytes = u64::from(input.width)
+                * u64::from(input.height)
+                * u64::from(input.format.bytes_per_pixel());
             if input.width > device.limits().max_texture_dimension_2d
                 || input.height > device.limits().max_texture_dimension_2d
                 || registry.resolve(&input.pixels)?.len() as u64 != bytes
@@ -161,7 +163,14 @@ impl ImageCache {
                 mip_level_count: 1,
                 sample_count: 1,
                 dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                format: match input.format {
+                    aster_render_ir::MediaTextureFormat::Rgba8UnormSrgb => {
+                        wgpu::TextureFormat::Rgba8UnormSrgb
+                    }
+                    aster_render_ir::MediaTextureFormat::Rgba16Float => {
+                        wgpu::TextureFormat::Rgba16Float
+                    }
+                },
                 usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
                 view_formats: &[],
             });
@@ -170,7 +179,7 @@ impl ImageCache {
                 registry.resolve(&input.pixels)?,
                 wgpu::TexelCopyBufferLayout {
                     offset: 0,
-                    bytes_per_row: Some(input.width * 4),
+                    bytes_per_row: Some(input.width * input.format.bytes_per_pixel()),
                     rows_per_image: Some(input.height),
                 },
                 texture.size(),
@@ -190,7 +199,9 @@ impl ImageCache {
                     },
                 ],
             });
-            let bytes = u64::from(input.width) * u64::from(input.height) * 4;
+            let bytes = u64::from(input.width)
+                * u64::from(input.height)
+                * u64::from(input.format.bytes_per_pixel());
             self.entries.insert(
                 key,
                 CachedImage {

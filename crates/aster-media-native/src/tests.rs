@@ -65,6 +65,7 @@ impl Fixture {
             still_max_pixel_bytes: 1024,
             still_max_dimension: 32,
             still_timeout_ms: 100,
+            still_max_header_bytes: 1024,
         }
     }
 

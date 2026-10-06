@@ -45,6 +45,17 @@ pub enum MediaSample {
 pub enum MediaTextureFormat {
     #[serde(rename = "rgba8unorm-srgb")]
     Rgba8UnormSrgb,
+    #[serde(rename = "rgba16float")]
+    Rgba16Float,
+}
+
+impl MediaTextureFormat {
+    pub fn bytes_per_pixel(self) -> u32 {
+        match self {
+            Self::Rgba8UnormSrgb => 4,
+            Self::Rgba16Float => 8,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
@@ -74,6 +85,11 @@ impl MediaSourceDescriptor {
 impl MediaFrameDescriptor {
     pub fn validate(&self) -> Result<(), IrError> {
         self.source.validate()?;
+        if self.format == MediaTextureFormat::Rgba16Float && self.sample != MediaSample::Image {
+            return Err(IrError::InvalidResource(
+                "linear float media requires a still image".into(),
+            ));
+        }
         if self.width == 0 || self.height == 0 || self.width > 16384 || self.height > 16384 {
             return Err(IrError::InvalidResource("invalid media extent".to_owned()));
         }

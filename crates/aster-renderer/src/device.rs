@@ -10,6 +10,9 @@ use aster_shaders::ShaderCatalog;
 use crate::{RenderError, SuppliedFrame, output::OutputPipelines, scene::ScenePipelines};
 
 #[cfg(test)]
+#[path = "hdr_image_tests.rs"]
+mod hdr_image_tests;
+#[cfg(test)]
 #[path = "image_cache_tests.rs"]
 mod image_cache_tests;
 

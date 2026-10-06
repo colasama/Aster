@@ -1,6 +1,8 @@
 use std::{collections::BTreeMap, fs::File, io::Read, path::PathBuf, sync::Arc, time::Duration};
 
-use aster_render_ir::{MediaKind, MediaSample, ResourceDescriptor, ResourceHash, ResourceRegistry};
+use aster_render_ir::{
+    MediaKind, MediaSample, MediaTextureFormat, ResourceDescriptor, ResourceHash, ResourceRegistry,
+};
 use aster_video::{CancellationToken, DecodeLimits, FfmpegBackend};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -27,6 +29,8 @@ pub struct StillLimits {
     pub still_max_dimension: u32,
     #[arg(long, default_value_t = 30_000)]
     pub still_timeout_ms: u64,
+    #[arg(long, default_value_t = 1_048_576)]
+    pub still_max_header_bytes: usize,
 }
 
 #[derive(Debug, Serialize)]
@@ -38,6 +42,7 @@ pub struct NativeImageReceipt {
     pub width: u32,
     pub height: u32,
     pub backend: &'static str,
+    pub format: MediaTextureFormat,
 }
 
 pub struct DecodedStill {
@@ -62,6 +67,7 @@ impl NativeStillDecoder {
             || limits.still_max_pixel_bytes == 0
             || limits.still_max_dimension == 0
             || limits.still_timeout_ms == 0
+            || limits.still_max_header_bytes < 8
         {
             return Err(MediaError::Limit(
                 "positive bounded decode limits required".into(),
@@ -127,7 +133,9 @@ impl NativeStillDecoder {
         }
         if frame.width > self.limits.still_max_dimension
             || frame.height > self.limits.still_max_dimension
-            || u64::from(frame.width) * u64::from(frame.height) * 4
+            || u64::from(frame.width)
+                * u64::from(frame.height)
+                * u64::from(frame.format.bytes_per_pixel())
                 > self.limits.still_max_pixel_bytes
         {
             return Err(MediaError::Limit(
@@ -158,14 +166,26 @@ impl NativeStillDecoder {
         {
             return Err(MediaError::Identity);
         }
-        let mut bytes = self.backend.decode_still_rgba(
-            Arc::from(encoded),
-            (frame.width, frame.height),
-            cancellation,
-        )?;
-        // Browser still imports pass through an eight-bit associated-alpha canvas.
-        // Preserve its precision boundary before uploading straight sRGB samples.
-        Self::canvas_alpha_precision(&mut bytes);
+        let (bytes, backend) = match frame.format {
+            MediaTextureFormat::Rgba16Float => (
+                crate::exr_snapshot::ExrSnapshot::decode(
+                    encoded,
+                    frame,
+                    &self.limits,
+                    cancellation,
+                )?,
+                "rust-exr-snapshot",
+            ),
+            MediaTextureFormat::Rgba8UnormSrgb => {
+                let mut bytes = self.backend.decode_still_rgba(
+                    Arc::from(encoded),
+                    (frame.width, frame.height),
+                    cancellation,
+                )?;
+                Self::canvas_alpha_precision(&mut bytes);
+                (bytes, "ffmpeg-still-snapshot")
+            }
+        };
         Ok(DecodedStill {
             receipt: NativeImageReceipt {
                 frame: hash.clone(),
@@ -174,7 +194,8 @@ impl NativeStillDecoder {
                 rgba_sha256: format!("{:x}", Sha256::digest(&bytes)),
                 width: frame.width,
                 height: frame.height,
-                backend: "ffmpeg-still-snapshot",
+                backend,
+                format: frame.format,
             },
             bytes,
         })

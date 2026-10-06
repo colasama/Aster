@@ -36,6 +36,7 @@ impl ImageFixture {
             pixels,
             width: 2,
             height: 2,
+            format: aster_render_ir::MediaTextureFormat::Rgba8UnormSrgb,
         })
     }
 }

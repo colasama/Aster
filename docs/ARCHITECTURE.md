@@ -72,7 +72,7 @@ submission has its own module. Frame buffers remain GPU-resident until an explic
 Its initial capability covers solid/vector draws, supplied still-image pixels, fixed and backdrop
 blends, display conversion and all four AA modes. It consumes shared WGSL and exact supplied geometry, lighting, clear and
 post-process buffers; it does not evaluate projects or open media paths. Unsupported operations
-return explicit errors before rendering. EXR image decoding, masks, adjustments and recursive surfaces remain
+return explicit errors before rendering. Masks, adjustments and recursive surfaces remain
 pending native capabilities, and production preview/export still use the TS execution path.
 
 Linear HDR scene and isolated layer intermediates stay on the GPU. Frame targets are reused by
@@ -82,7 +82,7 @@ diagnostic readback to publish a PNG atomically. Future preview and encoder cons
 texture directly. The CLI verifies the exact content-addressed resource closure before execution
 and reports adapter identity and input/output hashes for independent pixel verification.
 
-Native still-image draws sample cached `rgba8unorm-srgb` textures through the shared image shader.
+Native still-image draws sample cached `rgba8unorm-srgb` or linear `rgba16float` textures through the shared image shader.
 The cache key includes both frame identity and pixel content hash, so an updated pixel generation
 cannot reuse stale content. Frame admission checks complete texture demand before mutation; LRU
 eviction excludes current-frame inputs and waits for submitted GPU work only under memory pressure.
@@ -98,7 +98,15 @@ checked before codec execution; source/pixel budgets, timeout and cancellation b
 The child receives no source path. Eight-bit associated-alpha rounding preserves the browser import
 precision boundary before straight sRGB pixels enter the GPU cache. The CLI accepts original plans
 with `--media-authorizations` and `--ffmpeg`; captured pixel attachments cannot be mixed with native
-decode. Receipts bind source and decoded hashes. EXR linear HDR support remains pending.
+decode. Receipts bind source and decoded hashes.
+
+Authorized EXR snapshots use the existing Rust `exr` library with bounded metadata and single-layer
+float RGB(A) admission. The frame descriptor declares `rgba16float`; half-float byte budgets flow
+through registry admission, texture upload and cache eviction. EXR associated linear RGB is converted
+to straight linear samples for the shared image shader, preserving HDR and negative finite values.
+Unsupported color primaries, deep/multipart files, incompatible display windows and non-finite or
+half-float-overflowing samples reject explicitly. Reads observe cancellation and timeout; decode
+remains sequential to bound working memory. Browser raster payloads retain their eight-bit format.
 
 The migration's `aster-render-ir` crate owns typed frame-plan transport and its generated schema.
 TS DataView and Rust owned-buffer codecs share a canonical FPLN container with aligned binary blobs

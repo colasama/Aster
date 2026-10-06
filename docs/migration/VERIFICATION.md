@@ -332,7 +332,7 @@ The gate also checks rejection without output publication for unsupported featur
 budgets and corrupt resources, and preserves pre-existing output. Binary and input hashes must
 remain stable throughout the run. This is explicitly an incremental gate: its report sets
 `full_coverage` and `milestone_exit_eligible` to false. Passing G0/G1/G3 permits the increment's
-commit but cannot complete M3 while EXR decoding, masks, adjustment layers or precomposition surfaces
+commit but cannot complete M3 while masks, adjustment layers or precomposition surfaces
 remain unimplemented. M3 exit requires the complete core corpus and an exit audit.
 
 Supplied-image receipts require actual native texture uploads and report `native_image_decode: false`.
@@ -346,4 +346,13 @@ pixels. It materializes hash-pinned source files, grants each source and scope e
 native decode receipts plus the same frozen-reference GPU comparisons and self-reviews. Missing
 grants, incorrect scopes/hashes and source/pixel budget violations must reject without publication.
 The packaged FFmpeg executable and all source inputs are pinned for the run. These eight renders
-supplement the 96 supplied-resource frames; EXR and complete core coverage are still required.
+supplement the 96 supplied-resource frames; complete core coverage is still required.
+
+EXR has the recorded `ts-exr-import` reference boundary. G0 checks the real hash-pinned EXR asset's
+linear sample values and rejects malformed extents, budgets and non-finite values. G1 round-trips
+the additive `rgba16float` media descriptor. G3 also decodes an authorized HDR EXR file and runs the
+production image shader through the actual float texture cache: associated `(4, -2, 0.25, 0.5)` must
+survive exactly, proving that values were neither clipped to SDR nor sampled as sRGB. Float texture
+budget rejection and reuse are checked on the GPU. A supplemental EXR frame-plan run replaces only
+the captured image resource closure and records its native receipt and output; its report explicitly
+does not claim unavailable TS EXR pixel parity. No frozen references or tolerances are modified.

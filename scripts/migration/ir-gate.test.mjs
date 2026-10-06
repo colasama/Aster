@@ -204,7 +204,7 @@ test("G1 orchestrates all real TS codec checks and keeps renderer completion exp
   const result = await f.run();
   assert.equal(result.status, "passed", result.error);
   assert.equal(result.renderer_plan_complete, true);
-  assert.equal(result.roundtrips.length, 128);
+  assert.equal(result.roundtrips.length, 129);
   assert.deepEqual(
     result.frame_bundles.map((bundle) => bundle.temporal_passes),
     [0, 0, 2],
@@ -285,13 +285,13 @@ test("G1 orchestrates all real TS codec checks and keeps renderer completion exp
   );
   assert.equal(result.camera_roundtrips.length, 2);
   assert.equal(result.temporal_samples.length, 5);
-  assert.equal(result.scene_uploads.length, 16);
-  assert.equal(result.media_draws.length, 11);
+  assert.equal(result.scene_uploads.length, 17);
+  assert.equal(result.media_draws.length, 12);
   assert.equal(result.root_uploads.length, 12);
   assert.equal(result.rejections.length, 18);
   assert.equal(result.custom_limits.length, 3);
   assert.equal(result.resources.status, "passed");
-  assert.equal(result.media_resources.roundtrips, 17);
+  assert.equal(result.media_resources.roundtrips, 18);
   assert.equal(result.media_resources.exact_raster_bounds, true);
   assert.equal(result.raster_pixels.resources, 3);
   assert.equal(result.texture_pixels.resources, 5);
@@ -337,7 +337,7 @@ test("G1 rejects source drift even when every codec result is exact", async (t) 
   }));
   assert.equal(result.status, "failed");
   assert.equal(result.source_unchanged, false);
-  assert.equal(result.roundtrips.length, 128);
+  assert.equal(result.roundtrips.length, 129);
   assert.match(result.error, /Source changed during G1/);
 });
 

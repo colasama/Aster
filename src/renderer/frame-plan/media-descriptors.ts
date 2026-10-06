@@ -23,7 +23,7 @@ export interface MediaFrameDescriptor {
   sample: MediaSample;
   width: number;
   height: number;
-  format: "rgba8unorm-srgb";
+  format: "rgba8unorm-srgb" | "rgba16float";
 }
 
 export function validateMediaSource(value: unknown): MediaSourceDescriptor {
@@ -54,7 +54,7 @@ export function validateMediaFrame(value: unknown): MediaFrameDescriptor {
   integer(frame.width, 1, 16384);
   integer(frame.height, 1, 16384);
   requirePlan(
-    frame.format === "rgba8unorm-srgb",
+    frame.format === "rgba8unorm-srgb" || frame.format === "rgba16float",
     "invalid_resource",
     "Unsupported media texture format",
   );
@@ -63,6 +63,11 @@ export function validateMediaFrame(value: unknown): MediaFrameDescriptor {
     sample !== null && typeof sample === "object",
     "invalid_resource",
     "Missing media sample",
+  );
+  requirePlan(
+    frame.format !== "rgba16float" || sample.kind === "image",
+    "invalid_resource",
+    "Linear float media requires a still image",
   );
   if (sample.kind === "image") object(sample, ["kind"]);
   else if (sample.kind === "raster") readRasterBounds(sample);

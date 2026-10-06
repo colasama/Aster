@@ -198,7 +198,7 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
       ["camera-perspective", "camera-orthographic"],
     );
     const mediaFixtures = await runtime.sceneMediaFixtures();
-    assert.equal(mediaFixtures.length, 11);
+    assert.equal(mediaFixtures.length, 12);
     const rasterFixtures = await runtime.rasterSceneFixtures();
     const temporalFixtures = runtime.temporalTextFixtures();
     assert.equal(temporalFixtures.length, 5);

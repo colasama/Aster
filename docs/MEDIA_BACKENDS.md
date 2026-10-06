@@ -30,9 +30,14 @@ output, time and cancellation are bounded. The child reads immutable bytes throu
 media path. Native imports preserve the browser's eight-bit associated-alpha precision boundary
 before the renderer uploads straight sRGB samples into its content-addressed GPU cache.
 
-This path currently serves headless frame-plan rendering. Production preview/export still use TS,
-and native EXR/HDR import remains pending. It does not change the shipped FFmpeg build or encoding
-backend selection.
+EXR snapshots use the already-linked Rust `exr` library and produce straight linear `rgba16float`
+textures. Input files may contain one flat RGB layer with optional alpha, full-resolution floating
+channels, matching zero-origin data/display windows and BT.709/sRGB primaries. Associated RGB is
+unassociated before sampling; negative and HDR values remain linear. Deep/multipart data, unsupported
+primaries and non-finite or half-float-overflowing samples reject explicitly. Header lengths and offset
+tables are checked before decode; reads observe cancellation and timeout. This path currently serves
+headless frame-plan rendering. Production preview/export still use TS. The shipped FFmpeg build and
+encoding backend selection are unchanged.
 
 ## Required backend contract
 

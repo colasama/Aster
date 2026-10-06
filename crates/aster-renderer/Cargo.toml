@@ -13,3 +13,10 @@ pollster.workspace = true
 serde.workspace = true
 thiserror.workspace = true
 wgpu.workspace = true
+
+[dev-dependencies]
+aster-media-native.workspace = true
+aster-video.workspace = true
+exr.workspace = true
+sha2.workspace = true
+uuid.workspace = true

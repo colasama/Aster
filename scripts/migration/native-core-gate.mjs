@@ -5,6 +5,7 @@ import { validateFrameArtifacts } from "../parity/frame-artifacts.mjs";
 import { runPixelGate } from "../parity/pixel-gate.mjs";
 import { M0Evidence } from "./m0-evidence.mjs";
 import { runNativeRejections } from "./native-core-rejections.mjs";
+import { runNativeExrGate } from "./native-exr-gate.mjs";
 import { runNativeStillGate } from "./native-still-gate.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
@@ -211,6 +212,12 @@ export async function runNativeCoreGate(context, execute = runStep) {
       execute,
     );
     assert.equal(report.native_stills.status, "passed", "Native still decode gate failed");
+    report.native_exr = await runNativeExrGate(
+      { ...context, output: join(context.output, "native-exr") },
+      { base, binary, validateReceipt: validateNativeReceipt },
+      execute,
+    );
+    assert.equal(report.native_exr.status, "passed", "Native EXR execution failed");
     assert.equal(
       await hashFile(binary),
       report.binary.sha256,

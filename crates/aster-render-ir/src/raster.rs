@@ -45,6 +45,9 @@ pub struct RasterPixelsDescriptor {
 impl RasterPixelsDescriptor {
     pub fn validate(&self, bytes: &[u8]) -> Result<(), IrError> {
         self.frame.validate()?;
+        if self.format != MediaTextureFormat::Rgba8UnormSrgb {
+            return Err(IrError::InvalidResource("unsupported raster format".into()));
+        }
         if self.width == 0 || self.height == 0 || self.width > 16384 || self.height > 16384 {
             return Err(IrError::InvalidResource("invalid raster extent".to_owned()));
         }

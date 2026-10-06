@@ -1,4 +1,7 @@
 //! Authorized native media snapshots and bounded decode, independent of GPU execution.
+mod exr_snapshot;
+#[cfg(test)]
+mod exr_tests;
 mod still;
 #[cfg(test)]
 mod tests;
@@ -8,6 +11,8 @@ pub use still::{
 
 #[derive(Debug, thiserror::Error)]
 pub enum MediaError {
+    #[error("native EXR decode failed: {0}")]
+    Exr(String),
     #[error("native media authorization failed: {0}")]
     Authorization(String),
     #[error("native media resource limit: {0}")]
