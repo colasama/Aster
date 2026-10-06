@@ -146,50 +146,38 @@
     }
   },
   "last_cycle": {
-    "id": 79,
-    "time": "2026-10-06T00:03:14.368Z",
+    "id": 80,
+    "time": "2026-10-06T00:17:01.743Z",
     "milestone": "M3",
-    "task": "M3-T2",
+    "task": "M3-T3",
     "outcome": "passed",
-    "commit": "4b15b821bc921145d177cb1b738b8a4eebf21f92",
-    "verification": "artifacts/migration/verify-2026-10-05T23-57-22-338Z-e887bc48.json",
-    "verification_sha256": "9c18e980df74d05e1a73042fbd47e641f41bde38c8dc08ef6efd95c30cb589e4",
+    "commit": "faf7d38308cdf99aed62a9df547f6dd2f51662db",
+    "verification": "artifacts/migration/verify-2026-10-06T00-10-34-740Z-0fdf2c38.json",
+    "verification_sha256": "a231db4a9a2989a7fb007f2eed2496a2291e34898c50e8bd8d0f573b122b5798",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 82651
+        "duration_ms": 83796
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 28302
+        "duration_ms": 60986
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 160952
+        "duration_ms": 211188
       }
     ],
-    "verification_duration_ms": 273352,
-    "next_step": "Implement M3-T3 masks, mattes and adjustment-layer composition using supplied plans and shared shaders.",
+    "verification_duration_ms": 357435,
+    "next_step": "Implement M3-T4 recursive precomposition GPU surfaces, including nested adjustments, with explicit cache budgets and lifetime.",
     "notes": [
-      "Authorized EXR snapshots decode through the existing Rust exr library into linear rgba16float. Input/header/offset-table bounds, source identity, supported channels/primaries/windows, cancellation and timeout are enforced; unsupported or non-finite values reject explicitly. No new external package or shipped codec changes.",
-      "The additive frame-plan format is round-tripped exactly by TS and Rust. GPU allocation, upload and cache byte accounting distinguish SDR bytes from linear half floats; browser raster captures remain eight-bit.",
-      "G0 real EXR sample assertions and HDR/negative/alpha/invalid-input checks pass. G3 decodes an authorized EXR file through the production image shader and cache and exactly recovers associated (4,-2,0.25,0.5), including rejection below the float texture budget and unchanged texture reuse.",
-      "The supplemental real-asset EXR original-plan CLI execution passes, with a native source hash/format/adapter/texture receipt. Direct inspection shows the expected bars and gradients. The existing ts-exr-import boundary remains explicit: this is native numeric/GPU evidence, not a fabricated TS EXR reference.",
-      "All prior 96 supplied-resource and eight native PNG/JPEG frame comparisons retain their accepted reviews; tolerances and frozen references are unchanged. M3-T2 is complete for the declared supported still formats; M3 remains open for masks, mattes, adjustments, precompositions and its full exit audit. Production preview/export still use TS."
-    ],
-    "verification_attempts": [
-      {
-        "path": "artifacts/migration/verify-2026-10-05T23-49-03-361Z-3505b208.json",
-        "status": "failed",
-        "reason": "G0 migration tests and G1 expected 11 media scene fixtures; rgba16float adds the twelfth fixture and the 129th exact roundtrip. Updated explicit coverage counts; G3 already passed."
-      },
-      {
-        "path": "artifacts/migration/verify-2026-10-05T23-57-22-338Z-e887bc48.json",
-        "status": "passed"
-      }
+      "Execute supplied layer mask groups, channel mattes, feathering, exposure and inversion through unchanged shared WGSL. Fixed blend passes composite isolated output once; adjustment passes snapshot and replace the accumulated HDR scene. Unsupported effect operations and pyramids continue to reject.",
+      "The native host accepts an explicit DXC library path; G3 pins the existing Electron DXC 1.9.2602.0 library. Full effect pipelines are compiled lazily and retained per device, resolving the old FXC full-program compilation failure without downloading or adding a compiler dependency.",
+      "All 16 new frames pass: twelve exact, four mask/matte frames with three one-code-value channel differences. Direct contact-sheet and heatmap inspections are accepted under section 6.6; no tolerance or reference changes. Existing 96 supplied-resource comparisons, eight native PNG/JPEG comparisons, EXR numeric/GPU evidence and rejections remain green.",
+      "M3-T3 non-recursive core coverage is complete. Nested adjustments depend on recursive surface execution in M3-T4; wider effect catalog coverage remains M4. M3 is not complete and production preview/export remain TS."
     ]
   },
   "milestones": [
@@ -19821,14 +19809,66 @@
         {
           "id": "M3-T3",
           "title": "Complete masks, mattes and adjustment-layer composition",
-          "status": "pending",
+          "status": "done",
           "completed_scope": {
             "all_blend_modes": {
               "commit": "4f22ce5b14b9fc3a29b91e383cd791759c77f9bd",
               "verification": "artifacts/migration/verify-2026-10-05T22-42-43-329Z-7f4add64.json",
               "task": "M3-T1"
             }
-          }
+          },
+          "completed_at": "2026-10-06T00:17:01.743Z",
+          "commit": "faf7d38308cdf99aed62a9df547f6dd2f51662db",
+          "verification": "artifacts/migration/verify-2026-10-06T00-10-34-740Z-0fdf2c38.json",
+          "verification_sha256": "a231db4a9a2989a7fb007f2eed2496a2291e34898c50e8bd8d0f573b122b5798",
+          "scope": {
+            "cases": [
+              "scene-masks-mattes-0",
+              "scene-masks-mattes-3",
+              "scene-masks-mattes-4",
+              "layer-adjustment"
+            ],
+            "frames": 16,
+            "recursive_coverage_task": "M3-T4",
+            "wider_effect_coverage_milestone": "M4"
+          },
+          "increments": [
+            {
+              "id": 80,
+              "time": "2026-10-06T00:17:01.743Z",
+              "milestone": "M3",
+              "task": "M3-T3",
+              "outcome": "passed",
+              "commit": "faf7d38308cdf99aed62a9df547f6dd2f51662db",
+              "verification": "artifacts/migration/verify-2026-10-06T00-10-34-740Z-0fdf2c38.json",
+              "verification_sha256": "a231db4a9a2989a7fb007f2eed2496a2291e34898c50e8bd8d0f573b122b5798",
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 83796
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 60986
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 211188
+                }
+              ],
+              "verification_duration_ms": 357435,
+              "next_step": "Implement M3-T4 recursive precomposition GPU surfaces, including nested adjustments, with explicit cache budgets and lifetime.",
+              "notes": [
+                "Execute supplied layer mask groups, channel mattes, feathering, exposure and inversion through unchanged shared WGSL. Fixed blend passes composite isolated output once; adjustment passes snapshot and replace the accumulated HDR scene. Unsupported effect operations and pyramids continue to reject.",
+                "The native host accepts an explicit DXC library path; G3 pins the existing Electron DXC 1.9.2602.0 library. Full effect pipelines are compiled lazily and retained per device, resolving the old FXC full-program compilation failure without downloading or adding a compiler dependency.",
+                "All 16 new frames pass: twelve exact, four mask/matte frames with three one-code-value channel differences. Direct contact-sheet and heatmap inspections are accepted under section 6.6; no tolerance or reference changes. Existing 96 supplied-resource comparisons, eight native PNG/JPEG comparisons, EXR numeric/GPU evidence and rejections remain green.",
+                "M3-T3 non-recursive core coverage is complete. Nested adjustments depend on recursive surface execution in M3-T4; wider effect catalog coverage remains M4. M3 is not complete and production preview/export remain TS."
+              ]
+            }
+          ]
         },
         {
           "id": "M3-T4",
@@ -30833,6 +30873,1342 @@
         "contact_sheet_sha256": "677e2516cd0037cd5d60673c05f6304d99e26efe5c1d4e4b142b8980b6be1932"
       },
       "inspection": "Directly inspected updated PNG contact sheet and heatmap. JPEG image pair is hash-identical to the directly inspected initial diagnostic. All four frames per case share identical reference/candidate RGBA hashes. Color bars, gradients, bounds and transparency remain aligned; only sparse decoder-rounding residuals remain (PNG max 1, JPEG max 2). All GPU metrics and structural checks pass. No reference or tolerance changes."
+    },
+    {
+      "case_id": "scene-masks-mattes-0",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M3 native mask, matte and adjustment layer acceptance",
+      "reviewed_at": "2026-10-06T00:10:23.776Z",
+      "reference_rgba_sha256": "aebb9b102d1384550bd75f62c6dae435aa548054e8b67a9c5db1cbbf785dd979",
+      "candidate_rgba_sha256": "198e222b505f46145babd60715ccad03fe405354f23ff6225d1eb1ac52566cc1",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.000013020833333333334,
+        "mean_squared_error": 0.000013020833333333334,
+        "rgb_mean_squared_error": 0.00001736111111111111,
+        "psnr": {
+          "kind": "finite",
+          "db": 95.73502844291122
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 96.98441580899421
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 0.9999992328439384, 1, 1],
+        "mean": 0.9999997442813129,
+        "rgba_mean": 0.9999998082109847,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, -0.00005208333333333334, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.34885190863579535,
+          "candidate_rms": 0.34885195131061975,
+          "reference_axis_ratio": 0.2994976279220345,
+          "candidate_axis_ratio": 0.2994975204855852,
+          "reference_window_energy_fraction": 0.8407991182621717,
+          "candidate_window_energy_fraction": 0.8407992029167578,
+          "active_frequencies": 1594,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.0376545202433847,
+          "peak_to_sidelobe_ratio": 46.516122097611614,
+          "peak_coherence": 0.9999999999957266,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-0-0/report.json",
+        "heatmap": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-0-0/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-0-0/contact-sheet.png",
+        "report_sha256": "82d45a8ff069f797b943a0844d26fe14536d4270352242a37519868e601f4bb5",
+        "heatmap_sha256": "6416fd0635f98626e98d935c95f160038aadceeefdfeaeebe19f50ac6d73a450",
+        "contact_sheet_sha256": "a078d6c460b7f8554ad0333d545db3ea90e99338da2c3a23d063ed70a0e01e4d"
+      },
+      "inspection": "Directly inspected all four distinct full-resolution contact sheets and heatmaps, grouped by exact reference/candidate RGBA hashes. Ellipse and rectangle masks, overlapping translucent shapes, matte gradients, adjustment colors and alpha silhouettes agree with the reference. Three scene-masks-mattes-0 channel samples differ by one code value; other cases are exact. No shifted edges, missing elements or structural residuals. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle80-layers-first/inspection-groups.json"
+    },
+    {
+      "case_id": "scene-masks-mattes-0",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "M3 native mask, matte and adjustment layer acceptance",
+      "reviewed_at": "2026-10-06T00:10:23.777Z",
+      "reference_rgba_sha256": "aebb9b102d1384550bd75f62c6dae435aa548054e8b67a9c5db1cbbf785dd979",
+      "candidate_rgba_sha256": "198e222b505f46145babd60715ccad03fe405354f23ff6225d1eb1ac52566cc1",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.000013020833333333334,
+        "mean_squared_error": 0.000013020833333333334,
+        "rgb_mean_squared_error": 0.00001736111111111111,
+        "psnr": {
+          "kind": "finite",
+          "db": 95.73502844291122
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 96.98441580899421
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 0.9999992328439384, 1, 1],
+        "mean": 0.9999997442813129,
+        "rgba_mean": 0.9999998082109847,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, -0.00005208333333333334, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.34885190863579535,
+          "candidate_rms": 0.34885195131061975,
+          "reference_axis_ratio": 0.2994976279220345,
+          "candidate_axis_ratio": 0.2994975204855852,
+          "reference_window_energy_fraction": 0.8407991182621717,
+          "candidate_window_energy_fraction": 0.8407992029167578,
+          "active_frequencies": 1594,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.0376545202433847,
+          "peak_to_sidelobe_ratio": 46.516122097611614,
+          "peak_coherence": 0.9999999999957266,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-0-15/report.json",
+        "heatmap": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-0-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-0-15/contact-sheet.png",
+        "report_sha256": "4d015100839ab22ecc0713b8753d7373b207faf77a8132532f0f3f63fc3a0ae3",
+        "heatmap_sha256": "6416fd0635f98626e98d935c95f160038aadceeefdfeaeebe19f50ac6d73a450",
+        "contact_sheet_sha256": "a078d6c460b7f8554ad0333d545db3ea90e99338da2c3a23d063ed70a0e01e4d"
+      },
+      "inspection": "Directly inspected all four distinct full-resolution contact sheets and heatmaps, grouped by exact reference/candidate RGBA hashes. Ellipse and rectangle masks, overlapping translucent shapes, matte gradients, adjustment colors and alpha silhouettes agree with the reference. Three scene-masks-mattes-0 channel samples differ by one code value; other cases are exact. No shifted edges, missing elements or structural residuals. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle80-layers-first/inspection-groups.json"
+    },
+    {
+      "case_id": "scene-masks-mattes-0",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "M3 native mask, matte and adjustment layer acceptance",
+      "reviewed_at": "2026-10-06T00:10:23.777Z",
+      "reference_rgba_sha256": "aebb9b102d1384550bd75f62c6dae435aa548054e8b67a9c5db1cbbf785dd979",
+      "candidate_rgba_sha256": "198e222b505f46145babd60715ccad03fe405354f23ff6225d1eb1ac52566cc1",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.000013020833333333334,
+        "mean_squared_error": 0.000013020833333333334,
+        "rgb_mean_squared_error": 0.00001736111111111111,
+        "psnr": {
+          "kind": "finite",
+          "db": 95.73502844291122
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 96.98441580899421
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 0.9999992328439384, 1, 1],
+        "mean": 0.9999997442813129,
+        "rgba_mean": 0.9999998082109847,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, -0.00005208333333333334, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.34885190863579535,
+          "candidate_rms": 0.34885195131061975,
+          "reference_axis_ratio": 0.2994976279220345,
+          "candidate_axis_ratio": 0.2994975204855852,
+          "reference_window_energy_fraction": 0.8407991182621717,
+          "candidate_window_energy_fraction": 0.8407992029167578,
+          "active_frequencies": 1594,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.0376545202433847,
+          "peak_to_sidelobe_ratio": 46.516122097611614,
+          "peak_coherence": 0.9999999999957266,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-0-30/report.json",
+        "heatmap": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-0-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-0-30/contact-sheet.png",
+        "report_sha256": "204569ee4e83f6fcea6557ac86e78c0ea72cb7e687de35b22d88561c922e66af",
+        "heatmap_sha256": "6416fd0635f98626e98d935c95f160038aadceeefdfeaeebe19f50ac6d73a450",
+        "contact_sheet_sha256": "a078d6c460b7f8554ad0333d545db3ea90e99338da2c3a23d063ed70a0e01e4d"
+      },
+      "inspection": "Directly inspected all four distinct full-resolution contact sheets and heatmaps, grouped by exact reference/candidate RGBA hashes. Ellipse and rectangle masks, overlapping translucent shapes, matte gradients, adjustment colors and alpha silhouettes agree with the reference. Three scene-masks-mattes-0 channel samples differ by one code value; other cases are exact. No shifted edges, missing elements or structural residuals. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle80-layers-first/inspection-groups.json"
+    },
+    {
+      "case_id": "scene-masks-mattes-0",
+      "frame": 59,
+      "profile": "gpu",
+      "purpose": "M3 native mask, matte and adjustment layer acceptance",
+      "reviewed_at": "2026-10-06T00:10:23.777Z",
+      "reference_rgba_sha256": "aebb9b102d1384550bd75f62c6dae435aa548054e8b67a9c5db1cbbf785dd979",
+      "candidate_rgba_sha256": "198e222b505f46145babd60715ccad03fe405354f23ff6225d1eb1ac52566cc1",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.000013020833333333334,
+        "mean_squared_error": 0.000013020833333333334,
+        "rgb_mean_squared_error": 0.00001736111111111111,
+        "psnr": {
+          "kind": "finite",
+          "db": 95.73502844291122
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 96.98441580899421
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 0.9999992328439384, 1, 1],
+        "mean": 0.9999997442813129,
+        "rgba_mean": 0.9999998082109847,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, -0.00005208333333333334, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.34885190863579535,
+          "candidate_rms": 0.34885195131061975,
+          "reference_axis_ratio": 0.2994976279220345,
+          "candidate_axis_ratio": 0.2994975204855852,
+          "reference_window_energy_fraction": 0.8407991182621717,
+          "candidate_window_energy_fraction": 0.8407992029167578,
+          "active_frequencies": 1594,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.0376545202433847,
+          "peak_to_sidelobe_ratio": 46.516122097611614,
+          "peak_coherence": 0.9999999999957266,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-0-59/report.json",
+        "heatmap": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-0-59/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-0-59/contact-sheet.png",
+        "report_sha256": "bc9fa4ac29b18d1ac55af81dd5b7c847fa8187069b07e2f0a494d0f5a98f6a02",
+        "heatmap_sha256": "6416fd0635f98626e98d935c95f160038aadceeefdfeaeebe19f50ac6d73a450",
+        "contact_sheet_sha256": "a078d6c460b7f8554ad0333d545db3ea90e99338da2c3a23d063ed70a0e01e4d"
+      },
+      "inspection": "Directly inspected all four distinct full-resolution contact sheets and heatmaps, grouped by exact reference/candidate RGBA hashes. Ellipse and rectangle masks, overlapping translucent shapes, matte gradients, adjustment colors and alpha silhouettes agree with the reference. Three scene-masks-mattes-0 channel samples differ by one code value; other cases are exact. No shifted edges, missing elements or structural residuals. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle80-layers-first/inspection-groups.json"
+    },
+    {
+      "case_id": "scene-masks-mattes-3",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M3 native mask, matte and adjustment layer acceptance",
+      "reviewed_at": "2026-10-06T00:10:23.777Z",
+      "reference_rgba_sha256": "f2e9f61271bfcce8965465338f3d83547ad98dc5b79ed56b6aa1833fdec204de",
+      "candidate_rgba_sha256": "f2e9f61271bfcce8965465338f3d83547ad98dc5b79ed56b6aa1833fdec204de",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-3-0/report.json",
+        "heatmap": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-3-0/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-3-0/contact-sheet.png",
+        "report_sha256": "648a5cd59f36fe54599b1860ba0140a06247c276c7fb7b9636d7bc1aef0a14c4",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "2f98062a40abfcc334a75967fddf0040fc895c84d52c7cd508b04242c3e021cd"
+      },
+      "inspection": "Directly inspected all four distinct full-resolution contact sheets and heatmaps, grouped by exact reference/candidate RGBA hashes. Ellipse and rectangle masks, overlapping translucent shapes, matte gradients, adjustment colors and alpha silhouettes agree with the reference. Three scene-masks-mattes-0 channel samples differ by one code value; other cases are exact. No shifted edges, missing elements or structural residuals. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle80-layers-first/inspection-groups.json"
+    },
+    {
+      "case_id": "scene-masks-mattes-3",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "M3 native mask, matte and adjustment layer acceptance",
+      "reviewed_at": "2026-10-06T00:10:23.777Z",
+      "reference_rgba_sha256": "f2e9f61271bfcce8965465338f3d83547ad98dc5b79ed56b6aa1833fdec204de",
+      "candidate_rgba_sha256": "f2e9f61271bfcce8965465338f3d83547ad98dc5b79ed56b6aa1833fdec204de",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-3-15/report.json",
+        "heatmap": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-3-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-3-15/contact-sheet.png",
+        "report_sha256": "5a4882c22f4465c594a5d33613e9b7450cd4cde4c8d7f0fa2c3bb90b55b3d1df",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "2f98062a40abfcc334a75967fddf0040fc895c84d52c7cd508b04242c3e021cd"
+      },
+      "inspection": "Directly inspected all four distinct full-resolution contact sheets and heatmaps, grouped by exact reference/candidate RGBA hashes. Ellipse and rectangle masks, overlapping translucent shapes, matte gradients, adjustment colors and alpha silhouettes agree with the reference. Three scene-masks-mattes-0 channel samples differ by one code value; other cases are exact. No shifted edges, missing elements or structural residuals. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle80-layers-first/inspection-groups.json"
+    },
+    {
+      "case_id": "scene-masks-mattes-3",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "M3 native mask, matte and adjustment layer acceptance",
+      "reviewed_at": "2026-10-06T00:10:23.777Z",
+      "reference_rgba_sha256": "f2e9f61271bfcce8965465338f3d83547ad98dc5b79ed56b6aa1833fdec204de",
+      "candidate_rgba_sha256": "f2e9f61271bfcce8965465338f3d83547ad98dc5b79ed56b6aa1833fdec204de",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-3-30/report.json",
+        "heatmap": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-3-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-3-30/contact-sheet.png",
+        "report_sha256": "c953c99cfdb4882043b024e88d60b2592e342b9df4a3cd7e2cfcd0972ce5becf",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "2f98062a40abfcc334a75967fddf0040fc895c84d52c7cd508b04242c3e021cd"
+      },
+      "inspection": "Directly inspected all four distinct full-resolution contact sheets and heatmaps, grouped by exact reference/candidate RGBA hashes. Ellipse and rectangle masks, overlapping translucent shapes, matte gradients, adjustment colors and alpha silhouettes agree with the reference. Three scene-masks-mattes-0 channel samples differ by one code value; other cases are exact. No shifted edges, missing elements or structural residuals. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle80-layers-first/inspection-groups.json"
+    },
+    {
+      "case_id": "scene-masks-mattes-3",
+      "frame": 59,
+      "profile": "gpu",
+      "purpose": "M3 native mask, matte and adjustment layer acceptance",
+      "reviewed_at": "2026-10-06T00:10:23.777Z",
+      "reference_rgba_sha256": "f2e9f61271bfcce8965465338f3d83547ad98dc5b79ed56b6aa1833fdec204de",
+      "candidate_rgba_sha256": "f2e9f61271bfcce8965465338f3d83547ad98dc5b79ed56b6aa1833fdec204de",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-3-59/report.json",
+        "heatmap": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-3-59/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-3-59/contact-sheet.png",
+        "report_sha256": "d75dd6ad012eefcf97be8a6d03ee89057c4e00b5541a620024a68b4157ca11bf",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "2f98062a40abfcc334a75967fddf0040fc895c84d52c7cd508b04242c3e021cd"
+      },
+      "inspection": "Directly inspected all four distinct full-resolution contact sheets and heatmaps, grouped by exact reference/candidate RGBA hashes. Ellipse and rectangle masks, overlapping translucent shapes, matte gradients, adjustment colors and alpha silhouettes agree with the reference. Three scene-masks-mattes-0 channel samples differ by one code value; other cases are exact. No shifted edges, missing elements or structural residuals. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle80-layers-first/inspection-groups.json"
+    },
+    {
+      "case_id": "scene-masks-mattes-4",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M3 native mask, matte and adjustment layer acceptance",
+      "reviewed_at": "2026-10-06T00:10:23.777Z",
+      "reference_rgba_sha256": "44fa88f2f86e937c69d0e32b81656d7fae882bb1355df89f3b24714c5da75dea",
+      "candidate_rgba_sha256": "44fa88f2f86e937c69d0e32b81656d7fae882bb1355df89f3b24714c5da75dea",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-4-0/report.json",
+        "heatmap": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-4-0/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-4-0/contact-sheet.png",
+        "report_sha256": "c5ba116f16bb843753073a54993f18d07a7383a6b1cbeddce15f0482ccdb950b",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "dc508bde16726f021df371037cf908c22b4a3b2d676c3f626da326480d5bb222"
+      },
+      "inspection": "Directly inspected all four distinct full-resolution contact sheets and heatmaps, grouped by exact reference/candidate RGBA hashes. Ellipse and rectangle masks, overlapping translucent shapes, matte gradients, adjustment colors and alpha silhouettes agree with the reference. Three scene-masks-mattes-0 channel samples differ by one code value; other cases are exact. No shifted edges, missing elements or structural residuals. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle80-layers-first/inspection-groups.json"
+    },
+    {
+      "case_id": "scene-masks-mattes-4",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "M3 native mask, matte and adjustment layer acceptance",
+      "reviewed_at": "2026-10-06T00:10:23.777Z",
+      "reference_rgba_sha256": "44fa88f2f86e937c69d0e32b81656d7fae882bb1355df89f3b24714c5da75dea",
+      "candidate_rgba_sha256": "44fa88f2f86e937c69d0e32b81656d7fae882bb1355df89f3b24714c5da75dea",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-4-15/report.json",
+        "heatmap": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-4-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-4-15/contact-sheet.png",
+        "report_sha256": "80c2a1a9a5253fb70ceaf65341f6ff0094a2e4b7375dd9b71033180d48a4dcd4",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "dc508bde16726f021df371037cf908c22b4a3b2d676c3f626da326480d5bb222"
+      },
+      "inspection": "Directly inspected all four distinct full-resolution contact sheets and heatmaps, grouped by exact reference/candidate RGBA hashes. Ellipse and rectangle masks, overlapping translucent shapes, matte gradients, adjustment colors and alpha silhouettes agree with the reference. Three scene-masks-mattes-0 channel samples differ by one code value; other cases are exact. No shifted edges, missing elements or structural residuals. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle80-layers-first/inspection-groups.json"
+    },
+    {
+      "case_id": "scene-masks-mattes-4",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "M3 native mask, matte and adjustment layer acceptance",
+      "reviewed_at": "2026-10-06T00:10:23.777Z",
+      "reference_rgba_sha256": "44fa88f2f86e937c69d0e32b81656d7fae882bb1355df89f3b24714c5da75dea",
+      "candidate_rgba_sha256": "44fa88f2f86e937c69d0e32b81656d7fae882bb1355df89f3b24714c5da75dea",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-4-30/report.json",
+        "heatmap": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-4-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-4-30/contact-sheet.png",
+        "report_sha256": "77d171acf89a6c65e9d8d1ca105af820324127de42bd606f3b007a8a9c352c13",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "dc508bde16726f021df371037cf908c22b4a3b2d676c3f626da326480d5bb222"
+      },
+      "inspection": "Directly inspected all four distinct full-resolution contact sheets and heatmaps, grouped by exact reference/candidate RGBA hashes. Ellipse and rectangle masks, overlapping translucent shapes, matte gradients, adjustment colors and alpha silhouettes agree with the reference. Three scene-masks-mattes-0 channel samples differ by one code value; other cases are exact. No shifted edges, missing elements or structural residuals. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle80-layers-first/inspection-groups.json"
+    },
+    {
+      "case_id": "scene-masks-mattes-4",
+      "frame": 59,
+      "profile": "gpu",
+      "purpose": "M3 native mask, matte and adjustment layer acceptance",
+      "reviewed_at": "2026-10-06T00:10:23.777Z",
+      "reference_rgba_sha256": "44fa88f2f86e937c69d0e32b81656d7fae882bb1355df89f3b24714c5da75dea",
+      "candidate_rgba_sha256": "44fa88f2f86e937c69d0e32b81656d7fae882bb1355df89f3b24714c5da75dea",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-4-59/report.json",
+        "heatmap": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-4-59/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle80-layers-first/pixels/frames/scene-masks-mattes-4-59/contact-sheet.png",
+        "report_sha256": "1f04a2d8a6dcf09e8d5078e8145123fc1caf3d80ac15aa578a5f796ee52a6684",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "dc508bde16726f021df371037cf908c22b4a3b2d676c3f626da326480d5bb222"
+      },
+      "inspection": "Directly inspected all four distinct full-resolution contact sheets and heatmaps, grouped by exact reference/candidate RGBA hashes. Ellipse and rectangle masks, overlapping translucent shapes, matte gradients, adjustment colors and alpha silhouettes agree with the reference. Three scene-masks-mattes-0 channel samples differ by one code value; other cases are exact. No shifted edges, missing elements or structural residuals. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle80-layers-first/inspection-groups.json"
+    },
+    {
+      "case_id": "layer-adjustment",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M3 native mask, matte and adjustment layer acceptance",
+      "reviewed_at": "2026-10-06T00:10:23.777Z",
+      "reference_rgba_sha256": "c7d90fc4fa95779b6f81ed2aadefed1ffc6aa307320d8868b8f573bc0ba77f29",
+      "candidate_rgba_sha256": "c7d90fc4fa95779b6f81ed2aadefed1ffc6aa307320d8868b8f573bc0ba77f29",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle80-layers-first/pixels/frames/layer-adjustment-0/report.json",
+        "heatmap": "artifacts/migration/cycle80-layers-first/pixels/frames/layer-adjustment-0/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle80-layers-first/pixels/frames/layer-adjustment-0/contact-sheet.png",
+        "report_sha256": "565e692c4b2e6104b53a15a56bdff7351edc48b83e870a08b258e4851c391248",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "dd51372c444eadb8c50cbde62228247cc60a596d15e4e9d06f97c474f87a6907"
+      },
+      "inspection": "Directly inspected all four distinct full-resolution contact sheets and heatmaps, grouped by exact reference/candidate RGBA hashes. Ellipse and rectangle masks, overlapping translucent shapes, matte gradients, adjustment colors and alpha silhouettes agree with the reference. Three scene-masks-mattes-0 channel samples differ by one code value; other cases are exact. No shifted edges, missing elements or structural residuals. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle80-layers-first/inspection-groups.json"
+    },
+    {
+      "case_id": "layer-adjustment",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "M3 native mask, matte and adjustment layer acceptance",
+      "reviewed_at": "2026-10-06T00:10:23.777Z",
+      "reference_rgba_sha256": "c7d90fc4fa95779b6f81ed2aadefed1ffc6aa307320d8868b8f573bc0ba77f29",
+      "candidate_rgba_sha256": "c7d90fc4fa95779b6f81ed2aadefed1ffc6aa307320d8868b8f573bc0ba77f29",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle80-layers-first/pixels/frames/layer-adjustment-15/report.json",
+        "heatmap": "artifacts/migration/cycle80-layers-first/pixels/frames/layer-adjustment-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle80-layers-first/pixels/frames/layer-adjustment-15/contact-sheet.png",
+        "report_sha256": "6c70f525c5a0e064e8fb12f561caa43401dea3a27cc7a267a69a9be3fccccaee",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "dd51372c444eadb8c50cbde62228247cc60a596d15e4e9d06f97c474f87a6907"
+      },
+      "inspection": "Directly inspected all four distinct full-resolution contact sheets and heatmaps, grouped by exact reference/candidate RGBA hashes. Ellipse and rectangle masks, overlapping translucent shapes, matte gradients, adjustment colors and alpha silhouettes agree with the reference. Three scene-masks-mattes-0 channel samples differ by one code value; other cases are exact. No shifted edges, missing elements or structural residuals. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle80-layers-first/inspection-groups.json"
+    },
+    {
+      "case_id": "layer-adjustment",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "M3 native mask, matte and adjustment layer acceptance",
+      "reviewed_at": "2026-10-06T00:10:23.777Z",
+      "reference_rgba_sha256": "c7d90fc4fa95779b6f81ed2aadefed1ffc6aa307320d8868b8f573bc0ba77f29",
+      "candidate_rgba_sha256": "c7d90fc4fa95779b6f81ed2aadefed1ffc6aa307320d8868b8f573bc0ba77f29",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle80-layers-first/pixels/frames/layer-adjustment-30/report.json",
+        "heatmap": "artifacts/migration/cycle80-layers-first/pixels/frames/layer-adjustment-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle80-layers-first/pixels/frames/layer-adjustment-30/contact-sheet.png",
+        "report_sha256": "e2d944fcc21a037ffc0b5169ed1aa58efd1590866ce44fe1c0a0bca1df2007bf",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "dd51372c444eadb8c50cbde62228247cc60a596d15e4e9d06f97c474f87a6907"
+      },
+      "inspection": "Directly inspected all four distinct full-resolution contact sheets and heatmaps, grouped by exact reference/candidate RGBA hashes. Ellipse and rectangle masks, overlapping translucent shapes, matte gradients, adjustment colors and alpha silhouettes agree with the reference. Three scene-masks-mattes-0 channel samples differ by one code value; other cases are exact. No shifted edges, missing elements or structural residuals. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle80-layers-first/inspection-groups.json"
+    },
+    {
+      "case_id": "layer-adjustment",
+      "frame": 59,
+      "profile": "gpu",
+      "purpose": "M3 native mask, matte and adjustment layer acceptance",
+      "reviewed_at": "2026-10-06T00:10:23.777Z",
+      "reference_rgba_sha256": "c7d90fc4fa95779b6f81ed2aadefed1ffc6aa307320d8868b8f573bc0ba77f29",
+      "candidate_rgba_sha256": "c7d90fc4fa95779b6f81ed2aadefed1ffc6aa307320d8868b8f573bc0ba77f29",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle80-layers-first/pixels/frames/layer-adjustment-59/report.json",
+        "heatmap": "artifacts/migration/cycle80-layers-first/pixels/frames/layer-adjustment-59/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle80-layers-first/pixels/frames/layer-adjustment-59/contact-sheet.png",
+        "report_sha256": "88ff793affff4c125bebe8c4ad1c01c48e6b6a1c7fa86605e83375353c0f5647",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "dd51372c444eadb8c50cbde62228247cc60a596d15e4e9d06f97c474f87a6907"
+      },
+      "inspection": "Directly inspected all four distinct full-resolution contact sheets and heatmaps, grouped by exact reference/candidate RGBA hashes. Ellipse and rectangle masks, overlapping translucent shapes, matte gradients, adjustment colors and alpha silhouettes agree with the reference. Three scene-masks-mattes-0 channel samples differ by one code value; other cases are exact. No shifted edges, missing elements or structural residuals. Every metric and structural check passes without tolerance changes.",
+      "inspection_groups": "artifacts/migration/cycle80-layers-first/inspection-groups.json"
     }
   ],
   "history": [
@@ -31492,6 +32868,41 @@
           "path": "artifacts/migration/verify-2026-10-05T23-57-22-338Z-e887bc48.json",
           "status": "passed"
         }
+      ]
+    },
+    {
+      "id": 80,
+      "time": "2026-10-06T00:17:01.743Z",
+      "milestone": "M3",
+      "task": "M3-T3",
+      "outcome": "passed",
+      "commit": "faf7d38308cdf99aed62a9df547f6dd2f51662db",
+      "verification": "artifacts/migration/verify-2026-10-06T00-10-34-740Z-0fdf2c38.json",
+      "verification_sha256": "a231db4a9a2989a7fb007f2eed2496a2291e34898c50e8bd8d0f573b122b5798",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 83796
+        },
+        {
+          "id": "G1",
+          "status": "passed",
+          "duration_ms": 60986
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 211188
+        }
+      ],
+      "verification_duration_ms": 357435,
+      "next_step": "Implement M3-T4 recursive precomposition GPU surfaces, including nested adjustments, with explicit cache budgets and lifetime.",
+      "notes": [
+        "Execute supplied layer mask groups, channel mattes, feathering, exposure and inversion through unchanged shared WGSL. Fixed blend passes composite isolated output once; adjustment passes snapshot and replace the accumulated HDR scene. Unsupported effect operations and pyramids continue to reject.",
+        "The native host accepts an explicit DXC library path; G3 pins the existing Electron DXC 1.9.2602.0 library. Full effect pipelines are compiled lazily and retained per device, resolving the old FXC full-program compilation failure without downloading or adding a compiler dependency.",
+        "All 16 new frames pass: twelve exact, four mask/matte frames with three one-code-value channel differences. Direct contact-sheet and heatmap inspections are accepted under section 6.6; no tolerance or reference changes. Existing 96 supplied-resource comparisons, eight native PNG/JPEG comparisons, EXR numeric/GPU evidence and rejections remain green.",
+        "M3-T3 non-recursive core coverage is complete. Nested adjustments depend on recursive surface execution in M3-T4; wider effect catalog coverage remains M4. M3 is not complete and production preview/export remain TS."
       ]
     }
   ],
