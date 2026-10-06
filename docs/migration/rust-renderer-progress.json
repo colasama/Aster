@@ -146,86 +146,33 @@
     }
   },
   "last_cycle": {
-    "id": 82,
-    "time": "2026-10-06T01:00:44.056Z",
-    "milestone": "M3",
-    "task": "M3-T5",
+    "id": 83,
+    "time": "2026-10-06T01:20:20.820Z",
+    "milestone": "M4",
+    "task": "M4-T1",
     "outcome": "passed",
-    "commit": "252592a662ca057e3900e752f46e537786447d7b",
-    "verification": "artifacts/migration/verify-2026-10-06T00-51-56-343Z-fb6d676e.json",
-    "verification_sha256": "49f5e60e44e36fc8a0186c4b54cf0c1ac20a332edbb7f90fab88918e1e706caa",
+    "commit": "c073aafa8deb5fe528c2d6336d3baf9dc05134db",
+    "verification": "artifacts/migration/verify-2026-10-06T01-12-29-663Z-f47c8873.json",
+    "verification_sha256": "32ff0c8e353e9add6a6ed03c4f332c16ab92caa3e850e75e506f57c37a355daf",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 77434
-      },
-      {
-        "id": "G1",
-        "status": "passed",
-        "duration_ms": 28487
+        "duration_ms": 85254
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 287894
+        "duration_ms": 341102
       }
     ],
-    "verification_duration_ms": 436404,
-    "milestone_exit": {
-      "status": "passed",
-      "scope": "M3 native core",
-      "native_gpu_execution": true,
-      "core": {
-        "frames": 145,
-        "checked_files": 5216
-      },
-      "stills": {
-        "frames": 8,
-        "checked_files": 4315
-      },
-      "exr": {
-        "native_numeric_and_gpu": true,
-        "ts_pixel_parity": false
-      },
-      "boundaries": [
-        {
-          "detail": "The current TS sidecar rejects EXR. Real linear EXR bytes are retained for native decoder coverage; M0 does not claim a TS EXR reference.",
-          "id": "ts-exr-import",
-          "evidence": [
-            "src/importers/media-import-persistence-codec.ts",
-            "tests/parity/media.test.ts",
-            "tests/parity/assets/media-assets.json"
-          ],
-          "native_milestone": "M3"
-        },
-        {
-          "detail": "The current TS effect compiler maps path masks to ellipse parameters. The path case claims schema coverage only; ellipse and rectangle have independent real mask cases.",
-          "id": "ts-path-mask",
-          "evidence": [
-            "src/renderer/effects/effect-program.ts:96",
-            "tests/parity/generators/scenes.ts"
-          ]
-        },
-        {
-          "id": "minimal-golden-occluded-animation",
-          "detail": "The original example places its opaque Background above Animated Disc in the top-first layer model. All five TS reference frames are uniformly RGBA [48,63,97,255]. Preserve this existing output; the case does not establish visible animation or sequence identity. Generated moving scenes and real media sequences provide independent coverage.",
-          "evidence": [
-            "examples/projects/minimal-golden.aster.json",
-            "src/renderer/compositing/render-stack.ts",
-            "src/core/project/project-schema.ts",
-            "artifacts/parity/capture-2026-10-03T17-40-05-748Z-22a9aec7.json"
-          ]
-        }
-      ],
-      "checked_files": 1094
-    },
-    "next_step": "Implement M4 LUT resource upload/cache/binding first: all 270 captured effect/style/LUT cases reference a LUT. Then expand supplied fused programs, styles, surface effects and required native optimizations.",
+    "verification_duration_ms": 427828,
+    "next_step": "Implement M4-T2 fused supplied effect programs and base effects. Retain pipelines across diagnostic frames to avoid per-frame recompilation when expanding to the full effect corpus.",
     "notes": [
-      "Completed all 36 core cases and 145 supplied-resource frames. Added 25 frames for parented transforms, captured cloner geometry, minimal golden, path-mask schema and ellipse/rectangle effect masks. Seventeen new outputs are exact; eight differ by at most one code value with directly inspected and accepted contact sheets/heatmaps.",
-      "The M3 exit auditor rereads actual output pixels, native CLI receipts, supplied plan hashes, frozen references, comparison evidence and hash-matched self-reviews. It rejects stale, missing, duplicate, substituted or non-native gate evidence. Native PNG/JPEG, EXR sample/GPU proof, three GPU cache/HDR tests and capability/authorization rejections remain required.",
-      "Full G0/G1/G3 and the independent M3 exit audit pass. M3 native core is complete. Production preview/export remain TS; effects, text, media, advanced scene execution, native export/evaluation/preview and TS retirement remain M4-M12.",
-      "Preserved EXR native-only sample validation, path-mask schema ellipse fallback and occluded minimal-golden boundaries. Captured cloner geometry does not claim native project evaluation or generator execution. No reference, tolerance or dependency changes."
+      "Native layer programs now resolve and bind their exact content-addressed LUT resource for the shared shader. Cubic dimensions, format, payload and finite half-float samples are validated without changing the FramePlan protocol or adding dependencies.",
+      "A device-owned LUT cache shares root/child inputs and preserves uploads by content hash. Whole-demand admission precedes eviction; frame, image, surface and LUT allocations share the existing GPU budget. GPU tests verify exact HDR/negative half-float bytes, hits, protected active entries, rejection without mutation and eviction on shrink.",
+      "All eight trilinear/tetrahedral outputs pass metric and structural checks with maximum one-code-value residuals. Directly inspected each contact sheet/heatmap and accepted float-precision reviews; no reference or tolerance changes. Full M4 G0/G3 also includes all 145 M3 core frames, eight native PNG/JPEG frames, EXR and four native GPU cache/HDR tests.",
+      "M4-T1 is complete, while wider fused operations, layer styles, surface effects and section 9 optimizations remain open. Production preview/export remain TS."
     ]
   },
   "milestones": [
@@ -20115,7 +20062,16 @@
         {
           "id": "M4-T1",
           "title": "Upload, cache and bind 3D LUT resources with trilinear and tetrahedral parity",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-10-06T01:20:20.820Z",
+          "commit": "c073aafa8deb5fe528c2d6336d3baf9dc05134db",
+          "verification": "artifacts/migration/verify-2026-10-06T01-12-29-663Z-f47c8873.json",
+          "verification_sha256": "32ff0c8e353e9add6a6ed03c4f332c16ab92caa3e850e75e506f57c37a355daf",
+          "scope": {
+            "cases": ["effect-lut", "lut-tetrahedral"],
+            "frames": 8,
+            "cache": "content-addressed bounded 3D GPU textures shared across root and recursive scenes"
+          }
         },
         {
           "id": "M4-T2",
@@ -35473,6 +35429,802 @@
         "contact_sheet_sha256": "7505307140b6bb054575c659f36239192c423cfd3ed7e7b269083c0b141faccb"
       },
       "inspection": "Directly inspected this frame contact sheet and heatmap. Colored gradient shapes, thin bars, alpha contours and moving square align. Sparse one-code-value differences are arithmetic precision, without bias, missing content or displaced edges. All metric and structural limits pass unchanged."
+    },
+    {
+      "case_id": "effect-lut",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M4 native LUT trilinear and tetrahedral acceptance",
+      "reviewed_at": "2026-10-06T01:11:38.945Z",
+      "reference_rgba_sha256": "3ad82500db7998a00db086495f2bfa2b67fa428e1c9b95d1c1452352b468ebfa",
+      "candidate_rgba_sha256": "e0320c1a37f22028983aae47a64297382f072e6cf4e03cf0e7ce41c984992be2",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.000008680555555555556,
+        "mean_squared_error": 0.000008680555555555556,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 98.74532839955103
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 0.9999999966871652],
+        "mean": 1,
+        "rgba_mean": 0.9999999991717913,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0.00003472222222222222],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 31,
+            "min_y": 25,
+            "max_x": 274,
+            "max_y": 151
+          },
+          "candidate": {
+            "min_x": 31,
+            "min_y": 25,
+            "max_x": 274,
+            "max_y": 151
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.21412626641408786,
+          "candidate_rms": 0.21412637703250198,
+          "reference_axis_ratio": 0.4146927765830503,
+          "candidate_axis_ratio": 0.4146917527803228,
+          "reference_window_energy_fraction": 0.9521424973559639,
+          "candidate_window_energy_fraction": 0.9521424999639821,
+          "active_frequencies": 12208,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.520806224420579,
+          "peak_to_sidelobe_ratio": 156.80198623061273,
+          "peak_coherence": 0.9999999999350283,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle83-luts-first/pixels/frames/effect-lut-0/report.json",
+        "heatmap": "artifacts/migration/cycle83-luts-first/pixels/frames/effect-lut-0/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle83-luts-first/pixels/frames/effect-lut-0/contact-sheet.png",
+        "report_sha256": "ee35b3726a2f829c44f08087445da1668b120d2242ea73d111e5c6c01b66aae6",
+        "heatmap_sha256": "69fd83fa44e56897c33e477c4df45c284eb20730b65655e804a357632ca840f6",
+        "contact_sheet_sha256": "a5a7eaab9716bdcf1b9dab843604ef68b776b3e865a72367ae3fb000f6273dc7"
+      },
+      "inspection": "Directly inspected this frame contact sheet and heatmap. LUT-mapped gradients, red/blue/green channel ordering, thin bars, rounded contours, alpha coverage and moving square match the frozen TS reference. Residuals are two or three one-code-value channel samples from native GPU arithmetic; no structural mismatch, domain shift or hue bias. Every metric and structural check passes without tolerance changes."
+    },
+    {
+      "case_id": "effect-lut",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "M4 native LUT trilinear and tetrahedral acceptance",
+      "reviewed_at": "2026-10-06T01:11:38.945Z",
+      "reference_rgba_sha256": "326a8f7c945c3860904efc82756014f2d58e57088cad9dfdeead33c932a220b4",
+      "candidate_rgba_sha256": "a8b179cb3cdebe34e1eba1f9ceac678c19a55e5c0523376fbbacd13d3ed06d68",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.000008680555555555556,
+        "mean_squared_error": 0.000008680555555555556,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 98.74532839955103
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 0.999999996693147],
+        "mean": 1,
+        "rgba_mean": 0.9999999991732867,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0.00003472222222222222],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 43,
+            "min_y": 25,
+            "max_x": 274,
+            "max_y": 151
+          },
+          "candidate": {
+            "min_x": 43,
+            "min_y": 25,
+            "max_x": 274,
+            "max_y": 151
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.21412626641408786,
+          "candidate_rms": 0.21412637703250198,
+          "reference_axis_ratio": 0.4146927765830503,
+          "candidate_axis_ratio": 0.4146917527803228,
+          "reference_window_energy_fraction": 0.9521424973559639,
+          "candidate_window_energy_fraction": 0.9521424999639821,
+          "active_frequencies": 12742,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.5167177875575675,
+          "peak_to_sidelobe_ratio": 160.62186053058727,
+          "peak_coherence": 0.9999999999334614,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle83-luts-first/pixels/frames/effect-lut-15/report.json",
+        "heatmap": "artifacts/migration/cycle83-luts-first/pixels/frames/effect-lut-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle83-luts-first/pixels/frames/effect-lut-15/contact-sheet.png",
+        "report_sha256": "3cbe49475c2e98dba80168eb9f132cf5324d6b1a29ad953b7889bd5dd2e89554",
+        "heatmap_sha256": "69fd83fa44e56897c33e477c4df45c284eb20730b65655e804a357632ca840f6",
+        "contact_sheet_sha256": "bd2fa15af37b07c79076791941641aa7e52170559b4df18e5f60938445c1846e"
+      },
+      "inspection": "Directly inspected this frame contact sheet and heatmap. LUT-mapped gradients, red/blue/green channel ordering, thin bars, rounded contours, alpha coverage and moving square match the frozen TS reference. Residuals are two or three one-code-value channel samples from native GPU arithmetic; no structural mismatch, domain shift or hue bias. Every metric and structural check passes without tolerance changes."
+    },
+    {
+      "case_id": "effect-lut",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "M4 native LUT trilinear and tetrahedral acceptance",
+      "reviewed_at": "2026-10-06T01:11:38.945Z",
+      "reference_rgba_sha256": "4fc726a9e8ac4195e9ec8b74f645d71ad6bb1aa09f82a821c6ef3e2e112a9dfc",
+      "candidate_rgba_sha256": "3a03e1e6604ea1149d3bb7c4597842a03c9204012dbdcd7c1fc823f4c7a64d60",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.000008680555555555556,
+        "mean_squared_error": 0.000008680555555555556,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 98.74532839955103
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 0.9999999966871652],
+        "mean": 1,
+        "rgba_mean": 0.9999999991717913,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0.00003472222222222222],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 43,
+            "min_y": 25,
+            "max_x": 274,
+            "max_y": 151
+          },
+          "candidate": {
+            "min_x": 43,
+            "min_y": 25,
+            "max_x": 274,
+            "max_y": 151
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.21412626641408786,
+          "candidate_rms": 0.21412637703250198,
+          "reference_axis_ratio": 0.41469277658305037,
+          "candidate_axis_ratio": 0.4146917527803229,
+          "reference_window_energy_fraction": 0.9521424973559639,
+          "candidate_window_energy_fraction": 0.9521424999639821,
+          "active_frequencies": 11572,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.443121200328381,
+          "peak_to_sidelobe_ratio": 150.51497979587805,
+          "peak_coherence": 0.9999999999402452,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle83-luts-first/pixels/frames/effect-lut-30/report.json",
+        "heatmap": "artifacts/migration/cycle83-luts-first/pixels/frames/effect-lut-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle83-luts-first/pixels/frames/effect-lut-30/contact-sheet.png",
+        "report_sha256": "c0d15c7f7611b3a64486b2da64e0da67727334f1be7c85aa29aa623b9a410b99",
+        "heatmap_sha256": "69fd83fa44e56897c33e477c4df45c284eb20730b65655e804a357632ca840f6",
+        "contact_sheet_sha256": "b039ef2482f287c6b111ebe181871c118d4845a69e6425d95cb261830177b04c"
+      },
+      "inspection": "Directly inspected this frame contact sheet and heatmap. LUT-mapped gradients, red/blue/green channel ordering, thin bars, rounded contours, alpha coverage and moving square match the frozen TS reference. Residuals are two or three one-code-value channel samples from native GPU arithmetic; no structural mismatch, domain shift or hue bias. Every metric and structural check passes without tolerance changes."
+    },
+    {
+      "case_id": "effect-lut",
+      "frame": 59,
+      "profile": "gpu",
+      "purpose": "M4 native LUT trilinear and tetrahedral acceptance",
+      "reviewed_at": "2026-10-06T01:11:38.945Z",
+      "reference_rgba_sha256": "e9ed359ae89f057b1e634c47ccd65cd81901e06ab06fb92e6d9cb92aa504adeb",
+      "candidate_rgba_sha256": "cd0e6f6266b6d4d6e9514f1725a0e1b90085dc7651eda1477597668bf5915c47",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.000008680555555555556,
+        "mean_squared_error": 0.000008680555555555556,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 98.74532839955103
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 0.9999999967175551],
+        "mean": 1,
+        "rgba_mean": 0.9999999991793888,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0.00003472222222222222],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 43,
+            "min_y": 25,
+            "max_x": 283,
+            "max_y": 151
+          },
+          "candidate": {
+            "min_x": 43,
+            "min_y": 25,
+            "max_x": 283,
+            "max_y": 151
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.21412626641408786,
+          "candidate_rms": 0.21412637703250198,
+          "reference_axis_ratio": 0.41469277658305037,
+          "candidate_axis_ratio": 0.4146917527803229,
+          "reference_window_energy_fraction": 0.9521424973559639,
+          "candidate_window_energy_fraction": 0.9521424999639821,
+          "active_frequencies": 12378,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.5327238731556903,
+          "peak_to_sidelobe_ratio": 158.22547813416898,
+          "peak_coherence": 0.9999999999345055,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle83-luts-first/pixels/frames/effect-lut-59/report.json",
+        "heatmap": "artifacts/migration/cycle83-luts-first/pixels/frames/effect-lut-59/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle83-luts-first/pixels/frames/effect-lut-59/contact-sheet.png",
+        "report_sha256": "569f113a5923ef837619a96da413950b55d5f3e1fc4eb767b78d8f382a9d3e62",
+        "heatmap_sha256": "69fd83fa44e56897c33e477c4df45c284eb20730b65655e804a357632ca840f6",
+        "contact_sheet_sha256": "741ee67e462c8052d3f64abcb1fd70264addb30ded477e0182d5359ccd464222"
+      },
+      "inspection": "Directly inspected this frame contact sheet and heatmap. LUT-mapped gradients, red/blue/green channel ordering, thin bars, rounded contours, alpha coverage and moving square match the frozen TS reference. Residuals are two or three one-code-value channel samples from native GPU arithmetic; no structural mismatch, domain shift or hue bias. Every metric and structural check passes without tolerance changes."
+    },
+    {
+      "case_id": "lut-tetrahedral",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M4 native LUT trilinear and tetrahedral acceptance",
+      "reviewed_at": "2026-10-06T01:11:38.945Z",
+      "reference_rgba_sha256": "11d610d228e8afd65240d0ba0693fafeb4cecef5ab03c05300c683315ba5875c",
+      "candidate_rgba_sha256": "46671e40b42aea1ebe22651969e9704afcb8dd9ff65c1268e2f66303487c2aae",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.000013020833333333334,
+        "mean_squared_error": 0.000013020833333333334,
+        "rgb_mean_squared_error": 0.000005787037037037037,
+        "psnr": {
+          "kind": "finite",
+          "db": 100.50624099010784
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 96.98441580899421
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 0.9999999940678044, 0.9999999966871652],
+        "mean": 0.9999999980226014,
+        "rgba_mean": 0.9999999976887424,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0.00001736111111111111, 0.00003472222222222222],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 31,
+            "min_y": 25,
+            "max_x": 274,
+            "max_y": 151
+          },
+          "candidate": {
+            "min_x": 31,
+            "min_y": 25,
+            "max_x": 274,
+            "max_y": 151
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.2188461877237825,
+          "candidate_rms": 0.21884630912660982,
+          "reference_axis_ratio": 0.41845552101713895,
+          "candidate_axis_ratio": 0.4184545579508326,
+          "reference_window_energy_fraction": 0.9484181568779309,
+          "candidate_window_energy_fraction": 0.9484181581502169,
+          "active_frequencies": 11440,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.589157039911962,
+          "peak_to_sidelobe_ratio": 152.3270093613431,
+          "peak_coherence": 0.9999999999327017,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle83-luts-first/pixels/frames/lut-tetrahedral-0/report.json",
+        "heatmap": "artifacts/migration/cycle83-luts-first/pixels/frames/lut-tetrahedral-0/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle83-luts-first/pixels/frames/lut-tetrahedral-0/contact-sheet.png",
+        "report_sha256": "b89ed620353bad1aa0355740180401a8ff555a6321361a0bdba7431822d5e331",
+        "heatmap_sha256": "320735cd8c4b9b9306bde12c703462c88bf3051a262350a5bd32f601bcd8a07c",
+        "contact_sheet_sha256": "7d8de8cdae168994a10ec70b3287819730c818cc8c8f4d7077ecc175eb84f10d"
+      },
+      "inspection": "Directly inspected this frame contact sheet and heatmap. LUT-mapped gradients, red/blue/green channel ordering, thin bars, rounded contours, alpha coverage and moving square match the frozen TS reference. Residuals are two or three one-code-value channel samples from native GPU arithmetic; no structural mismatch, domain shift or hue bias. Every metric and structural check passes without tolerance changes."
+    },
+    {
+      "case_id": "lut-tetrahedral",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "M4 native LUT trilinear and tetrahedral acceptance",
+      "reviewed_at": "2026-10-06T01:11:38.945Z",
+      "reference_rgba_sha256": "7bd5c30e0fe25ca1256e29c63f495920b4714028b4e5c6751873cb7fad70e1f4",
+      "candidate_rgba_sha256": "5eb5a1d83b620ddb351387fb8db6969bbfd145693d3aca053329342ae1fa4464",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.000013020833333333334,
+        "mean_squared_error": 0.000013020833333333334,
+        "rgb_mean_squared_error": 0.000005787037037037037,
+        "psnr": {
+          "kind": "finite",
+          "db": 100.50624099010784
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 96.98441580899421
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 0.9999999940678044, 0.999999996693147],
+        "mean": 0.9999999980226014,
+        "rgba_mean": 0.9999999976902378,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0.00001736111111111111, 0.00003472222222222222],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 43,
+            "min_y": 25,
+            "max_x": 274,
+            "max_y": 151
+          },
+          "candidate": {
+            "min_x": 43,
+            "min_y": 25,
+            "max_x": 274,
+            "max_y": 151
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.2188461877237825,
+          "candidate_rms": 0.21884630912660982,
+          "reference_axis_ratio": 0.41845552101713895,
+          "candidate_axis_ratio": 0.4184545579508326,
+          "reference_window_energy_fraction": 0.9484181568779309,
+          "candidate_window_energy_fraction": 0.9484181581502169,
+          "active_frequencies": 12010,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.5755305665882138,
+          "peak_to_sidelobe_ratio": 156.58659178380222,
+          "peak_coherence": 0.999999999930226,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle83-luts-first/pixels/frames/lut-tetrahedral-15/report.json",
+        "heatmap": "artifacts/migration/cycle83-luts-first/pixels/frames/lut-tetrahedral-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle83-luts-first/pixels/frames/lut-tetrahedral-15/contact-sheet.png",
+        "report_sha256": "87e74ed4cb9662a559833a3a00aa0410d3b1c7e31c4904a13cf2e04c6daab46e",
+        "heatmap_sha256": "320735cd8c4b9b9306bde12c703462c88bf3051a262350a5bd32f601bcd8a07c",
+        "contact_sheet_sha256": "166b15d95f57e75423a665ccd14f22ad4d6c667969df7f35f52eea6c92c130c0"
+      },
+      "inspection": "Directly inspected this frame contact sheet and heatmap. LUT-mapped gradients, red/blue/green channel ordering, thin bars, rounded contours, alpha coverage and moving square match the frozen TS reference. Residuals are two or three one-code-value channel samples from native GPU arithmetic; no structural mismatch, domain shift or hue bias. Every metric and structural check passes without tolerance changes."
+    },
+    {
+      "case_id": "lut-tetrahedral",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "M4 native LUT trilinear and tetrahedral acceptance",
+      "reviewed_at": "2026-10-06T01:11:38.945Z",
+      "reference_rgba_sha256": "3c7d3290a79d0e41dd763f656a0566f8b621def5ea7b0c176c1b9af4aafb1432",
+      "candidate_rgba_sha256": "7d86700e63557ce4ce0cc241d5cafa2184aa69863cfd12a268281d159e164a93",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.000013020833333333334,
+        "mean_squared_error": 0.000013020833333333334,
+        "rgb_mean_squared_error": 0.000005787037037037037,
+        "psnr": {
+          "kind": "finite",
+          "db": 100.50624099010784
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 96.98441580899421
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 0.9999999940678044, 0.9999999966871652],
+        "mean": 0.9999999980226014,
+        "rgba_mean": 0.9999999976887424,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0.00001736111111111111, 0.00003472222222222222],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 43,
+            "min_y": 25,
+            "max_x": 274,
+            "max_y": 151
+          },
+          "candidate": {
+            "min_x": 43,
+            "min_y": 25,
+            "max_x": 274,
+            "max_y": 151
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.2188461877237825,
+          "candidate_rms": 0.21884630912660982,
+          "reference_axis_ratio": 0.4184555210171389,
+          "candidate_axis_ratio": 0.41845455795083253,
+          "reference_window_energy_fraction": 0.9484181568779309,
+          "candidate_window_energy_fraction": 0.9484181581502169,
+          "active_frequencies": 10870,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.5047512137706573,
+          "peak_to_sidelobe_ratio": 146.13450262819725,
+          "peak_coherence": 0.9999999999385998,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle83-luts-first/pixels/frames/lut-tetrahedral-30/report.json",
+        "heatmap": "artifacts/migration/cycle83-luts-first/pixels/frames/lut-tetrahedral-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle83-luts-first/pixels/frames/lut-tetrahedral-30/contact-sheet.png",
+        "report_sha256": "a6f87b27ff33ea8d1f1842b35f19e1d2dace8d7074129035e0cb75c91cb6efd1",
+        "heatmap_sha256": "320735cd8c4b9b9306bde12c703462c88bf3051a262350a5bd32f601bcd8a07c",
+        "contact_sheet_sha256": "0041c827578b330f0dea887913afbe43cac2ec0748eadb97a4e38d225e28553b"
+      },
+      "inspection": "Directly inspected this frame contact sheet and heatmap. LUT-mapped gradients, red/blue/green channel ordering, thin bars, rounded contours, alpha coverage and moving square match the frozen TS reference. Residuals are two or three one-code-value channel samples from native GPU arithmetic; no structural mismatch, domain shift or hue bias. Every metric and structural check passes without tolerance changes."
+    },
+    {
+      "case_id": "lut-tetrahedral",
+      "frame": 59,
+      "profile": "gpu",
+      "purpose": "M4 native LUT trilinear and tetrahedral acceptance",
+      "reviewed_at": "2026-10-06T01:11:38.945Z",
+      "reference_rgba_sha256": "680a531e7c6c9cb37323d6162575379e750657a637f1c334ad47919cf3a18d6d",
+      "candidate_rgba_sha256": "a3524632563ba197ab94a169611c7d3c28d46fcaf60d90ba5da8bc69610d7f08",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.000013020833333333334,
+        "mean_squared_error": 0.000013020833333333334,
+        "rgb_mean_squared_error": 0.000005787037037037037,
+        "psnr": {
+          "kind": "finite",
+          "db": 100.50624099010784
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 96.98441580899421
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 0.9999999940678044, 0.9999999967175551],
+        "mean": 0.9999999980226014,
+        "rgba_mean": 0.9999999976963398,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0.00001736111111111111, 0.00003472222222222222],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 43,
+            "min_y": 25,
+            "max_x": 283,
+            "max_y": 151
+          },
+          "candidate": {
+            "min_x": 43,
+            "min_y": 25,
+            "max_x": 283,
+            "max_y": 151
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.2188461877237825,
+          "candidate_rms": 0.21884630912660982,
+          "reference_axis_ratio": 0.4184555210171389,
+          "candidate_axis_ratio": 0.41845455795083253,
+          "reference_window_energy_fraction": 0.9484181568779309,
+          "candidate_window_energy_fraction": 0.9484181581502169,
+          "active_frequencies": 11678,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.574194948895296,
+          "peak_to_sidelobe_ratio": 154.1386337178592,
+          "peak_coherence": 0.9999999999322556,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle83-luts-first/pixels/frames/lut-tetrahedral-59/report.json",
+        "heatmap": "artifacts/migration/cycle83-luts-first/pixels/frames/lut-tetrahedral-59/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle83-luts-first/pixels/frames/lut-tetrahedral-59/contact-sheet.png",
+        "report_sha256": "cd1bc6046dc48eefcb5c6c38cfab4a0693e624874d8a09bd5da551e3acaeb70e",
+        "heatmap_sha256": "320735cd8c4b9b9306bde12c703462c88bf3051a262350a5bd32f601bcd8a07c",
+        "contact_sheet_sha256": "15e2345748bdbb53dd2365e96da2c4d602ca42611a8e9bc37baf9a4c231eea09"
+      },
+      "inspection": "Directly inspected this frame contact sheet and heatmap. LUT-mapped gradients, red/blue/green channel ordering, thin bars, rounded contours, alpha coverage and moving square match the frozen TS reference. Residuals are two or three one-code-value channel samples from native GPU arithmetic; no structural mismatch, domain shift or hue bias. Every metric and structural check passes without tolerance changes."
     }
   ],
   "history": [
@@ -36308,6 +37060,36 @@
         "The M3 exit auditor rereads actual output pixels, native CLI receipts, supplied plan hashes, frozen references, comparison evidence and hash-matched self-reviews. It rejects stale, missing, duplicate, substituted or non-native gate evidence. Native PNG/JPEG, EXR sample/GPU proof, three GPU cache/HDR tests and capability/authorization rejections remain required.",
         "Full G0/G1/G3 and the independent M3 exit audit pass. M3 native core is complete. Production preview/export remain TS; effects, text, media, advanced scene execution, native export/evaluation/preview and TS retirement remain M4-M12.",
         "Preserved EXR native-only sample validation, path-mask schema ellipse fallback and occluded minimal-golden boundaries. Captured cloner geometry does not claim native project evaluation or generator execution. No reference, tolerance or dependency changes."
+      ]
+    },
+    {
+      "id": 83,
+      "time": "2026-10-06T01:20:20.820Z",
+      "milestone": "M4",
+      "task": "M4-T1",
+      "outcome": "passed",
+      "commit": "c073aafa8deb5fe528c2d6336d3baf9dc05134db",
+      "verification": "artifacts/migration/verify-2026-10-06T01-12-29-663Z-f47c8873.json",
+      "verification_sha256": "32ff0c8e353e9add6a6ed03c4f332c16ab92caa3e850e75e506f57c37a355daf",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 85254
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 341102
+        }
+      ],
+      "verification_duration_ms": 427828,
+      "next_step": "Implement M4-T2 fused supplied effect programs and base effects. Retain pipelines across diagnostic frames to avoid per-frame recompilation when expanding to the full effect corpus.",
+      "notes": [
+        "Native layer programs now resolve and bind their exact content-addressed LUT resource for the shared shader. Cubic dimensions, format, payload and finite half-float samples are validated without changing the FramePlan protocol or adding dependencies.",
+        "A device-owned LUT cache shares root/child inputs and preserves uploads by content hash. Whole-demand admission precedes eviction; frame, image, surface and LUT allocations share the existing GPU budget. GPU tests verify exact HDR/negative half-float bytes, hits, protected active entries, rejection without mutation and eviction on shrink.",
+        "All eight trilinear/tetrahedral outputs pass metric and structural checks with maximum one-code-value residuals. Directly inspected each contact sheet/heatmap and accepted float-precision reviews; no reference or tolerance changes. Full M4 G0/G3 also includes all 145 M3 core frames, eight native PNG/JPEG frames, EXR and four native GPU cache/HDR tests.",
+        "M4-T1 is complete, while wider fused operations, layer styles, surface effects and section 9 optimizations remain open. Production preview/export remain TS."
       ]
     }
   ],
