@@ -9,6 +9,7 @@ use crate::RenderError;
 
 pub(crate) struct LayerPlan {
     pub blend: u8,
+    pub lut: Option<aster_render_ir::ResourceHash>,
     pub uniforms: Vec<u8>,
     pub operations: Vec<u8>,
     pub composite: EffectComposite,
@@ -27,14 +28,15 @@ impl LayerPlan {
     ) -> Result<BTreeMap<u32, Self>, RenderError> {
         let mut layers = BTreeMap::new();
         for record in effects {
-            let (instance_id, plan_hash, execution_hash) = match record {
+            let (instance_id, plan_hash, execution_hash, lut_hash) = match record {
                 PrecompositionEffectRecord::Direct { .. } => continue,
                 PrecompositionEffectRecord::Ready {
                     instance_id,
                     plan,
                     execution,
+                    lut,
                     ..
-                } => (instance_id, plan, execution),
+                } => (instance_id, plan, execution, lut),
                 _ => {
                     return Err(RenderError::Unsupported(
                         "skipped or failed layer effect".into(),
@@ -73,14 +75,19 @@ impl LayerPlan {
             }
             let bytes = plan.blob(effect.blob_index as usize)?;
             let operations = bytes[96..96 + effect.operation_count as usize * 64].to_vec();
+            let mut uses_lut = false;
+            if effect.lut_hash != *lut_hash {
+                return Err(RenderError::Invalid("layer LUT binding differs".into()));
+            }
             for operation in operations.chunks_exact(64) {
                 let code = f32::from_le_bytes(
                     operation[..4]
                         .try_into()
                         .map_err(|_| RenderError::Invalid("operation lane".into()))?,
                 );
-                // These operations use supplied source pixels and optional pyramids, without an external LUT.
-                if ![38.0, 98.0, 101.0, 102.0, 106.0, 107.0, 174.0, 210.0].contains(&code) {
+                // Keep unsupported programs explicit until their native dependencies are implemented.
+                uses_lut |= code == 32.0;
+                if ![32.0, 38.0, 98.0, 101.0, 102.0, 106.0, 107.0, 174.0, 210.0].contains(&code) {
                     return Err(RenderError::Unsupported(format!("layer operation {code}")));
                 }
             }
@@ -141,6 +148,7 @@ impl LayerPlan {
                     original.blob_index,
                     Self {
                         blend,
+                        lut: uses_lut.then(|| lut_hash.clone()),
                         uniforms,
                         operations,
                         composite: route.composite.clone(),

@@ -7,6 +7,7 @@ mod image_cache;
 mod image_input;
 mod layer_plan;
 mod layers;
+mod lut_cache;
 mod output;
 mod pyramid;
 mod scene;
@@ -17,6 +18,7 @@ mod surface_plan;
 pub use device::{NativeOptions, NativeRenderer, RenderedFrame};
 pub use frame::SuppliedFrame;
 pub use image_cache::ImageCacheStatistics;
+pub use lut_cache::LutCacheStatistics;
 pub use surface_cache::SurfaceCacheStatistics;
 
 #[derive(Debug, thiserror::Error)]

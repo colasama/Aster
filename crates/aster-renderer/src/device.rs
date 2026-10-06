@@ -33,6 +33,7 @@ pub struct RenderedFrame {
     pub size: Extent2d,
     pub submission: wgpu::SubmissionIndex,
     pub image_cache: crate::ImageCacheStatistics,
+    pub lut_cache: crate::LutCacheStatistics,
     pub surface_cache: crate::SurfaceCacheStatistics,
     _lease: Arc<()>,
 }
@@ -202,6 +203,7 @@ impl NativeRenderer {
         }
         let render_size = frame.scene.header.render_target;
         let size = frame.scene.header.target;
+        let lut_bytes = frame.luts.values().map(|input| input.bytes).sum::<u64>();
         let surface_bytes = frame
             .surfaces
             .targets
@@ -217,7 +219,7 @@ impl NativeRenderer {
                 .iter()
                 .map(|t| t.scene.transient_bytes())
                 .sum::<u64>();
-        if bytes + surface_bytes > self.options.gpu_budget_bytes
+        if bytes + surface_bytes + lut_bytes > self.options.gpu_budget_bytes
             || [
                 render_size.width,
                 render_size.height,
@@ -256,14 +258,27 @@ impl NativeRenderer {
             (&self.device, &self.queue),
             &frame.images,
             registry,
-            self.options.gpu_budget_bytes - bytes - surface_bytes,
+            self.options.gpu_budget_bytes - bytes - surface_bytes - lut_bytes,
+            self.options.timeout,
+        )?;
+        self.output.luts.prepare(
+            (&self.device, &self.queue),
+            &frame.luts,
+            registry,
+            self.options.gpu_budget_bytes
+                - bytes
+                - surface_bytes
+                - self.images.statistics.resident_bytes,
             self.options.timeout,
         )?;
         self.surfaces.prepare(
             &self.device,
             &self.images.layout,
             &frame.surfaces,
-            self.options.gpu_budget_bytes - bytes - self.images.statistics.resident_bytes,
+            self.options.gpu_budget_bytes
+                - bytes
+                - self.images.statistics.resident_bytes
+                - self.output.luts.statistics.resident_bytes,
             self.options.timeout,
         )?;
         if resized {
@@ -320,6 +335,7 @@ impl NativeRenderer {
         if let Some(error) = validation_error.or(internal_error).or(memory_error) {
             self.images.invalidate();
             self.surfaces.invalidate();
+            self.output.luts.invalidate();
             return Err(RenderError::Gpu(error.to_string()));
         }
         let lease = Arc::new(());
@@ -329,6 +345,7 @@ impl NativeRenderer {
             size,
             submission,
             image_cache: self.images.statistics,
+            lut_cache: self.output.luts.statistics,
             surface_cache: self.surfaces.statistics,
             _lease: lease,
         })

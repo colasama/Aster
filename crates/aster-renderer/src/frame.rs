@@ -11,6 +11,8 @@ pub struct SuppliedFrame {
     pub(crate) scene: crate::scene_input::SceneInput,
     pub(crate) surfaces: crate::surface_plan::SurfacePlan,
     pub(crate) post: Vec<u8>,
+    pub(crate) luts:
+        std::collections::BTreeMap<aster_render_ir::ResourceHash, crate::lut_cache::LutInput>,
     pub(crate) output_clear: wgpu::Color,
     pub(crate) images:
         std::collections::BTreeMap<aster_render_ir::ResourceHash, crate::image_input::ImageInput>,
@@ -109,6 +111,17 @@ impl SuppliedFrame {
                 images.insert(hash.clone(), image.clone());
             }
         }
+        let mut luts = std::collections::BTreeMap::new();
+        for scene in std::iter::once(&scene).chain(surfaces.targets.iter().map(|s| &s.scene)) {
+            for hash in scene.layers.values().filter_map(|layer| layer.lut.as_ref()) {
+                if !luts.contains_key(hash) {
+                    luts.insert(
+                        hash.clone(),
+                        crate::lut_cache::LutInput::new(hash, registry)?,
+                    );
+                }
+            }
+        }
         let mut clear = [0.0; 4];
         for (value, bytes) in clear.iter_mut().zip(output.blob(0)?.chunks_exact(4)) {
             *value = f64::from(f32::from_le_bytes(
@@ -122,6 +135,7 @@ impl SuppliedFrame {
             surfaces,
             post: post.blob(0)?.to_vec(),
             images,
+            luts,
             output_clear: wgpu::Color {
                 r: clear[0],
                 g: clear[1],

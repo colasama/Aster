@@ -113,6 +113,7 @@ export async function verifyMigration(options, dependencies = {}) {
         ASTER_MIGRATION_QUICK: quick ? "1" : "0",
       },
       print: options.print,
+      milestone: milestone.id,
     };
     for (const id of report.required_gates) {
       if (id === "G0") report.gates.push(await runStaticGate(context, quick, execute));
@@ -182,7 +183,7 @@ export async function verifyMigration(options, dependencies = {}) {
           output_replay: checked.report.output_replay,
           duration_ms: checked.report.duration_ms,
         });
-      } else if (id === "G3" && milestone.id === "M3") {
+      } else if (id === "G3" && ["M3", "M4"].includes(milestone.id)) {
         report.gates.push(
           quick
             ? { id, status: "skipped", reason: "Quick mode omits native core GPU execution" }
@@ -192,7 +193,9 @@ export async function verifyMigration(options, dependencies = {}) {
               ),
         );
         report.milestone_exit_reason =
-          "Native core increments require the complete core corpus and M3 exit audit";
+          milestone.id === "M4"
+            ? "Native effect increments require the complete effect/style corpus and M4 exit audit"
+            : "Native core increments require the complete core corpus and M3 exit audit";
       } else if (id === "G3") {
         const pixelContext = { ...context, output: join(output, "G3") };
         const build = await execute(

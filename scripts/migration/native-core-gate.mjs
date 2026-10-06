@@ -46,10 +46,12 @@ export function validateNativeReceipt(receipt, expected) {
 /** Native incremental acceptance is distinct from the complete M3 core exit. */
 export async function runNativeCoreGate(context, execute = runStep) {
   const started = Date.now();
+  const effects = context.milestone === "M4";
+  const extraCases = effects ? ["effect-lut", "lut-tetrahedral"] : [];
   const report = {
     id: "G3",
     status: "failed",
-    scope: "native-core-v5",
+    scope: effects ? "native-effects-lut-v1" : "native-core-v5",
     native_image_decode: true,
     full_coverage: false,
     milestone_exit_eligible: false,
@@ -71,8 +73,10 @@ export async function runNativeCoreGate(context, execute = runStep) {
     assert.equal(capture.status, "passed");
     const corpus = await reader.json("tests/parity/corpus.json", manifest.corpus_sha256);
     report.input_manifest = milestone.input_manifest;
-    report.pending_tasks = milestone.tasks
-      .filter((task) => task.status !== "done")
+    if (effects) assert.equal(milestone.status, "done");
+    report.pending_tasks = ledger.milestones
+      .find((item) => item.id === (effects ? "M4" : "M3"))
+      .tasks.filter((task) => task.status !== "done")
       .map((task) => task.id);
     report.build = await execute(
       {
@@ -92,8 +96,8 @@ export async function runNativeCoreGate(context, execute = runStep) {
     report.binary = { path: local(binary), sha256: await hashFile(binary) };
     const base = posix.dirname(milestone.input_manifest.path);
     const candidate = { schema_version: 1, frames: [] };
-    const cases = coreCorpus(corpus).cases.map((item) => item.id);
-    assert.deepEqual(cases, coreCases);
+    const cases = [...coreCorpus(corpus).cases.map((item) => item.id), ...extraCases];
+    assert.deepEqual(cases.slice(0, coreCases.length), coreCases);
     const compiler =
       process.platform === "win32"
         ? join(context.root, "node_modules", "electron", "dist", "dxcompiler.dll")
@@ -140,7 +144,8 @@ export async function runNativeCoreGate(context, execute = runStep) {
               ...(compiler &&
               (coreLayerCases.includes(id) ||
                 coreSurfaceCases.includes(id) ||
-                coreAdditionalGeometryCases.includes(id))
+                coreAdditionalGeometryCases.includes(id) ||
+                extraCases.includes(id))
                 ? ["--dxcompiler", compiler]
                 : []),
             ],
@@ -160,6 +165,10 @@ export async function runNativeCoreGate(context, execute = runStep) {
           adapter: meta.adapter.gpuMemory.device,
         });
         assert.equal(receipt.native_image_decode, false);
+        if (extraCases.includes(id)) {
+          assert(receipt.lut_cache.uploads > 0, "Native LUT was not uploaded");
+          assert(receipt.lut_cache.resident_bytes > 0);
+        }
         if (coreImageCases.includes(id)) {
           assert(receipt.image_cache.uploads > 0, "Native image case uploaded no texture");
           assert(receipt.image_cache.resident_bytes > 0);
@@ -236,8 +245,8 @@ export async function runNativeCoreGate(context, execute = runStep) {
     );
     report.checked_files = await reader.stable();
     report.status = "passed";
-    report.full_coverage = true;
-    report.milestone_exit_eligible = true;
+    report.full_coverage = !effects;
+    report.milestone_exit_eligible = !effects;
   } catch (error) {
     report.error = error.stack ?? error.message;
   }

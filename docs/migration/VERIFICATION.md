@@ -365,7 +365,7 @@ layer case. These execute original supplied operation bytes, fixed alpha composi
 replacement on DX12, using the existing Electron DXC library with its hash recorded in G3. The
 library is an explicit CLI input, never inferred from the frame plan. Every result uses the frozen
 TS reference and the same GPU structural checks and self-review. Unsupported effect operations
-and external-LUT effects still reject. The full M3 exit additionally requires all core cases and its independent audit.
+outside the admitted native subset still reject. The full M3 exit additionally requires all core cases and its independent audit.
 
 The recursive-surface increment additionally runs all eight original nested-precomposition and
 nested-adjustment frames, including the captured blur/glow dependencies. Receipts require real GPU
@@ -380,3 +380,18 @@ because TS cannot import it; the path-mask schema case retains the TS ellipse fa
 minimal golden animation is hidden by its opaque background. Animated parented transforms and
 cloner geometry have separate visible cases. Native evaluation and native cloner generation remain
 later milestones. M3 completion does not switch production preview/export away from TS.
+
+## Native effect increments
+
+M4 G3 retains the complete 145-frame M3 regression scope and adds eight original LUT frames
+(`effect-lut` trilinear and `lut-tetrahedral`). Each requires a real native LUT upload and resident
+bytes, frozen-reference GPU comparisons and section 6.6 self-review. Root and recursive layer
+programs bind their captured LUT hash, preserving the shared shader's interpolation and domain
+semantics. A GPU test verifies exact half-float upload (including negative/HDR values), repeated
+hits, whole-demand budget rejection without mutation, protected current entries and eviction under
+budget shrink. G0 rejects invalid shapes and non-finite samples. The former LUT unsupported-feature
+probe is replaced by the still-unsupported lighting route.
+
+M4 increments report incomplete milestone coverage until every registered effect, layer style and
+required native optimization has evidence. Passing this LUT increment does not claim M4 completion
+or switch the production preview/export path.

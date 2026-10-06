@@ -755,6 +755,12 @@ Imported `.cube` resources are parsed through a bounded project boundary, stored
 voxel order, packed to `rgba16float`, and cached per effected layer. The fused shader supports both
 hardware trilinear sampling and explicit tetrahedral interpolation; layers without a LUT bind a tiny
 identity texture so the pipeline layout stays stable.
+The native renderer binds the plan's exact content-addressed LUT using the same shared fused shader.
+Cubic packed textures are validated before admission; half-float samples remain linear, including
+HDR and negative values. A device-owned cache shares a LUT across root and child scenes, retains
+unchanged uploads and evicts unused entries under the shared image/surface/frame budget. Entire
+frame demand is admitted before LUT eviction; missing resources, non-finite samples and invalid
+shapes reject explicitly. Native receipts expose upload, hit, eviction and resident-byte counts.
 The shared post-process shader uses one source sample when blur, glow and chromatic aberration are
 all zero, skipping the chromatic offset samples and nine-tap blur. A single uniform branch preserves
 the original active effect path and keeps the source texture on the GPU.

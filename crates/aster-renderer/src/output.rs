@@ -7,6 +7,7 @@ use wgpu::util::DeviceExt;
 use crate::{RenderError, SuppliedFrame};
 
 pub(crate) struct OutputPipelines {
+    pub(crate) luts: crate::lut_cache::LutCache,
     post: wgpu::RenderPipeline,
     linear_post: wgpu::RenderPipeline,
     effects: Option<wgpu::RenderPipeline>,
@@ -159,6 +160,7 @@ impl OutputPipelines {
             usage: wgpu::BufferUsages::STORAGE,
         });
         Ok(Self {
+            luts: Default::default(),
             post,
             linear_post,
             effects: None,
@@ -247,7 +249,7 @@ impl OutputPipelines {
         device: &wgpu::Device,
         bytes: &[u8],
         operations: &wgpu::Buffer,
-        scene: &wgpu::TextureView,
+        sources: (&wgpu::TextureView, &wgpu::TextureView),
         pyramids: (&wgpu::TextureView, &wgpu::TextureView),
     ) -> wgpu::BindGroup {
         let uniforms = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -255,14 +257,13 @@ impl OutputPipelines {
             contents: bytes,
             usage: wgpu::BufferUsages::UNIFORM,
         });
-        let lut = self.lut.create_view(&Default::default());
         device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Root display inputs"),
             layout: &self.post_layout,
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: wgpu::BindingResource::TextureView(scene),
+                    resource: wgpu::BindingResource::TextureView(sources.0),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
@@ -278,7 +279,7 @@ impl OutputPipelines {
                 },
                 wgpu::BindGroupEntry {
                     binding: 4,
-                    resource: wgpu::BindingResource::TextureView(&lut),
+                    resource: wgpu::BindingResource::TextureView(sources.1),
                 },
                 wgpu::BindGroupEntry {
                     binding: 5,
@@ -321,7 +322,13 @@ impl OutputPipelines {
                 .as_ref()
                 .ok_or_else(|| RenderError::Invalid("effect pipeline absent".into()))?
         };
-        let bindings = self.post_bindings(device, &plan.uniforms, &operations, source, pyramids);
+        let identity = self.lut.create_view(&Default::default());
+        let lut = match &plan.lut {
+            Some(hash) => self.luts.view(hash)?,
+            None => &identity,
+        };
+        let bindings =
+            self.post_bindings(device, &plan.uniforms, &operations, (source, lut), pyramids);
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Supplied linear layer pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -350,8 +357,14 @@ impl OutputPipelines {
         display: &wgpu::TextureView,
         output: &wgpu::TextureView,
     ) -> Result<(), RenderError> {
-        let bindings =
-            self.post_bindings(device, &frame.post, &self.operations, scene, (scene, scene));
+        let identity = self.lut.create_view(&Default::default());
+        let bindings = self.post_bindings(
+            device,
+            &frame.post,
+            &self.operations,
+            (scene, &identity),
+            (scene, scene),
+        );
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Linear HDR to sRGB display"),
