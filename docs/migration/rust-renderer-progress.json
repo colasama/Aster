@@ -181,81 +181,94 @@
     }
   },
   "last_cycle": {
-    "id": 95,
-    "time": "2026-10-07T09:36:37.026895+00:00",
-    "milestone": "M4",
-    "task": "M4-T6",
+    "id": 96,
+    "time": "2026-10-07T10:04:11.432270+00:00",
+    "milestone": "M5",
+    "task": "M5-T1",
     "outcome": "passed",
-    "commit": "cab3e6ab678423eaae0431c964cd1957fc8549a8",
-    "verification": "artifacts/migration/verify-2026-10-07T09-22-16-027Z-499d1159.json",
-    "verification_sha256": "d434e7fac33d068cfa055cbd3ed9772d91f87a5e1d849337194629729d28e38e",
+    "commit": "bfc2753f41285815d41d7fce26f2ac379cefeed7",
+    "verification": "artifacts/migration/verify-2026-10-07T09-49-28-865Z-1a590519.json",
+    "verification_sha256": "c9b5195c0fabe925d8c833a774b8ab29d854648d0741b241576456acc6db7039",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 82738
+        "duration_ms": 87184
+      },
+      {
+        "id": "G1",
+        "status": "passed",
+        "duration_ms": 32106
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 694102
+        "duration_ms": 699378
       }
     ],
-    "verification_duration_ms": 820622,
-    "exit_audit": {
+    "verification_duration_ms": 820405,
+    "raster_batch": {
       "status": "passed",
-      "scope": "M4 effects and layer styles with retained core regressions",
-      "native_gpu_execution": true,
-      "effect_cases": 271,
-      "effect_frames": 1087,
-      "pixels": {
-        "frames": 1232,
-        "checked_files": 12325
+      "step": {
+        "id": "native-raster-batch",
+        "command": [
+          "D:\\code\\Aster\\target\\release\\aster-render-cli.exe",
+          "render-plan",
+          "--batch",
+          "D:\\code\\Aster\\artifacts\\migration\\2026-10-07T09-49-28-865Z-1a590519\\G3\\raster-batch.json",
+          "--dxcompiler",
+          "D:\\code\\Aster\\node_modules\\electron\\dist\\dxcompiler.dll"
+        ],
+        "started_at": "2026-10-07T09:55:06.605Z",
+        "log": "artifacts/migration/2026-10-07T09-49-28-865Z-1a590519/G3/native-raster-batch.log",
+        "status": "passed",
+        "exit_code": 0,
+        "signal": null,
+        "finished_at": "2026-10-07T09:55:07.659Z",
+        "duration_ms": 1054
       },
-      "supplements": {
-        "surface_frames": 16,
-        "surface_post": 2,
-        "primary_attachments": 30,
-        "cache": {
-          "exact": 4992,
-          "hits": 1240,
-          "bounded_passes": 40,
-          "saved_pixels": 1080000
-        },
-        "ssaa_strategy": "rejected; production remains full resolution"
+      "request": {
+        "path": "artifacts/migration/2026-10-07T09-49-28-865Z-1a590519/G3/raster-batch.json",
+        "sha256": "a8c76c11c8594cbf6566d2d6133a65307e90e828f95f5902da08cc01a6e83530"
       },
-      "boundaries": [
-        "Full-resolution SSAA retained after reduced-grid rejection",
-        "Unknown bounds/history retain full execution",
-        "Legacy nonzero base blur/glow are not emitted by the supplied production contract",
-        "Higher-tier auxiliary transparency and generators remain M7",
-        "Frozen color-range and twister references are transparent; parity does not establish nonempty output"
-      ],
-      "checked_files": 12840
+      "frames": 20,
+      "device_reuses": 19,
+      "image_cache": {
+        "uploads": 8,
+        "hits": 12,
+        "evictions": 0,
+        "resident_bytes": 953568
+      }
     },
+    "native_frames": 1252,
     "diagnostics": [
       {
-        "path": "artifacts/migration/cycle95-audit-diagnostic-final.log",
-        "sha256": "2df75a44e963a6fa5768e413bc847bc54f4e23c912ebac500edfc6d282c253d0",
+        "path": "artifacts/migration/cycle96-raster-cpu.log",
+        "sha256": "9032874d4e305233842b6dd4933c1cad0a8df983ace64ae4508df1022d136254",
         "status": "passed"
       },
       {
-        "path": "artifacts/migration/cycle95-supplement-audit.log",
-        "sha256": "10cafafbf4bb8d584f89e3c27f09be6fd90bae30151388d29172c468cb2fff3b",
+        "path": "artifacts/migration/cycle96-raster-gpu.log",
+        "sha256": "4f5ede4d0a5f1988fbc4b7dd3dd9306efa362352989ef561ee3870232a9cd9e7",
         "status": "passed"
       },
       {
-        "path": "artifacts/migration/cycle95-audit-tests-final.log",
-        "sha256": "21d5871d418a2b20a06a4266bd5965f3a5623ae4d32e916c19679cbea86a372d",
+        "path": "artifacts/migration/cycle96-verify-tests-final.log",
+        "sha256": "701d4c91897145650e94314ee9261838297deec30a51e92689afdbe2725c87bd",
+        "status": "passed"
+      },
+      {
+        "path": "artifacts/migration/cycle96-raster-reviewed/report.json",
+        "sha256": "cd896074b4d5471103a6a60f072dab1e72c561b0b07f6db6875df6f61d499666",
         "status": "passed"
       }
     ],
-    "bootstrap_fix": "Pixel comparison rejection exits 1; malformed render-plan rejection exits 2. The audit explicitly distinguishes both from interrupted execution.",
-    "next_step": "Start M5 by defining small tasks and admitting supplied content-addressed text/SVG/PSD raster pixels with native GPU parity and cache lifetime controls.",
+    "next_step": "Implement supplied temporal text accumulation and resolve using shared WGSL; retain GPU resources and validate against the frozen M2 temporal samples.",
     "notes": [
-      "M4 full required gates and exit audit pass on unchanged source. All 271 effect/style cases, 1087 effect frames and 145 core regressions are covered.",
-      "The audit reopens actual plans, native PNGs, batch receipts, comparison reports, frozen references and reviews; 16 surface frames, 2 surface effects, 30 primary attachments and 4992 cache/region controls are checked.",
-      "SSAA reduced-grid rejection remains explicit. Production preview/export integration, evaluation and native media/3D milestones remain open."
+      "All 20 text/SVG/PSD and animated text frames are RGBA-exact with accepted section 6.6 reviews. The native raster batch performs 8 uploads and 12 cache hits on one device.",
+      "Typed RasterPixels and captured byte buffers share validated native image admission. GPU tests cover changed generations, eviction and atomic budget rejection.",
+      "Full G0/G1/G3 pass on unchanged source. M5 temporal text and exit audit remain open; production preview/export integration is still pending.",
+      "The M5 routing test caught an omitted G1 dispatch before full verification; corrected and rerun successfully."
     ]
   },
   "milestones": [
@@ -20278,9 +20291,61 @@
     {
       "id": "M5",
       "title": "Text, SVG, PSD rasters (Phase A)",
-      "status": "pending",
+      "status": "in_progress",
       "gates": ["G0", "G1", "G3"],
-      "tasks": []
+      "tasks": [
+        {
+          "id": "M5-T1",
+          "title": "Admit supplied text, SVG and PSD raster pixels into the native GPU cache and verify static and animated raster cases",
+          "status": "done",
+          "completed_at": "2026-10-07T10:04:11.432270+00:00",
+          "commit": "bfc2753f41285815d41d7fce26f2ac379cefeed7",
+          "verification": "artifacts/migration/verify-2026-10-07T09-49-28-865Z-1a590519.json",
+          "evidence": {
+            "raster_frames": 20,
+            "native_regression_frames": 1252,
+            "cache_comparisons": 5072
+          }
+        },
+        {
+          "id": "M5-T2",
+          "title": "Execute supplied temporal text raster sample and accumulation passes with GPU-resident reuse and budget controls",
+          "status": "pending"
+        },
+        {
+          "id": "M5-T3",
+          "title": "Complete native text motion-blur corpus output with required supplied reconstruction and auxiliary inputs",
+          "status": "pending"
+        },
+        {
+          "id": "M5-T4",
+          "title": "Audit complete M5 raster coverage, IR resource lifetimes and native pixel evidence",
+          "status": "pending"
+        }
+      ],
+      "last_verification": {
+        "status": "passed",
+        "required_gates_passed": true,
+        "milestone_exit_satisfied": false,
+        "report": "artifacts/migration/verify-2026-10-07T09-49-28-865Z-1a590519.json",
+        "gates": [
+          {
+            "id": "G0",
+            "status": "passed",
+            "duration_ms": 87184
+          },
+          {
+            "id": "G1",
+            "status": "passed",
+            "duration_ms": 32106
+          },
+          {
+            "id": "G3",
+            "status": "passed",
+            "duration_ms": 699378
+          }
+        ]
+      }
     },
     {
       "id": "M6",
@@ -154083,6 +154148,1774 @@
         "heatmap_sha256": "a0ed3493bd71ca16c35df5658cf9a638e8c193c8da14ec6444df5f58954152ca"
       },
       "inspection": "Directly inspected full contact sheet and heatmap. Differences form an edge ring around the translucent quad; reconstruction softens coverage, and glow adds weaker halo bands. Full-resolution controls equal the native renderer exactly. All reduced outputs exceed the hard maximum error; three fail alpha coverage. Reject the strategy, keep full-resolution production execution, and make no tolerance changes."
+    },
+    {
+      "case_id": "layer-text",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M5 supplied text, SVG and PSD native raster admission",
+      "reviewed_at": "2026-10-07T09:48:12.237900+00:00",
+      "reference_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "candidate_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "candidate": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/layer-text-0/report.json",
+        "heatmap": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/layer-text-0/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/layer-text-0/contact-sheet.png",
+        "report_sha256": "3418edbf3d0687e045a00ab9bc6df2e5b18eabf5cf782e063f421f0007979e99",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "dc3aa7873ca0a1807c905b140a87510209896c90c3ef5d13ff495faaa9016191"
+      },
+      "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
+    },
+    {
+      "case_id": "layer-text",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "M5 supplied text, SVG and PSD native raster admission",
+      "reviewed_at": "2026-10-07T09:48:12.238471+00:00",
+      "reference_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "candidate_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "candidate": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/layer-text-15/report.json",
+        "heatmap": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/layer-text-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/layer-text-15/contact-sheet.png",
+        "report_sha256": "6e4dccdb344d68330fd29e8bea219b31d7af818fff1dfc3d4bab4eb8721ddc5c",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "dc3aa7873ca0a1807c905b140a87510209896c90c3ef5d13ff495faaa9016191"
+      },
+      "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
+    },
+    {
+      "case_id": "layer-text",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "M5 supplied text, SVG and PSD native raster admission",
+      "reviewed_at": "2026-10-07T09:48:12.238911+00:00",
+      "reference_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "candidate_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "candidate": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/layer-text-30/report.json",
+        "heatmap": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/layer-text-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/layer-text-30/contact-sheet.png",
+        "report_sha256": "540fac9bef21776b59f7d712bd93bcd6b9410aa43a45589ce3d2a98673d7c7d2",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "dc3aa7873ca0a1807c905b140a87510209896c90c3ef5d13ff495faaa9016191"
+      },
+      "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
+    },
+    {
+      "case_id": "layer-text",
+      "frame": 59,
+      "profile": "gpu",
+      "purpose": "M5 supplied text, SVG and PSD native raster admission",
+      "reviewed_at": "2026-10-07T09:48:12.239349+00:00",
+      "reference_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "candidate_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "candidate": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/layer-text-59/report.json",
+        "heatmap": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/layer-text-59/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/layer-text-59/contact-sheet.png",
+        "report_sha256": "c32716368aae764973a7078495208de98220aaf992a38efdffc6c3a1f9ba638b",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "dc3aa7873ca0a1807c905b140a87510209896c90c3ef5d13ff495faaa9016191"
+      },
+      "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
+    },
+    {
+      "case_id": "media-psd",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M5 supplied text, SVG and PSD native raster admission",
+      "reviewed_at": "2026-10-07T09:48:12.239809+00:00",
+      "reference_rgba_sha256": "eecdb6404687f0df3257227e7e3d0324daf0d7414a67d82877230fd9cf1fcc20",
+      "candidate_rgba_sha256": "eecdb6404687f0df3257227e7e3d0324daf0d7414a67d82877230fd9cf1fcc20",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-0/report.json",
+        "heatmap": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-0/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-0/contact-sheet.png",
+        "report_sha256": "926b7488c9837609b86d6cf162e7a78b2853cb5b7358dc1af62bf8e4bf62a999",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "4e017f6f4f076e5a761086b6ffb36126f422198416e1633de67d44509fd155bf"
+      },
+      "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
+    },
+    {
+      "case_id": "media-psd",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "M5 supplied text, SVG and PSD native raster admission",
+      "reviewed_at": "2026-10-07T09:48:12.240235+00:00",
+      "reference_rgba_sha256": "eecdb6404687f0df3257227e7e3d0324daf0d7414a67d82877230fd9cf1fcc20",
+      "candidate_rgba_sha256": "eecdb6404687f0df3257227e7e3d0324daf0d7414a67d82877230fd9cf1fcc20",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-15/report.json",
+        "heatmap": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-15/contact-sheet.png",
+        "report_sha256": "bb6e6daf7d958fe17971c5038bc67bf9dd23a843d82cfa09585b617d8270b8bb",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "4e017f6f4f076e5a761086b6ffb36126f422198416e1633de67d44509fd155bf"
+      },
+      "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
+    },
+    {
+      "case_id": "media-psd",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "M5 supplied text, SVG and PSD native raster admission",
+      "reviewed_at": "2026-10-07T09:48:12.240676+00:00",
+      "reference_rgba_sha256": "eecdb6404687f0df3257227e7e3d0324daf0d7414a67d82877230fd9cf1fcc20",
+      "candidate_rgba_sha256": "eecdb6404687f0df3257227e7e3d0324daf0d7414a67d82877230fd9cf1fcc20",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-30/report.json",
+        "heatmap": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-30/contact-sheet.png",
+        "report_sha256": "8d8aa0a9cc309624e6a328e0b28a2b66497094c5dfcb87925fa75de2d527358d",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "4e017f6f4f076e5a761086b6ffb36126f422198416e1633de67d44509fd155bf"
+      },
+      "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
+    },
+    {
+      "case_id": "media-psd",
+      "frame": 59,
+      "profile": "gpu",
+      "purpose": "M5 supplied text, SVG and PSD native raster admission",
+      "reviewed_at": "2026-10-07T09:48:12.241097+00:00",
+      "reference_rgba_sha256": "eecdb6404687f0df3257227e7e3d0324daf0d7414a67d82877230fd9cf1fcc20",
+      "candidate_rgba_sha256": "eecdb6404687f0df3257227e7e3d0324daf0d7414a67d82877230fd9cf1fcc20",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-59/report.json",
+        "heatmap": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-59/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-59/contact-sheet.png",
+        "report_sha256": "ddac5ad13477053d7323702168ae8bd89ed7a21a820f8b983af4335713471bff",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "4e017f6f4f076e5a761086b6ffb36126f422198416e1633de67d44509fd155bf"
+      },
+      "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
+    },
+    {
+      "case_id": "media-psd-layer",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M5 supplied text, SVG and PSD native raster admission",
+      "reviewed_at": "2026-10-07T09:48:12.241527+00:00",
+      "reference_rgba_sha256": "eecdb6404687f0df3257227e7e3d0324daf0d7414a67d82877230fd9cf1fcc20",
+      "candidate_rgba_sha256": "eecdb6404687f0df3257227e7e3d0324daf0d7414a67d82877230fd9cf1fcc20",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-layer-0/report.json",
+        "heatmap": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-layer-0/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-layer-0/contact-sheet.png",
+        "report_sha256": "4d32e538effc48b9cf5b49ee8ed4eb998423de2bbdf36ff09ad5d4de9cd3cb07",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "4e017f6f4f076e5a761086b6ffb36126f422198416e1633de67d44509fd155bf"
+      },
+      "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
+    },
+    {
+      "case_id": "media-psd-layer",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "M5 supplied text, SVG and PSD native raster admission",
+      "reviewed_at": "2026-10-07T09:48:12.241981+00:00",
+      "reference_rgba_sha256": "eecdb6404687f0df3257227e7e3d0324daf0d7414a67d82877230fd9cf1fcc20",
+      "candidate_rgba_sha256": "eecdb6404687f0df3257227e7e3d0324daf0d7414a67d82877230fd9cf1fcc20",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-layer-15/report.json",
+        "heatmap": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-layer-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-layer-15/contact-sheet.png",
+        "report_sha256": "0dbe90d2061876b23b25d6f842ad4e1375e73dedb175ccdc8b847b689a1a5245",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "4e017f6f4f076e5a761086b6ffb36126f422198416e1633de67d44509fd155bf"
+      },
+      "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
+    },
+    {
+      "case_id": "media-psd-layer",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "M5 supplied text, SVG and PSD native raster admission",
+      "reviewed_at": "2026-10-07T09:48:12.242417+00:00",
+      "reference_rgba_sha256": "eecdb6404687f0df3257227e7e3d0324daf0d7414a67d82877230fd9cf1fcc20",
+      "candidate_rgba_sha256": "eecdb6404687f0df3257227e7e3d0324daf0d7414a67d82877230fd9cf1fcc20",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-layer-30/report.json",
+        "heatmap": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-layer-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-layer-30/contact-sheet.png",
+        "report_sha256": "f1b67bacdbb088971c7765b5609015da7bd75ec9a5823f698347444bd91b2162",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "4e017f6f4f076e5a761086b6ffb36126f422198416e1633de67d44509fd155bf"
+      },
+      "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
+    },
+    {
+      "case_id": "media-psd-layer",
+      "frame": 59,
+      "profile": "gpu",
+      "purpose": "M5 supplied text, SVG and PSD native raster admission",
+      "reviewed_at": "2026-10-07T09:48:12.242861+00:00",
+      "reference_rgba_sha256": "eecdb6404687f0df3257227e7e3d0324daf0d7414a67d82877230fd9cf1fcc20",
+      "candidate_rgba_sha256": "eecdb6404687f0df3257227e7e3d0324daf0d7414a67d82877230fd9cf1fcc20",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-layer-59/report.json",
+        "heatmap": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-layer-59/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-psd-layer-59/contact-sheet.png",
+        "report_sha256": "081d11520efe45d597a1c8f7c8a868390c69a6b12f38025b22ddb269ced40a30",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "4e017f6f4f076e5a761086b6ffb36126f422198416e1633de67d44509fd155bf"
+      },
+      "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
+    },
+    {
+      "case_id": "media-svg",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M5 supplied text, SVG and PSD native raster admission",
+      "reviewed_at": "2026-10-07T09:48:12.243283+00:00",
+      "reference_rgba_sha256": "5d5ad99b126e42e5b94f068e7c7e7b8d3209cec9dbe9c85b423e889fe01e110d",
+      "candidate_rgba_sha256": "5d5ad99b126e42e5b94f068e7c7e7b8d3209cec9dbe9c85b423e889fe01e110d",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-svg-0/report.json",
+        "heatmap": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-svg-0/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-svg-0/contact-sheet.png",
+        "report_sha256": "87de9adea7d6a94bc6719254cb337c76ece077317364cd29dbeb457dfac06499",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "c29bc8560793417274983100feabb845756d62c6092ba82ec618acd6e9cce7cd"
+      },
+      "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
+    },
+    {
+      "case_id": "media-svg",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "M5 supplied text, SVG and PSD native raster admission",
+      "reviewed_at": "2026-10-07T09:48:12.243711+00:00",
+      "reference_rgba_sha256": "5d5ad99b126e42e5b94f068e7c7e7b8d3209cec9dbe9c85b423e889fe01e110d",
+      "candidate_rgba_sha256": "5d5ad99b126e42e5b94f068e7c7e7b8d3209cec9dbe9c85b423e889fe01e110d",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-svg-15/report.json",
+        "heatmap": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-svg-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-svg-15/contact-sheet.png",
+        "report_sha256": "ffd46fd6c62670cdee5788bcf9c5ef98d755d490b0883b3ed81343f24055cde4",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "c29bc8560793417274983100feabb845756d62c6092ba82ec618acd6e9cce7cd"
+      },
+      "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
+    },
+    {
+      "case_id": "media-svg",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "M5 supplied text, SVG and PSD native raster admission",
+      "reviewed_at": "2026-10-07T09:48:12.244125+00:00",
+      "reference_rgba_sha256": "5d5ad99b126e42e5b94f068e7c7e7b8d3209cec9dbe9c85b423e889fe01e110d",
+      "candidate_rgba_sha256": "5d5ad99b126e42e5b94f068e7c7e7b8d3209cec9dbe9c85b423e889fe01e110d",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-svg-30/report.json",
+        "heatmap": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-svg-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-svg-30/contact-sheet.png",
+        "report_sha256": "44e0f00c5032151d65f54afdb176c4a010d50e7de6325ac194b7e989e4e5ecba",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "c29bc8560793417274983100feabb845756d62c6092ba82ec618acd6e9cce7cd"
+      },
+      "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
+    },
+    {
+      "case_id": "media-svg",
+      "frame": 59,
+      "profile": "gpu",
+      "purpose": "M5 supplied text, SVG and PSD native raster admission",
+      "reviewed_at": "2026-10-07T09:48:12.244543+00:00",
+      "reference_rgba_sha256": "5d5ad99b126e42e5b94f068e7c7e7b8d3209cec9dbe9c85b423e889fe01e110d",
+      "candidate_rgba_sha256": "5d5ad99b126e42e5b94f068e7c7e7b8d3209cec9dbe9c85b423e889fe01e110d",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-svg-59/report.json",
+        "heatmap": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-svg-59/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/media-svg-59/contact-sheet.png",
+        "report_sha256": "63e44ac85ff83421912901f0a09d5fa89cc65632d5e96356d9dfd21c4dc71a5c",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "c29bc8560793417274983100feabb845756d62c6092ba82ec618acd6e9cce7cd"
+      },
+      "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
+    },
+    {
+      "case_id": "scene-text-animators",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M5 supplied text, SVG and PSD native raster admission",
+      "reviewed_at": "2026-10-07T09:48:12.244970+00:00",
+      "reference_rgba_sha256": "716ef51afbe85ad6bfb8555e4b93eead85e8ef61bf4cd172ef0720340656c190",
+      "candidate_rgba_sha256": "716ef51afbe85ad6bfb8555e4b93eead85e8ef61bf4cd172ef0720340656c190",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 98,
+            "min_y": 35,
+            "max_x": 225,
+            "max_y": 141
+          },
+          "candidate": {
+            "min_x": 98,
+            "min_y": 35,
+            "max_x": 225,
+            "max_y": 141
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/scene-text-animators-0/report.json",
+        "heatmap": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/scene-text-animators-0/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/scene-text-animators-0/contact-sheet.png",
+        "report_sha256": "1a5f2020f995f664895810c9fb16a6b8e3f31a68f7738dfd3857522fb79246e6",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "8ec1b9d6ec1fb569f042869e00ceb085b570fd3797162ddc545171bcb3ad5601"
+      },
+      "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
+    },
+    {
+      "case_id": "scene-text-animators",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "M5 supplied text, SVG and PSD native raster admission",
+      "reviewed_at": "2026-10-07T09:48:12.245397+00:00",
+      "reference_rgba_sha256": "32fba9f3f7db17873efcca25a6a4bdfdea07181525822494b0118a56556bfd83",
+      "candidate_rgba_sha256": "32fba9f3f7db17873efcca25a6a4bdfdea07181525822494b0118a56556bfd83",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 97,
+            "min_y": 36,
+            "max_x": 225,
+            "max_y": 141
+          },
+          "candidate": {
+            "min_x": 97,
+            "min_y": 36,
+            "max_x": 225,
+            "max_y": 141
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/scene-text-animators-15/report.json",
+        "heatmap": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/scene-text-animators-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/scene-text-animators-15/contact-sheet.png",
+        "report_sha256": "15ddb922cf78b05b4517046ceb6b406f4cf795c9bd830f86b094f1043bbcfec0",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "c3cfbbdb58a652b8e0c7293fab6caf08403fbd69c697f76ce49d983c50eb7385"
+      },
+      "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
+    },
+    {
+      "case_id": "scene-text-animators",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "M5 supplied text, SVG and PSD native raster admission",
+      "reviewed_at": "2026-10-07T09:48:12.245824+00:00",
+      "reference_rgba_sha256": "3bb2030f167b4b3e6dc5fedff558719282a5bae53caddb6686a5e209e1f4e9e5",
+      "candidate_rgba_sha256": "3bb2030f167b4b3e6dc5fedff558719282a5bae53caddb6686a5e209e1f4e9e5",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 98,
+            "min_y": 33,
+            "max_x": 225,
+            "max_y": 141
+          },
+          "candidate": {
+            "min_x": 98,
+            "min_y": 33,
+            "max_x": 225,
+            "max_y": 141
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/scene-text-animators-30/report.json",
+        "heatmap": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/scene-text-animators-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/scene-text-animators-30/contact-sheet.png",
+        "report_sha256": "b3b9536789dc2e82c7ee41e47ec365842e4759d8480c176ae0cf77c3ca93b411",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "307d7eacb9f1c9d67c6e27a579d525e7e4bbd0f7da96daf847d516764c241016"
+      },
+      "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
+    },
+    {
+      "case_id": "scene-text-animators",
+      "frame": 59,
+      "profile": "gpu",
+      "purpose": "M5 supplied text, SVG and PSD native raster admission",
+      "reviewed_at": "2026-10-07T09:48:12.246274+00:00",
+      "reference_rgba_sha256": "319c9e7c94e59adabeb9303e6aaaf43ede82a19174a081d77412d73f754dbbec",
+      "candidate_rgba_sha256": "319c9e7c94e59adabeb9303e6aaaf43ede82a19174a081d77412d73f754dbbec",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 99,
+            "min_y": 35,
+            "max_x": 224,
+            "max_y": 141
+          },
+          "candidate": {
+            "min_x": 99,
+            "min_y": 35,
+            "max_x": 224,
+            "max_y": 141
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/scene-text-animators-59/report.json",
+        "heatmap": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/scene-text-animators-59/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle96-raster-diagnostic/pixels/frames/scene-text-animators-59/contact-sheet.png",
+        "report_sha256": "f1b256261e6a6d1e1265df419ab8b133298d781e77db13937f4163950febda39",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "9837f3aa2070a12ae49df337ea06306e72bb7ba2f9eef9f542b69945a129b27a"
+      },
+      "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
     }
   ],
   "history": [
@@ -155576,6 +157409,97 @@
         "M4 full required gates and exit audit pass on unchanged source. All 271 effect/style cases, 1087 effect frames and 145 core regressions are covered.",
         "The audit reopens actual plans, native PNGs, batch receipts, comparison reports, frozen references and reviews; 16 surface frames, 2 surface effects, 30 primary attachments and 4992 cache/region controls are checked.",
         "SSAA reduced-grid rejection remains explicit. Production preview/export integration, evaluation and native media/3D milestones remain open."
+      ]
+    },
+    {
+      "id": 96,
+      "time": "2026-10-07T10:04:11.432270+00:00",
+      "milestone": "M5",
+      "task": "M5-T1",
+      "outcome": "passed",
+      "commit": "bfc2753f41285815d41d7fce26f2ac379cefeed7",
+      "verification": "artifacts/migration/verify-2026-10-07T09-49-28-865Z-1a590519.json",
+      "verification_sha256": "c9b5195c0fabe925d8c833a774b8ab29d854648d0741b241576456acc6db7039",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 87184
+        },
+        {
+          "id": "G1",
+          "status": "passed",
+          "duration_ms": 32106
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 699378
+        }
+      ],
+      "verification_duration_ms": 820405,
+      "raster_batch": {
+        "status": "passed",
+        "step": {
+          "id": "native-raster-batch",
+          "command": [
+            "D:\\code\\Aster\\target\\release\\aster-render-cli.exe",
+            "render-plan",
+            "--batch",
+            "D:\\code\\Aster\\artifacts\\migration\\2026-10-07T09-49-28-865Z-1a590519\\G3\\raster-batch.json",
+            "--dxcompiler",
+            "D:\\code\\Aster\\node_modules\\electron\\dist\\dxcompiler.dll"
+          ],
+          "started_at": "2026-10-07T09:55:06.605Z",
+          "log": "artifacts/migration/2026-10-07T09-49-28-865Z-1a590519/G3/native-raster-batch.log",
+          "status": "passed",
+          "exit_code": 0,
+          "signal": null,
+          "finished_at": "2026-10-07T09:55:07.659Z",
+          "duration_ms": 1054
+        },
+        "request": {
+          "path": "artifacts/migration/2026-10-07T09-49-28-865Z-1a590519/G3/raster-batch.json",
+          "sha256": "a8c76c11c8594cbf6566d2d6133a65307e90e828f95f5902da08cc01a6e83530"
+        },
+        "frames": 20,
+        "device_reuses": 19,
+        "image_cache": {
+          "uploads": 8,
+          "hits": 12,
+          "evictions": 0,
+          "resident_bytes": 953568
+        }
+      },
+      "native_frames": 1252,
+      "diagnostics": [
+        {
+          "path": "artifacts/migration/cycle96-raster-cpu.log",
+          "sha256": "9032874d4e305233842b6dd4933c1cad0a8df983ace64ae4508df1022d136254",
+          "status": "passed"
+        },
+        {
+          "path": "artifacts/migration/cycle96-raster-gpu.log",
+          "sha256": "4f5ede4d0a5f1988fbc4b7dd3dd9306efa362352989ef561ee3870232a9cd9e7",
+          "status": "passed"
+        },
+        {
+          "path": "artifacts/migration/cycle96-verify-tests-final.log",
+          "sha256": "701d4c91897145650e94314ee9261838297deec30a51e92689afdbe2725c87bd",
+          "status": "passed"
+        },
+        {
+          "path": "artifacts/migration/cycle96-raster-reviewed/report.json",
+          "sha256": "cd896074b4d5471103a6a60f072dab1e72c561b0b07f6db6875df6f61d499666",
+          "status": "passed"
+        }
+      ],
+      "next_step": "Implement supplied temporal text accumulation and resolve using shared WGSL; retain GPU resources and validate against the frozen M2 temporal samples.",
+      "notes": [
+        "All 20 text/SVG/PSD and animated text frames are RGBA-exact with accepted section 6.6 reviews. The native raster batch performs 8 uploads and 12 cache hits on one device.",
+        "Typed RasterPixels and captured byte buffers share validated native image admission. GPU tests cover changed generations, eviction and atomic budget rejection.",
+        "Full G0/G1/G3 pass on unchanged source. M5 temporal text and exit audit remain open; production preview/export integration is still pending.",
+        "The M5 routing test caught an omitted G1 dispatch before full verification; corrected and rerun successfully."
       ]
     }
   ],
