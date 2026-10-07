@@ -1,4 +1,7 @@
 overrides:
+  express>proxy-addr: 2.0.8
+  concurrently>shell-quote: 1.11.0
+  postcss>source-map-js: 1.2.2
   '@electron/get@5.1.0>undici': 7.29.1
   ajv@8.20.0>fast-uri: 3.1.8
   app-builder-lib@26.15.3>@electron/get: 5.1.0
@@ -13,7 +16,7 @@ overrides:
   node-gyp@12.4.0>undici: 6.28.1
   plist@3.1.0>@xmldom/xmldom: 0.8.15
   wait-on@9.1.0>axios: 1.20.0
-  wait-on@9.1.0>joi: 18.2.6
+  wait-on@9.1.0>joi: 18.2.9
 
 packageExtensions:
   app-builder-lib@26.15.3:
