@@ -15,6 +15,7 @@ import {
 } from "./native-core-scope.mjs";
 import { runNativeMotionFrameGate } from "./native-motion-frame-gate.mjs";
 import { runNativeSequenceGate } from "./native-sequence-gate.mjs";
+import { runNativeVideoGate } from "./native-video-gate.mjs";
 
 export {
   coreGeometryCases,
@@ -66,7 +67,7 @@ export async function runNativeCoreGate(context, execute = runStep) {
     id: "G3",
     status: "failed",
     scope: media
-      ? "native-media-sequences-v1"
+      ? "native-media-video-v1"
       : rasters
         ? "native-rasters-v1"
         : effects
@@ -135,6 +136,12 @@ export async function runNativeCoreGate(context, execute = runStep) {
         execute,
       );
       assert.equal(report.native_sequences.status, "passed", "Native sequence decode failed");
+      report.native_videos = await runNativeVideoGate(
+        { ...context, output: join(context.output, "native-videos") },
+        { base, binary, compiler, validateReceipt: validateNativeReceipt },
+        execute,
+      );
+      assert.equal(report.native_videos.status, "passed", "Native video decode failed");
     }
     for (const id of coreCases) {
       const item = corpus.cases.find((value) => value.id === id);

@@ -146,6 +146,13 @@ grant SHA-256 and the member file identity carried by the plan. Source-wide stil
 sequence members; no filename or time-based inference occurs. Original sequence plans can execute
 in a retained-device batch, with content-addressed GPU images reused across holds and reverse seeks.
 
+Native SDR BT.709 H.264 video uses the same source authorization boundary and a private seekable
+snapshot. FFprobe supplies presentation timestamps; exact rational interval selection and matching
+requested/uploaded frame identities precede FFmpeg decode by presentation-order index. Centered
+chroma reconstruction through 4:4:4 preserves the browser upload contract. Receipts retain source
+color metadata and identify the CPU decode/upload path. Root-plan video is supported; recursive
+media integration, retained decoding and production routing remain separate capability work.
+
 Authorized EXR snapshots use the existing Rust `exr` library with bounded metadata and single-layer
 float RGB(A) admission. The frame descriptor declares `rgba16float`; half-float byte budgets flow
 through registry admission, texture upload and cache eviction. EXR associated linear RGB is converted

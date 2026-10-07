@@ -126,8 +126,8 @@ pub type FfprobeCommand = FfmpegCommand;
 
 #[derive(Debug, Clone)]
 pub struct FfprobeBackend {
-    executable: PathBuf,
-    limits: ProbeLimits,
+    pub(crate) executable: PathBuf,
+    pub(crate) limits: ProbeLimits,
 }
 
 impl Default for FfprobeBackend {

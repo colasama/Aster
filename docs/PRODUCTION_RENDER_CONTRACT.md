@@ -100,6 +100,13 @@ backend, but it does not implement the complete production 3D, effect, depth-of-
 and linear-HDR pass graph. A WebGPU initialization failure therefore fails the queued job with the
 actionable `render_host_webgpu_unavailable` code instead of publishing valid-looking fallback pixels.
 
+The native frame-plan decoder consumes the supplied rational or binary-rational video times exactly.
+It indexes presentation timestamps from an authorized snapshot, selects the containing interval and
+requires the requested and uploaded times to select the same frame. The producer's seek bias is
+already encoded in these times. Native decode preserves source color metadata and uses the verified
+browser-compatible chroma reconstruction before straight sRGB upload; it rejects unsupported color
+routes explicitly.
+
 Exact-frame capture also treats initial image decode, SVG rasterization, and image-sequence frame
 decode as frame dependencies. A current-generation resource barrier ignores stale completions,
 propagates decode failures and timeouts, and requires a redraw before accepting pixels whenever the

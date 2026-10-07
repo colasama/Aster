@@ -1,13 +1,16 @@
 //! Authorized native media snapshots and bounded decode, independent of GPU execution.
+mod authorization;
+pub use authorization::StillAuthorization;
 mod exr_snapshot;
 #[cfg(test)]
 mod exr_tests;
 mod still;
+mod video;
+mod video_time;
+pub use video::{DecodedVideo, NativeVideoDecoder, NativeVideoReceipt, VideoLimits};
 #[cfg(test)]
 mod tests;
-pub use still::{
-    DecodedStill, NativeImageReceipt, NativeStillDecoder, StillAuthorization, StillLimits,
-};
+pub use still::{DecodedStill, NativeImageReceipt, NativeStillDecoder, StillLimits};
 
 #[derive(Debug, thiserror::Error)]
 pub enum MediaError {

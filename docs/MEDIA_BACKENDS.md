@@ -46,6 +46,27 @@ tables are checked before decode; reads observe cancellation and timeout. This p
 headless frame-plan rendering. Production preview/export still use TS. The shipped FFmpeg build and
 encoding backend selection are unchanged.
 
+## Native video snapshots
+
+The headless frame-plan path accepts authorized SDR BT.709 H.264 4:2:0 in MP4/MOV with explicit
+`--ffmpeg` and `--ffprobe` executables. Source SHA-256 and imported content identity are checked before
+creating a private, seekable snapshot. FFprobe indexes ordered presentation timestamps and positive
+durations; rational and binary-rational requests select an exact presentation interval without a
+decimal seek or accumulated frame clock. Requested and uploaded times must identify the same frame.
+The existing 0.1 ms producer bias is already part of the request and is never applied again.
+
+FFmpeg decodes the selected presentation-order frame. Centered bilinear chroma reconstruction through
+4:4:4 matches the existing browser RGB upload boundary. Receipts retain original color tags, source
+pixel format/chroma location, selected frame index, timestamp and duration. This is process decode
+plus CPU upload (`cpu_copy`), with no zero-copy claim. Untagged/HDR or other codec/color combinations
+reject explicitly. Original root plans remain the supported integration scope; supplied raster and
+recursive media integration is tracked separately.
+
+Source bytes, decoder pixels, index output, subprocess time and cancellation are bounded. Decode
+errors, inconsistent timestamps and out-of-duration requests publish no PNG; private snapshots are
+removed when the operation ends. Decoding starts from a complete snapshot for each request in this
+initial path; retained decode state and production integration remain separate work.
+
 ## Required backend contract
 
 Every decode or encode adapter must report a capability record before a job is accepted. Capability

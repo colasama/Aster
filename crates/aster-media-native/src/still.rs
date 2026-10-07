@@ -1,26 +1,13 @@
-use std::{collections::BTreeMap, fs::File, io::Read, path::PathBuf, sync::Arc, time::Duration};
+use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use aster_render_ir::{
     MediaKind, MediaSample, MediaTextureFormat, ResourceDescriptor, ResourceHash, ResourceRegistry,
 };
 use aster_video::{CancellationToken, DecodeLimits, FfmpegBackend};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use sha2::{Digest, Sha256};
 
-use crate::MediaError;
-
-/// A job broker grants paths explicitly; untrusted frame descriptors never grant file access.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct StillAuthorization {
-    pub source: ResourceHash,
-    /// Sequence grants authorize one member, never an inferred neighboring path.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub sequence_frame: Option<i64>,
-    pub scope: String,
-    pub path: PathBuf,
-    pub sha256: String,
-}
+use crate::{MediaError, StillAuthorization, authorization::MediaGrants};
 
 #[derive(Clone, Debug, clap::Args)]
 pub struct StillLimits {
@@ -54,7 +41,7 @@ pub struct DecodedStill {
 }
 
 pub struct NativeStillDecoder {
-    authorizations: BTreeMap<(ResourceHash, Option<i64>), StillAuthorization>,
+    authorizations: MediaGrants,
     backend: FfmpegBackend,
     limits: StillLimits,
 }
@@ -76,21 +63,7 @@ impl NativeStillDecoder {
                 "positive bounded decode limits required".into(),
             ));
         }
-        let mut grants = BTreeMap::new();
-        for grant in authorizations {
-            grant.source.validate()?;
-            ResourceHash(grant.sha256.clone()).validate()?;
-            if grant.scope.is_empty()
-                || !grant.path.is_absolute()
-                || grants
-                    .insert((grant.source.clone(), grant.sequence_frame), grant)
-                    .is_some()
-            {
-                return Err(MediaError::Authorization(
-                    "unique source members, absolute paths and nonempty scopes required".into(),
-                ));
-            }
-        }
+        let grants = MediaGrants::new(authorizations)?;
         let decode_limits = DecodeLimits {
             max_media_bytes: limits.still_max_source_bytes,
             max_frame_bytes: usize::try_from(limits.still_max_pixel_bytes)
@@ -136,11 +109,6 @@ impl NativeStillDecoder {
             ) => (Some(*frame), file_identity),
             _ => return Err(MediaError::Unsupported("non-still sample".into())),
         };
-        let grant = self
-            .authorizations
-            .get(&(frame.source.clone(), member))
-            .filter(|grant| grant.scope == source.authorization_scope)
-            .ok_or_else(|| MediaError::Authorization("source or scope is not granted".into()))?;
         if cancellation.is_cancelled() {
             return Err(aster_video::FfmpegError::Cancelled.into());
         }
@@ -155,30 +123,16 @@ impl NativeStillDecoder {
                 "decoded still exceeds extent or byte budget".into(),
             ));
         }
-        let file = File::open(&grant.path)?;
-        let metadata = file.metadata()?;
-        if !metadata.is_file() || metadata.len() > self.limits.still_max_source_bytes {
-            return Err(MediaError::Limit("source exceeds file byte budget".into()));
-        }
-        let mut encoded = Vec::new();
-        file.take(self.limits.still_max_source_bytes + 1)
-            .read_to_end(&mut encoded)?;
-        if encoded.len() as u64 > self.limits.still_max_source_bytes {
-            return Err(MediaError::Limit(
-                "source changed beyond file byte budget".into(),
-            ));
-        }
-        let digest = format!("{:x}", Sha256::digest(&encoded));
-        let (mut left, mut right) = (0x811c9dc5_u32, 0x9e3779b9_u32);
-        for byte in &encoded {
-            left = (left ^ u32::from(*byte)).wrapping_mul(0x01000193);
-            right = (right ^ u32::from(*byte)).wrapping_mul(0x85ebca6b);
-        }
-        if digest != grant.sha256
-            || *identity != format!("fnv64:{left:08x}{right:08x}:{}", encoded.len())
-        {
-            return Err(MediaError::Identity);
-        }
+        let snapshot = self.authorizations.read(
+            &frame.source,
+            &source.authorization_scope,
+            member,
+            identity,
+            self.limits.still_max_source_bytes,
+            cancellation,
+        )?;
+        let encoded = snapshot.bytes;
+        let digest = snapshot.sha256;
         let (bytes, backend) = match frame.format {
             MediaTextureFormat::Rgba16Float => (
                 crate::exr_snapshot::ExrSnapshot::decode(

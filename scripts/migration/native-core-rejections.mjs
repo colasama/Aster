@@ -74,12 +74,7 @@ export async function runNativeRejections(context, { reader, base, binary }, exe
     ["--gpu-budget-bytes", "16"],
     /GPU allocation budget/,
   );
-  for (const id of [
-    "video-24000-1001",
-    "scene-dof-15",
-    "scene-particles-billboard",
-    "scene-lighting-directional",
-  ]) {
+  for (const id of ["scene-dof-15", "scene-particles-billboard", "scene-lighting-directional"]) {
     await invoke(id, id, [], /unsupported native feature/);
   }
   const messages = await reader.json(`${base}/layer-solid/0/resources.json`);

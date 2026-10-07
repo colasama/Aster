@@ -1,5 +1,8 @@
 use crate::ir::IrArgs;
-use aster_media_native::{NativeImageReceipt, NativeStillDecoder, StillAuthorization, StillLimits};
+use aster_media_native::{
+    NativeImageReceipt, NativeStillDecoder, NativeVideoDecoder, NativeVideoReceipt,
+    StillAuthorization, StillLimits, VideoLimits,
+};
 use aster_render_ir::{
     BufferResourceDescriptor, DecodeLimits, ElementType, OwnedFpln, PlanSlice,
     PrecompositionMediaPixels, PutResource, ResourceDescriptor, ResourceHash, ResourceKind,
@@ -16,13 +19,19 @@ pub struct NativeStillArgs {
     /// Existing packaged FFmpeg executable; no download or codec substitution occurs.
     #[arg(long, requires = "media_authorizations")]
     ffmpeg: Option<PathBuf>,
+    /// Packaged FFprobe for exact native video presentation-frame indexing.
+    #[arg(long, requires = "media_authorizations")]
+    ffprobe: Option<PathBuf>,
     #[command(flatten)]
     limits: StillLimits,
+    #[command(flatten)]
+    video_limits: VideoLimits,
 }
 
 pub struct NativeStillResources {
     pub pixels: Vec<PrecompositionMediaPixels>,
     pub receipts: Vec<NativeImageReceipt>,
+    pub video_receipts: Vec<NativeVideoReceipt>,
 }
 
 impl NativeStillArgs {
@@ -35,6 +44,7 @@ impl NativeStillArgs {
         let mut result = NativeStillResources {
             pixels: Vec::new(),
             receipts: Vec::new(),
+            video_receipts: Vec::new(),
         };
         let Some(path) = &self.media_authorizations else {
             return Ok(result);
@@ -52,9 +62,22 @@ impl NativeStillArgs {
             serde_json::from_slice(&IrArgs::read_bounded(path, limits)?)?;
         let decoder = NativeStillDecoder::new(
             self.ffmpeg.clone().ok_or("FFmpeg executable absent")?,
-            authorizations,
+            authorizations.clone(),
             self.limits.clone(),
         )?;
+        let video = self
+            .ffprobe
+            .as_ref()
+            .map(|ffprobe| {
+                NativeVideoDecoder::new(
+                    self.ffmpeg.clone().ok_or("FFmpeg executable absent")?,
+                    ffprobe.clone(),
+                    authorizations,
+                    self.video_limits.clone(),
+                )
+                .map_err(Into::<Box<dyn std::error::Error>>::into)
+            })
+            .transpose()?;
         let mut requested = 0_u64;
         let mut frames = Vec::new();
         for hash in &plan.metadata.resources {
@@ -76,7 +99,23 @@ impl NativeStillArgs {
         let cancellation = aster_video::CancellationToken::default();
         let mut staged = Vec::new();
         for frame in frames {
-            let decoded = decoder.decode(&frame, registry, &cancellation)?;
+            let is_video = matches!(
+                registry.descriptor(&frame)?,
+                ResourceDescriptor::MediaFrame(aster_render_ir::MediaFrameDescriptor {
+                    sample: aster_render_ir::MediaSample::Video { .. },
+                    ..
+                })
+            );
+            let decoded = if is_video {
+                let decoded = video
+                    .as_ref()
+                    .ok_or("--ffprobe is required for native video")?
+                    .decode(&frame, registry, &cancellation)?;
+                result.video_receipts.push(decoded.receipt);
+                decoded.image
+            } else {
+                decoder.decode(&frame, registry, &cancellation)?
+            };
             let length = u32::try_from(decoded.bytes.len())?;
             let descriptor = BufferResourceDescriptor {
                 element_type: ElementType::U8,

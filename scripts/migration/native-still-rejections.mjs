@@ -6,7 +6,15 @@ import { writeAtomicJson } from "./report.mjs";
 /** Authorization and allocation failures must never publish a rendered frame. */
 export async function runStillRejections(
   context,
-  { binary, args, grant, extraRejections = [] },
+  {
+    binary,
+    args,
+    grant,
+    extraRejections = [],
+    sourceBudget = "--still-max-source-bytes",
+    pixelBudget = "--still-max-pixel-bytes",
+    pixelPattern = /decoded still exceeds extent or byte budget/,
+  },
   execute,
 ) {
   const results = [];
@@ -14,18 +22,8 @@ export async function runStillRejections(
     ["missing-grant", [], [], /source or scope is not granted/],
     ["wrong-scope", [{ ...grant, scope: "different-job" }], [], /source or scope is not granted/],
     ["wrong-sha", [{ ...grant, sha256: "0".repeat(64) }], [], /source identity differs/],
-    [
-      "source-budget",
-      [grant],
-      ["--still-max-source-bytes", "16"],
-      /source exceeds file byte budget/,
-    ],
-    [
-      "pixel-budget",
-      [grant],
-      ["--still-max-pixel-bytes", "16"],
-      /decoded still exceeds extent or byte budget/,
-    ],
+    ["source-budget", [grant], [sourceBudget, "16"], /source exceeds file byte budget/],
+    ["pixel-budget", [grant], [pixelBudget, "16"], pixelPattern],
     ...extraRejections,
   ]) {
     const authorization = join(context.output, `reject-${id}.json`);

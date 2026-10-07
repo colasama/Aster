@@ -554,3 +554,11 @@ corpus pixel gate; twelve reverse requests must reproduce them exactly without e
 Missing/scope/member/byte-identity and allocation failures must publish no PNG. Sequence coverage
 alone never establishes M6 completion: exact video timing, integration and the media exit audit remain
 required.
+
+The native video gate decodes all 44 fractional-rate and seek-boundary corpus frames from original
+plans and explicit source grants. Each receipt must identify the expected presentation frame and
+rational timestamp, retain source color metadata, and report CPU upload honestly. `decode` metrics,
+structural checks and neighboring-frame identity are reviewed independently. Timestamp mismatch and
+out-of-duration controls reject before publishing; an intentionally selected neighboring frame must
+fail the pixel oracle. Source/pixel/index budgets and timeout controls remain required. These checks
+do not establish production routing or retained decoder integration.

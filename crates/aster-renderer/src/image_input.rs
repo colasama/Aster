@@ -30,7 +30,10 @@ impl ImageInput {
         };
         if !matches!(
             frame.sample,
-            MediaSample::Image | MediaSample::Raster(_) | MediaSample::Sequence { .. }
+            MediaSample::Image
+                | MediaSample::Raster(_)
+                | MediaSample::Sequence { .. }
+                | MediaSample::Video { .. }
         ) {
             return Err(RenderError::Unsupported("non-still media sample".into()));
         }

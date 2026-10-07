@@ -10,6 +10,8 @@ mod exr;
 mod ffmpeg;
 mod process;
 mod still;
+mod video_snapshot;
+pub use video_snapshot::{PresentationFrame, VideoSnapshot};
 #[cfg(test)]
 mod still_tests;
 pub use still::StillEncoding;
