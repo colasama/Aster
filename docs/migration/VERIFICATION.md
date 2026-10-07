@@ -319,6 +319,16 @@ The required LUT/effect GPU replay now round-trips six routing slices alongside 
 programs; supplied execution decisions still match the existing frozen outputs exactly. A production
 precomposition test changes authored effects/blend after planning and verifies retained execution.
 
+## Native raster admission
+
+M5 G3 retains the M4 native regressions and adds 20 frames across ordinary text, animated multiscript
+text, SVG, merged PSD and retained PSD layer cases. Plans, resources and references remain frozen;
+the native batch reuses one device and records real image-cache uploads and hits. All 20 initial
+outputs are RGBA-exact and have section 6.6 self-review evidence. CPU and GPU controls also cover
+typed `RasterPixels` frame identity, eviction, changed pixel generations and atomic budget rejection.
+G1 retains resource transport and lifetime checks. Passing raster admission does not establish M5
+exit: native temporal text accumulation and complete motion-blur output still require coverage.
+
 ## Native geometry, blend and supplied-image acceptance
 
 M3 G3 executes the current release `aster-render-cli render-plan` against complete captured FPLN

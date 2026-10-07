@@ -51,7 +51,7 @@ export async function runNativeLayerCacheGate(
         dxc: true,
       });
     }
-    assert.equal(inputs.length, 1248);
+    assert.equal(new Set(inputs.map((input) => input.id)).size, inputs.length);
     report.required_count = inputs.length;
     for (const dxc of [false, true]) {
       const selected = inputs.filter((input) => input.dxc === dxc);

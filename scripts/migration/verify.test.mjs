@@ -63,6 +63,40 @@ test("passing native geometry gates cannot establish the full M3 exit", async (t
   assert.equal(result.exitCode, 0);
 });
 
+test("M5 raster increments require IR and native pixels without claiming temporal completion", async (t) => {
+  const context = await fixture(t);
+  await writeAtomicJson(context.ledger, {
+    status: "running",
+    milestones: [
+      {
+        id: "M5",
+        status: "in_progress",
+        gates: ["G0", "G1", "G3"],
+        tasks: [{ id: "M5-T1", status: "in_progress" }],
+      },
+    ],
+  });
+  const calls = [];
+  const result = await verifyMigration(context, {
+    provenance,
+    execute: fakeHook,
+    runIrGate: async () => {
+      calls.push("IR");
+      return { id: "G1", status: "passed" };
+    },
+    runNativeCoreGate: async (nativeContext) => {
+      assert.equal(nativeContext.milestone, "M5");
+      calls.push("native");
+      return { id: "G3", status: "passed", full_coverage: false, milestone_exit_eligible: false };
+    },
+  });
+  assert.deepEqual(calls, ["IR", "native"]);
+  assert.equal(result.report.required_gates_passed, true);
+  assert.equal(result.report.milestone_exit_satisfied, false);
+  assert.match(result.report.milestone_exit_reason, /temporal text/);
+  assert.equal(result.exitCode, 0);
+});
+
 const deliveryPolicy = {
   kind: "rust-delivery-v1",
   status: "approved",

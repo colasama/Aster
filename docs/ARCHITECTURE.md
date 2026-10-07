@@ -110,6 +110,12 @@ not uploaded again, and frame plans retain resource keys instead of copying imag
 Diagnostic receipts report upload/hit/eviction counts and explicitly identify supplied-pixel
 execution as distinct from native file decoding.
 
+Supplied text, SVG and PSD rasters use the same native GPU image cache. Admission accepts captured
+byte buffers or typed `RasterPixels` resources, validates the frame binding, extent and format, and
+keys allocations by both frame and pixel generation. Repeated static rasters reuse resident textures;
+changed pixels replace the old generation within the shared budget. Rasterization still belongs to
+the Phase A producer. Native temporal text accumulation remains a separate capability.
+
 `aster-media-native` resolves PNG/JPEG sources from explicit job grants keyed by source hash and
 authorization scope. It checks file size, SHA-256 and the imported content identity, then feeds an
 immutable snapshot to the existing bounded FFmpeg process through stdin. Encoded dimensions are

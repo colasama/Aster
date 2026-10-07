@@ -141,5 +141,9 @@ fn native_image_cache_reuses_generations_and_admits_atomically()
         .images
         .prepare(gpu, &BTreeMap::new(), &registry, 0, timeout)?;
     assert_eq!(renderer.images.statistics.resident_bytes, 0);
+    raster_input_tests::RasterFixture::verify_gpu(&mut renderer)?;
     Ok(())
 }
+
+#[path = "raster_input_tests.rs"]
+mod raster_input_tests;

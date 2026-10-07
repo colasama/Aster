@@ -26,6 +26,7 @@ import { runNativeEffectBatch } from "./native-effect-batch.mjs";
 import { nativeEffectCases } from "./native-effect-scope.mjs";
 import { runNativeExrGate } from "./native-exr-gate.mjs";
 import { runNativeLayerCacheGate } from "./native-layer-cache-gate.mjs";
+import { nativeRasterCases, runNativeRasterBatch } from "./native-raster-batch.mjs";
 import { runNativeSsaaEffectGate } from "./native-ssaa-effect-gate.mjs";
 import { runNativeStillGate } from "./native-still-gate.mjs";
 import { runNativeSurfaceFrameGate } from "./native-surface-frame-gate.mjs";
@@ -53,12 +54,13 @@ export function validateNativeReceipt(receipt, expected) {
 /** Native gate coverage is scoped to the current milestone; its exit audit checks provenance. */
 export async function runNativeCoreGate(context, execute = runStep) {
   const started = Date.now();
-  const effects = context.milestone === "M4";
-  const extraCases = effects ? nativeEffectCases : [];
+  const rasters = context.milestone === "M5";
+  const effects = rasters || context.milestone === "M4";
+  const extraCases = [...(effects ? nativeEffectCases : []), ...(rasters ? nativeRasterCases : [])];
   const report = {
     id: "G3",
     status: "failed",
-    scope: effects ? "native-effects-fused-v4" : "native-core-v5",
+    scope: rasters ? "native-rasters-v1" : effects ? "native-effects-fused-v4" : "native-core-v5",
     native_image_decode: true,
     full_coverage: false,
     milestone_exit_eligible: false,
@@ -81,8 +83,9 @@ export async function runNativeCoreGate(context, execute = runStep) {
     const corpus = await reader.json("tests/parity/corpus.json", manifest.corpus_sha256);
     report.input_manifest = milestone.input_manifest;
     if (effects) assert.equal(milestone.status, "done");
+    if (rasters) assert.equal(ledger.milestones.find((item) => item.id === "M4").status, "done");
     report.pending_tasks = ledger.milestones
-      .find((item) => item.id === (effects ? "M4" : "M3"))
+      .find((item) => item.id === context.milestone)
       .tasks.filter((task) => task.status !== "done")
       .map((task) => task.id);
     report.build = await execute(
@@ -218,6 +221,25 @@ export async function runNativeCoreGate(context, execute = runStep) {
       candidate.frames.push(...extra.candidate);
       report.effect_batch = extra.batch;
     }
+    if (rasters) {
+      const extra = await runNativeRasterBatch(
+        context,
+        {
+          reader,
+          binary,
+          base,
+          manifest,
+          corpus,
+          compiler,
+          validateReceipt: validateNativeReceipt,
+        },
+        execute,
+      );
+      report.cases.push(...extra.cases);
+      report.frames.push(...extra.frames);
+      candidate.frames.push(...extra.candidate);
+      report.raster_batch = extra.batch;
+    }
     report.required_count = cases.reduce(
       (count, id) => count + corpus.cases.find((item) => item.id === id).frames.length,
       0,
@@ -314,8 +336,8 @@ export async function runNativeCoreGate(context, execute = runStep) {
     );
     report.checked_files = await reader.stable();
     report.status = "passed";
-    report.full_coverage = true;
-    report.milestone_exit_eligible = true;
+    report.full_coverage = !rasters;
+    report.milestone_exit_eligible = !rasters;
   } catch (error) {
     report.error = error.stack ?? error.message;
   }

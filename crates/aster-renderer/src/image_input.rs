@@ -19,6 +19,46 @@ pub(crate) struct ImageInput {
 }
 
 impl ImageInput {
+    pub(crate) fn from_record(
+        record: &PrecompositionMediaPixels,
+        registry: &ResourceRegistry,
+    ) -> Result<Self, RenderError> {
+        let ResourceDescriptor::MediaFrame(frame) = registry.descriptor(&record.frame)? else {
+            return Err(RenderError::Invalid(
+                "image frame descriptor missing".into(),
+            ));
+        };
+        if !matches!(frame.sample, MediaSample::Image | MediaSample::Raster(_)) {
+            return Err(RenderError::Unsupported("non-still media sample".into()));
+        }
+        match registry.descriptor(&record.pixels)? {
+            ResourceDescriptor::Buffer(pixels) if pixels.element_type == ElementType::U8 => {}
+            ResourceDescriptor::RasterPixels(pixels) if pixels.frame == record.frame => {
+                pixels.validate_frame(frame)?;
+            }
+            _ => {
+                return Err(RenderError::Invalid(
+                    "image pixel descriptor differs".into(),
+                ));
+            }
+        }
+        let bytes = registry.resolve(&record.pixels)?;
+        if u64::from(frame.width)
+            * u64::from(frame.height)
+            * u64::from(frame.format.bytes_per_pixel())
+            != bytes.len() as u64
+        {
+            return Err(RenderError::Invalid("image pixel extent differs".into()));
+        }
+        Ok(Self {
+            frame: record.frame.clone(),
+            pixels: record.pixels.clone(),
+            width: frame.width,
+            height: frame.height,
+            format: frame.format,
+        })
+    }
+
     pub(crate) fn collect(
         records: &[PrecompositionMediaPixels],
         scene: &SceneBuffersSlice,
@@ -27,41 +67,8 @@ impl ImageInput {
     ) -> Result<BTreeMap<ResourceHash, Self>, RenderError> {
         let mut images = BTreeMap::new();
         for record in records {
-            let ResourceDescriptor::MediaFrame(frame) = registry.descriptor(&record.frame)? else {
-                return Err(RenderError::Invalid(
-                    "image frame descriptor missing".into(),
-                ));
-            };
-            if frame.sample != MediaSample::Image {
-                return Err(RenderError::Unsupported("non-still media sample".into()));
-            }
-            let ResourceDescriptor::Buffer(pixels) = registry.descriptor(&record.pixels)? else {
-                return Err(RenderError::Invalid(
-                    "image pixels require a byte buffer".into(),
-                ));
-            };
-            let bytes = registry.resolve(&record.pixels)?;
-            if pixels.element_type != ElementType::U8
-                || u64::from(frame.width)
-                    * u64::from(frame.height)
-                    * u64::from(frame.format.bytes_per_pixel())
-                    != bytes.len() as u64
-            {
-                return Err(RenderError::Invalid("image pixel extent differs".into()));
-            }
-            if images
-                .insert(
-                    record.frame.clone(),
-                    Self {
-                        frame: record.frame.clone(),
-                        pixels: record.pixels.clone(),
-                        width: frame.width,
-                        height: frame.height,
-                        format: frame.format,
-                    },
-                )
-                .is_some()
-            {
+            let input = Self::from_record(record, registry)?;
+            if images.insert(record.frame.clone(), input).is_some() {
                 return Err(RenderError::Invalid("duplicate image frame".into()));
             }
         }
