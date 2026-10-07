@@ -15,6 +15,7 @@ export async function auditTemporalFrameReplay(
   project: Project,
   composition: Composition,
   minimumSurfaces = 0,
+  capture = false,
 ) {
   const canvas = document.createElement("canvas");
   canvas.width = 320;
@@ -84,6 +85,16 @@ export async function auditTemporalFrameReplay(
           changedPixels++;
       if (changedPixels <= 16) throw Error("Temporal weights did not affect whole-frame pixels");
       results.push({
+        capture: capture
+          ? {
+              plan: Array.from(encodeFramePlan(raw.bundle.plan.metadata, raw.bundle.plan.blobs)),
+              resources: raw.bundle.resources.map((packet) => ({
+                message: packet.message,
+                bytes: Array.from(packet.bytes),
+              })),
+              rgba: Array.from(expected),
+            }
+          : undefined,
         ...temporal,
         changed_pixels: changedPixels,
         bytes: actual.length,

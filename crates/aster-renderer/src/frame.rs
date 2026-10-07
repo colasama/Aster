@@ -7,6 +7,7 @@ use crate::RenderError;
 
 /// Validated, owned execution inputs. No project evaluation or filesystem access occurs here.
 pub struct SuppliedFrame {
+    pub(crate) temporal: crate::temporal_frame::TemporalFrame,
     pub(crate) scene: crate::scene_input::SceneInput,
     pub(crate) surfaces: crate::surface_plan::SurfacePlan,
     pub(crate) post: Vec<u8>,
@@ -32,10 +33,8 @@ impl SuppliedFrame {
             registry.resolve(hash)?;
         }
         BundleDependencies::default().validate(&plan.metadata, registry, limits)?;
-        if !bundle.temporal.is_empty() || !bundle.generators.is_empty() {
-            return Err(RenderError::Unsupported(
-                "temporal or generator pass".into(),
-            ));
+        if !bundle.generators.is_empty() {
+            return Err(RenderError::Unsupported("generator pass".into()));
         }
         let stage =
             |hash: &aster_render_ir::ResourceHash, contract| -> Result<OwnedFpln, RenderError> {
@@ -89,26 +88,52 @@ impl SuppliedFrame {
                 "native and supplied image generations cannot be mixed".into(),
             ));
         }
-        let scene = crate::scene_input::SceneInput::new(
+        let pixels = if decoded_images.is_empty() {
+            &bundle.media_pixels
+        } else {
+            decoded_images
+        };
+        let mut images = std::collections::BTreeMap::new();
+        for record in pixels {
+            let input = crate::image_input::ImageInput::from_record(record, registry)?;
+            if images.insert(record.frame.clone(), input).is_some() {
+                return Err(RenderError::Invalid(
+                    "duplicate supplied media generation".into(),
+                ));
+            }
+        }
+        let Some(PlanSlice::SceneBuffers(geometry)) = scene.metadata.slices.first() else {
+            return Err(RenderError::Invalid("root geometry absent".into()));
+        };
+        let root_frames = geometry
+            .media_bindings
+            .iter()
+            .filter_map(|binding| match &binding.binding {
+                aster_render_ir::MediaDrawBinding::Frame { hash } => Some(hash.clone()),
+                _ => None,
+            })
+            .collect::<std::collections::BTreeSet<_>>();
+        let root_pixels = pixels
+            .iter()
+            .filter(|record| root_frames.contains(&record.frame))
+            .cloned()
+            .collect::<Vec<_>>();
+        let mut scene = crate::scene_input::SceneInput::new(
             &scene,
             &root,
             &bundle.effects,
-            if decoded_images.is_empty() {
-                &bundle.media_pixels
-            } else {
-                decoded_images
-            },
+            &root_pixels,
             registry,
             limits,
             false,
         )?;
-        let surfaces = crate::surface_plan::SurfacePlan::collect(
+        let mut surfaces = crate::surface_plan::SurfacePlan::collect(
             bundle.precompositions.as_ref(),
             &scene,
             registry,
             limits,
+            pixels,
         )?;
-        let mut images = scene.images.clone();
         if let Some(surface) = &surface {
             surface.validate_resources(&scene, &surfaces)?;
         }
@@ -125,6 +150,35 @@ impl SuppliedFrame {
                 images.insert(hash.clone(), image.clone());
             }
         }
+        let temporal = crate::temporal_frame::TemporalFrame::collect(
+            &bundle.temporal,
+            &plan.metadata.header,
+            &images,
+            registry,
+            limits,
+        )?;
+        let required = scene
+            .images
+            .keys()
+            .chain(
+                surfaces
+                    .targets
+                    .iter()
+                    .flat_map(|surface| surface.scene.images.keys()),
+            )
+            .chain(temporal.resources.iter())
+            .cloned()
+            .collect::<std::collections::BTreeSet<_>>();
+        if required != images.keys().cloned().collect() {
+            return Err(RenderError::Invalid(
+                "frame media resource closure differs".into(),
+            ));
+        }
+        temporal.resolve_generations(&mut scene.images);
+        for surface in &mut surfaces.targets {
+            temporal.resolve_generations(&mut surface.scene.images);
+        }
+        images.retain(|hash, _| !temporal.passes.contains_key(hash));
         let mut luts = std::collections::BTreeMap::new();
         for scene in std::iter::once(&scene).chain(surfaces.targets.iter().map(|s| &s.scene)) {
             for hash in scene.layers.values().filter_map(|layer| layer.lut.as_ref()) {
@@ -145,6 +199,7 @@ impl SuppliedFrame {
             ));
         }
         Ok(Self {
+            temporal,
             scene,
             surface,
             surfaces,

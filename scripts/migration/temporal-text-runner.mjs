@@ -34,6 +34,7 @@ try {
   await writeAtomicJson(config, {
     output,
     root,
+    captureFrames: process.env.ASTER_TEMPORAL_CAPTURE_FRAMES === "1",
     reference: join(root, "tests/parity/temporal-text/reference"),
     url: `http://127.0.0.1:${server.httpServer.address().port}/${entry}`,
     replayUrl: `http://127.0.0.1:${server.httpServer.address().port}/${replayEntry}`,

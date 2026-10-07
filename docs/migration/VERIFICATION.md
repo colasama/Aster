@@ -327,7 +327,7 @@ the native batch reuses one device and records real image-cache uploads and hits
 outputs are RGBA-exact and have section 6.6 self-review evidence. CPU and GPU controls also cover
 typed `RasterPixels` frame identity, eviction, changed pixel generations and atomic budget rejection.
 G1 retains resource transport and lifetime checks. Passing raster admission does not establish M5
-exit: native temporal text accumulation and complete motion-blur output still require coverage.
+exit: complete root motion-blur output and the milestone exit audit still require coverage.
 
 The native temporal supplement executes four frozen M2 sample sets (full exposure, enters, exits and
 transparent), using their original pass bytes and sample pixels. The input manifest is pinned in the
@@ -335,7 +335,16 @@ ledger and traced to the accepted M2 exit report; reference PNGs are unchanged. 
 identical repeated output from retained targets, atomic budget rejection, rejection of wrong sample
 identities and transparent output after zeroing exposure. G3 compares the resolved raster directly
 to its frozen reference and requires section 6.6 self-review. This supplement does not yet establish
-whole-frame or recursive temporal execution.
+complete root motion-reconstruction coverage.
+
+The native temporal frame supplement freezes two warmed production frames with two effect-isolated
+precomposition surfaces and exact independent-device TS replay. It runs cached and uncached sequences
+that poison captured resolved pixels, zero exposure, change one sample and restore the original frame.
+Poisoning resolved pixels must preserve output and allocations; changing actual inputs must affect
+more than 16 pixels and invalidate nested effect generations. All cached outputs must equal uncached
+outputs. An intervening ordinary raster releases temporal targets, and restored temporal rendering
+must still match. Budget rejection and explicit skipped-surface routing publish no PNG. Original
+root reconstruction and 3D-shadow captures remain preserved for their separate native capabilities.
 
 ## Native geometry, blend and supplied-image acceptance
 

@@ -75,7 +75,7 @@ function fixture(mode: Mode) {
 }
 
 /** Runs only in the hidden G3 window, never during ordinary preview or static tests. */
-export async function runTemporalTextGpuCheck() {
+export async function runTemporalTextGpuCheck(captureFrames = false) {
   const adapter = await navigator.gpu.requestAdapter();
   if (!adapter) throw new Error("Temporal GPU verification requires WebGPU");
   const device = await adapter.requestDevice();
@@ -95,7 +95,10 @@ export async function runTemporalTextGpuCheck() {
     for (const mode of ["full", "enters", "exits", "transparent"] as const) {
       const { project, composition, layer, plan, header } = fixture(mode);
       if (mode !== "transparent")
-        frameReplays.push({ mode, frames: await auditTemporalFrameReplay(project, composition) });
+        frameReplays.push({
+          mode,
+          frames: await auditTemporalFrameReplay(project, composition, 0, captureFrames),
+        });
       let pass: FramePlanSliceData | undefined;
       let samples: readonly MediaResource[] = [];
       const cache = new TextMotionBlurRasterCache(device, layout, sampler, {
@@ -175,9 +178,23 @@ export async function runTemporalTextGpuCheck() {
     const recursive = fixture("full");
     frameReplays.push({
       mode: "recursive",
-      frames: await auditRecursiveTemporalFrame(recursive.project, recursive.composition),
+      frames: await auditRecursiveTemporalFrame(
+        recursive.project,
+        recursive.composition,
+        captureFrames,
+      ),
     });
     const scoped = await device.popErrorScope();
+    if (captureFrames)
+      frameReplays.push({
+        mode: "recursive-effects",
+        frames: await auditRecursiveTemporalFrame(
+          recursive.project,
+          recursive.composition,
+          true,
+          true,
+        ),
+      });
     if (scoped) errors.push(scoped.message);
     if (errors.length) throw new Error(errors.join("\n"));
     return {

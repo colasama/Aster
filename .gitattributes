@@ -16,3 +16,5 @@ tests/parity/native-surface-frame/**/*.bin binary
 tests/parity/native-surface-frame/**/*.fpln binary
 tests/parity/native-temporal-text/*.fpln binary
 tests/parity/native-temporal-text/*.rgba binary
+tests/parity/native-temporal-frame/**/*.fpln binary
+tests/parity/native-temporal-frame/resources/*.bin binary

@@ -120,8 +120,12 @@ Native temporal text passes consume supplied sample identities and exposure weig
 WGSL. Retained `rgba16float` accumulation and `rgba8unorm-srgb` output targets stay GPU-resident;
 every execution clears previous exposure. Preparation validates sample identity, format, extent
 and the complete target/uniform budget before allocating. Partial exposure preserves its transparent
-weight instead of renormalizing visible samples. The standalone pass is verified; integration with
-whole-frame resource resolution and recursive surfaces remains pending.
+weight instead of renormalizing visible samples. Frame-wide media resolution installs these derived
+outputs before root and recursive scene draws. Samples reuse the image cache; captured resolved
+pixels are validated but never uploaded. Derived generation keys include the pass and every sample
+pixel generation, so nested effect caches invalidate when exposure or samples change. Temporal targets
+and aligned uniforms share the frame GPU budget; obsolete targets retire before other caches allocate.
+Root motion reconstruction and 3D shadow execution remain separate capability gates.
 
 `aster-media-native` resolves PNG/JPEG sources from explicit job grants keyed by source hash and
 authorization scope. It checks file size, SHA-256 and the imported content identity, then feeds an

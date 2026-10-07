@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { app, BrowserWindow } from "electron";
 import { writeAtomicJson } from "./report.mjs";
+import { captureTemporalFrames } from "./temporal-frame-capture.mjs";
 import { captureTemporalPassReplay } from "./temporal-pass-capture.mjs";
 import { validateTemporalOutput } from "./temporal-text-evidence.mjs";
 
@@ -28,7 +29,9 @@ async function main() {
       webPreferences: { backgroundThrottling: false, paintWhenInitiallyHidden: true },
     });
     await window.loadURL(config.url);
-    const actual = await window.webContents.executeJavaScript("window.runTemporalTextGpuCheck()");
+    const actual = await window.webContents.executeJavaScript(
+      `window.runTemporalTextGpuCheck(${config.captureFrames === true})`,
+    );
     const reference = JSON.parse(await readFile(join(config.reference, "manifest.json"), "utf8"));
     assert.deepEqual(
       actual.results.map((r) => r.mode),
@@ -37,9 +40,20 @@ async function main() {
     assert.equal(actual.status, "passed");
     report.adapter = actual.adapter;
     report.frame_replays = actual.frame_replays;
+    if (config.captureFrames) {
+      report.frame_capture = await captureTemporalFrames(config, actual.frame_replays);
+      for (const item of actual.frame_replays)
+        for (const frame of item.frames) delete frame.capture;
+    }
     assert.deepEqual(
       actual.frame_replays.map((item) => item.mode),
-      ["full", "enters", "exits", "recursive"],
+      [
+        "full",
+        "enters",
+        "exits",
+        "recursive",
+        ...(config.captureFrames ? ["recursive-effects"] : []),
+      ],
     );
     assert(
       actual.frame_replays.every(

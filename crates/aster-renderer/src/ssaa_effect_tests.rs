@@ -164,6 +164,7 @@ impl ResolutionExperiment {
         let mut results = Vec::new();
         for targets in [&reference, &candidate] {
             let rendered = RenderedFrame {
+                temporal_cache: Default::default(),
                 texture: targets.output.raw().clone(),
                 size: target,
                 submission: submission.clone(),

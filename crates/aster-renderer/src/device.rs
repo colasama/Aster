@@ -46,6 +46,7 @@ pub struct RenderedFrame {
     pub surface_cache: crate::SurfaceCacheStatistics,
     pub layer_cache: crate::LayerCacheStatistics,
     pub effect_regions: crate::EffectRegionStatistics,
+    pub temporal_cache: crate::TemporalCacheStatistics,
     _lease: Arc<()>,
 }
 
@@ -71,6 +72,7 @@ pub struct NativeRenderer {
     images: crate::image_cache::ImageCache,
     surfaces: crate::surface_cache::SurfaceCache,
     layer_cache: crate::layer_cache::LayerCache,
+    temporal: crate::temporal_cache::TemporalCache,
 }
 
 impl FrameTargets {
@@ -202,6 +204,7 @@ impl NativeRenderer {
             images,
             surfaces: Default::default(),
             layer_cache: Default::default(),
+            temporal: Default::default(),
         })
     }
 
@@ -225,7 +228,8 @@ impl NativeRenderer {
             .iter()
             .map(|t| u64::from(t.size.width) * u64::from(t.size.height) * 12)
             .sum::<u64>();
-        let bytes = u64::from(render_size.width) * u64::from(render_size.height) * 16
+        let bytes = frame.temporal.required_bytes()
+            + u64::from(render_size.width) * u64::from(render_size.height) * 16
             + u64::from(size.width) * u64::from(size.height) * 4
             + frame.scene.transient_bytes()
             + frame.surface.as_ref().map_or(0, |surface| {
@@ -293,6 +297,18 @@ impl NativeRenderer {
         let cache_budget = (self.options.gpu_budget_bytes - bytes - surface_bytes - lut_bytes)
             .saturating_sub(required_images)
             .min(self.options.layer_cache_bytes);
+        if required_images > self.options.gpu_budget_bytes - bytes - surface_bytes - lut_bytes {
+            return Err(RenderError::Invalid(
+                "images exceed GPU allocation budget".into(),
+            ));
+        }
+        self.images.install_derived(&self.device, Vec::new());
+        self.temporal.retire(
+            &self.device,
+            &frame.temporal,
+            frame.temporal.required_bytes(),
+            self.options.timeout,
+        )?;
         let scenes = std::iter::once(&frame.scene)
             .chain(frame.surfaces.targets.iter().map(|surface| &surface.scene))
             .collect::<Vec<_>>();
@@ -314,6 +330,12 @@ impl NativeRenderer {
             registry,
             self.options.gpu_budget_bytes - bytes - surface_bytes - lut_bytes - cache_reserved,
             self.options.timeout,
+        )?;
+        self.temporal.prepare(
+            &self.device,
+            &frame.temporal,
+            &frame.images,
+            &mut self.images,
         )?;
         self.output.luts.prepare(
             (&self.device, &self.queue),
@@ -358,6 +380,7 @@ impl NativeRenderer {
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("Supplied native frame"),
             });
+        self.temporal.record(&mut encoder, &frame.temporal)?;
         for input in &frame.surfaces.targets {
             let target = self.surfaces.target(&input.key)?;
             self.scene.record(
@@ -433,6 +456,7 @@ impl NativeRenderer {
         if let Some(error) = validation_error.or(internal_error).or(memory_error) {
             self.layer_cache.invalidate();
             self.images.invalidate();
+            self.temporal.invalidate();
             self.surfaces.invalidate();
             self.output.luts.invalidate();
             return Err(RenderError::Gpu(error.to_string()));
@@ -449,6 +473,7 @@ impl NativeRenderer {
             surface_cache: self.surfaces.statistics,
             layer_cache: self.layer_cache.statistics,
             effect_regions: effect_regions.statistics,
+            temporal_cache: self.temporal.statistics,
             _lease: lease,
         })
     }

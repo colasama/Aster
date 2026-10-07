@@ -29,6 +29,7 @@ pub(crate) struct ImageCache {
     pub layout: wgpu::BindGroupLayout,
     sampler: wgpu::Sampler,
     entries: BTreeMap<ImageKey, CachedImage>,
+    derived: BTreeMap<ImageKey, wgpu::BindGroup>,
     epoch: u64,
     pub statistics: ImageCacheStatistics,
 }
@@ -65,6 +66,7 @@ impl ImageCache {
                 ..Default::default()
             }),
             entries: BTreeMap::new(),
+            derived: BTreeMap::new(),
             epoch: 0,
             statistics: ImageCacheStatistics::default(),
         }
@@ -218,6 +220,12 @@ impl ImageCache {
     }
 
     pub fn binding(&self, image: &ImageInput) -> Result<&wgpu::BindGroup, RenderError> {
+        if let Some(binding) = self
+            .derived
+            .get(&(image.frame.clone(), image.pixels.clone()))
+        {
+            return Ok(binding);
+        }
         self.entries
             .get(&(image.frame.clone(), image.pixels.clone()))
             .map(|entry| &entry.binding)
@@ -225,8 +233,43 @@ impl ImageCache {
     }
 
     pub fn invalidate(&mut self) {
+        self.derived.clear();
         self.statistics.evictions += self.entries.len() as u64;
         self.entries.clear();
         self.statistics.resident_bytes = 0;
+    }
+
+    pub fn texture(&self, image: &ImageInput) -> Result<&wgpu::Texture, RenderError> {
+        self.entries
+            .get(&(image.frame.clone(), image.pixels.clone()))
+            .map(|entry| &entry._texture)
+            .ok_or_else(|| RenderError::Invalid("sample generation absent from GPU cache".into()))
+    }
+
+    pub fn install_derived(
+        &mut self,
+        device: &wgpu::Device,
+        inputs: Vec<(ResourceHash, ResourceHash, wgpu::Texture)>,
+    ) {
+        self.derived.clear();
+        for (frame, generation, texture) in inputs {
+            let binding = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("Derived raster scene binding"),
+                layout: &self.layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::TextureView(
+                            &texture.create_view(&Default::default()),
+                        ),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Sampler(&self.sampler),
+                    },
+                ],
+            });
+            self.derived.insert((frame, generation), binding);
+        }
     }
 }

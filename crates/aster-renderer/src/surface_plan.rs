@@ -30,6 +30,7 @@ impl SurfacePlan {
         root: &SceneInput,
         registry: &ResourceRegistry,
         limits: &DecodeLimits,
+        frame_pixels: &[aster_render_ir::PrecompositionMediaPixels],
     ) -> Result<Self, RenderError> {
         let mut result = Self::default();
         let Some(hash) = hash else {
@@ -96,12 +97,19 @@ impl SurfacePlan {
                     _ => None,
                 })
                 .collect::<BTreeSet<_>>();
-            let pixels = records
-                .media_pixels
-                .iter()
-                .filter(|p| required.contains(&p.frame))
-                .cloned()
-                .collect::<Vec<_>>();
+            let mut pixels = BTreeMap::new();
+            for record in records.media_pixels.iter().chain(frame_pixels) {
+                if required.contains(&record.frame)
+                    && pixels
+                        .insert(record.frame.clone(), record.clone())
+                        .is_some_and(|old| old.pixels != record.pixels)
+                {
+                    return Err(RenderError::Invalid(
+                        "surface media generations differ".into(),
+                    ));
+                }
+            }
+            let pixels = pixels.into_values().collect::<Vec<_>>();
             used_images.extend(required);
             let input = SceneInput::new(
                 &scene,
@@ -144,8 +152,7 @@ impl SurfacePlan {
                     .get(offset + draw_index)
                     .ok_or_else(|| RenderError::Invalid("surface route missing".into()))?;
                 let expected = match &draw.texture {
-                    RootTextureReference::None => 0,
-                    RootTextureReference::Media { .. } => 1,
+                    RootTextureReference::None | RootTextureReference::Media { .. } => 0,
                     RootTextureReference::Surface { instance_id } => {
                         let child =
                             result
@@ -178,12 +185,10 @@ impl SurfacePlan {
                 scene: input,
             });
         }
-        if used_images
-            != records
-                .media_pixels
-                .iter()
-                .map(|p| p.frame.clone())
-                .collect()
+        if records
+            .media_pixels
+            .iter()
+            .any(|p| !used_images.contains(&p.frame))
             || offset != routes.len()
             || offset != mappings.len()
         {

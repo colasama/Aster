@@ -28,6 +28,8 @@ mod surface_generation;
 mod surface_output;
 mod surface_plan;
 mod surface_post;
+mod temporal_cache;
+mod temporal_frame;
 mod temporal_plan;
 mod temporal_text;
 
@@ -41,6 +43,7 @@ pub use layer_cache::LayerCacheStatistics;
 pub use lut_cache::LutCacheStatistics;
 pub use surface_cache::SurfaceCacheStatistics;
 pub use surface_post::{SurfacePostPipeline, SurfacePostPlan};
+pub use temporal_cache::TemporalCacheStatistics;
 pub use temporal_plan::TemporalTextPlan;
 pub use temporal_text::{TemporalTextPass, TemporalTextPipeline};
 
