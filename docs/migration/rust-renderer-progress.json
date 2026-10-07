@@ -196,49 +196,40 @@
     }
   },
   "last_cycle": {
-    "id": 99,
-    "time": "2026-10-07T11:39:05.010394+00:00",
+    "id": 100,
+    "time": "2026-10-07T12:02:11.378890+00:00",
     "milestone": "M5",
-    "task": "M5-T3",
+    "task": "M5-T4",
     "outcome": "passed",
-    "commit": "059de4420ce7aa005b2499eebb4f60d907378183",
-    "verification": "artifacts/migration/verify-2026-10-07T11-24-07-463Z-f80b31df.json",
-    "verification_sha256": "55d0386c89965319680c20220b317d72125e19be8c771ed8c639fd8d11f778d7",
+    "commit": "f57521339df62051e307dfa331d5c75507d7403a",
+    "verification": "artifacts/migration/verify-2026-10-07T11-46-17-976Z-90fd7950.json",
+    "verification_sha256": "9ab2f9654314c94d4c8aec8b537b51e2a6e50189e41d39724443835b13d28bd8",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 80660
+        "duration_ms": 82012
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 28307
+        "duration_ms": 28653
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 727351
+        "duration_ms": 741530
       }
     ],
-    "verification_duration_ms": 838069,
+    "verification_duration_ms": 893831,
+    "milestone_exit_satisfied": true,
     "native_regression_frames": 1256,
     "cache_comparisons": 5088,
-    "motion_evidence": "artifacts/migration/2026-10-07T11-24-07-463Z-f80b31df/G3/native-motion-frames/report.json",
-    "diagnostics": [
-      {
-        "verification": "artifacts/migration/verify-2026-10-07T11-12-27-685Z-df2ab1ca.json",
-        "sha256": "180170393f52d92454db0c693e2438f89c1f0df561a8ad4bf9973062584e3644",
-        "status": "failed",
-        "reason": "Four exact motion corpus pixels lacked matching sequence-context self-review records; all metric and frame-identity checks passed. Added correctly bound reviews after the unchanged-source failed run."
-      }
-    ],
-    "next_step": "Audit complete M5 raster, temporal and root motion coverage with current IR/resource lifetime evidence; close M5 only after the full exit audit passes.",
+    "next_step": "Begin M6 with authorized image-sequence member decoding, then exact video timing and native media integration.",
     "notes": [
-      "Shared tile-max, neighbor-max and ID-aware reconstruction execute before display transform and AA on retained GPU HDR targets. Auxiliary draws use derived temporal image generations.",
-      "All four motion corpus frames and six frozen temporal whole frames are RGBA-exact. Sequence identity passes against adjacent frames; direct visual self-reviews are recorded.",
-      "Twenty-four cached/uncached frame executions prove clear/reuse/retirement/restoration. Zero radius and zero vectors each change 2,966 pixels; missing auxiliary input, inconsistent routing and budget rejection publish no output.",
-      "First full verification failed only because four corpus reviews used isolated instead of sequence context. The failed unchanged-source report is preserved, correctly bound reviews were appended, and the second full G0/G1/G3 run passed. No dependencies or tolerance changes."
+      "Full exit audit re-read immutable reference pixels, actual current receipts, IR resource controls and section 6.6 evidence.",
+      "Four temporal rasters, two recursive frames and six complete root motion frames pass; twenty and twenty-four cached/uncached executions cover mutation and lifetime controls.",
+      "Production preview/export remain TS until integration milestones. No dependency or tolerance changes."
     ]
   },
   "milestones": [
@@ -20261,7 +20252,7 @@
     {
       "id": "M5",
       "title": "Text, SVG, PSD rasters (Phase A)",
-      "status": "in_progress",
+      "status": "done",
       "gates": ["G0", "G1", "G3"],
       "tasks": [
         {
@@ -20312,31 +20303,80 @@
         {
           "id": "M5-T4",
           "title": "Audit complete M5 raster coverage, IR resource lifetimes and native pixel evidence",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-10-07T12:02:11.378890+00:00",
+          "commit": "f57521339df62051e307dfa331d5c75507d7403a",
+          "verification": "artifacts/migration/verify-2026-10-07T11-46-17-976Z-90fd7950.json"
         }
       ],
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
-        "milestone_exit_satisfied": false,
-        "report": "artifacts/migration/verify-2026-10-07T11-24-07-463Z-f80b31df.json",
+        "milestone_exit_satisfied": true,
+        "report": "artifacts/migration/verify-2026-10-07T11-46-17-976Z-90fd7950.json",
         "gates": [
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 80660
+            "duration_ms": 82012
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 28307
+            "duration_ms": 28653
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 727351
+            "duration_ms": 741530
           }
         ]
+      },
+      "completed_at": "2026-10-07T12:02:11.378890+00:00",
+      "commit": "f57521339df62051e307dfa331d5c75507d7403a",
+      "verification": "artifacts/migration/verify-2026-10-07T11-46-17-976Z-90fd7950.json",
+      "verification_sha256": "9ab2f9654314c94d4c8aec8b537b51e2a6e50189e41d39724443835b13d28bd8",
+      "exit_audit": {
+        "status": "passed",
+        "scope": "M5 supplied text, SVG, PSD, temporal rasters and complete root motion output",
+        "native_gpu_execution": true,
+        "raster_frames": 24,
+        "pixels": {
+          "frames": 1256,
+          "checked_files": 12496
+        },
+        "supplements": {
+          "rasters": 4,
+          "recursive": {
+            "frames": 2,
+            "executions": 20,
+            "controls": 4
+          },
+          "motion": {
+            "frames": 6,
+            "executions": 24,
+            "controls": 5
+          }
+        },
+        "regressions": {
+          "surface_frames": 16,
+          "surface_post": 2,
+          "primary_attachments": 30,
+          "cache": {
+            "exact": 5088,
+            "hits": 1240,
+            "bounded_passes": 40,
+            "saved_pixels": 1080000
+          },
+          "ssaa_strategy": "rejected; production remains full resolution"
+        },
+        "boundaries": [
+          "Text/SVG/PSD rasterization remains in the Phase A producer",
+          "Native video and image sequences remain M6",
+          "Depth effects, 3D shadows and generators remain M7",
+          "Production preview/export remain TS until their integration milestones"
+        ],
+        "checked_files": 13634
       }
     },
     {
@@ -159592,6 +159632,43 @@
         "All four motion corpus frames and six frozen temporal whole frames are RGBA-exact. Sequence identity passes against adjacent frames; direct visual self-reviews are recorded.",
         "Twenty-four cached/uncached frame executions prove clear/reuse/retirement/restoration. Zero radius and zero vectors each change 2,966 pixels; missing auxiliary input, inconsistent routing and budget rejection publish no output.",
         "First full verification failed only because four corpus reviews used isolated instead of sequence context. The failed unchanged-source report is preserved, correctly bound reviews were appended, and the second full G0/G1/G3 run passed. No dependencies or tolerance changes."
+      ]
+    },
+    {
+      "id": 100,
+      "time": "2026-10-07T12:02:11.378890+00:00",
+      "milestone": "M5",
+      "task": "M5-T4",
+      "outcome": "passed",
+      "commit": "f57521339df62051e307dfa331d5c75507d7403a",
+      "verification": "artifacts/migration/verify-2026-10-07T11-46-17-976Z-90fd7950.json",
+      "verification_sha256": "9ab2f9654314c94d4c8aec8b537b51e2a6e50189e41d39724443835b13d28bd8",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 82012
+        },
+        {
+          "id": "G1",
+          "status": "passed",
+          "duration_ms": 28653
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 741530
+        }
+      ],
+      "verification_duration_ms": 893831,
+      "milestone_exit_satisfied": true,
+      "native_regression_frames": 1256,
+      "cache_comparisons": 5088,
+      "next_step": "Begin M6 with authorized image-sequence member decoding, then exact video timing and native media integration.",
+      "notes": [
+        "Full exit audit re-read immutable reference pixels, actual current receipts, IR resource controls and section 6.6 evidence.",
+        "Four temporal rasters, two recursive frames and six complete root motion frames pass; twenty and twenty-four cached/uncached executions cover mutation and lifetime controls.",
+        "Production preview/export remain TS until integration milestones. No dependency or tolerance changes."
       ]
     }
   ],
