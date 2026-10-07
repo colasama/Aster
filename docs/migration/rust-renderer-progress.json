@@ -193,43 +193,70 @@
       "path": "tests/parity/native-motion-frame/manifest.json",
       "sha256": "0ae8eab266c452522c218db2f48f768a1548b95117ce88973bdf81ae6047cc25",
       "policy": "Immutable copies of independently replayed production whole frames for full, entering and exiting temporal text. Capture predates native motion reconstruction."
+    },
+    "native_media_frame": {
+      "path": "tests/parity/native-media-frame/manifest.json",
+      "sha256": "a5ac693c3d99207aee2ca74320f58de83aee20364fa6609320578845e2088c52",
+      "provisional_repairs": [
+        {
+          "case_id": "native-media-frame-recursive",
+          "cycle": 104,
+          "reason": "Correct provisional wrapper size/anchor to keep nested media visible; require visible alpha coverage and changing pixels before capture acceptance. Existing approved references are unchanged.",
+          "rejected_manifest": {
+            "path": "artifacts/migration/cycle104-mixed-invalid-manifest.json",
+            "sha256": "81a81406d9153e4a42511033a3d5e7a153bbf8b985e19670ea02e68dc5e5dd04"
+          },
+          "rejected_comparison": "artifacts/migration/cycle104-mixed-diagnostic/compare-recursive-0/report.json",
+          "replacement_capture": {
+            "path": "artifacts/migration/cycle104-mixed-capture-visible/report.json",
+            "sha256": "ec6b0bab2b625b462ddfc4bf192c1defbe4e906213eff03b29796e8dc136d517"
+          }
+        }
+      ]
     }
   },
   "last_cycle": {
-    "id": 103,
-    "time": "2026-10-07T13:43:00.249515+00:00",
+    "id": 104,
+    "time": "2026-10-07T14:31:28.208117+00:00",
     "milestone": "M6",
     "task": "M6-T3",
-    "increment": "M6-T3-retained",
+    "increment": "M6-T3-mixed",
     "outcome": "passed",
-    "commit": "75b7a2bf69207d8598eb0833565c21d32c1f7f00",
-    "verification": "artifacts/migration/verify-2026-10-07T13-25-35-727Z-4b88f74c.json",
-    "verification_sha256": "e174586fdbb835f5f1384e62ef6fce3d078a669f097db886f152ce34964700af",
+    "commit": "c08dca317a66adcc419064602334e908522450de",
+    "verification": "artifacts/migration/verify-2026-10-07T14-13-21-790Z-b39def7e.json",
+    "verification_sha256": "2380eab79c525ded9b9023da434ef269dccf7e158979ee9daf4920e9a919447a",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 92666
+        "duration_ms": 81361
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 853951
+        "duration_ms": 850440
       }
     ],
-    "verification_duration_ms": 948326,
+    "verification_duration_ms": 933748,
     "native_regression_frames": 1256,
     "cache_comparisons": 5088,
-    "media_cache_exact_comparisons": 148,
-    "media_cache_evidence": "artifacts/migration/2026-10-07T13-25-35-727Z-4b88f74c/G3/native-videos/decode-cache/report.json",
-    "next_step": "Integrate native file media with supplied rasters, recursive and temporal inputs; support production SHA-256 media identities as well as corpus FNV identities.",
+    "sequence_frames": 12,
+    "video_frames": 44,
+    "mixed_frames": 6,
+    "next_step": "Audit complete M6 native media coverage, current execution evidence, exact frame identities, authorization and resource lifetimes.",
     "notes": [
-      "One batch now retains immutable authorization decoders and a decoded-frame LRU with independent pixel-byte and entry budgets. Cancellation precedes cache access; frame identity keys include source and exact sample.",
-      "All 148 cache output comparisons are exact. Eighty-eight forward/reverse video requests decode 44 distinct frames and hit 44 times. Each byte/entry pressure run records six decodes, two hits and four evictions; disabled caching retains no pixels.",
-      "The 24 sequence requests decode eight distinct members and hit sixteen times, retaining 196608 pixel bytes. Source/member/authorization rejection controls remain green.",
-      "Native EXR tests prove verified-byte reuse after source removal, cancellation before a hit, new-job authorization isolation and renewed source access after eviction. All nine media-native tests pass.",
-      "Full G0/G3 pass with unchanged source, unchanged pixel outputs and existing matching self-reviews. No dependency or tolerance changes. Mixed-media integration and the M6 exit audit remain open.",
-      "Read-only integration inventory found owner-main contains image, raster and video frames with SHA-256 media source identities; current corpus snapshots use FNV identities. Uncached distinct video frames still use separate probe/decode processes, so this increment is decoded-frame reuse, not streaming codec state."
+      "Native file media composes with supplied raster generations, recursive surfaces and temporal samples. Production SHA-256 source identities are verified alongside corpus FNV identities.",
+      "Six independent mixed scenes pass decode metrics and all structural checks with maximum channel error two. Four unique contact-sheet/heatmap pairs inspected directly; forward/backward repeated evidence hashes are identical. Six decoder-rounding self-reviews accepted.",
+      "Blank recursive provisional fixture was rejected by frame identity. Wrapper geometry fixed, visible/changed-pixel capture guards added and failed evidence preserved.",
+      "First full verification passed G0 but rejected supplemental repair in the formal corpus repair list. Moved only that record into native_media_frame.provisional_repairs; subsequent full G0/G3 passed with unchanged source.",
+      "Both supplied-file-pixel bypass controls reject without output. No dependency, tolerance or production routing change. M6 exit audit remains pending."
+    ],
+    "failed_evidence": [
+      "artifacts/migration/cycle104-mixed-capture/process.json",
+      "artifacts/migration/cycle104-mixed-diagnostic/report.json",
+      "artifacts/migration/cycle104-mixed-invalid-manifest.json",
+      "artifacts/migration/cycle104-mixed-visible/report.json",
+      "artifacts/migration/verify-2026-10-07T14-09-43-754Z-28da63b1.json"
     ]
   },
   "milestones": [
@@ -20404,7 +20431,7 @@
         {
           "id": "M6-T3",
           "title": "Integrate native media with recursive surfaces, temporal inputs and bounded retained decode lifetimes",
-          "status": "in_progress",
+          "status": "done",
           "increments": [
             {
               "id": "M6-T3-retained",
@@ -20417,9 +20444,15 @@
             {
               "id": "M6-T3-mixed",
               "title": "Integrate native media with supplied rasters, recursive surfaces and temporal inputs",
-              "status": "pending"
+              "status": "done",
+              "completed_at": "2026-10-07T14:31:28.208117+00:00",
+              "commit": "c08dca317a66adcc419064602334e908522450de",
+              "verification": "artifacts/migration/verify-2026-10-07T14-13-21-790Z-b39def7e.json"
             }
-          ]
+          ],
+          "completed_at": "2026-10-07T14:31:28.208117+00:00",
+          "commit": "c08dca317a66adcc419064602334e908522450de",
+          "verification": "artifacts/migration/verify-2026-10-07T14-13-21-790Z-b39def7e.json"
         },
         {
           "id": "M6-T4",
@@ -20431,17 +20464,17 @@
         "status": "passed",
         "required_gates_passed": true,
         "milestone_exit_satisfied": false,
-        "report": "artifacts/migration/verify-2026-10-07T13-25-35-727Z-4b88f74c.json",
+        "report": "artifacts/migration/verify-2026-10-07T14-13-21-790Z-b39def7e.json",
         "gates": [
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 92666
+            "duration_ms": 81361
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 853951
+            "duration_ms": 850440
           }
         ]
       }
@@ -163603,6 +163636,819 @@
         },
         "passed": false
       }
+    },
+    {
+      "case_id": "native-media-frame-recursive",
+      "frame": 0,
+      "profile": "decode",
+      "reviewed_at": "2026-10-07T14:06:14.672425+00:00",
+      "reviewer": "agent",
+      "residual_class": "structural",
+      "verdict": "rejected",
+      "reference_rgba_sha256": "2a589ae1f2fa2a6328223ff195a29c9244bec633dca49139f6f231e1d79c0eb2",
+      "candidate_rgba_sha256": "2a589ae1f2fa2a6328223ff195a29c9244bec633dca49139f6f231e1d79c0eb2",
+      "evidence": {
+        "report": "artifacts/migration/cycle104-mixed-diagnostic/compare-recursive-0/report.json",
+        "report_sha256": "596245dd5636a3fe63699788526484d386948898a76f945180b5307a3100503a",
+        "heatmap": "artifacts/migration/cycle104-mixed-diagnostic/compare-recursive-0/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle104-mixed-diagnostic/compare-recursive-0/contact-sheet.png",
+        "contact_sheet_sha256": "8f8f3017bc6f64cdb47057c717c70e429b0911f88350423dd1605dbe3c855fe9"
+      },
+      "notes": [
+        "The provisional recursive fixture placed all content outside its 320x180 output through default 720x720 wrapper anchors. Both images were transparent and the sequence identity check correctly failed; inspected contact sheet and heatmap. Repair the fixture before acceptance."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 4,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": null,
+          "candidate": null,
+          "edge_deltas": null,
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 0,
+        "first_frame": 0,
+        "last_frame": 2,
+        "current_mean_squared_error": 0.0,
+        "previous": {
+          "status": "outside_domain"
+        },
+        "next": {
+          "status": "compared",
+          "frame": 1,
+          "mean_squared_error": 0.0,
+          "current_is_closer": false
+        },
+        "passed": false
+      }
+    },
+    {
+      "case_id": "native-media-frame-root",
+      "frame": 0,
+      "profile": "decode",
+      "reviewed_at": "2026-10-07T14:07:39.589129+00:00",
+      "reviewer": "agent",
+      "residual_class": "decoder-rounding",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "912c45612f92ff356eddcd660fdc5a6c598d266f9c3dd70cea453ca5220c5c75",
+      "candidate_rgba_sha256": "b50556954ae125873421451fa7d616d761de805269583420faa82cc33f5d0e9a",
+      "evidence": {
+        "report": "artifacts/migration/cycle104-mixed-visible/compare-root-0/report.json",
+        "report_sha256": "48a9e065b62f5c94e6b56b6827f88dd42df9536af236045e7bc750a41d219fa3",
+        "heatmap": "artifacts/migration/cycle104-mixed-visible/compare-root-0/heatmap.png",
+        "heatmap_sha256": "d72b8cd4bf14198486a85d43debe727b340178abe7df00fe0e8d921f821157f6",
+        "contact_sheet": "artifacts/migration/cycle104-mixed-visible/compare-root-0/contact-sheet.png",
+        "contact_sheet_sha256": "7d97f984d973c9a099b5c339edea77756cabc7506a788356b3574c5af520f99b"
+      },
+      "notes": [
+        "Directly inspected all four unique contact-sheet/heatmap pairs; each repeated frame has identical image hashes. Text geometry, temporal placement, PNG alpha and video barcode agree. Residuals are faint one/two-code-value decode/compositing rounding, with no displaced or missing content. All metric, structural and sequence identity checks pass without tolerance changes."
+      ],
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 2,
+        "mean_abs_error": 0.01955295138888889,
+        "mean_squared_error": 0.020447048611111112,
+        "rgb_mean_squared_error": 0.02726273148148148,
+        "psnr": {
+          "kind": "finite",
+          "db": 63.77510994772551
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 65.02449731380851
+        },
+        "channel_tolerance": 4,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.999846779479985, 0.9999350011492935, 0.9996961420814247, 1],
+        "mean": 0.999825974236901,
+        "rgba_mean": 0.9998694806776758,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.006649305555555556, 0.0014930555555555556, 0.018645833333333334, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 22,
+            "min_y": 22,
+            "max_x": 292,
+            "max_y": 156
+          },
+          "candidate": {
+            "min_x": 22,
+            "min_y": 22,
+            "max_x": 292,
+            "max_y": 156
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.2986098004943978,
+          "candidate_rms": 0.2986530362917659,
+          "reference_axis_ratio": 0.4561904637441808,
+          "candidate_axis_ratio": 0.45619997627738573,
+          "reference_window_energy_fraction": 0.9592789087386899,
+          "candidate_window_energy_fraction": 0.9592793437282624,
+          "active_frequencies": 10460,
+          "spectral_bins": 524288,
+          "peak_ratio": 4.836955650464804,
+          "peak_to_sidelobe_ratio": 159.49232356454948,
+          "peak_coherence": 0.9999999445020354,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 0,
+        "first_frame": 0,
+        "last_frame": 2,
+        "current_mean_squared_error": 0.020447048611111112,
+        "previous": {
+          "status": "outside_domain"
+        },
+        "next": {
+          "status": "compared",
+          "frame": 1,
+          "mean_squared_error": 2936.3551085069444,
+          "current_is_closer": true
+        },
+        "passed": true
+      }
+    },
+    {
+      "case_id": "native-media-frame-root",
+      "frame": 1,
+      "profile": "decode",
+      "reviewed_at": "2026-10-07T14:07:39.589129+00:00",
+      "reviewer": "agent",
+      "residual_class": "decoder-rounding",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "55dc6b77c5986266a71b4b06fc362d2f7e20f60798a0424580bf0309eda1eb89",
+      "candidate_rgba_sha256": "473fadebb31c5c12e6059394a3f82f1297fa0a76b9d2ceabb08a3ce3885a5825",
+      "evidence": {
+        "report": "artifacts/migration/cycle104-mixed-visible/compare-root-1/report.json",
+        "report_sha256": "e9507375c1e89a12a7800b8cc353d2676b2a0759872db85b1a55d310acaeec40",
+        "heatmap": "artifacts/migration/cycle104-mixed-visible/compare-root-1/heatmap.png",
+        "heatmap_sha256": "9dcaa78c16721ac503ce5849fd52af1bea2c2f283ffef2c6591458d9a36fea35",
+        "contact_sheet": "artifacts/migration/cycle104-mixed-visible/compare-root-1/contact-sheet.png",
+        "contact_sheet_sha256": "8436d7aa3900ec47a88bed1f52ed61070b3dd94d39219c18e09287361d0b637c"
+      },
+      "notes": [
+        "Directly inspected all four unique contact-sheet/heatmap pairs; each repeated frame has identical image hashes. Text geometry, temporal placement, PNG alpha and video barcode agree. Residuals are faint one/two-code-value decode/compositing rounding, with no displaced or missing content. All metric, structural and sequence identity checks pass without tolerance changes."
+      ],
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 2,
+        "mean_abs_error": 0.019973958333333333,
+        "mean_squared_error": 0.020572916666666666,
+        "rgb_mean_squared_error": 0.027430555555555555,
+        "psnr": {
+          "kind": "finite",
+          "db": 63.748457573367
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 64.99784493944999
+        },
+        "channel_tolerance": 4,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9998748674286096, 0.9999437173737332, 0.999774795055013, 1],
+        "mean": 0.9998644599524519,
+        "rgba_mean": 0.9998983449643389,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.007725694444444445, 0.0007986111111111112, 0.014565972222222221, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 22,
+            "min_y": 22,
+            "max_x": 292,
+            "max_y": 156
+          },
+          "candidate": {
+            "min_x": 22,
+            "min_y": 22,
+            "max_x": 292,
+            "max_y": 156
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.30217911852038404,
+          "candidate_rms": 0.30221643582628266,
+          "reference_axis_ratio": 0.44532203016373967,
+          "candidate_axis_ratio": 0.4453463159989897,
+          "reference_window_energy_fraction": 0.9604417925766862,
+          "candidate_window_energy_fraction": 0.9604422387645362,
+          "active_frequencies": 10754,
+          "spectral_bins": 524288,
+          "peak_ratio": 5.211023659077596,
+          "peak_to_sidelobe_ratio": 162.92625119759944,
+          "peak_coherence": 0.9999999423805773,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 1,
+        "first_frame": 0,
+        "last_frame": 2,
+        "current_mean_squared_error": 0.020572916666666666,
+        "previous": {
+          "status": "compared",
+          "frame": 0,
+          "mean_squared_error": 2936.453532986111,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 2,
+          "mean_squared_error": 2936.453532986111,
+          "current_is_closer": true
+        },
+        "passed": true
+      }
+    },
+    {
+      "case_id": "native-media-frame-root",
+      "frame": 2,
+      "profile": "decode",
+      "reviewed_at": "2026-10-07T14:07:39.589129+00:00",
+      "reviewer": "agent",
+      "residual_class": "decoder-rounding",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "912c45612f92ff356eddcd660fdc5a6c598d266f9c3dd70cea453ca5220c5c75",
+      "candidate_rgba_sha256": "b50556954ae125873421451fa7d616d761de805269583420faa82cc33f5d0e9a",
+      "evidence": {
+        "report": "artifacts/migration/cycle104-mixed-visible/compare-root-2/report.json",
+        "report_sha256": "01826f8d5e233042afef3e0a53ed3cb24d9a9bec4580686e236a89101681dad4",
+        "heatmap": "artifacts/migration/cycle104-mixed-visible/compare-root-2/heatmap.png",
+        "heatmap_sha256": "d72b8cd4bf14198486a85d43debe727b340178abe7df00fe0e8d921f821157f6",
+        "contact_sheet": "artifacts/migration/cycle104-mixed-visible/compare-root-2/contact-sheet.png",
+        "contact_sheet_sha256": "7d97f984d973c9a099b5c339edea77756cabc7506a788356b3574c5af520f99b"
+      },
+      "notes": [
+        "Directly inspected all four unique contact-sheet/heatmap pairs; each repeated frame has identical image hashes. Text geometry, temporal placement, PNG alpha and video barcode agree. Residuals are faint one/two-code-value decode/compositing rounding, with no displaced or missing content. All metric, structural and sequence identity checks pass without tolerance changes."
+      ],
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 2,
+        "mean_abs_error": 0.01955295138888889,
+        "mean_squared_error": 0.020447048611111112,
+        "rgb_mean_squared_error": 0.02726273148148148,
+        "psnr": {
+          "kind": "finite",
+          "db": 63.77510994772551
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 65.02449731380851
+        },
+        "channel_tolerance": 4,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.999846779479985, 0.9999350011492935, 0.9996961420814247, 1],
+        "mean": 0.999825974236901,
+        "rgba_mean": 0.9998694806776758,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.006649305555555556, 0.0014930555555555556, 0.018645833333333334, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 22,
+            "min_y": 22,
+            "max_x": 292,
+            "max_y": 156
+          },
+          "candidate": {
+            "min_x": 22,
+            "min_y": 22,
+            "max_x": 292,
+            "max_y": 156
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.2986098004943978,
+          "candidate_rms": 0.2986530362917659,
+          "reference_axis_ratio": 0.4561904637441808,
+          "candidate_axis_ratio": 0.45619997627738573,
+          "reference_window_energy_fraction": 0.9592789087386899,
+          "candidate_window_energy_fraction": 0.9592793437282624,
+          "active_frequencies": 10460,
+          "spectral_bins": 524288,
+          "peak_ratio": 4.836955650464804,
+          "peak_to_sidelobe_ratio": 159.49232356454948,
+          "peak_coherence": 0.9999999445020354,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 2,
+        "first_frame": 0,
+        "last_frame": 2,
+        "current_mean_squared_error": 0.020447048611111112,
+        "previous": {
+          "status": "compared",
+          "frame": 1,
+          "mean_squared_error": 2936.3551085069444,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "outside_domain"
+        },
+        "passed": true
+      }
+    },
+    {
+      "case_id": "native-media-frame-recursive",
+      "frame": 0,
+      "profile": "decode",
+      "reviewed_at": "2026-10-07T14:07:39.589129+00:00",
+      "reviewer": "agent",
+      "residual_class": "decoder-rounding",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "80ad2000e8d1087c359e6e215564db0e8d341b113fa714c4d7e5ef2ba9081b84",
+      "candidate_rgba_sha256": "8fa3f5acd2011c60d613f6088f344add1ad0729a733ea73c5ff554d18a33b382",
+      "evidence": {
+        "report": "artifacts/migration/cycle104-mixed-visible/compare-recursive-0/report.json",
+        "report_sha256": "cd82f832b7c29dcba43423e8bafb83fe148eeb4438023b3272023d6c9f43eb55",
+        "heatmap": "artifacts/migration/cycle104-mixed-visible/compare-recursive-0/heatmap.png",
+        "heatmap_sha256": "608efd3d13bebb30ac0ccea7c3032b0f6024e0eb6ecaeaf9815a6a9b43a60771",
+        "contact_sheet": "artifacts/migration/cycle104-mixed-visible/compare-recursive-0/contact-sheet.png",
+        "contact_sheet_sha256": "2236c4571a6ca2953b23cb2271201ea92864f8103d6c5fca6c0d84a992a883e3"
+      },
+      "notes": [
+        "Directly inspected all four unique contact-sheet/heatmap pairs; each repeated frame has identical image hashes. Text geometry, temporal placement, PNG alpha and video barcode agree. Residuals are faint one/two-code-value decode/compositing rounding, with no displaced or missing content. All metric, structural and sequence identity checks pass without tolerance changes."
+      ],
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 2,
+        "mean_abs_error": 0.007664930555555556,
+        "mean_squared_error": 0.007673611111111111,
+        "rgb_mean_squared_error": 0.010231481481481482,
+        "psnr": {
+          "kind": "finite",
+          "db": 68.03141838333731
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 69.28080574942031
+        },
+        "channel_tolerance": 4,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999658911622242, 0.9999729350089878, 0.9998904629079414, 1],
+        "mean": 0.9999430963597179,
+        "rgba_mean": 0.9999573222697884,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.001579861111111111, 0.0011805555555555556, 0.02046875, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 22,
+            "min_y": 22,
+            "max_x": 292,
+            "max_y": 156
+          },
+          "candidate": {
+            "min_x": 22,
+            "min_y": 22,
+            "max_x": 292,
+            "max_y": 156
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.25962851575323964,
+          "candidate_rms": 0.25967399506141614,
+          "reference_axis_ratio": 0.43367465140755773,
+          "candidate_axis_ratio": 0.43369046331814504,
+          "reference_window_energy_fraction": 0.9556669396093077,
+          "candidate_window_energy_fraction": 0.955669519668792,
+          "active_frequencies": 7366,
+          "spectral_bins": 524288,
+          "peak_ratio": 3.7491830111906346,
+          "peak_to_sidelobe_ratio": 123.82117343322481,
+          "peak_coherence": 0.9999999266917869,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 0,
+        "first_frame": 0,
+        "last_frame": 2,
+        "current_mean_squared_error": 0.007673611111111111,
+        "previous": {
+          "status": "outside_domain"
+        },
+        "next": {
+          "status": "compared",
+          "frame": 1,
+          "mean_squared_error": 1693.2310112847222,
+          "current_is_closer": true
+        },
+        "passed": true
+      }
+    },
+    {
+      "case_id": "native-media-frame-recursive",
+      "frame": 1,
+      "profile": "decode",
+      "reviewed_at": "2026-10-07T14:07:39.589129+00:00",
+      "reviewer": "agent",
+      "residual_class": "decoder-rounding",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "6bcb05834ea1dc156379220090440f45ad62781b95b11790d06ecf95386d7939",
+      "candidate_rgba_sha256": "625c210d4e613e7e61845572cba2321ed6baabdaf8b352204fde2d231dd5f43e",
+      "evidence": {
+        "report": "artifacts/migration/cycle104-mixed-visible/compare-recursive-1/report.json",
+        "report_sha256": "c0359e57465bcdd48c5b3fc4d860710d29edfe53fea1fd9a06842f5975fffe60",
+        "heatmap": "artifacts/migration/cycle104-mixed-visible/compare-recursive-1/heatmap.png",
+        "heatmap_sha256": "2361dc8c84ec6bccbbd461cd6b2f06f3d11a12dec1ac0fdb9c4917813adfafdf",
+        "contact_sheet": "artifacts/migration/cycle104-mixed-visible/compare-recursive-1/contact-sheet.png",
+        "contact_sheet_sha256": "64b6ec008b5354d3ee042c5b69b5507c06476baeec3e9a920e3993c3371afd22"
+      },
+      "notes": [
+        "Directly inspected all four unique contact-sheet/heatmap pairs; each repeated frame has identical image hashes. Text geometry, temporal placement, PNG alpha and video barcode agree. Residuals are faint one/two-code-value decode/compositing rounding, with no displaced or missing content. All metric, structural and sequence identity checks pass without tolerance changes."
+      ],
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 2,
+        "mean_abs_error": 0.007200520833333333,
+        "mean_squared_error": 0.007217881944444444,
+        "rgb_mean_squared_error": 0.009623842592592592,
+        "psnr": {
+          "kind": "finite",
+          "db": 68.29731849791266
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 69.54670586399565
+        },
+        "channel_tolerance": 4,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999559663025704, 0.9999798152192411, 0.9998961338262162, 1],
+        "mean": 0.999943971782676,
+        "rgba_mean": 0.999957978837007,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0031944444444444446, 6.944444444444444e-5, 0.015399305555555555, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 22,
+            "min_y": 22,
+            "max_x": 292,
+            "max_y": 156
+          },
+          "candidate": {
+            "min_x": 22,
+            "min_y": 22,
+            "max_x": 292,
+            "max_y": 156
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.2626074004861325,
+          "candidate_rms": 0.2626414093858776,
+          "reference_axis_ratio": 0.4280640273032693,
+          "candidate_axis_ratio": 0.4280830443018423,
+          "reference_window_energy_fraction": 0.957045851240376,
+          "candidate_window_energy_fraction": 0.9570475514221507,
+          "active_frequencies": 7570,
+          "spectral_bins": 524288,
+          "peak_ratio": 5.476609394261896,
+          "peak_to_sidelobe_ratio": 125.91160886257467,
+          "peak_coherence": 0.9999999275736654,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 1,
+        "first_frame": 0,
+        "last_frame": 2,
+        "current_mean_squared_error": 0.007217881944444444,
+        "previous": {
+          "status": "compared",
+          "frame": 0,
+          "mean_squared_error": 1693.2039322916667,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 2,
+          "mean_squared_error": 1693.2039322916667,
+          "current_is_closer": true
+        },
+        "passed": true
+      }
+    },
+    {
+      "case_id": "native-media-frame-recursive",
+      "frame": 2,
+      "profile": "decode",
+      "reviewed_at": "2026-10-07T14:07:39.589129+00:00",
+      "reviewer": "agent",
+      "residual_class": "decoder-rounding",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "80ad2000e8d1087c359e6e215564db0e8d341b113fa714c4d7e5ef2ba9081b84",
+      "candidate_rgba_sha256": "8fa3f5acd2011c60d613f6088f344add1ad0729a733ea73c5ff554d18a33b382",
+      "evidence": {
+        "report": "artifacts/migration/cycle104-mixed-visible/compare-recursive-2/report.json",
+        "report_sha256": "95bc9e0282dd2e4f7ab061fba3943cb07b6973539c4e296db34bce47663eebc6",
+        "heatmap": "artifacts/migration/cycle104-mixed-visible/compare-recursive-2/heatmap.png",
+        "heatmap_sha256": "608efd3d13bebb30ac0ccea7c3032b0f6024e0eb6ecaeaf9815a6a9b43a60771",
+        "contact_sheet": "artifacts/migration/cycle104-mixed-visible/compare-recursive-2/contact-sheet.png",
+        "contact_sheet_sha256": "2236c4571a6ca2953b23cb2271201ea92864f8103d6c5fca6c0d84a992a883e3"
+      },
+      "notes": [
+        "Directly inspected all four unique contact-sheet/heatmap pairs; each repeated frame has identical image hashes. Text geometry, temporal placement, PNG alpha and video barcode agree. Residuals are faint one/two-code-value decode/compositing rounding, with no displaced or missing content. All metric, structural and sequence identity checks pass without tolerance changes."
+      ],
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 2,
+        "mean_abs_error": 0.007664930555555556,
+        "mean_squared_error": 0.007673611111111111,
+        "rgb_mean_squared_error": 0.010231481481481482,
+        "psnr": {
+          "kind": "finite",
+          "db": 68.03141838333731
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 69.28080574942031
+        },
+        "channel_tolerance": 4,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999658911622242, 0.9999729350089878, 0.9998904629079414, 1],
+        "mean": 0.9999430963597179,
+        "rgba_mean": 0.9999573222697884,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.001579861111111111, 0.0011805555555555556, 0.02046875, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 22,
+            "min_y": 22,
+            "max_x": 292,
+            "max_y": 156
+          },
+          "candidate": {
+            "min_x": 22,
+            "min_y": 22,
+            "max_x": 292,
+            "max_y": 156
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.25962851575323964,
+          "candidate_rms": 0.25967399506141614,
+          "reference_axis_ratio": 0.43367465140755773,
+          "candidate_axis_ratio": 0.43369046331814504,
+          "reference_window_energy_fraction": 0.9556669396093077,
+          "candidate_window_energy_fraction": 0.955669519668792,
+          "active_frequencies": 7366,
+          "spectral_bins": 524288,
+          "peak_ratio": 3.7491830111906346,
+          "peak_to_sidelobe_ratio": 123.82117343322481,
+          "peak_coherence": 0.9999999266917869,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 2,
+        "first_frame": 0,
+        "last_frame": 2,
+        "current_mean_squared_error": 0.007673611111111111,
+        "previous": {
+          "status": "compared",
+          "frame": 1,
+          "mean_squared_error": 1693.2310112847222,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "outside_domain"
+        },
+        "passed": true
+      }
     }
   ],
   "history": [
@@ -165475,6 +166321,50 @@
         "Native EXR tests prove verified-byte reuse after source removal, cancellation before a hit, new-job authorization isolation and renewed source access after eviction. All nine media-native tests pass.",
         "Full G0/G3 pass with unchanged source, unchanged pixel outputs and existing matching self-reviews. No dependency or tolerance changes. Mixed-media integration and the M6 exit audit remain open.",
         "Read-only integration inventory found owner-main contains image, raster and video frames with SHA-256 media source identities; current corpus snapshots use FNV identities. Uncached distinct video frames still use separate probe/decode processes, so this increment is decoded-frame reuse, not streaming codec state."
+      ]
+    },
+    {
+      "id": 104,
+      "time": "2026-10-07T14:31:28.208117+00:00",
+      "milestone": "M6",
+      "task": "M6-T3",
+      "increment": "M6-T3-mixed",
+      "outcome": "passed",
+      "commit": "c08dca317a66adcc419064602334e908522450de",
+      "verification": "artifacts/migration/verify-2026-10-07T14-13-21-790Z-b39def7e.json",
+      "verification_sha256": "2380eab79c525ded9b9023da434ef269dccf7e158979ee9daf4920e9a919447a",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 81361
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 850440
+        }
+      ],
+      "verification_duration_ms": 933748,
+      "native_regression_frames": 1256,
+      "cache_comparisons": 5088,
+      "sequence_frames": 12,
+      "video_frames": 44,
+      "mixed_frames": 6,
+      "next_step": "Audit complete M6 native media coverage, current execution evidence, exact frame identities, authorization and resource lifetimes.",
+      "notes": [
+        "Native file media composes with supplied raster generations, recursive surfaces and temporal samples. Production SHA-256 source identities are verified alongside corpus FNV identities.",
+        "Six independent mixed scenes pass decode metrics and all structural checks with maximum channel error two. Four unique contact-sheet/heatmap pairs inspected directly; forward/backward repeated evidence hashes are identical. Six decoder-rounding self-reviews accepted.",
+        "Blank recursive provisional fixture was rejected by frame identity. Wrapper geometry fixed, visible/changed-pixel capture guards added and failed evidence preserved.",
+        "First full verification passed G0 but rejected supplemental repair in the formal corpus repair list. Moved only that record into native_media_frame.provisional_repairs; subsequent full G0/G3 passed with unchanged source.",
+        "Both supplied-file-pixel bypass controls reject without output. No dependency, tolerance or production routing change. M6 exit audit remains pending."
+      ],
+      "failed_evidence": [
+        "artifacts/migration/cycle104-mixed-capture/process.json",
+        "artifacts/migration/cycle104-mixed-diagnostic/report.json",
+        "artifacts/migration/cycle104-mixed-invalid-manifest.json",
+        "artifacts/migration/cycle104-mixed-visible/report.json",
+        "artifacts/migration/verify-2026-10-07T14-09-43-754Z-28da63b1.json"
       ]
     }
   ],
