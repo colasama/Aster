@@ -491,3 +491,13 @@ renderer keeps full-resolution effects. G3 requires the expected rejection and m
 self-reviews; its successful safety-control status does not mean reduced-resolution pixels passed.
 No tolerance is loosened. This rejects the tested RGBA resampling strategy, not every possible
 future decomposition that could preserve high-resolution alpha and demonstrate whole-corpus parity.
+
+The M4 exit audit runs when `M4-T6` is active or M4 is already done. It requires all earlier M4 tasks,
+current full G0/G3, and exact coverage of the frozen catalog's effect/style frames plus retained core
+regressions. Corpus coverage tests bind the catalog to `EFFECT_REGISTRY`; additions cannot silently
+inherit native admission. The audit reopens FPLN inputs, native PNGs, single-frame and batch receipts,
+pixel reports, frozen references and matching self-reviews. It also audits sixteen complete surface
+frames, two standalone surface effects, thirty primary auxiliary attachments, all 4992 cache/region
+outputs and the four rejected SSAA experiments. Missing, duplicated, stale or substituted evidence
+prevents milestone completion. Coverage is scoped to M4; text rasters, native video, higher-tier 3D,
+export, native evaluation and production preview remain later milestones.

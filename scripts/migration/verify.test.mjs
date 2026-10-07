@@ -102,6 +102,38 @@ test("M4 effect increments execute native GPU gates without claiming complete ef
   assert.match(result.report.milestone_exit_reason, /M4 exit audit/);
 });
 
+test("M4 completion invokes its evidence audit and propagates rejection", async (t) => {
+  for (const failed of [false, true]) {
+    const context = await fixture(t);
+    await writeAtomicJson(context.ledger, {
+      status: "running",
+      owner_overrides: { performance_delivery_policy: deliveryPolicy },
+      milestones: [
+        {
+          id: "M4",
+          status: "in_progress",
+          gates: ["G0", "G3"],
+          tasks: [{ id: "M4-T6", status: "in_progress" }],
+        },
+      ],
+    });
+    let audits = 0;
+    const result = await verifyMigration(context, {
+      provenance,
+      execute: fakeHook,
+      runNativeCoreGate: async () => ({ id: "G3", status: "passed", full_coverage: true }),
+      auditM4Exit: async () => {
+        audits++;
+        if (failed) throw new Error("Missing effect output");
+        return { status: "passed" };
+      },
+    });
+    assert.equal(audits, 1);
+    assert.equal(result.report.milestone_exit_satisfied, !failed);
+    assert.equal(result.exitCode, failed ? 1 : 0);
+  }
+});
+
 async function deliveryVerification(t, options = {}) {
   const { gates, quick = false, failure } = options;
   const policy = Object.hasOwn(options, "policy") ? options.policy : deliveryPolicy;

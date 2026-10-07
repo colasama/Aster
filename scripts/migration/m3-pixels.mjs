@@ -5,9 +5,9 @@ import { PixelInputs } from "../parity/pixel-inputs.mjs";
 import { reviewStatus } from "../parity/pixel-review.mjs";
 import { validateNativeReceipt } from "./native-core-gate.mjs";
 
-export function validateCurrentStep(step, startedAt, rejected = false) {
+export function validateCurrentStep(step, startedAt, rejected = false, rejectionExitCode = 2) {
   assert.equal(step.status, rejected ? "failed" : "passed");
-  assert.equal(step.exit_code, rejected ? 2 : 0);
+  assert.equal(step.exit_code, rejected ? rejectionExitCode : 0);
   assert(!step.error && !step.signal, "Interrupted native evidence");
   assert(Date.parse(step.started_at) >= Date.parse(startedAt), "Stale native evidence");
   assert(Date.parse(step.finished_at) >= Date.parse(step.started_at));
@@ -42,6 +42,7 @@ export async function auditNativePixels(reader, group, corpus, report, base, dec
     "gpu",
   );
   indexed(entries);
+  const receiptsByLog = new Map();
   for (const entry of entries) {
     const key = `${entry.case_id}:${entry.frame}`,
       execution = native.get(key);
@@ -50,8 +51,18 @@ export async function auditNativePixels(reader, group, corpus, report, base, dec
     assert.equal(checked.status, "passed");
     assert.equal(checked.profile, "gpu");
     for (const step of [execution.step, checked.step]) validateCurrentStep(step, report.started_at);
-    const log = (await reader.bytes(execution.step.log)).bytes.toString("utf8");
-    assert.deepEqual(JSON.parse(log.trim().split(/\r?\n/).at(-1)), execution.receipt);
+    if (!receiptsByLog.has(execution.step.log)) {
+      const log = (await reader.bytes(execution.step.log)).bytes.toString("utf8");
+      receiptsByLog.set(
+        execution.step.log,
+        log
+          .split(/\r?\n/)
+          .filter((line) => line.startsWith('{"schema_version":'))
+          .map((line) => JSON.parse(line)),
+      );
+    }
+    const receipts = receiptsByLog.get(execution.step.log);
+    assert.deepEqual(receipts[execution.receipt.frame_index], execution.receipt);
     assert.equal(
       execution.input.path,
       `${base}/${entry.case_id}/${entry.frame}/${decoded ? "plan" : "replay"}.fpln`,

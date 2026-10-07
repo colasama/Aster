@@ -74,6 +74,7 @@ export async function runNativeSsaaEffectGate(context, binary, execute = runStep
         context,
       );
       assert.equal(step.status, "failed", "An unsafe reduced grid must not pass the pixel gate");
+      assert.equal(step.exit_code, 1, "Expected completed pixel rejection, not a CLI error");
       const evidence = local(join(destination, "report.json"));
       const result = await reader.json(evidence);
       assert.equal(result.comparison.passed, false);
