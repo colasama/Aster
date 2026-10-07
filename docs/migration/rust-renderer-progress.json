@@ -244,70 +244,68 @@
     }
   },
   "last_cycle": {
-    "id": 111,
-    "time": "2026-10-07T20:05:40.636337+00:00",
+    "id": 112,
+    "time": "2026-10-07T20:44:26.567367+00:00",
     "milestone": "M7",
     "task": "M7-T4",
     "outcome": "passed",
-    "commit": "74b13ced04e6f39cbbe0c1f6a0ea23b058cb1ec4",
-    "verification": "artifacts/migration/verify-2026-10-07T19-34-23-125Z-697d1551.json",
-    "verification_sha256": "8d7cb5b355cb0df7b9aa4c8113ae6cfd23898a0e0fbb24dca33417d4222a294a",
+    "commit": "354489823c878cd0ac588771bce3f186760ea041",
+    "verification": "artifacts/migration/verify-2026-10-07T20-21-43-726Z-2f75ba13.json",
+    "verification_sha256": "16469fe56c2a6d8ab06d6a8a2bb5433db22dd88fae87d6736359e04402e5e362",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 159512
+        "duration_ms": 122708
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 1522175
+        "duration_ms": 1150329
       }
     ],
-    "verification_duration_ms": 1697807,
+    "verification_duration_ms": 1275163,
     "milestone_exit_satisfied": false,
-    "particles": {
-      "frames": 12,
-      "exact_frames": 3,
-      "nonexact_frames": 9,
+    "audio": {
+      "frames": 15,
+      "exact_frames": 9,
+      "nonexact_frames": 6,
       "nonexact_max_abs": 1,
-      "self_reviews_accepted": 12,
-      "variants": ["billboard", "mesh", "streak"],
-      "rational_frames": [3, 15, 30, 54],
-      "generator_budget_rejected": true
+      "self_reviews_accepted": 15,
+      "variants": ["bars", "ring", "scope"],
+      "rational_frames": [3, 6, 15, 33, 54],
+      "control_executions": 12,
+      "exact_replays": 6,
+      "conflict_rejections": 3
     },
     "regressions": {
-      "pixel_frames": 1300,
-      "cache_exact_comparisons": 5264,
+      "pixel_frames": 1315,
+      "cache_exact_comparisons": 5324,
       "scene_output_frames": 64,
       "hdr_material_frames": 60,
       "normal_material_frames": 144,
       "animated_normal_frames": 24
     },
     "diagnostics": [
-      "artifacts/migration/cycle111-input-tests.log",
-      "artifacts/migration/cycle111-final-clippy.log",
-      "artifacts/migration/cycle111-final-build.log",
-      "artifacts/migration/cycle111-particles-final/report.json"
+      "artifacts/migration/cycle112-input-tests-v2.log",
+      "artifacts/migration/cycle112-clippy.log",
+      "artifacts/migration/cycle112-build.log",
+      "artifacts/migration/cycle112-audio/report.json",
+      "artifacts/migration/cycle112-audio-final.log",
+      "artifacts/migration/cycle112-audio-controls-v2/report.json"
     ],
     "failed_attempts": [
       {
-        "report": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-streak-3/report.json",
-        "reason": "Rejected unrestricted position arithmetic: one lost streak edge pixel (186,63), max error 223. Invariant position compilation fixes coverage without tolerance changes; original resource identities remain unchanged."
-      },
-      {
-        "report": "artifacts/migration/cycle111-particles/render.log",
-        "reason": "The batch CLI correctly rejected relative output paths. Diagnostic retried with absolute contained paths."
+        "report": "artifacts/migration/cycle112-audio-controls/report.json",
+        "reason": "Diagnostic fixture initially omitted the resources.json sidecar. Added authenticated per-fixture resource manifests and reran all controls successfully."
       }
     ],
-    "next_step": "Continue M7-T4 with frozen audio-spectrum bars/ring/scope invocations and generated auxiliary output; retain recursive integration and full M7 coverage for T5/T6.",
+    "next_step": "Continue M7-T4 with generated auxiliary output, then recursive integration in T5 and complete M7 coverage audit in T6.",
     "notes": [
-      "Native supplied graph compute and ordered beauty drawing keep instance and indirect buffers GPU-resident. Context, parameters, capacity, program resources, device dispatch/storage limits and frame identity are validated.",
-      "Program pipelines are shared by structural graph identity and inactive programs are retired. Transient buffers are rebuilt from supplied time-addressed data.",
-      "Marked generator position outputs invariant in Naga IR; independent contact sheets and heatmaps pass unchanged GPU and structural limits. No shader source, ABI or tolerance change.",
-      "Only an existing locked serde_json dependency edge and wgpu naga-ir feature were added; no new package version or bundled native library.",
-      "All required full gates passed with source_unchanged=true. The initial commit hook lacked pnpm on PATH; rerunning with the established toolchain PATH passed every hook without bypassing checks.",
-      "M7-T4 remains in progress for audio and auxiliary coverage; production preview/export routing and native delivery performance acceptance remain unchanged."
+      "One shared GPU audio buffer serves every generator in a scene, including invocations omitting redundant audio payloads. Contradictory frame records are rejected before GPU execution.",
+      "Silence is explicitly initialized per scene; restoring frozen input after mutated audio reproduces exact original pixels. Shared and inherited audio render identically.",
+      "All 15 frozen audio frames remain unchanged after shared-buffer refactoring. Full-color, alpha and heatmap review accepted all frames without tolerance changes.",
+      "All required full gates passed with source_unchanged=true. M7-T4 remains in progress for generated auxiliary output."
     ]
   },
   "milestones": [
@@ -20644,16 +20642,14 @@
           "title": "Execute bundled scene generators through shared WGSL ABI with time and audio inputs",
           "status": "in_progress",
           "last_increment": {
-            "cycle": 111,
-            "commit": "74b13ced04e6f39cbbe0c1f6a0ea23b058cb1ec4",
-            "verification": "artifacts/migration/verify-2026-10-07T19-34-23-125Z-697d1551.json",
+            "cycle": 112,
+            "commit": "354489823c878cd0ac588771bce3f186760ea041",
+            "verification": "artifacts/migration/verify-2026-10-07T20-21-43-726Z-2f75ba13.json",
             "completed": [
-              "Root supplied generator compute and ordered beauty draw on GPU",
-              "Frozen billboard, mesh and streak frames with invariant position compilation",
-              "Resource identity, realization, shader text and allocation-budget rejection controls"
+              "Frozen bars, ring and scope audio-spectrum generator frames",
+              "Shared GPU audio storage, inherited payload, explicit silence and conflicting-record rejection"
             ],
             "remaining": [
-              "Supplied audio-analysis generator coverage",
               "Generated auxiliary output",
               "Recursive integration in M7-T5 and complete coverage audit in M7-T6"
             ]
@@ -20674,17 +20670,17 @@
         "status": "passed",
         "required_gates_passed": true,
         "milestone_exit_satisfied": false,
-        "report": "artifacts/migration/verify-2026-10-07T19-34-23-125Z-697d1551.json",
+        "report": "artifacts/migration/verify-2026-10-07T20-21-43-726Z-2f75ba13.json",
         "gates": [
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 159512
+            "duration_ms": 122708
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 1522175
+            "duration_ms": 1150329
           }
         ]
       }
@@ -199949,6 +199945,1520 @@
         "heatmap": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-streak-54/heatmap.png",
         "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916"
       }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 15,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.0,
+        "previous": {
+          "status": "compared",
+          "frame": 14,
+          "mean_squared_error": 1827.4861284722222,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 16,
+          "mean_squared_error": 733.6437456597222,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "55fcbea4914601a147e43b8467e5088c47a76d0bf7057dae2e9c6314e531dbe3",
+      "candidate_rgba_sha256": "55fcbea4914601a147e43b8467e5088c47a76d0bf7057dae2e9c6314e531dbe3",
+      "case_id": "scene-audio-spectrum-bars",
+      "frame": 15,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T20:21:41.370510+00:00",
+      "cycle": 112,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-bars-15/report.json",
+        "report_sha256": "191f9b346536b35196a6aef126ec1b7423fbc4fcf9a9677fbc4027c5ee654c20",
+        "contact_sheet": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-bars-15/contact-sheet.png",
+        "contact_sheet_sha256": "72f64f97c65cb71faec9d5ec65c8cce24a069d08a557ec7e455c27781082f9e8",
+        "heatmap": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-bars-15/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 3,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.0,
+        "previous": {
+          "status": "compared",
+          "frame": 2,
+          "mean_squared_error": 593.7230946180556,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 4,
+          "mean_squared_error": 421.0957855902778,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "539f6f45f524bdddc6bd2ef512ff44ba5a76c31aee47a81f2ddbee886018fce7",
+      "candidate_rgba_sha256": "539f6f45f524bdddc6bd2ef512ff44ba5a76c31aee47a81f2ddbee886018fce7",
+      "case_id": "scene-audio-spectrum-bars",
+      "frame": 3,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T20:21:41.371512+00:00",
+      "cycle": 112,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-bars-3/report.json",
+        "report_sha256": "89f18bd15695db66e22b14299028bfba289b23023ddc16bb02314d3c6479ebf4",
+        "contact_sheet": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-bars-3/contact-sheet.png",
+        "contact_sheet_sha256": "9a5327e1000f82ece5cb323752161c78314e655afad0af779074a1a73bd4bcf7",
+        "heatmap": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-bars-3/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 33,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.0,
+        "previous": {
+          "status": "compared",
+          "frame": 32,
+          "mean_squared_error": 541.8581119791667,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 34,
+          "mean_squared_error": 397.0742317708333,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "2fb5eedc3b85ff87eb7d0074dfcc73e20e2b5435c17987fb3c9c3043fa6ffa30",
+      "candidate_rgba_sha256": "2fb5eedc3b85ff87eb7d0074dfcc73e20e2b5435c17987fb3c9c3043fa6ffa30",
+      "case_id": "scene-audio-spectrum-bars",
+      "frame": 33,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T20:21:41.371512+00:00",
+      "cycle": 112,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-bars-33/report.json",
+        "report_sha256": "1e8ed9bc857ab711f93f14ea0fcdfc248111fee9f3a7187e54c1dba822938bee",
+        "contact_sheet": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-bars-33/contact-sheet.png",
+        "contact_sheet_sha256": "a9aa97821a3d74b5376f889281e5332ddbdbaa2c696668f3bc595ddd3edb3798",
+        "heatmap": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-bars-33/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 54,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.0,
+        "previous": {
+          "status": "compared",
+          "frame": 53,
+          "mean_squared_error": 865.9639105902778,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 55,
+          "mean_squared_error": 591.0640147569444,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "f525b3997c25fac9b0c997c904f0a7ed05ab76a5532a88ca76dee30b33846b52",
+      "candidate_rgba_sha256": "f525b3997c25fac9b0c997c904f0a7ed05ab76a5532a88ca76dee30b33846b52",
+      "case_id": "scene-audio-spectrum-bars",
+      "frame": 54,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T20:21:41.372513+00:00",
+      "cycle": 112,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-bars-54/report.json",
+        "report_sha256": "16c2182319ebef08b24ece986d32a76db26adb2977d33de7a7f33f27981d0538",
+        "contact_sheet": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-bars-54/contact-sheet.png",
+        "contact_sheet_sha256": "ab1af2edf6cf99bdcc020e901e65c2a6a726a77509216241ea02ff0a8b9b5c13",
+        "heatmap": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-bars-54/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 8.680555555555556e-6,
+        "mean_squared_error": 8.680555555555556e-6,
+        "rgb_mean_squared_error": 1.1574074074074073e-5,
+        "psnr": {
+          "kind": "finite",
+          "db": 97.49594103346803
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 98.74532839955103
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999999798366344, 1.0, 1.0, 1.0],
+        "mean": 0.9999999932788781,
+        "rgba_mean": 0.9999999949591586,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [-3.472222222222222e-5, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.152118455432966,
+          "candidate_rms": 0.15211845403274307,
+          "reference_axis_ratio": 0.25641577534433546,
+          "candidate_axis_ratio": 0.256417748757697,
+          "reference_window_energy_fraction": 0.9842937673916299,
+          "candidate_window_energy_fraction": 0.984293786919334,
+          "active_frequencies": 8644,
+          "spectral_bins": 524288,
+          "peak_ratio": 1.629095430654269,
+          "peak_to_sidelobe_ratio": 109.5418976936989,
+          "peak_coherence": 0.9999999999286752,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 6,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 8.680555555555556e-6,
+        "previous": {
+          "status": "compared",
+          "frame": 5,
+          "mean_squared_error": 424.1806163194444,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 7,
+          "mean_squared_error": 1490.5458854166666,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "99e1a6e80d271ae7e8534ed4c5fd8bbf2177fe56c9b2c8d19dca60dce9399084",
+      "candidate_rgba_sha256": "3a1ad56cb303fea9655ce7733f074d73a98d68c7745437b6468fdc4c9880c85b",
+      "case_id": "scene-audio-spectrum-bars",
+      "frame": 6,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T20:21:41.372513+00:00",
+      "cycle": 112,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-bars-6/report.json",
+        "report_sha256": "2952138609d52eb4f132afd8eeb340a53af8b1d68d2774979741dfe69a67e82d",
+        "contact_sheet": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-bars-6/contact-sheet.png",
+        "contact_sheet_sha256": "ce8b4fa52dd5a531655b9aa1b9a51a4c4bb1ffc7afbb692715d32e4bca81b161",
+        "heatmap": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-bars-6/heatmap.png",
+        "heatmap_sha256": "876334c4e202e54fd9549d1bda922d899393e24334b44becc3a35ea0d2351ab5"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 4.340277777777778e-6,
+        "mean_squared_error": 4.340277777777778e-6,
+        "rgb_mean_squared_error": 5.787037037037037e-6,
+        "psnr": {
+          "kind": "finite",
+          "db": 100.50624099010784
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 101.75562835619084
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999999972781969, 1.0, 1.0, 1.0],
+        "mean": 0.9999999990927323,
+        "rgba_mean": 0.9999999993195492,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [1.736111111111111e-5, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.2467595823098558,
+          "candidate_rms": 0.24675959772145326,
+          "reference_axis_ratio": 0.40084315172389934,
+          "candidate_axis_ratio": 0.4008425409137615,
+          "reference_window_energy_fraction": 0.9736014298767869,
+          "candidate_window_energy_fraction": 0.9736014251509384,
+          "active_frequencies": 26272,
+          "spectral_bins": 524288,
+          "peak_ratio": 4.534235276977178,
+          "peak_to_sidelobe_ratio": 272.55193100793053,
+          "peak_coherence": 0.9999999999906823,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 15,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 4.340277777777778e-6,
+        "previous": {
+          "status": "compared",
+          "frame": 14,
+          "mean_squared_error": 2256.9501085069446,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 16,
+          "mean_squared_error": 1081.6444053819444,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "d91bd0d843620d0961d91e39b58a3d8e16537489c5e46c8d03f1e63b370cf273",
+      "candidate_rgba_sha256": "05a14527ac31e79a282110325f884d6112dbb0de1595911b7a43fcaf16744ad8",
+      "case_id": "scene-audio-spectrum-ring",
+      "frame": 15,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T20:21:41.373517+00:00",
+      "cycle": 112,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-ring-15/report.json",
+        "report_sha256": "d62b77abff234d88638ab6161069683aadcbbcd38370973ffbdf013414756b54",
+        "contact_sheet": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-ring-15/contact-sheet.png",
+        "contact_sheet_sha256": "5638738eca60abb665d1444082bcd4db10e291aa1d6e66d5d3be71ac573b8f44",
+        "heatmap": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-ring-15/heatmap.png",
+        "heatmap_sha256": "66eed8afde3829a6363c7efe6046b6d7cf1638d5918981873caeb37c790a9ca2"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 8.680555555555556e-6,
+        "mean_squared_error": 8.680555555555556e-6,
+        "rgb_mean_squared_error": 1.1574074074074073e-5,
+        "psnr": {
+          "kind": "finite",
+          "db": 97.49594103346803
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 98.74532839955103
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999999902580641, 1.0, 1.0, 1.0],
+        "mean": 0.9999999967526879,
+        "rgba_mean": 0.999999997564516,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [3.472222222222222e-5, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.19263320038976525,
+          "candidate_rms": 0.19263324176527838,
+          "reference_axis_ratio": 0.3641593853614462,
+          "candidate_axis_ratio": 0.3641586156384206,
+          "reference_window_energy_fraction": 0.9822148149556216,
+          "candidate_window_energy_fraction": 0.9822148060704443,
+          "active_frequencies": 32112,
+          "spectral_bins": 524288,
+          "peak_ratio": 4.887359765370596,
+          "peak_to_sidelobe_ratio": 331.9822022739535,
+          "peak_coherence": 0.9999999999589178,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 3,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 8.680555555555556e-6,
+        "previous": {
+          "status": "compared",
+          "frame": 2,
+          "mean_squared_error": 794.2007725694444,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 4,
+          "mean_squared_error": 571.3593402777777,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "4ddff6b581d13a768dbfde3d41e378b057553e31e5046c804c8a531d06a80af1",
+      "candidate_rgba_sha256": "bdd929ffe3e9d132890953e09ccfdc5d8370d8a7b954180dec1588287d554856",
+      "case_id": "scene-audio-spectrum-ring",
+      "frame": 3,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T20:21:41.374028+00:00",
+      "cycle": 112,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-ring-3/report.json",
+        "report_sha256": "f2c1b563946f6ca5233720b293364025e6d7dbc65b8b13b4cb33bc21aa34eee3",
+        "contact_sheet": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-ring-3/contact-sheet.png",
+        "contact_sheet_sha256": "167b6bc4b65fbc4cb1c37d3c3eeee1ed7d80ffee29acd7202242f81c40d78a56",
+        "heatmap": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-ring-3/heatmap.png",
+        "heatmap_sha256": "50aea9992b06e7de50b17b19d93bbb7f4b1d8f59e4946c3d9c1067a9fd391059"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 1.3020833333333334e-5,
+        "mean_squared_error": 1.3020833333333334e-5,
+        "rgb_mean_squared_error": 1.1574074074074073e-5,
+        "psnr": {
+          "kind": "finite",
+          "db": 97.49594103346803
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 96.98441580899421
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999999982028482, 1.0, 0.9999999925856956, 0.9999999986846251],
+        "mean": 0.9999999969295147,
+        "rgba_mean": 0.9999999973682923,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [1.736111111111111e-5, 0.0, 1.736111111111111e-5, 1.736111111111111e-5],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.18842007682170475,
+          "candidate_rms": 0.1884202097988292,
+          "reference_axis_ratio": 0.3726460048409465,
+          "candidate_axis_ratio": 0.37264542873281425,
+          "reference_window_energy_fraction": 0.9827838742153896,
+          "candidate_window_energy_fraction": 0.982783869805713,
+          "active_frequencies": 31766,
+          "spectral_bins": 524288,
+          "peak_ratio": 4.772882866931646,
+          "peak_to_sidelobe_ratio": 325.1273944047705,
+          "peak_coherence": 0.9999999998795858,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 33,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 1.3020833333333334e-5,
+        "previous": {
+          "status": "compared",
+          "frame": 32,
+          "mean_squared_error": 736.5691666666667,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 34,
+          "mean_squared_error": 535.5242708333334,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "2f29c55c52937b34edd747965ca28830bad95c84ee6b9f5b8750113ce4b838d5",
+      "candidate_rgba_sha256": "2d6df4f30ab53197dc93c00c9a805ec5c0f80dafa4bb25c84305405c298f75e7",
+      "case_id": "scene-audio-spectrum-ring",
+      "frame": 33,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T20:21:41.374028+00:00",
+      "cycle": 112,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-ring-33/report.json",
+        "report_sha256": "ee7abe1e7568620b0afc293bed55f1983e097a4270462a169a63ac593bb6d41d",
+        "contact_sheet": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-ring-33/contact-sheet.png",
+        "contact_sheet_sha256": "563e24175973964a30055d86f9d5cde320a5fcb360d1ed5e703245e3c8a530b3",
+        "heatmap": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-ring-33/heatmap.png",
+        "heatmap_sha256": "6b66a5f3a91c34122198c96a2f29539b812cbf7bce27ff4f21399949e0eeee06"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.0004166666666666667,
+        "mean_squared_error": 0.0004166666666666667,
+        "rgb_mean_squared_error": 0.00032407407407407406,
+        "psnr": {
+          "kind": "finite",
+          "db": 83.02436072004583
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 81.93291602579515
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.999999128009508, 0.9999996393401003, 0.9999995049136181, 0.9999993421149674],
+        "mean": 0.9999994240877421,
+        "rgba_mean": 0.9999994035945484,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -5.208333333333334e-5, 1.736111111111111e-5, 3.472222222222222e-5, 6.944444444444444e-5
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.20091055158374474,
+          "candidate_rms": 0.20091049115672127,
+          "reference_axis_ratio": 0.428154514251123,
+          "candidate_axis_ratio": 0.4281536143216654,
+          "reference_window_energy_fraction": 0.9805653896329998,
+          "candidate_window_energy_fraction": 0.9805653782216459,
+          "active_frequencies": 31206,
+          "spectral_bins": 524288,
+          "peak_ratio": 5.1584989055520705,
+          "peak_to_sidelobe_ratio": 322.07436164335354,
+          "peak_coherence": 0.9999999937514972,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 54,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.0004166666666666667,
+        "previous": {
+          "status": "compared",
+          "frame": 53,
+          "mean_squared_error": 1260.8023654513888,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 55,
+          "mean_squared_error": 787.1021961805556,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "80da989405e05e1dcfdca792f9114aa2d2824b30aeb44d0336f2fc2d071763d9",
+      "candidate_rgba_sha256": "c6651eaf5957acd5c734f92e360489002239d4466594077624f60d7f5be87fad",
+      "case_id": "scene-audio-spectrum-ring",
+      "frame": 54,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T20:21:41.375021+00:00",
+      "cycle": 112,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-ring-54/report.json",
+        "report_sha256": "3e3ea2aa46fa514ed57618d62c3a3b8aaca7679b9ccaa94abca49eb8c12ea687",
+        "contact_sheet": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-ring-54/contact-sheet.png",
+        "contact_sheet_sha256": "2b74714de84b3ead1b75160e8dd012b786fbf299965b609500e63922a5dbd3f1",
+        "heatmap": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-ring-54/heatmap.png",
+        "heatmap_sha256": "cbe476547ae9fba419b603d98c6eac4215dc77b4ccdc7e52649feffb2ac7db33"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 8.246527777777778e-5,
+        "mean_squared_error": 8.246527777777778e-5,
+        "rgb_mean_squared_error": 6.36574074074074e-5,
+        "psnr": {
+          "kind": "finite",
+          "db": 90.0923141385256
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 88.96809234666256
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.999999989491469, 0.9999996142631139, 0.999999671932031, 0.9999992646799409],
+        "mean": 0.9999997585622046,
+        "rgba_mean": 0.9999996350916387,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [-3.472222222222222e-5, 0.0, 1.736111111111111e-5, -0.00010416666666666667],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.1545678429051335,
+          "candidate_rms": 0.15456778605574242,
+          "reference_axis_ratio": 0.3693387218448741,
+          "candidate_axis_ratio": 0.3693371373802892,
+          "reference_window_energy_fraction": 0.9858320239569003,
+          "candidate_window_energy_fraction": 0.9858320055515709,
+          "active_frequencies": 33630,
+          "spectral_bins": 524288,
+          "peak_ratio": 5.122962875161857,
+          "peak_to_sidelobe_ratio": 338.34668399975504,
+          "peak_coherence": 0.9999999989034368,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 6,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 8.246527777777778e-5,
+        "previous": {
+          "status": "compared",
+          "frame": 5,
+          "mean_squared_error": 577.0493315972222,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 7,
+          "mean_squared_error": 1996.0498741319445,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "772de0c83525d519ee7127eb1249441cd0b8bf902c969965dcb2169dadd2dd84",
+      "candidate_rgba_sha256": "986deae043aa5a0ab8d33b990b2bd43c44df2aa5d2f68524b4aa6a9b54746a60",
+      "case_id": "scene-audio-spectrum-ring",
+      "frame": 6,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T20:21:41.375021+00:00",
+      "cycle": 112,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-ring-6/report.json",
+        "report_sha256": "98061702a966b127c81827c06b94847b5a0915a443109f9828bfd57eb9527f66",
+        "contact_sheet": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-ring-6/contact-sheet.png",
+        "contact_sheet_sha256": "0094f215977f7a54f55e49861bae77747d20dc660a00905f53be609cec4aca26",
+        "heatmap": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-ring-6/heatmap.png",
+        "heatmap_sha256": "3dadf72a5073fd90631c5d7ffde0c2d7de1becf74c86e920c1e4488031c25a94"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 15,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.0,
+        "previous": {
+          "status": "compared",
+          "frame": 14,
+          "mean_squared_error": 809.6031423611112,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 16,
+          "mean_squared_error": 1278.122578125,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "12dcf965cf3434311c3ba30c8e372d6958a0a67493b88c71fbc8fac36adda80f",
+      "candidate_rgba_sha256": "12dcf965cf3434311c3ba30c8e372d6958a0a67493b88c71fbc8fac36adda80f",
+      "case_id": "scene-audio-spectrum-scope",
+      "frame": 15,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T20:21:41.375021+00:00",
+      "cycle": 112,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-scope-15/report.json",
+        "report_sha256": "9198f219ec126df212b16c8f545b8f9c50fbd5de3d9d936faf36edf710c51490",
+        "contact_sheet": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-scope-15/contact-sheet.png",
+        "contact_sheet_sha256": "4e2fe173b1963e35ef196e2a1e7ac7d351d2fd21987e9933721a51b29390b884",
+        "heatmap": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-scope-15/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 3,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.0,
+        "previous": {
+          "status": "compared",
+          "frame": 2,
+          "mean_squared_error": 1420.0200520833334,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 4,
+          "mean_squared_error": 1070.3184288194445,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "bfbf59b3b2ef4e3b13911f6a8fe1a952dc486a39a45e8bdf5648c441956131a5",
+      "candidate_rgba_sha256": "bfbf59b3b2ef4e3b13911f6a8fe1a952dc486a39a45e8bdf5648c441956131a5",
+      "case_id": "scene-audio-spectrum-scope",
+      "frame": 3,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T20:21:41.376024+00:00",
+      "cycle": 112,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-scope-3/report.json",
+        "report_sha256": "caa224c925c8b1fc14aca154f4422c16a19d7ef8fd45da0e4d66c1394d2d70b1",
+        "contact_sheet": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-scope-3/contact-sheet.png",
+        "contact_sheet_sha256": "164cf8b94b68d02d9debb0477a4e4d2c2d3e7f85116d3183d809b94ab48f50d8",
+        "heatmap": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-scope-3/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 33,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.0,
+        "previous": {
+          "status": "compared",
+          "frame": 32,
+          "mean_squared_error": 1420.0200520833334,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 34,
+          "mean_squared_error": 1070.3184288194445,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "bfbf59b3b2ef4e3b13911f6a8fe1a952dc486a39a45e8bdf5648c441956131a5",
+      "candidate_rgba_sha256": "bfbf59b3b2ef4e3b13911f6a8fe1a952dc486a39a45e8bdf5648c441956131a5",
+      "case_id": "scene-audio-spectrum-scope",
+      "frame": 33,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T20:21:41.376024+00:00",
+      "cycle": 112,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-scope-33/report.json",
+        "report_sha256": "0ab3b1141f8aba66b980aee24bde539b2ad60b0d97ecb52cbeb89876a28aedc9",
+        "contact_sheet": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-scope-33/contact-sheet.png",
+        "contact_sheet_sha256": "164cf8b94b68d02d9debb0477a4e4d2c2d3e7f85116d3183d809b94ab48f50d8",
+        "heatmap": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-scope-33/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 54,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.0,
+        "previous": {
+          "status": "compared",
+          "frame": 53,
+          "mean_squared_error": 1431.8694401041666,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 55,
+          "mean_squared_error": 1392.1794878472222,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "8b15138ab5a1bcc8e90afd0d0223c174840114c5e9882d8539e19bf65d146beb",
+      "candidate_rgba_sha256": "8b15138ab5a1bcc8e90afd0d0223c174840114c5e9882d8539e19bf65d146beb",
+      "case_id": "scene-audio-spectrum-scope",
+      "frame": 54,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T20:21:41.377026+00:00",
+      "cycle": 112,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-scope-54/report.json",
+        "report_sha256": "32d7578e42cfe94ff3f609e97866b4f0f7c3cf4932b00afe3d20d5ec078cde97",
+        "contact_sheet": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-scope-54/contact-sheet.png",
+        "contact_sheet_sha256": "b6c60e103ec96913d56b25bca611faf902396589de3656ec5e18c45eb3f01694",
+        "heatmap": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-scope-54/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 6,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.0,
+        "previous": {
+          "status": "compared",
+          "frame": 5,
+          "mean_squared_error": 544.0295746527778,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 7,
+          "mean_squared_error": 551.1388932291667,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "640177810c60c7ac69b874e05f14e31c0d53335770309c45006664cb9f552143",
+      "candidate_rgba_sha256": "640177810c60c7ac69b874e05f14e31c0d53335770309c45006664cb9f552143",
+      "case_id": "scene-audio-spectrum-scope",
+      "frame": 6,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T20:21:41.377026+00:00",
+      "cycle": 112,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-scope-6/report.json",
+        "report_sha256": "360974dec8607aa2bbd947fa6ac59d6ded8dd4edcea28486ed7eb9f1ab1bb8ce",
+        "contact_sheet": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-scope-6/contact-sheet.png",
+        "contact_sheet_sha256": "32e01a8be624b5a179cfeaa173ac06327710f4ca32f53f51094a15095b5b915c",
+        "heatmap": "artifacts/migration/cycle112-audio/pixels/frames/scene-audio-spectrum-scope-6/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916"
+      }
     }
   ],
   "history": [
@@ -202513,6 +204023,71 @@
         "Only an existing locked serde_json dependency edge and wgpu naga-ir feature were added; no new package version or bundled native library.",
         "All required full gates passed with source_unchanged=true. The initial commit hook lacked pnpm on PATH; rerunning with the established toolchain PATH passed every hook without bypassing checks.",
         "M7-T4 remains in progress for audio and auxiliary coverage; production preview/export routing and native delivery performance acceptance remain unchanged."
+      ]
+    },
+    {
+      "id": 112,
+      "time": "2026-10-07T20:44:26.567367+00:00",
+      "milestone": "M7",
+      "task": "M7-T4",
+      "outcome": "passed",
+      "commit": "354489823c878cd0ac588771bce3f186760ea041",
+      "verification": "artifacts/migration/verify-2026-10-07T20-21-43-726Z-2f75ba13.json",
+      "verification_sha256": "16469fe56c2a6d8ab06d6a8a2bb5433db22dd88fae87d6736359e04402e5e362",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 122708
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 1150329
+        }
+      ],
+      "verification_duration_ms": 1275163,
+      "milestone_exit_satisfied": false,
+      "audio": {
+        "frames": 15,
+        "exact_frames": 9,
+        "nonexact_frames": 6,
+        "nonexact_max_abs": 1,
+        "self_reviews_accepted": 15,
+        "variants": ["bars", "ring", "scope"],
+        "rational_frames": [3, 6, 15, 33, 54],
+        "control_executions": 12,
+        "exact_replays": 6,
+        "conflict_rejections": 3
+      },
+      "regressions": {
+        "pixel_frames": 1315,
+        "cache_exact_comparisons": 5324,
+        "scene_output_frames": 64,
+        "hdr_material_frames": 60,
+        "normal_material_frames": 144,
+        "animated_normal_frames": 24
+      },
+      "diagnostics": [
+        "artifacts/migration/cycle112-input-tests-v2.log",
+        "artifacts/migration/cycle112-clippy.log",
+        "artifacts/migration/cycle112-build.log",
+        "artifacts/migration/cycle112-audio/report.json",
+        "artifacts/migration/cycle112-audio-final.log",
+        "artifacts/migration/cycle112-audio-controls-v2/report.json"
+      ],
+      "failed_attempts": [
+        {
+          "report": "artifacts/migration/cycle112-audio-controls/report.json",
+          "reason": "Diagnostic fixture initially omitted the resources.json sidecar. Added authenticated per-fixture resource manifests and reran all controls successfully."
+        }
+      ],
+      "next_step": "Continue M7-T4 with generated auxiliary output, then recursive integration in T5 and complete M7 coverage audit in T6.",
+      "notes": [
+        "One shared GPU audio buffer serves every generator in a scene, including invocations omitting redundant audio payloads. Contradictory frame records are rejected before GPU execution.",
+        "Silence is explicitly initialized per scene; restoring frozen input after mutated audio reproduces exact original pixels. Shared and inherited audio render identically.",
+        "All 15 frozen audio frames remain unchanged after shared-buffer refactoring. Full-color, alpha and heatmap review accepted all frames without tolerance changes.",
+        "All required full gates passed with source_unchanged=true. M7-T4 remains in progress for generated auxiliary output."
       ]
     }
   ],
