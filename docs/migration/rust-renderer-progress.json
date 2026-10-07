@@ -162,42 +162,59 @@
     }
   },
   "last_cycle": {
-    "id": 86,
-    "time": "2026-10-07T05:39:22.156Z",
+    "id": 87,
+    "time": "2026-10-07T06:03:48.942Z",
     "milestone": "M4",
-    "task": "M4-T2",
+    "task": "M4-T3",
     "outcome": "passed",
-    "commit": "ac7387d88f13284c55b79d6ef62cf53388283939",
-    "verification": "artifacts/migration/verify-2026-10-07T05-22-25-317Z-cd35d32a.json",
-    "verification_sha256": "c33a067e4ad569fe641a853f98e6af0919ec8b15ee449203a3a7091ba56f8b5a",
+    "commit": "79784e275d69472c846f39983815db3884b4172b",
+    "verification": "artifacts/migration/verify-2026-10-07T05-50-51-980Z-40dac0eb.json",
+    "verification_sha256": "ab1b8535d9b209a70a085941e173b93dd6f628a67f4cacdf1ba69791d53f2721",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 121135
+        "duration_ms": 92495
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 833105
+        "duration_ms": 628109
       }
     ],
-    "verification_duration_ms": 974339,
-    "base_parameter_audit": {
-      "path": "artifacts/migration/cycle86-base-parameter-audit.json",
-      "sha256": "4f22f625d315d2044af4369d10e88b3b0c12e769fd7587441297bf70a0074a1c"
+    "verification_duration_ms": 722282,
+    "unoptimized_reference": {
+      "path": "artifacts/migration/verify-2026-10-07T05-22-25-317Z-cd35d32a.json",
+      "sha256": "c33a067e4ad569fe641a853f98e6af0919ec8b15ee449203a3a7091ba56f8b5a"
     },
-    "style_chain": {
-      "report": "artifacts/migration/cycle86-style-chain/report.json",
-      "sha256": "7b97393ddbd12493ff4bb1e728e797ddb1e486ffdb77c61df524a847a28c593c",
-      "frames": 4,
-      "accepted": 4
+    "native_optimization": {
+      "path": "artifacts/migration/cycle87-native-pyramids-matched/report.json",
+      "sha256": "2cb64fc365a01729222cba07fcce4ccb98f09ed4bbe062a27ec37b713b491586",
+      "frames": 1232,
+      "exact_frames": 1232,
+      "binary_sha256": "2976e7f9f75de36d7933e5ee4cfb7843c03b10bccc7baef1eba13798cd9b32bc",
+      "compiler_policy": "Match each original G3 frame compiler, including the pinned DXC only where the reference used it.",
+      "initial_diagnostic": {
+        "path": "artifacts/migration/cycle87-native-pyramids/report.json",
+        "status": "failed",
+        "reason": "The first diagnostic forced DXC onto default-compiler core references. All 1087 effect frames were exact; 52 core frames differed. Rerunning with identical compiler selection is exact for all 1232 frames; preserve the unmatched attempt."
+      }
     },
-    "next_step": "M4-T3: bound native blur/glow levels by supplied sampling radii and share their source downsampling where exact parity holds.",
+    "failed_attempts": [
+      {
+        "gate": "G0",
+        "evidence": "artifacts/migration/2026-10-07T05-48-02-252Z-d310c6b7/migration-tests.log",
+        "reason": "Shared-shader catalog count assertion still expected 26 after adding native-pyramid-seed (27 programs).",
+        "resolution": "Updated the explicit catalog count; all six shader-source audit tests pass. Stopped the known-red full run before completing G3; retain failed logs."
+      }
+    ],
+    "next_step": "M4-T4: integrate native surface post effects using the frozen output-replay plans and auxiliary inputs; retain capability rejection for unsupported routes.",
     "notes": [
-      "All 1232 native replay comparisons passed and match accepted reference/candidate pixel hash pairs. Four composed-style frames were directly reviewed; no tolerance or reference changes.",
-      "Current production builders supply neutral base parameters and compile user effects into operations. Supplied six-operation composed styles execute successfully. This completes M4-T2 without claiming arbitrary legacy base blur/glow support.",
-      "Full G0/G3 retain PNG/JPEG, EXR, cache and rejection checks. Source remained unchanged during verification. M4 exit is still false and production preview/export remain TS."
+      "Conservative radius demand now controls allocation, transient admission and recorded levels. Supplied max-LOD uniforms remain unchanged and an interpolation/rounding guard is retained.",
+      "A native-only two-target seed pass shares blur/glow source taps and preserves bright-pass ordering. Later downsampling remains independent because the signals differ.",
+      "All 1232 formal G3 outputs are byte-identical to cycle86 unoptimized native outputs and match already accepted TS/native pixel pairs. No reference or tolerance changed. Full G0/G3, image/EXR/cache and rejection checks pass with source unchanged.",
+      "Initial all-DXC diagnostic used the wrong compiler for early core cases; matched-compiler rerun is exact. The first G0 run found the stale 26-program catalog count; updated it to 27 and reran green. Preserve both failed attempts.",
+      "M4 remains in progress. Production Rust preview/export and overall completion are not achieved."
     ]
   },
   "milestones": [
@@ -20121,7 +20138,12 @@
         {
           "id": "M4-T3",
           "title": "Complete blur/glow and layer-style execution with radius-bounded and shared native pyramids",
-          "status": "in_progress"
+          "status": "done",
+          "completed_at": "2026-10-07T06:03:48.942Z",
+          "commit": "79784e275d69472c846f39983815db3884b4172b",
+          "verification": "artifacts/migration/verify-2026-10-07T05-50-51-980Z-40dac0eb.json",
+          "verification_sha256": "ab1b8535d9b209a70a085941e173b93dd6f628a67f4cacdf1ba69791d53f2721",
+          "scope": "Supplied production fused operations and layer styles use radius-bounded GPU pyramids with shared source taps. Legacy nonzero base blur/glow remain unsupported because production producers do not emit them; surface post routes remain M4-T4."
         },
         {
           "id": "M4-T4",
@@ -152911,6 +152933,62 @@
         "Current production builders supply neutral base parameters and compile user effects into operations. Supplied six-operation composed styles execute successfully. This completes M4-T2 without claiming arbitrary legacy base blur/glow support.",
         "Full G0/G3 retain PNG/JPEG, EXR, cache and rejection checks. Source remained unchanged during verification. M4 exit is still false and production preview/export remain TS."
       ]
+    },
+    {
+      "id": 87,
+      "time": "2026-10-07T06:03:48.942Z",
+      "milestone": "M4",
+      "task": "M4-T3",
+      "outcome": "passed",
+      "commit": "79784e275d69472c846f39983815db3884b4172b",
+      "verification": "artifacts/migration/verify-2026-10-07T05-50-51-980Z-40dac0eb.json",
+      "verification_sha256": "ab1b8535d9b209a70a085941e173b93dd6f628a67f4cacdf1ba69791d53f2721",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 92495
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 628109
+        }
+      ],
+      "verification_duration_ms": 722282,
+      "unoptimized_reference": {
+        "path": "artifacts/migration/verify-2026-10-07T05-22-25-317Z-cd35d32a.json",
+        "sha256": "c33a067e4ad569fe641a853f98e6af0919ec8b15ee449203a3a7091ba56f8b5a"
+      },
+      "native_optimization": {
+        "path": "artifacts/migration/cycle87-native-pyramids-matched/report.json",
+        "sha256": "2cb64fc365a01729222cba07fcce4ccb98f09ed4bbe062a27ec37b713b491586",
+        "frames": 1232,
+        "exact_frames": 1232,
+        "binary_sha256": "2976e7f9f75de36d7933e5ee4cfb7843c03b10bccc7baef1eba13798cd9b32bc",
+        "compiler_policy": "Match each original G3 frame compiler, including the pinned DXC only where the reference used it.",
+        "initial_diagnostic": {
+          "path": "artifacts/migration/cycle87-native-pyramids/report.json",
+          "status": "failed",
+          "reason": "The first diagnostic forced DXC onto default-compiler core references. All 1087 effect frames were exact; 52 core frames differed. Rerunning with identical compiler selection is exact for all 1232 frames; preserve the unmatched attempt."
+        }
+      },
+      "failed_attempts": [
+        {
+          "gate": "G0",
+          "evidence": "artifacts/migration/2026-10-07T05-48-02-252Z-d310c6b7/migration-tests.log",
+          "reason": "Shared-shader catalog count assertion still expected 26 after adding native-pyramid-seed (27 programs).",
+          "resolution": "Updated the explicit catalog count; all six shader-source audit tests pass. Stopped the known-red full run before completing G3; retain failed logs."
+        }
+      ],
+      "next_step": "M4-T4: integrate native surface post effects using the frozen output-replay plans and auxiliary inputs; retain capability rejection for unsupported routes.",
+      "notes": [
+        "Conservative radius demand now controls allocation, transient admission and recorded levels. Supplied max-LOD uniforms remain unchanged and an interpolation/rounding guard is retained.",
+        "A native-only two-target seed pass shares blur/glow source taps and preserves bright-pass ordering. Later downsampling remains independent because the signals differ.",
+        "All 1232 formal G3 outputs are byte-identical to cycle86 unoptimized native outputs and match already accepted TS/native pixel pairs. No reference or tolerance changed. Full G0/G3, image/EXR/cache and rejection checks pass with source unchanged.",
+        "Initial all-DXC diagnostic used the wrong compiler for early core cases; matched-compiler rerun is exact. The first G0 run found the stale 26-program catalog count; updated it to 27 and reran green. Preserve both failed attempts.",
+        "M4 remains in progress. Production Rust preview/export and overall completion are not achieved."
+      ]
     }
   ],
   "known_boundaries": [
@@ -153083,38 +153161,5 @@
         "sha256": "2a52867f6da0c4ad4e8cd1ef9831d5eb9be11743fe6f26fa9f12fe8d5c83797a"
       }
     }
-  ],
-  "active_cycle": {
-    "id": 87,
-    "started_at": "2026-10-07T05:40:55.598Z",
-    "milestone": "M4",
-    "task": "M4-T3",
-    "base_commit": "ebba73e0460439170f8abe880ca2835a3f0d0aa1",
-    "intent": "Bound native pyramid allocation and recorded levels by supplied effect radii, preserving original shader uniforms and validating exact output against the unoptimized native run.",
-    "unoptimized_reference": {
-      "path": "artifacts/migration/verify-2026-10-07T05-22-25-317Z-cd35d32a.json",
-      "sha256": "c33a067e4ad569fe641a853f98e6af0919ec8b15ee449203a3a7091ba56f8b5a"
-    },
-    "native_optimization": {
-      "path": "artifacts/migration/cycle87-native-pyramids-matched/report.json",
-      "sha256": "2cb64fc365a01729222cba07fcce4ccb98f09ed4bbe062a27ec37b713b491586",
-      "frames": 1232,
-      "exact_frames": 1232,
-      "binary_sha256": "2976e7f9f75de36d7933e5ee4cfb7843c03b10bccc7baef1eba13798cd9b32bc",
-      "compiler_policy": "Match each original G3 frame compiler, including the pinned DXC only where the reference used it.",
-      "initial_diagnostic": {
-        "path": "artifacts/migration/cycle87-native-pyramids/report.json",
-        "status": "failed",
-        "reason": "The first diagnostic forced DXC onto default-compiler core references. All 1087 effect frames were exact; 52 core frames differed. Rerunning with identical compiler selection is exact for all 1232 frames; preserve the unmatched attempt."
-      }
-    },
-    "failed_attempts": [
-      {
-        "gate": "G0",
-        "evidence": "artifacts/migration/2026-10-07T05-48-02-252Z-d310c6b7/migration-tests.log",
-        "reason": "Shared-shader catalog count assertion still expected 26 after adding native-pyramid-seed (27 programs).",
-        "resolution": "Updated the explicit catalog count; all six shader-source audit tests pass. Stopped the known-red full run before completing G3; retain failed logs."
-      }
-    ]
-  }
+  ]
 }
