@@ -6,6 +6,7 @@ use crate::{CancellationToken, FfmpegBackend, FfmpegCommand, FfmpegError};
 pub enum StillEncoding {
     Png,
     Jpeg,
+    Webp,
 }
 
 impl StillEncoding {
@@ -14,6 +15,8 @@ impl StillEncoding {
             Ok(Self::Png)
         } else if bytes.starts_with(&[0xff, 0xd8, 0xff]) {
             Ok(Self::Jpeg)
+        } else if bytes.starts_with(b"RIFF") && bytes.get(8..12) == Some(b"WEBP") {
+            Ok(Self::Webp)
         } else {
             Err(FfmpegError::InvalidMetadata(
                 "unsupported native still encoding".into(),
@@ -22,6 +25,9 @@ impl StillEncoding {
     }
 
     pub fn dimensions(self, bytes: &[u8]) -> Result<(u32, u32), FfmpegError> {
+        if matches!(self, Self::Webp) {
+            return crate::webp_header::WebpHeader::dimensions(bytes);
+        }
         if matches!(self, Self::Png) {
             if bytes.len() >= 24 && &bytes[12..16] == b"IHDR" {
                 let width = u32::from_be_bytes([bytes[16], bytes[17], bytes[18], bytes[19]]);
@@ -105,6 +111,7 @@ impl FfmpegBackend {
         let codec = match encoding {
             StillEncoding::Png => "png",
             StillEncoding::Jpeg => "mjpeg",
+            StillEncoding::Webp => "webp",
         };
         let command = FfmpegCommand::new(
             self.executable().to_owned(),

@@ -11,6 +11,7 @@ mod ffmpeg;
 mod process;
 mod still;
 mod video_snapshot;
+mod webp_header;
 pub use video_snapshot::{PresentationFrame, VideoSnapshot};
 #[cfg(test)]
 mod still_tests;

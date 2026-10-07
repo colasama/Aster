@@ -29,6 +29,17 @@ impl SuppliedFrame {
         limits: &DecodeLimits,
         decoded_images: &[aster_render_ir::PrecompositionMediaPixels],
     ) -> Result<Self, RenderError> {
+        Self::with_textures(plan, registry, limits, decoded_images, &[])
+    }
+
+    pub fn with_textures(
+        plan: OwnedFpln,
+        registry: &ResourceRegistry,
+        limits: &DecodeLimits,
+        decoded_images: &[aster_render_ir::PrecompositionMediaPixels],
+        decoded_textures: &[crate::DecodedTexturePixels],
+    ) -> Result<Self, RenderError> {
+        let textures = crate::DecodedTexturePixels::collect(decoded_textures, registry)?;
         let Some(PlanSlice::FrameBundle(bundle)) = plan.metadata.slices.first() else {
             return Err(RenderError::Invalid("complete root bundle required".into()));
         };
@@ -136,7 +147,7 @@ impl SuppliedFrame {
             &root,
             &bundle.effects,
             &root_pixels,
-            registry,
+            (registry, &textures),
             limits,
             false,
         )?;
@@ -147,6 +158,7 @@ impl SuppliedFrame {
             registry,
             limits,
             pixels,
+            &textures,
         )?;
         if let Some(surface) = &surface {
             surface.validate_resources(&scene, &surfaces)?;
@@ -192,7 +204,9 @@ impl SuppliedFrame {
             .chain(temporal.resources.iter())
             .cloned()
             .collect::<std::collections::BTreeSet<_>>();
-        if required != images.keys().cloned().collect() {
+        if required != images.keys().cloned().collect()
+            || textures.keys().any(|hash| !required.contains(hash))
+        {
             return Err(RenderError::Invalid(
                 "frame media resource closure differs".into(),
             ));

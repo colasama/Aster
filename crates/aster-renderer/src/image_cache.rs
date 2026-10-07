@@ -165,14 +165,7 @@ impl ImageCache {
                 mip_level_count: 1,
                 sample_count: 1,
                 dimension: wgpu::TextureDimension::D2,
-                format: match input.format {
-                    aster_render_ir::MediaTextureFormat::Rgba8UnormSrgb => {
-                        wgpu::TextureFormat::Rgba8UnormSrgb
-                    }
-                    aster_render_ir::MediaTextureFormat::Rgba16Float => {
-                        wgpu::TextureFormat::Rgba16Float
-                    }
-                },
+                format: input.format.gpu(),
                 usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
                 view_formats: &[],
             });

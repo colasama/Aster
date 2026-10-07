@@ -8,6 +8,39 @@ use aster_render_ir::{
 
 use crate::RenderError;
 
+#[derive(Clone, Copy)]
+pub(crate) enum ImageFormat {
+    Srgb8,
+    Linear8,
+    Linear16,
+}
+
+impl ImageFormat {
+    pub fn bytes_per_pixel(self) -> u32 {
+        match self {
+            Self::Srgb8 | Self::Linear8 => 4,
+            Self::Linear16 => 8,
+        }
+    }
+
+    pub fn gpu(self) -> wgpu::TextureFormat {
+        match self {
+            Self::Srgb8 => wgpu::TextureFormat::Rgba8UnormSrgb,
+            Self::Linear8 => wgpu::TextureFormat::Rgba8Unorm,
+            Self::Linear16 => wgpu::TextureFormat::Rgba16Float,
+        }
+    }
+}
+
+impl From<aster_render_ir::MediaTextureFormat> for ImageFormat {
+    fn from(value: aster_render_ir::MediaTextureFormat) -> Self {
+        match value {
+            aster_render_ir::MediaTextureFormat::Rgba8UnormSrgb => Self::Srgb8,
+            aster_render_ir::MediaTextureFormat::Rgba16Float => Self::Linear16,
+        }
+    }
+}
+
 /// Frame identity and pixel generation are separate: the same frame may receive newer pixels.
 #[derive(Clone)]
 pub(crate) struct ImageInput {
@@ -15,7 +48,7 @@ pub(crate) struct ImageInput {
     pub pixels: ResourceHash,
     pub width: u32,
     pub height: u32,
-    pub format: aster_render_ir::MediaTextureFormat,
+    pub format: ImageFormat,
 }
 
 impl ImageInput {
@@ -61,7 +94,7 @@ impl ImageInput {
             pixels: record.pixels.clone(),
             width: frame.width,
             height: frame.height,
-            format: frame.format,
+            format: frame.format.into(),
         })
     }
 

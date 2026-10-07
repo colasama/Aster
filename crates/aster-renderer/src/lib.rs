@@ -2,6 +2,7 @@
 mod auxiliary_bindings;
 mod auxiliary_pipelines;
 mod auxiliary_primary;
+mod decoded_texture;
 mod depth_auxiliary;
 mod depth_output;
 mod device;
@@ -47,6 +48,7 @@ mod visualizer;
 
 pub use auxiliary_pipelines::AuxiliaryPrimaryPipelines;
 pub use auxiliary_primary::{AuxiliaryPrimaryPlan, AuxiliaryPrimaryTargets};
+pub use decoded_texture::DecodedTexturePixels;
 pub use depth_output::DepthStatistics;
 pub use device::{NativeOptions, NativeRenderer, RenderedFrame};
 pub use effect_region::EffectRegionStatistics;

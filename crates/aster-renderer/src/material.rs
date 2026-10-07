@@ -128,6 +128,15 @@ impl MaterialPipelines {
                         .map(|t| t.create_view(&Default::default()))
                 })
                 .transpose()?;
+            let normal = material
+                .normal
+                .as_ref()
+                .map(|image| {
+                    images
+                        .texture(image)
+                        .map(|t| t.create_view(&Default::default()))
+                })
+                .transpose()?;
             let uniforms = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("Supplied material controls"),
                 contents: &material.uniforms,
@@ -136,7 +145,9 @@ impl MaterialPipelines {
             let entries = [
                 wgpu::BindGroupEntry {
                     binding: 0,
-                    resource: wgpu::BindingResource::TextureView(&self.normal),
+                    resource: wgpu::BindingResource::TextureView(
+                        normal.as_ref().map_or(&self.normal, |view| view),
+                    ),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,

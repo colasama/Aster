@@ -830,8 +830,15 @@ Native mesh draws consume supplied material scalars and content-addressed RGBA16
 textures through the shared material WGSL. Environment textures share the budgeted image cache;
 material controls and texture generations participate in post-effect layer keys. Material pipelines
 are initialized only for active draws. Directional and spot shadows use the supplied map geometry
-and linear comparison filtering, matching the retained browser path. Encoded normal-map decoding
-remains capability gated until its native resource adapter is available.
+and linear comparison filtering, matching the retained browser path. Inline PNG, JPEG and static WebP
+normal maps are decoded behind `aster-media-native`, authenticated separately from their derived
+pixel resources, and uploaded as linear RGBA8. A bounded session cache retains decoded pixels;
+the existing GPU image cache retains texture generations. PNG uses the packaged FFmpeg snapshot
+boundary; WebP uses the pure Rust `image-webp` decoder with browser-compatible bilinear chroma
+and alpha handling. On Windows, JPEG uses the built-in Microsoft WIC codec through a bounded
+in-memory stream, with no color transform. Its COM scope preserves the caller's apartment. Other
+platforms currently reject JPEG normals; animated WebP remains unsupported. Inline decoding grants
+no filesystem media access.
 
 Browser video uses hardware media decode and a persistent staging canvas before `queue.writeTexture`.
 This deterministic compatibility path exists because Chromium implementations can silently

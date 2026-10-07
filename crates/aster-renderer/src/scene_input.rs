@@ -24,10 +24,11 @@ impl SceneInput {
         root: &OwnedFpln,
         effects: &[PrecompositionEffectRecord],
         pixels: &[PrecompositionMediaPixels],
-        registry: &ResourceRegistry,
+        resources: (&ResourceRegistry, &BTreeMap<ResourceHash, ImageInput>),
         limits: &DecodeLimits,
         nested: bool,
     ) -> Result<Self, RenderError> {
+        let (registry, decoded_textures) = resources;
         if scene.metadata.contract_level != ContractLevel::SceneBuffersSliceV1
             || root.metadata.contract_level != ContractLevel::RootSceneCommandsSliceV1
             || scene.metadata.header != root.metadata.header
@@ -51,8 +52,12 @@ impl SceneInput {
         };
         let mut images =
             crate::image_input::ImageInput::collect(pixels, scene_slice, commands, registry)?;
-        let materials = crate::material_input::MaterialInput::collect(root, registry)?;
-        for image in materials.values().filter_map(|m| m.environment.as_ref()) {
+        let materials =
+            crate::material_input::MaterialInput::collect(root, registry, decoded_textures)?;
+        for image in materials
+            .values()
+            .flat_map(|m| m.environment.iter().chain(m.normal.iter()))
+        {
             images.insert(image.frame.clone(), image.clone());
         }
         for draw in &commands.draws {

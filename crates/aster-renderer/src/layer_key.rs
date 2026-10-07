@@ -138,11 +138,13 @@ impl LayerKey {
             bytes.push(1);
             bytes.extend(material.uniforms);
             bytes.push(u8::from(material.active));
-            if let Some(image) = &material.environment {
-                bytes.push(1);
-                bytes.extend(image.pixels.0.as_bytes());
-            } else {
-                bytes.push(0);
+            for image in [&material.environment, &material.normal] {
+                if let Some(image) = image {
+                    bytes.push(1);
+                    bytes.extend(image.pixels.0.as_bytes());
+                } else {
+                    bytes.push(0);
+                }
             }
         } else {
             bytes.push(0);

@@ -623,4 +623,18 @@ require visible differences, including directional and spot shadow disable contr
 both the pass flag and the lighting sampler flag. Two independent TS devices must agree before
 references are pinned. Native batches require exact cache-on/cache-off output, two texture uploads
 with later reuse, bounded resident bytes, GPU-profile pixels and self-review. Point shadows remain
-the existing TS unsupported boundary; compressed normal-map decoding remains open M7 work.
+the existing TS unsupported boundary.
+
+Inline normal-map coverage captures 144 complete TS frames on two independent devices: three
+lights, four AA modes, PNG/JPEG/WebP, positive/negative/zero scale and combined HDR. The native gate
+requires all 144 frames under the unchanged GPU profile, exact cached/uncached output, exact
+decoded texture hashes, and native decode/cache receipts. Windows JPEG normals use the built-in
+Microsoft WIC decoder, whose pixels match the browser oracle. Earlier FFmpeg JPEG rounding
+amplified to unacceptable material shading error; its failed evidence remains rejected. Other
+platforms still reject JPEG normals. Animated WebP remains open work.
+Dimension, chunk-boundary, cancelled-cache and allocation controls reject invalid inputs before
+publication. `tests/parity/assets/normal-textures.json` preserves independently captured linear
+texture bytes, including fractional and zero alpha. `image-webp` 0.2.4 (MIT OR Apache-2.0) replaces
+FFmpeg WebP color conversion because its bilinear reconstruction matches the browser texture oracle;
+the shipped FFmpeg build and source authorization contract are unchanged. WIC uses the existing
+locked Windows bindings and the operating-system codec; it adds no bundled native codec library.

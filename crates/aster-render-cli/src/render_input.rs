@@ -21,6 +21,7 @@ pub(crate) struct RenderInput {
     pub frame: SuppliedFrame,
     pub registry: ResourceRegistry,
     pub native: NativeStillResources,
+    pub textures: crate::native_textures::NativeTextureResources,
     pub plan_sha256: String,
     pub output: PathBuf,
 }
@@ -31,6 +32,7 @@ impl RenderInput {
         limits: &DecodeLimits,
         resource_byte_budget: u64,
         native_media: Option<&mut aster_media_native::NativeMediaSession>,
+        native_textures: Option<&mut aster_media_native::NativeTextureSession>,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         if job.out.exists() {
             return Err("output already exists".into());
@@ -83,11 +85,23 @@ impl RenderInput {
             registry.put(request, payload)?;
         }
         let native = NativeStillResources::install(native_media, &plan, &mut registry, limits)?;
-        let frame = SuppliedFrame::new(plan, &registry, limits, &native.pixels)?;
+        let textures = crate::native_textures::NativeTextureResources::install(
+            native_textures,
+            &plan,
+            &mut registry,
+        )?;
+        let frame = SuppliedFrame::with_textures(
+            plan,
+            &registry,
+            limits,
+            &native.pixels,
+            &textures.pixels,
+        )?;
         Ok(Self {
             frame,
             registry,
             native,
+            textures,
             plan_sha256,
             output: job.out,
         })

@@ -142,7 +142,7 @@ fn layer_keys_track_evaluated_inputs_and_conservative_time_dependencies()
             pixels: ResourceHash("c".repeat(64)),
             width: 1,
             height: 1,
-            format: aster_render_ir::MediaTextureFormat::Rgba8UnormSrgb,
+            format: crate::image_input::ImageFormat::Srgb8,
         },
     );
     let before = LayerFixture::key(&frame)?;
@@ -302,6 +302,7 @@ fn layer_keys_invalidate_for_material_controls_and_environment_generations()
     frame.scene.materials.insert(
         777,
         crate::material_input::MaterialInput {
+            normal: None,
             uniforms: [0; 16],
             active: true,
             environment: Some(crate::image_input::ImageInput {
@@ -309,7 +310,7 @@ fn layer_keys_invalidate_for_material_controls_and_environment_generations()
                 pixels: ResourceHash("a".repeat(64)),
                 width: 1,
                 height: 1,
-                format: aster_render_ir::MediaTextureFormat::Rgba16Float,
+                format: crate::image_input::ImageFormat::Linear16,
             }),
         },
     );
@@ -334,6 +335,25 @@ fn layer_keys_invalidate_for_material_controls_and_environment_generations()
         .ok_or("environment")?
         .pixels = ResourceHash("b".repeat(64));
     assert_ne!(LayerFixture::key(&frame)?, intensity);
+    let material = frame.scene.materials.get_mut(&777).ok_or("material")?;
+    material.normal = Some(crate::image_input::ImageInput {
+        frame: ResourceHash("c".repeat(64)),
+        pixels: ResourceHash("c".repeat(64)),
+        width: 1,
+        height: 1,
+        format: crate::image_input::ImageFormat::Linear8,
+    });
+    let normal = LayerFixture::key(&frame)?;
+    frame
+        .scene
+        .materials
+        .get_mut(&777)
+        .ok_or("material")?
+        .normal
+        .as_mut()
+        .ok_or("normal")?
+        .pixels = ResourceHash("d".repeat(64));
+    assert_ne!(LayerFixture::key(&frame)?, normal);
     Ok(())
 }
 

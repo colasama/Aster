@@ -110,7 +110,7 @@ impl HdrFixture {
             pixels,
             width: 2,
             height: 1,
-            format: MediaTextureFormat::Rgba16Float,
+            format: crate::image_input::ImageFormat::Linear16,
         })
     }
 }

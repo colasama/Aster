@@ -8,7 +8,7 @@ import { hashFile } from "./source.mjs";
 
 export async function runNativeMaterialGate(
   context,
-  { binary, compiler, validateReceipt },
+  { binary, compiler, validateReceipt, normal = false },
   execute = runStep,
 ) {
   const report = { status: "failed", frames: [], batches: [], exact_cache_comparisons: 0 };
@@ -17,25 +17,38 @@ export async function runNativeMaterialGate(
   try {
     await mkdir(context.output, { recursive: true });
     const ledger = await reader.json("docs/migration/rust-renderer-progress.json");
-    const pin = ledger.reference_baseline.native_material;
+    const pin = ledger.reference_baseline[normal ? "native_normal" : "native_material"];
     assert(pin, "Material output references must be captured independently and pinned");
     const manifest = await reader.json(pin.path, pin.sha256);
     assert.equal(manifest.status, "passed");
-    assert.equal(manifest.frames.length, 60);
-    assert.equal(manifest.controls.length, 44);
+    assert.equal(manifest.frames.length, normal ? 144 : 60);
+    assert.equal(manifest.controls.length, normal ? 108 : 44);
     assert(manifest.controls.every((c) => c.changed_bytes > 16));
     const gpu = manifest.gpu_info.gpuDevice.find((g) => g.active);
     assert(gpu, "Captured TS adapter absent");
     const adapter = { name: gpu.deviceString, vendorId: gpu.vendorId, deviceId: gpu.deviceId };
-    const expected = ["directional", "point", "spot"].flatMap((light) =>
-      ["off", "fxaa", "ssaa2x", "ssaa4x"].flatMap((aa) =>
-        ["fallback", "hdr", "rotated", "replaced", "unshadowed"].map((mode) => ({
-          light,
-          aa,
-          mode,
-        })),
-      ),
-    );
+    const expected = normal
+      ? ["directional", "point", "spot"].flatMap((light) =>
+          ["off", "fxaa", "ssaa2x", "ssaa4x"].flatMap((aa) =>
+            ["png", "jpeg", "webp"].flatMap((encoding) =>
+              ["normal", "negative", "zero", "combined"].map((mode) => ({
+                light,
+                aa,
+                encoding,
+                mode,
+              })),
+            ),
+          ),
+        )
+      : ["directional", "point", "spot"].flatMap((light) =>
+          ["off", "fxaa", "ssaa2x", "ssaa4x"].flatMap((aa) =>
+            ["fallback", "hdr", "rotated", "replaced", "unshadowed"].map((mode) => ({
+              light,
+              aa,
+              mode,
+            })),
+          ),
+        );
     for (const [index, f] of manifest.frames.entries()) {
       assert.deepEqual(
         Object.fromEntries(Object.keys(expected[index]).map((k) => [k, f[k]])),
@@ -50,13 +63,23 @@ export async function runNativeMaterialGate(
       );
       for (const r of f.resources) await reader.bytes(r.path, r.sha256);
     }
+    const frames = manifest.frames;
+    report.coverage = normal
+      ? {
+          supported_encodings: ["png", "jpeg", "webp"],
+          deferred_encodings: [],
+          required_frames: 144,
+          deferred_jpeg_frames: 0,
+        }
+      : { required_frames: 60 };
+    assert.equal(frames.length, normal ? 144 : 60);
     report.reference = pin;
     report.controls = manifest.controls;
     const receiptsByMode = [],
       pathsByMode = [];
     for (const cached of [false, true]) {
       const mode = cached ? "cached" : "uncached";
-      const jobs = manifest.frames.map((f) => ({
+      const jobs = frames.map((f) => ({
         plan: join(context.root, f.plan.path),
         resources: join(context.root, dirname(f.resources[0].path)),
         out: join(context.output, mode, `${f.id}.png`),
@@ -74,6 +97,7 @@ export async function runNativeMaterialGate(
             "--layer-cache-bytes",
             cached ? "67108864" : "0",
             ...(compiler ? ["--dxcompiler", compiler] : []),
+            ...(normal ? ["--texture-ffmpeg", join(context.root, "build/ffmpeg/ffmpeg.exe")] : []),
           ],
           timeout_ms: 180000,
         },
@@ -88,7 +112,7 @@ export async function runNativeMaterialGate(
       assert.equal(receipts.length, jobs.length);
       receiptsByMode.push(receipts);
       pathsByMode.push(jobs.map((j) => j.out));
-      for (const [index, f] of manifest.frames.entries()) {
+      for (const [index, f] of frames.entries()) {
         const receipt = receipts[index],
           pixels = await reader.image(local(jobs[index].out));
         validateReceipt(receipt, {
@@ -102,18 +126,61 @@ export async function runNativeMaterialGate(
         assert.equal(receipt.renderer_reused, index > 0);
         assert.equal(receipt.motion_reconstruction.passes, 0);
         assert.equal(receipt.depth_effects.passes, 0);
-        const uploads = index === 0 ? 0 : index < 3 ? 1 : 2;
-        assert.equal(receipt.image_cache.uploads, uploads);
-        assert.equal(receipt.image_cache.resident_bytes, uploads * 256);
-        if (["hdr", "rotated"].includes(f.mode) && index > 1) assert(receipt.image_cache.hits > 0);
+        if (normal) {
+          assert.equal(receipt.native_textures.length, 1);
+          const decoded = receipt.native_textures[0];
+          assert.equal(decoded.encoded, f.normal);
+          assert.equal(decoded.encoding, f.encoding);
+          assert.equal(decoded.width, 3);
+          assert.equal(decoded.height, 2);
+          const fixture = (
+            await reader.json("tests/parity/assets/normal-textures.json")
+          ).fixtures.find((t) => t.message.hash === f.normal);
+          assert(fixture);
+          assert.equal(decoded.rgba_sha256, fixture.rgba_sha256);
+          assert.equal(
+            decoded.backend,
+            f.encoding === "png"
+              ? "ffmpeg-inline-texture"
+              : f.encoding === "jpeg"
+                ? "windows-wic-jpeg-texture"
+                : "rust-webp-texture",
+          );
+          assert.equal(
+            receipt.texture_decode_cache.decodes,
+            Math.min(3, 1 + Math.floor(index / 4)),
+          );
+          assert.equal(
+            receipt.texture_decode_cache.resident_bytes,
+            receipt.texture_decode_cache.decodes * 24,
+          );
+          assert.equal(
+            receipt.texture_decode_cache.hits,
+            index + 1 - receipt.texture_decode_cache.decodes,
+          );
+          assert.equal(
+            receipt.image_cache.uploads,
+            receipt.texture_decode_cache.decodes + Number(index >= 3),
+          );
+          assert.equal(
+            receipt.image_cache.resident_bytes,
+            receipt.texture_decode_cache.resident_bytes + (index >= 3 ? 256 : 0),
+          );
+        } else {
+          const uploads = index === 0 ? 0 : index < 3 ? 1 : 2;
+          assert.equal(receipt.image_cache.uploads, uploads);
+          assert.equal(receipt.image_cache.resident_bytes, uploads * 256);
+          if (["hdr", "rotated"].includes(f.mode) && index > 1)
+            assert(receipt.image_cache.hits > 0);
+        }
         if (cached) {
           assert.equal(pixels.rgba_sha256, receiptsByMode[0][index].rgba_sha256);
           report.exact_cache_comparisons++;
         }
       }
     }
-    for (const [index, f] of manifest.frames.entries()) {
-      const caseId = `native-material-${f.id}`;
+    for (const [index, f] of frames.entries()) {
+      const caseId = `native-${normal ? "normal" : "material"}-${f.id}`;
       const ctx = join(context.output, `${f.id}.context.json`),
         out = join(context.output, f.id);
       await writeAtomicJson(ctx, { case_id: caseId, isolated: true, background: [0, 0, 0, 0] });
@@ -152,7 +219,7 @@ export async function runNativeMaterialGate(
         receipts: receiptsByMode.map((r) => r[index]),
       });
     }
-    const f = manifest.frames.find((f) => f.mode === "hdr"),
+    const f = frames.find((f) => f.mode === (normal ? "combined" : "hdr")),
       out = join(context.output, "budget-rejected.png");
     report.budget_rejection = await execute(
       {
@@ -169,6 +236,7 @@ export async function runNativeMaterialGate(
           "--gpu-budget-bytes",
           "16",
           ...(compiler ? ["--dxcompiler", compiler] : []),
+          ...(normal ? ["--texture-ffmpeg", join(context.root, "build/ffmpeg/ffmpeg.exe")] : []),
         ],
       },
       context,

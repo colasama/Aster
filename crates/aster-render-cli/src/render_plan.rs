@@ -62,6 +62,8 @@ pub struct RenderPlanArgs {
     limits: IrLimits,
     #[command(flatten)]
     native_stills: crate::native_stills::NativeStillArgs,
+    #[command(flatten)]
+    native_textures: crate::native_textures::NativeTextureArgs,
 }
 
 #[derive(Serialize)]
@@ -73,6 +75,8 @@ struct RenderReport {
     native_image_decode: bool,
     native_images: Vec<aster_media_native::NativeImageReceipt>,
     native_videos: Vec<aster_media_native::NativeVideoReceipt>,
+    native_textures: Vec<aster_media_native::NativeTextureReceipt>,
+    texture_decode_cache: aster_media_native::MediaCacheStatistics,
     media_decode_cache: aster_media_native::MediaCacheStatistics,
     image_cache: aster_renderer::ImageCacheStatistics,
     lut_cache: aster_renderer::LutCacheStatistics,
@@ -151,6 +155,7 @@ impl RenderPlanArgs {
         };
         let mut renderer = None;
         let mut native_media = self.native_stills.session(&limits)?;
+        let mut native_textures = self.native_textures.session()?;
         for (frame_index, job) in jobs.into_iter().enumerate() {
             let started = Instant::now();
             let input = RenderInput::load(
@@ -158,6 +163,7 @@ impl RenderPlanArgs {
                 &limits,
                 self.resource_byte_budget,
                 native_media.as_mut(),
+                native_textures.as_mut(),
             )?;
             let reused = renderer.is_some();
             if renderer.is_none() {
@@ -187,6 +193,8 @@ impl RenderPlanArgs {
                     native_image_decode: !input.native.receipts.is_empty(),
                     native_images: input.native.receipts,
                     native_videos: input.native.video_receipts,
+                    native_textures: input.textures.receipts,
+                    texture_decode_cache: input.textures.cache,
                     media_decode_cache: input.native.decode_cache,
                     image_cache: rendered.image_cache,
                     lut_cache: rendered.lut_cache,

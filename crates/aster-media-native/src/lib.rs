@@ -4,11 +4,18 @@ pub use authorization::StillAuthorization;
 mod exr_snapshot;
 #[cfg(test)]
 mod exr_tests;
+#[cfg(windows)]
+mod jpeg_windows;
 mod session;
 #[cfg(test)]
 mod session_tests;
 mod still;
+mod texture;
+mod texture_codec;
+#[cfg(test)]
+mod texture_tests;
 pub use session::{DecodedMedia, MediaCacheLimits, MediaCacheStatistics, NativeMediaSession};
+pub use texture::{DecodedTexture, NativeTextureReceipt, NativeTextureSession, TextureLimits};
 mod video;
 mod video_time;
 pub use video::{DecodedVideo, NativeVideoDecoder, NativeVideoReceipt, VideoLimits};

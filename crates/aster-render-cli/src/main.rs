@@ -2,6 +2,7 @@ mod bundle;
 mod compare;
 mod ir;
 mod native_stills;
+mod native_textures;
 mod render_input;
 mod render_plan;
 
