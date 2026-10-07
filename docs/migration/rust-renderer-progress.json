@@ -188,43 +188,57 @@
       "path": "tests/parity/native-temporal-frame/manifest.json",
       "sha256": "bf2f1fa5b0c108a4d14bf91441919b5a61dfd1bd7de724e447924063f1ce61cb",
       "policy": "Frozen production and independent-device TS whole-frame replay with two effect-isolated precompositions. Original 3D-shadow and root motion-reconstruction captures remain preserved for their later native capabilities."
+    },
+    "native_motion_frame": {
+      "path": "tests/parity/native-motion-frame/manifest.json",
+      "sha256": "0ae8eab266c452522c218db2f48f768a1548b95117ce88973bdf81ae6047cc25",
+      "policy": "Immutable copies of independently replayed production whole frames for full, entering and exiting temporal text. Capture predates native motion reconstruction."
     }
   },
   "last_cycle": {
-    "id": 98,
-    "time": "2026-10-07T11:02:16.670637+00:00",
+    "id": 99,
+    "time": "2026-10-07T11:39:05.010394+00:00",
     "milestone": "M5",
-    "task": "M5-T2",
+    "task": "M5-T3",
     "outcome": "passed",
-    "commit": "fd4d10e56ee9da2d457e9487590fd9b4d5e5bca6",
-    "verification": "artifacts/migration/verify-2026-10-07T10-46-56-729Z-eeb08d72.json",
-    "verification_sha256": "48fc435bc6ccd009bad55377d2b6a44cc6061f5eebdc4ff6ce359d163f730396",
+    "commit": "059de4420ce7aa005b2499eebb4f60d907378183",
+    "verification": "artifacts/migration/verify-2026-10-07T11-24-07-463Z-f80b31df.json",
+    "verification_sha256": "55d0386c89965319680c20220b317d72125e19be8c771ed8c639fd8d11f778d7",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 100037
+        "duration_ms": 80660
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 29303
+        "duration_ms": 28307
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 734161
+        "duration_ms": 727351
       }
     ],
-    "verification_duration_ms": 865219,
-    "native_regression_frames": 1252,
-    "cache_comparisons": 5072,
-    "temporal_frame_evidence": "artifacts/migration/2026-10-07T10-46-56-729Z-eeb08d72/G3/native-temporal-frames/report.json",
-    "next_step": "Execute root motion reconstruction from supplied auxiliary inputs and complete text motion-blur whole-frame parity (M5-T3).",
+    "verification_duration_ms": 838069,
+    "native_regression_frames": 1256,
+    "cache_comparisons": 5088,
+    "motion_evidence": "artifacts/migration/2026-10-07T11-24-07-463Z-f80b31df/G3/native-motion-frames/report.json",
+    "diagnostics": [
+      {
+        "verification": "artifacts/migration/verify-2026-10-07T11-12-27-685Z-df2ab1ca.json",
+        "sha256": "180170393f52d92454db0c693e2438f89c1f0df561a8ad4bf9973062584e3644",
+        "status": "failed",
+        "reason": "Four exact motion corpus pixels lacked matching sequence-context self-review records; all metric and frame-identity checks passed. Added correctly bound reviews after the unchanged-source failed run."
+      }
+    ],
+    "next_step": "Audit complete M5 raster, temporal and root motion coverage with current IR/resource lifetime evidence; close M5 only after the full exit audit passes.",
     "notes": [
-      "Two frozen recursive temporal frames are RGBA-exact, with accepted direct visual self-review. Twenty cached/uncached executions prove weight/sample invalidation, poisoned captured-output independence, ordinary-frame retirement and restored output.",
-      "All G0/G1/G3 gates passed on unchanged source. Temporal passes remain GPU resident and shared-budgeted; M5-T2 is complete.",
-      "Initial 3D-shadow rejection and incorrect media route diagnostics remain preserved. Media graph route now matches the TS contract (zero); explicit skipped routes still reject. No dependencies or frozen reference pixels changed."
+      "Shared tile-max, neighbor-max and ID-aware reconstruction execute before display transform and AA on retained GPU HDR targets. Auxiliary draws use derived temporal image generations.",
+      "All four motion corpus frames and six frozen temporal whole frames are RGBA-exact. Sequence identity passes against adjacent frames; direct visual self-reviews are recorded.",
+      "Twenty-four cached/uncached frame executions prove clear/reuse/retirement/restoration. Zero radius and zero vectors each change 2,966 pixels; missing auxiliary input, inconsistent routing and budget rejection publish no output.",
+      "First full verification failed only because four corpus reviews used isolated instead of sequence context. The failed unchanged-source report is preserved, correctly bound reviews were appended, and the second full G0/G1/G3 run passed. No dependencies or tolerance changes."
     ]
   },
   "milestones": [
@@ -20290,7 +20304,10 @@
         {
           "id": "M5-T3",
           "title": "Complete native text motion-blur corpus output with required supplied reconstruction and auxiliary inputs",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-10-07T11:39:05.010394+00:00",
+          "commit": "059de4420ce7aa005b2499eebb4f60d907378183",
+          "verification": "artifacts/migration/verify-2026-10-07T11-24-07-463Z-f80b31df.json"
         },
         {
           "id": "M5-T4",
@@ -20302,22 +20319,22 @@
         "status": "passed",
         "required_gates_passed": true,
         "milestone_exit_satisfied": false,
-        "report": "artifacts/migration/verify-2026-10-07T10-46-56-729Z-eeb08d72.json",
+        "report": "artifacts/migration/verify-2026-10-07T11-24-07-463Z-f80b31df.json",
         "gates": [
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 100037
+            "duration_ms": 80660
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 29303
+            "duration_ms": 28307
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 734161
+            "duration_ms": 727351
           }
         ]
       }
@@ -156469,6 +156486,1386 @@
         "contact_sheet_sha256": "e24380be1a6b2a48fbf9f12b731cc552f86cb94c6f390c160ad2287ea8181a4e"
       },
       "inspection": "Directly inspected full contact sheet and heatmap; the second warmed frame has identical evidence-image SHA-256. Both blue effect-composited panels, small glyph detail and alpha coverage agree exactly, with black heatmaps and zero RGBA error. GPU receipts show eight sample uploads and one derived target reused across frames. No tolerance changes."
+    },
+    {
+      "case_id": "scene-motion-blur",
+      "frame": 5,
+      "profile": "gpu",
+      "purpose": "Supplied primary auxiliary inputs and shared HDR root motion reconstruction",
+      "reviewed_at": "2026-10-07T11:10:00.722258+00:00",
+      "reference_rgba_sha256": "4bd1298e3b29eacf8e4a5d782a8244fcf2fad5a81a638f566d65b72ee4ec522e",
+      "candidate_rgba_sha256": "4bd1298e3b29eacf8e4a5d782a8244fcf2fad5a81a638f566d65b72ee4ec522e",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 31,
+            "min_y": 35,
+            "max_x": 265,
+            "max_y": 142
+          },
+          "candidate": {
+            "min_x": 31,
+            "min_y": 35,
+            "max_x": 265,
+            "max_y": 142
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle99-motion-diagnostic/compare-corpus-5/report.json",
+        "report_sha256": "5ee3b812e9e8e216560a90bc67afcfa3a35c69985a5b16228dbaf98867bed5b3",
+        "heatmap": "artifacts/migration/cycle99-motion-diagnostic/compare-corpus-5/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle99-motion-diagnostic/compare-corpus-5/contact-sheet.png",
+        "contact_sheet_sha256": "d23e135e86fa6ed1ac49e9e39bc848a8ebadf96037d451b49616de696ce7751d"
+      },
+      "inspection": "Directly inspected side-by-side contact sheets and black heatmaps. Moving yellow shape and ASTER glyph geometry, layer intersections and alpha agree exactly across four corpus times. Full/entering/exiting temporal text preserves exposure brightness on black. Second warmed frames have identical contact-sheet and heatmap hashes to directly inspected first frames. No tolerance changes."
+    },
+    {
+      "case_id": "scene-motion-blur",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "Supplied primary auxiliary inputs and shared HDR root motion reconstruction",
+      "reviewed_at": "2026-10-07T11:10:00.722675+00:00",
+      "reference_rgba_sha256": "1563c7d6f3259de90efa70471c1dae840ed393c2bd50e4d19a8b9bbd5474f5ef",
+      "candidate_rgba_sha256": "1563c7d6f3259de90efa70471c1dae840ed393c2bd50e4d19a8b9bbd5474f5ef",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 82,
+            "min_y": 32,
+            "max_x": 242,
+            "max_y": 142
+          },
+          "candidate": {
+            "min_x": 82,
+            "min_y": 32,
+            "max_x": 242,
+            "max_y": 142
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle99-motion-diagnostic/compare-corpus-15/report.json",
+        "report_sha256": "64c1eb6e3b023130fab80720d55b092dad05c673246f546aad75d180e26c4500",
+        "heatmap": "artifacts/migration/cycle99-motion-diagnostic/compare-corpus-15/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle99-motion-diagnostic/compare-corpus-15/contact-sheet.png",
+        "contact_sheet_sha256": "9e9f204aab23666a5676fce282070160b00ade38e7fb38f05ee119aa68e6cac9"
+      },
+      "inspection": "Directly inspected side-by-side contact sheets and black heatmaps. Moving yellow shape and ASTER glyph geometry, layer intersections and alpha agree exactly across four corpus times. Full/entering/exiting temporal text preserves exposure brightness on black. Second warmed frames have identical contact-sheet and heatmap hashes to directly inspected first frames. No tolerance changes."
+    },
+    {
+      "case_id": "scene-motion-blur",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "Supplied primary auxiliary inputs and shared HDR root motion reconstruction",
+      "reviewed_at": "2026-10-07T11:10:00.723028+00:00",
+      "reference_rgba_sha256": "ccc37633abcbc7b42acc7d8239e94d1f4a1e59d9a9590a04f45e42dc3c86f954",
+      "candidate_rgba_sha256": "ccc37633abcbc7b42acc7d8239e94d1f4a1e59d9a9590a04f45e42dc3c86f954",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 113,
+            "min_y": 32,
+            "max_x": 207,
+            "max_y": 142
+          },
+          "candidate": {
+            "min_x": 113,
+            "min_y": 32,
+            "max_x": 207,
+            "max_y": 142
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle99-motion-diagnostic/compare-corpus-30/report.json",
+        "report_sha256": "e856cb41cd08bb69f1e8f037569f12a667e13415a000afb2833f6fdac92822c1",
+        "heatmap": "artifacts/migration/cycle99-motion-diagnostic/compare-corpus-30/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle99-motion-diagnostic/compare-corpus-30/contact-sheet.png",
+        "contact_sheet_sha256": "bb64341f27098e9f9ceff6735d82ae41b53b7b0496dd9d41278120f7e8013639"
+      },
+      "inspection": "Directly inspected side-by-side contact sheets and black heatmaps. Moving yellow shape and ASTER glyph geometry, layer intersections and alpha agree exactly across four corpus times. Full/entering/exiting temporal text preserves exposure brightness on black. Second warmed frames have identical contact-sheet and heatmap hashes to directly inspected first frames. No tolerance changes."
+    },
+    {
+      "case_id": "scene-motion-blur",
+      "frame": 54,
+      "profile": "gpu",
+      "purpose": "Supplied primary auxiliary inputs and shared HDR root motion reconstruction",
+      "reviewed_at": "2026-10-07T11:10:00.723369+00:00",
+      "reference_rgba_sha256": "821f59dd4d3f1574466ed55ac0777e543f5e06099f118e8c29ee7e43bbbc5780",
+      "candidate_rgba_sha256": "821f59dd4d3f1574466ed55ac0777e543f5e06099f118e8c29ee7e43bbbc5780",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 57,
+            "min_y": 46,
+            "max_x": 298,
+            "max_y": 142
+          },
+          "candidate": {
+            "min_x": 57,
+            "min_y": 46,
+            "max_x": 298,
+            "max_y": 142
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle99-motion-diagnostic/compare-corpus-54/report.json",
+        "report_sha256": "d41d6224a2e5a8ae2f5925d421b4991fbdc42231813fce044daf8de5cd3081c7",
+        "heatmap": "artifacts/migration/cycle99-motion-diagnostic/compare-corpus-54/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle99-motion-diagnostic/compare-corpus-54/contact-sheet.png",
+        "contact_sheet_sha256": "2ca8091ad8771f399de205b333651eff893b91d3e1386f296a7ce638b925d3cd"
+      },
+      "inspection": "Directly inspected side-by-side contact sheets and black heatmaps. Moving yellow shape and ASTER glyph geometry, layer intersections and alpha agree exactly across four corpus times. Full/entering/exiting temporal text preserves exposure brightness on black. Second warmed frames have identical contact-sheet and heatmap hashes to directly inspected first frames. No tolerance changes."
+    },
+    {
+      "case_id": "native-motion-frame-full",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "Supplied primary auxiliary inputs and shared HDR root motion reconstruction",
+      "reviewed_at": "2026-10-07T11:10:00.723716+00:00",
+      "reference_rgba_sha256": "fcfe163d56a5d8eb6a13a47f468c02d25869e65312140b83674e3ca50a1b3ffa",
+      "candidate_rgba_sha256": "fcfe163d56a5d8eb6a13a47f468c02d25869e65312140b83674e3ca50a1b3ffa",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "candidate": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle99-motion-diagnostic/compare-full-0/report.json",
+        "report_sha256": "a98fab3083960978b269f6a2f6819d11a27cbe615a44a40f1727f4eaca9569de",
+        "heatmap": "artifacts/migration/cycle99-motion-diagnostic/compare-full-0/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle99-motion-diagnostic/compare-full-0/contact-sheet.png",
+        "contact_sheet_sha256": "6144b2b426c708462d9f9e87e00ac49dfd309a73f7a4793fe7fd92fe42080324"
+      },
+      "inspection": "Directly inspected side-by-side contact sheets and black heatmaps. Moving yellow shape and ASTER glyph geometry, layer intersections and alpha agree exactly across four corpus times. Full/entering/exiting temporal text preserves exposure brightness on black. Second warmed frames have identical contact-sheet and heatmap hashes to directly inspected first frames. No tolerance changes."
+    },
+    {
+      "case_id": "native-motion-frame-full",
+      "frame": 1,
+      "profile": "gpu",
+      "purpose": "Supplied primary auxiliary inputs and shared HDR root motion reconstruction",
+      "reviewed_at": "2026-10-07T11:10:00.724025+00:00",
+      "reference_rgba_sha256": "fcfe163d56a5d8eb6a13a47f468c02d25869e65312140b83674e3ca50a1b3ffa",
+      "candidate_rgba_sha256": "fcfe163d56a5d8eb6a13a47f468c02d25869e65312140b83674e3ca50a1b3ffa",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "candidate": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle99-motion-diagnostic/compare-full-1/report.json",
+        "report_sha256": "60a6f2b556fced8b8be6cf72303fed2c7b7f18cd7e652ba6e5f06c3c81f14214",
+        "heatmap": "artifacts/migration/cycle99-motion-diagnostic/compare-full-1/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle99-motion-diagnostic/compare-full-1/contact-sheet.png",
+        "contact_sheet_sha256": "6144b2b426c708462d9f9e87e00ac49dfd309a73f7a4793fe7fd92fe42080324"
+      },
+      "inspection": "Directly inspected side-by-side contact sheets and black heatmaps. Moving yellow shape and ASTER glyph geometry, layer intersections and alpha agree exactly across four corpus times. Full/entering/exiting temporal text preserves exposure brightness on black. Second warmed frames have identical contact-sheet and heatmap hashes to directly inspected first frames. No tolerance changes."
+    },
+    {
+      "case_id": "native-motion-frame-enters",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "Supplied primary auxiliary inputs and shared HDR root motion reconstruction",
+      "reviewed_at": "2026-10-07T11:10:00.724340+00:00",
+      "reference_rgba_sha256": "a98c6aa056216a85ea997be42aa3dc2b46d4296ae05d0544339f2df4189080b1",
+      "candidate_rgba_sha256": "a98c6aa056216a85ea997be42aa3dc2b46d4296ae05d0544339f2df4189080b1",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "candidate": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle99-motion-diagnostic/compare-enters-0/report.json",
+        "report_sha256": "5719ce5d97d5779c0876e812675d2e7e71a95025f47e3a8bdb5e9a788eda2534",
+        "heatmap": "artifacts/migration/cycle99-motion-diagnostic/compare-enters-0/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle99-motion-diagnostic/compare-enters-0/contact-sheet.png",
+        "contact_sheet_sha256": "66cf0300a8b1a2f981d48f3222c0d6bb558709243617431fd9353122e5da68a1"
+      },
+      "inspection": "Directly inspected side-by-side contact sheets and black heatmaps. Moving yellow shape and ASTER glyph geometry, layer intersections and alpha agree exactly across four corpus times. Full/entering/exiting temporal text preserves exposure brightness on black. Second warmed frames have identical contact-sheet and heatmap hashes to directly inspected first frames. No tolerance changes."
+    },
+    {
+      "case_id": "native-motion-frame-enters",
+      "frame": 1,
+      "profile": "gpu",
+      "purpose": "Supplied primary auxiliary inputs and shared HDR root motion reconstruction",
+      "reviewed_at": "2026-10-07T11:10:00.724640+00:00",
+      "reference_rgba_sha256": "a98c6aa056216a85ea997be42aa3dc2b46d4296ae05d0544339f2df4189080b1",
+      "candidate_rgba_sha256": "a98c6aa056216a85ea997be42aa3dc2b46d4296ae05d0544339f2df4189080b1",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "candidate": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle99-motion-diagnostic/compare-enters-1/report.json",
+        "report_sha256": "5f1409cace6213b73be45b343737eae0e996267ae80c97a37958418de3a9e80f",
+        "heatmap": "artifacts/migration/cycle99-motion-diagnostic/compare-enters-1/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle99-motion-diagnostic/compare-enters-1/contact-sheet.png",
+        "contact_sheet_sha256": "66cf0300a8b1a2f981d48f3222c0d6bb558709243617431fd9353122e5da68a1"
+      },
+      "inspection": "Directly inspected side-by-side contact sheets and black heatmaps. Moving yellow shape and ASTER glyph geometry, layer intersections and alpha agree exactly across four corpus times. Full/entering/exiting temporal text preserves exposure brightness on black. Second warmed frames have identical contact-sheet and heatmap hashes to directly inspected first frames. No tolerance changes."
+    },
+    {
+      "case_id": "native-motion-frame-exits",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "Supplied primary auxiliary inputs and shared HDR root motion reconstruction",
+      "reviewed_at": "2026-10-07T11:10:00.724935+00:00",
+      "reference_rgba_sha256": "dcad93b19ef8c879e8804347a2b06bef5fdd6f49ffc042ceeb632001baea7fcf",
+      "candidate_rgba_sha256": "dcad93b19ef8c879e8804347a2b06bef5fdd6f49ffc042ceeb632001baea7fcf",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "candidate": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle99-motion-diagnostic/compare-exits-0/report.json",
+        "report_sha256": "386b7d69d9c794e6541011e8f15164e411d41e9f3023a8a33afcb60ec568eb2d",
+        "heatmap": "artifacts/migration/cycle99-motion-diagnostic/compare-exits-0/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle99-motion-diagnostic/compare-exits-0/contact-sheet.png",
+        "contact_sheet_sha256": "2b58f1a3147ed7197541c1d64d84683ade6bb5521503107fd349d03b792b6456"
+      },
+      "inspection": "Directly inspected side-by-side contact sheets and black heatmaps. Moving yellow shape and ASTER glyph geometry, layer intersections and alpha agree exactly across four corpus times. Full/entering/exiting temporal text preserves exposure brightness on black. Second warmed frames have identical contact-sheet and heatmap hashes to directly inspected first frames. No tolerance changes."
+    },
+    {
+      "case_id": "native-motion-frame-exits",
+      "frame": 1,
+      "profile": "gpu",
+      "purpose": "Supplied primary auxiliary inputs and shared HDR root motion reconstruction",
+      "reviewed_at": "2026-10-07T11:10:00.725235+00:00",
+      "reference_rgba_sha256": "dcad93b19ef8c879e8804347a2b06bef5fdd6f49ffc042ceeb632001baea7fcf",
+      "candidate_rgba_sha256": "dcad93b19ef8c879e8804347a2b06bef5fdd6f49ffc042ceeb632001baea7fcf",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "candidate": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle99-motion-diagnostic/compare-exits-1/report.json",
+        "report_sha256": "068315f1231c4144bc56a3d98579dd54f6ebc842d68d681d77ffcfded3581b09",
+        "heatmap": "artifacts/migration/cycle99-motion-diagnostic/compare-exits-1/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle99-motion-diagnostic/compare-exits-1/contact-sheet.png",
+        "contact_sheet_sha256": "2b58f1a3147ed7197541c1d64d84683ade6bb5521503107fd349d03b792b6456"
+      },
+      "inspection": "Directly inspected side-by-side contact sheets and black heatmaps. Moving yellow shape and ASTER glyph geometry, layer intersections and alpha agree exactly across four corpus times. Full/entering/exiting temporal text preserves exposure brightness on black. Second warmed frames have identical contact-sheet and heatmap hashes to directly inspected first frames. No tolerance changes."
+    },
+    {
+      "case_id": "scene-motion-blur",
+      "frame": 5,
+      "profile": "gpu",
+      "purpose": "Corpus sequence identity and native root HDR motion reconstruction",
+      "reviewed_at": "2026-10-07T11:24:06.420281+00:00",
+      "reference_rgba_sha256": "4bd1298e3b29eacf8e4a5d782a8244fcf2fad5a81a638f566d65b72ee4ec522e",
+      "candidate_rgba_sha256": "4bd1298e3b29eacf8e4a5d782a8244fcf2fad5a81a638f566d65b72ee4ec522e",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 5,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0,
+        "previous": {
+          "status": "compared",
+          "frame": 4,
+          "mean_squared_error": 828.8773133680555,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 6,
+          "mean_squared_error": 851.7892578125,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/2026-10-07T11-12-27-685Z-df2ab1ca/G3/pixels/frames/scene-motion-blur-5/report.json",
+        "heatmap": "artifacts/migration/2026-10-07T11-12-27-685Z-df2ab1ca/G3/pixels/frames/scene-motion-blur-5/heatmap.png",
+        "contact_sheet": "artifacts/migration/2026-10-07T11-12-27-685Z-df2ab1ca/G3/pixels/frames/scene-motion-blur-5/contact-sheet.png",
+        "report_sha256": "d3d1cbb020636faa08aab0a82495d0726e60b495bb5de8e9d9f7f4f378c32377",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "d23e135e86fa6ed1ac49e9e39bc848a8ebadf96037d451b49616de696ce7751d"
+      },
+      "inspection": "RGBA-exact moving yellow shape and ASTER glyphs; contact sheets and black heatmaps are SHA-identical to the directly inspected single-frame diagnostic. Current-frame MSE is zero and strictly lower than both adjacent frames for every sampled time. This sequence-context review supplements the earlier valid isolated diagnostic review; no pixel tolerance changes."
+    },
+    {
+      "case_id": "scene-motion-blur",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "Corpus sequence identity and native root HDR motion reconstruction",
+      "reviewed_at": "2026-10-07T11:24:06.421014+00:00",
+      "reference_rgba_sha256": "1563c7d6f3259de90efa70471c1dae840ed393c2bd50e4d19a8b9bbd5474f5ef",
+      "candidate_rgba_sha256": "1563c7d6f3259de90efa70471c1dae840ed393c2bd50e4d19a8b9bbd5474f5ef",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 15,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0,
+        "previous": {
+          "status": "compared",
+          "frame": 14,
+          "mean_squared_error": 881.5435763888889,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 16,
+          "mean_squared_error": 884.0269140625,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/2026-10-07T11-12-27-685Z-df2ab1ca/G3/pixels/frames/scene-motion-blur-15/report.json",
+        "heatmap": "artifacts/migration/2026-10-07T11-12-27-685Z-df2ab1ca/G3/pixels/frames/scene-motion-blur-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/2026-10-07T11-12-27-685Z-df2ab1ca/G3/pixels/frames/scene-motion-blur-15/contact-sheet.png",
+        "report_sha256": "68d3d28dd9eb2994cf6cd28e530aeaf05eb72b411795e09c5000f47f52487d1b",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "9e9f204aab23666a5676fce282070160b00ade38e7fb38f05ee119aa68e6cac9"
+      },
+      "inspection": "RGBA-exact moving yellow shape and ASTER glyphs; contact sheets and black heatmaps are SHA-identical to the directly inspected single-frame diagnostic. Current-frame MSE is zero and strictly lower than both adjacent frames for every sampled time. This sequence-context review supplements the earlier valid isolated diagnostic review; no pixel tolerance changes."
+    },
+    {
+      "case_id": "scene-motion-blur",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "Corpus sequence identity and native root HDR motion reconstruction",
+      "reviewed_at": "2026-10-07T11:24:06.421538+00:00",
+      "reference_rgba_sha256": "ccc37633abcbc7b42acc7d8239e94d1f4a1e59d9a9590a04f45e42dc3c86f954",
+      "candidate_rgba_sha256": "ccc37633abcbc7b42acc7d8239e94d1f4a1e59d9a9590a04f45e42dc3c86f954",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 30,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0,
+        "previous": {
+          "status": "compared",
+          "frame": 29,
+          "mean_squared_error": 828.9338498263888,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 31,
+          "mean_squared_error": 801.4240321180556,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/2026-10-07T11-12-27-685Z-df2ab1ca/G3/pixels/frames/scene-motion-blur-30/report.json",
+        "heatmap": "artifacts/migration/2026-10-07T11-12-27-685Z-df2ab1ca/G3/pixels/frames/scene-motion-blur-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/2026-10-07T11-12-27-685Z-df2ab1ca/G3/pixels/frames/scene-motion-blur-30/contact-sheet.png",
+        "report_sha256": "d0bb4e774cd8d426a5a943d66a31f434646295e90ed0cb5ca26076f93e117131",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "bb64341f27098e9f9ceff6735d82ae41b53b7b0496dd9d41278120f7e8013639"
+      },
+      "inspection": "RGBA-exact moving yellow shape and ASTER glyphs; contact sheets and black heatmaps are SHA-identical to the directly inspected single-frame diagnostic. Current-frame MSE is zero and strictly lower than both adjacent frames for every sampled time. This sequence-context review supplements the earlier valid isolated diagnostic review; no pixel tolerance changes."
+    },
+    {
+      "case_id": "scene-motion-blur",
+      "frame": 54,
+      "profile": "gpu",
+      "purpose": "Corpus sequence identity and native root HDR motion reconstruction",
+      "reviewed_at": "2026-10-07T11:24:06.422024+00:00",
+      "reference_rgba_sha256": "821f59dd4d3f1574466ed55ac0777e543f5e06099f118e8c29ee7e43bbbc5780",
+      "candidate_rgba_sha256": "821f59dd4d3f1574466ed55ac0777e543f5e06099f118e8c29ee7e43bbbc5780",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 54,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0,
+        "previous": {
+          "status": "compared",
+          "frame": 53,
+          "mean_squared_error": 745.7489105902778,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 55,
+          "mean_squared_error": 735.24421875,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/2026-10-07T11-12-27-685Z-df2ab1ca/G3/pixels/frames/scene-motion-blur-54/report.json",
+        "heatmap": "artifacts/migration/2026-10-07T11-12-27-685Z-df2ab1ca/G3/pixels/frames/scene-motion-blur-54/heatmap.png",
+        "contact_sheet": "artifacts/migration/2026-10-07T11-12-27-685Z-df2ab1ca/G3/pixels/frames/scene-motion-blur-54/contact-sheet.png",
+        "report_sha256": "3468204ff20ebeee4e227a2297e07468bb25b7a124357230cb3be32340817fe8",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "2ca8091ad8771f399de205b333651eff893b91d3e1386f296a7ce638b925d3cd"
+      },
+      "inspection": "RGBA-exact moving yellow shape and ASTER glyphs; contact sheets and black heatmaps are SHA-identical to the directly inspected single-frame diagnostic. Current-frame MSE is zero and strictly lower than both adjacent frames for every sampled time. This sequence-context review supplements the earlier valid isolated diagnostic review; no pixel tolerance changes."
     }
   ],
   "history": [
@@ -158149,6 +159546,52 @@
         "Two frozen recursive temporal frames are RGBA-exact, with accepted direct visual self-review. Twenty cached/uncached executions prove weight/sample invalidation, poisoned captured-output independence, ordinary-frame retirement and restored output.",
         "All G0/G1/G3 gates passed on unchanged source. Temporal passes remain GPU resident and shared-budgeted; M5-T2 is complete.",
         "Initial 3D-shadow rejection and incorrect media route diagnostics remain preserved. Media graph route now matches the TS contract (zero); explicit skipped routes still reject. No dependencies or frozen reference pixels changed."
+      ]
+    },
+    {
+      "id": 99,
+      "time": "2026-10-07T11:39:05.010394+00:00",
+      "milestone": "M5",
+      "task": "M5-T3",
+      "outcome": "passed",
+      "commit": "059de4420ce7aa005b2499eebb4f60d907378183",
+      "verification": "artifacts/migration/verify-2026-10-07T11-24-07-463Z-f80b31df.json",
+      "verification_sha256": "55d0386c89965319680c20220b317d72125e19be8c771ed8c639fd8d11f778d7",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 80660
+        },
+        {
+          "id": "G1",
+          "status": "passed",
+          "duration_ms": 28307
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 727351
+        }
+      ],
+      "verification_duration_ms": 838069,
+      "native_regression_frames": 1256,
+      "cache_comparisons": 5088,
+      "motion_evidence": "artifacts/migration/2026-10-07T11-24-07-463Z-f80b31df/G3/native-motion-frames/report.json",
+      "diagnostics": [
+        {
+          "verification": "artifacts/migration/verify-2026-10-07T11-12-27-685Z-df2ab1ca.json",
+          "sha256": "180170393f52d92454db0c693e2438f89c1f0df561a8ad4bf9973062584e3644",
+          "status": "failed",
+          "reason": "Four exact motion corpus pixels lacked matching sequence-context self-review records; all metric and frame-identity checks passed. Added correctly bound reviews after the unchanged-source failed run."
+        }
+      ],
+      "next_step": "Audit complete M5 raster, temporal and root motion coverage with current IR/resource lifetime evidence; close M5 only after the full exit audit passes.",
+      "notes": [
+        "Shared tile-max, neighbor-max and ID-aware reconstruction execute before display transform and AA on retained GPU HDR targets. Auxiliary draws use derived temporal image generations.",
+        "All four motion corpus frames and six frozen temporal whole frames are RGBA-exact. Sequence identity passes against adjacent frames; direct visual self-reviews are recorded.",
+        "Twenty-four cached/uncached frame executions prove clear/reuse/retirement/restoration. Zero radius and zero vectors each change 2,966 pixels; missing auxiliary input, inconsistent routing and budget rejection publish no output.",
+        "First full verification failed only because four corpus reviews used isolated instead of sequence context. The failed unchanged-source report is preserved, correctly bound reviews were appended, and the second full G0/G1/G3 run passed. No dependencies or tolerance changes."
       ]
     }
   ],
