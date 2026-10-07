@@ -183,65 +183,48 @@
       "path": "tests/parity/native-temporal-text/manifest.json",
       "sha256": "d8718615799da69ae08473091510ac6d7762095e2893dd75fa138b382aa9c8cf",
       "policy": "Immutable copies of accepted M2 temporal pass plans and sampled pixels; output references remain the existing frozen temporal PNGs."
+    },
+    "native_temporal_frame": {
+      "path": "tests/parity/native-temporal-frame/manifest.json",
+      "sha256": "bf2f1fa5b0c108a4d14bf91441919b5a61dfd1bd7de724e447924063f1ce61cb",
+      "policy": "Frozen production and independent-device TS whole-frame replay with two effect-isolated precompositions. Original 3D-shadow and root motion-reconstruction captures remain preserved for their later native capabilities."
     }
   },
   "last_cycle": {
-    "id": 97,
-    "time": "2026-10-07T10:27:01.141914+00:00",
+    "id": 98,
+    "time": "2026-10-07T11:02:16.670637+00:00",
     "milestone": "M5",
     "task": "M5-T2",
     "outcome": "passed",
-    "commit": "73aafba8fc1b6fcb56fff746c0d234d6e3c44264",
-    "verification": "artifacts/migration/verify-2026-10-07T10-11-29-409Z-e7357e4b.json",
-    "verification_sha256": "9cf2d384682e1840252e9f60139d1244901feded7ee6dffca22ab64ddae7ec92",
+    "commit": "fd4d10e56ee9da2d457e9487590fd9b4d5e5bca6",
+    "verification": "artifacts/migration/verify-2026-10-07T10-46-56-729Z-eeb08d72.json",
+    "verification_sha256": "48fc435bc6ccd009bad55377d2b6a44cc6061f5eebdc4ff6ce359d163f730396",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 91845
+        "duration_ms": 100037
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 59620
+        "duration_ms": 29303
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 719206
+        "duration_ms": 734161
       }
     ],
-    "verification_duration_ms": 872413,
-    "temporal_frames": [
-      {
-        "case_id": "native-temporal-full",
-        "exact": true,
-        "evidence": "artifacts/migration/2026-10-07T10-11-29-409Z-e7357e4b/G3/native-temporal-text/full/report.json"
-      },
-      {
-        "case_id": "native-temporal-enters",
-        "exact": true,
-        "evidence": "artifacts/migration/2026-10-07T10-11-29-409Z-e7357e4b/G3/native-temporal-text/enters/report.json"
-      },
-      {
-        "case_id": "native-temporal-exits",
-        "exact": true,
-        "evidence": "artifacts/migration/2026-10-07T10-11-29-409Z-e7357e4b/G3/native-temporal-text/exits/report.json"
-      },
-      {
-        "case_id": "native-temporal-transparent",
-        "exact": true,
-        "evidence": "artifacts/migration/2026-10-07T10-11-29-409Z-e7357e4b/G3/native-temporal-text/transparent/report.json"
-      }
-    ],
+    "verification_duration_ms": 865219,
     "native_regression_frames": 1252,
     "cache_comparisons": 5072,
-    "next_step": "Integrate temporal outputs into native whole-frame resource resolution and recursive surfaces, with sample/weight-sensitive generation keys and a shared GPU budget.",
+    "temporal_frame_evidence": "artifacts/migration/2026-10-07T10-46-56-729Z-eeb08d72/G3/native-temporal-frames/report.json",
+    "next_step": "Execute root motion reconstruction from supplied auxiliary inputs and complete text motion-blur whole-frame parity (M5-T3).",
     "notes": [
-      "The reusable native pass executes shared WGSL against frozen M2 sample inputs; all four resolved rasters are RGBA-exact and accepted after direct visual self-review.",
-      "GPU controls prove retained targets clear history, wrong identities and insufficient budgets reject before allocation, and zero exposure changes actual output to transparent.",
-      "Full G0/G1/G3 pass on unchanged source. M5-T2 remains in progress because whole-frame temporal integration and cache generation propagation remain pending.",
-      "No dependencies or output references changed. The frozen sample manifest was repinned after formatting before verification; the initial stale-manifest diagnostic remains preserved."
+      "Two frozen recursive temporal frames are RGBA-exact, with accepted direct visual self-review. Twenty cached/uncached executions prove weight/sample invalidation, poisoned captured-output independence, ordinary-frame retirement and restored output.",
+      "All G0/G1/G3 gates passed on unchanged source. Temporal passes remain GPU resident and shared-budgeted; M5-T2 is complete.",
+      "Initial 3D-shadow rejection and incorrect media route diagnostics remain preserved. Media graph route now matches the TS contract (zero); explicit skipped routes still reject. No dependencies or frozen reference pixels changed."
     ]
   },
   "milestones": [
@@ -20283,7 +20266,7 @@
         {
           "id": "M5-T2",
           "title": "Execute supplied temporal text raster sample and accumulation passes with GPU-resident reuse and budget controls",
-          "status": "in_progress",
+          "status": "done",
           "increments": [
             {
               "cycle": 97,
@@ -20291,8 +20274,18 @@
               "title": "Reusable supplied temporal GPU pass with frozen sample parity",
               "commit": "73aafba8fc1b6fcb56fff746c0d234d6e3c44264",
               "verification": "artifacts/migration/verify-2026-10-07T10-11-29-409Z-e7357e4b.json"
+            },
+            {
+              "cycle": 98,
+              "status": "done",
+              "title": "GPU temporal outputs integrated into recursive native frames and effect cache generations",
+              "commit": "fd4d10e56ee9da2d457e9487590fd9b4d5e5bca6",
+              "verification": "artifacts/migration/verify-2026-10-07T10-46-56-729Z-eeb08d72.json"
             }
-          ]
+          ],
+          "completed_at": "2026-10-07T11:02:16.670637+00:00",
+          "commit": "fd4d10e56ee9da2d457e9487590fd9b4d5e5bca6",
+          "verification": "artifacts/migration/verify-2026-10-07T10-46-56-729Z-eeb08d72.json"
         },
         {
           "id": "M5-T3",
@@ -20309,22 +20302,22 @@
         "status": "passed",
         "required_gates_passed": true,
         "milestone_exit_satisfied": false,
-        "report": "artifacts/migration/verify-2026-10-07T10-11-29-409Z-e7357e4b.json",
+        "report": "artifacts/migration/verify-2026-10-07T10-46-56-729Z-eeb08d72.json",
         "gates": [
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 91845
+            "duration_ms": 100037
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 59620
+            "duration_ms": 29303
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 719206
+            "duration_ms": 734161
           }
         ]
       }
@@ -156280,6 +156273,202 @@
         "contact_sheet_sha256": "c3c995c020deef50d2f08faf1ea9283b17b99b7fd04bbe27fc18568afb88ff3e"
       },
       "inspection": "Directly inspected all four full-resolution contact sheets and heatmaps. ASTER glyph contours and alpha agree exactly; entering and exiting exposure retain half alpha without visible-sample renormalization. The empty-sample case remains fully transparent. Every heatmap is black and all RGBA metrics are exact; no structural shift or tolerance changes."
+    },
+    {
+      "case_id": "native-temporal-frame-recursive-effects",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "Native temporal output through two effect-isolated precomposition surfaces",
+      "reviewed_at": "2026-10-07T10:43:34.482710+00:00",
+      "reference_rgba_sha256": "db0497a362635cf6e240badfc6e2f3d94033f499e1f8ae176b30ccd16569a4e3",
+      "candidate_rgba_sha256": "db0497a362635cf6e240badfc6e2f3d94033f499e1f8ae176b30ccd16569a4e3",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 137,
+            "min_y": 50,
+            "max_x": 182,
+            "max_y": 129
+          },
+          "candidate": {
+            "min_x": 137,
+            "min_y": 50,
+            "max_x": 182,
+            "max_y": 129
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle98-effects-routed/compare-0/report.json",
+        "report_sha256": "bd90d85ca5cb62dd5bef643bfd8b5526b1c8190ac57a28406fcce47e12a26ce5",
+        "heatmap": "artifacts/migration/cycle98-effects-routed/compare-0/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle98-effects-routed/compare-0/contact-sheet.png",
+        "contact_sheet_sha256": "e24380be1a6b2a48fbf9f12b731cc552f86cb94c6f390c160ad2287ea8181a4e"
+      },
+      "inspection": "Directly inspected full contact sheet and heatmap; the second warmed frame has identical evidence-image SHA-256. Both blue effect-composited panels, small glyph detail and alpha coverage agree exactly, with black heatmaps and zero RGBA error. GPU receipts show eight sample uploads and one derived target reused across frames. No tolerance changes."
+    },
+    {
+      "case_id": "native-temporal-frame-recursive-effects",
+      "frame": 1,
+      "profile": "gpu",
+      "purpose": "Native temporal output through two effect-isolated precomposition surfaces",
+      "reviewed_at": "2026-10-07T10:43:34.483175+00:00",
+      "reference_rgba_sha256": "db0497a362635cf6e240badfc6e2f3d94033f499e1f8ae176b30ccd16569a4e3",
+      "candidate_rgba_sha256": "db0497a362635cf6e240badfc6e2f3d94033f499e1f8ae176b30ccd16569a4e3",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 137,
+            "min_y": 50,
+            "max_x": 182,
+            "max_y": 129
+          },
+          "candidate": {
+            "min_x": 137,
+            "min_y": 50,
+            "max_x": 182,
+            "max_y": 129
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle98-effects-routed/compare-1/report.json",
+        "report_sha256": "8b606806e1eee5f697aec12b6f5c03fee774b5492a519a2dbe9e4f2db32b19a1",
+        "heatmap": "artifacts/migration/cycle98-effects-routed/compare-1/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle98-effects-routed/compare-1/contact-sheet.png",
+        "contact_sheet_sha256": "e24380be1a6b2a48fbf9f12b731cc552f86cb94c6f390c160ad2287ea8181a4e"
+      },
+      "inspection": "Directly inspected full contact sheet and heatmap; the second warmed frame has identical evidence-image SHA-256. Both blue effect-composited panels, small glyph detail and alpha coverage agree exactly, with black heatmaps and zero RGBA error. GPU receipts show eight sample uploads and one derived target reused across frames. No tolerance changes."
     }
   ],
   "history": [
@@ -157923,6 +158112,43 @@
         "GPU controls prove retained targets clear history, wrong identities and insufficient budgets reject before allocation, and zero exposure changes actual output to transparent.",
         "Full G0/G1/G3 pass on unchanged source. M5-T2 remains in progress because whole-frame temporal integration and cache generation propagation remain pending.",
         "No dependencies or output references changed. The frozen sample manifest was repinned after formatting before verification; the initial stale-manifest diagnostic remains preserved."
+      ]
+    },
+    {
+      "id": 98,
+      "time": "2026-10-07T11:02:16.670637+00:00",
+      "milestone": "M5",
+      "task": "M5-T2",
+      "outcome": "passed",
+      "commit": "fd4d10e56ee9da2d457e9487590fd9b4d5e5bca6",
+      "verification": "artifacts/migration/verify-2026-10-07T10-46-56-729Z-eeb08d72.json",
+      "verification_sha256": "48fc435bc6ccd009bad55377d2b6a44cc6061f5eebdc4ff6ce359d163f730396",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 100037
+        },
+        {
+          "id": "G1",
+          "status": "passed",
+          "duration_ms": 29303
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 734161
+        }
+      ],
+      "verification_duration_ms": 865219,
+      "native_regression_frames": 1252,
+      "cache_comparisons": 5072,
+      "temporal_frame_evidence": "artifacts/migration/2026-10-07T10-46-56-729Z-eeb08d72/G3/native-temporal-frames/report.json",
+      "next_step": "Execute root motion reconstruction from supplied auxiliary inputs and complete text motion-blur whole-frame parity (M5-T3).",
+      "notes": [
+        "Two frozen recursive temporal frames are RGBA-exact, with accepted direct visual self-review. Twenty cached/uncached executions prove weight/sample invalidation, poisoned captured-output independence, ordinary-frame retirement and restored output.",
+        "All G0/G1/G3 gates passed on unchanged source. Temporal passes remain GPU resident and shared-budgeted; M5-T2 is complete.",
+        "Initial 3D-shadow rejection and incorrect media route diagnostics remain preserved. Media graph route now matches the TS contract (zero); explicit skipped routes still reject. No dependencies or frozen reference pixels changed."
       ]
     }
   ],
