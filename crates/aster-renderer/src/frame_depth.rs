@@ -26,11 +26,6 @@ impl FrameDepth {
         let FinalOutputRoute::Depth { mode } = &output.route else {
             return Ok(None);
         };
-        if motion {
-            return Err(RenderError::Unsupported(
-                "combined motion and depth output".into(),
-            ));
-        }
         let effect = effect.ok_or_else(|| RenderError::Invalid("depth effect absent".into()))?;
         let Some(PlanSlice::PostEffect(slice)) = effect.metadata.slices.first() else {
             return Err(RenderError::Invalid("depth effect slice missing".into()));
@@ -67,9 +62,8 @@ impl FrameDepth {
                     PostEffectInput::PeeledWorldPosition | PostEffectInput::PeeledLayerColor => {
                         tier < 2
                     }
-                    PostEffectInput::MotionBlur
-                    | PostEffectInput::ObjectId
-                    | PostEffectInput::MotionVector => true,
+                    PostEffectInput::MotionBlur => !motion,
+                    PostEffectInput::ObjectId | PostEffectInput::MotionVector => true,
                     _ => false,
                 }))
         {

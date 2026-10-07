@@ -136,7 +136,7 @@ impl DepthOutput {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         frame: &SuppliedFrame,
-        textures: (&wgpu::Texture, &wgpu::Texture),
+        textures: (&wgpu::Texture, Option<&wgpu::Texture>, &wgpu::Texture),
         caches: (
             &crate::image_cache::ImageCache,
             &crate::surface_cache::SurfaceCache,
@@ -170,6 +170,9 @@ impl DepthOutput {
                 .iter()
                 .map(|input| match input {
                     PostEffectInput::Scene => Ok(textures.0),
+                    PostEffectInput::MotionBlur => textures
+                        .1
+                        .ok_or_else(|| RenderError::Invalid("depth motion source absent".into())),
                     PostEffectInput::WorldPosition => Ok(&targets.primary.colors[3]),
                     PostEffectInput::TransparentWorldPosition => targets
                         .colors
@@ -223,7 +226,7 @@ impl DepthOutput {
         } else {
             None
         };
-        let output = textures.1.create_view(&Default::default());
+        let output = textures.2.create_view(&Default::default());
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Native depth output"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {

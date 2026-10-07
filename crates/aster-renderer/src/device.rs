@@ -70,6 +70,7 @@ pub struct NativeRenderer {
     output: OutputPipelines,
     surface_output: Option<crate::surface_output::SurfaceOutput>,
     depth_output: Option<crate::depth_output::DepthOutput>,
+    visualizer: Option<crate::visualizer::Visualizer>,
     targets: Option<FrameTargets>,
     output_lease: Weak<()>,
     images: crate::image_cache::ImageCache,
@@ -204,6 +205,7 @@ impl NativeRenderer {
             output,
             surface_output: None,
             depth_output: None,
+            visualizer: None,
             targets: None,
             output_lease: Weak::new(),
             images,
@@ -243,6 +245,10 @@ impl NativeRenderer {
                 .as_ref()
                 .map_or(0, crate::frame_depth::FrameDepth::required_bytes)
             + frame.temporal.required_bytes()
+            + frame
+                .visualizer
+                .as_ref()
+                .map_or(0, crate::frame_visualizer::FrameVisualizer::required_bytes)
             + u64::from(render_size.width) * u64::from(render_size.height) * 16
             + u64::from(size.width) * u64::from(size.height) * 4
             + frame.scene.transient_bytes()
@@ -280,6 +286,12 @@ impl NativeRenderer {
         let memory = self.device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
         let internal = self.device.push_error_scope(wgpu::ErrorFilter::Internal);
         let validation = self.device.push_error_scope(wgpu::ErrorFilter::Validation);
+        if frame.visualizer.is_some() && self.visualizer.is_none() {
+            self.visualizer = Some(crate::visualizer::Visualizer::new(
+                &self.device,
+                &self.images.layout,
+            )?);
+        }
         if frame.depth.is_some() && self.depth_output.is_none() {
             self.depth_output = Some(crate::depth_output::DepthOutput::new(
                 &self.device,
@@ -455,21 +467,49 @@ impl NativeRenderer {
             ),
             &self.output,
         )?;
-        let scene = if frame.motion.is_some() {
-            self.motion_output
+        let motion = if frame.motion.is_some() {
+            Some(
+                self.motion_output
+                    .as_ref()
+                    .ok_or_else(|| RenderError::Invalid("motion pipeline missing".into()))?
+                    .record(
+                        &self.device,
+                        &mut encoder,
+                        frame,
+                        targets.scene.raw(),
+                        (&self.images, &self.surfaces),
+                    )?,
+            )
+        } else {
+            None
+        };
+        let scene = motion
+            .as_ref()
+            .map_or(scene, |texture| texture.create_view(&Default::default()));
+        if frame.visualizer.is_some() {
+            let destination = if frame.scene.header.aa == AntiAliasing::Off {
+                targets.output.raw()
+            } else {
+                targets.display.raw()
+            };
+            self.visualizer
                 .as_ref()
-                .ok_or_else(|| RenderError::Invalid("motion pipeline missing".into()))?
+                .ok_or_else(|| RenderError::Invalid("visualizer missing".into()))?
                 .record(
                     &self.device,
                     &mut encoder,
                     frame,
-                    targets.scene.raw(),
+                    (targets.scene.raw(), destination),
                     (&self.images, &self.surfaces),
-                )?
-        } else {
-            scene
-        };
-        if frame.depth.is_some() {
+                )?;
+            self.output.record_aa(
+                &self.device,
+                &mut encoder,
+                frame.scene.header.aa,
+                &display,
+                &output,
+            )?;
+        } else if frame.depth.is_some() {
             let destination = if frame.scene.header.aa == AntiAliasing::Off {
                 targets.output.raw()
             } else {
@@ -482,7 +522,7 @@ impl NativeRenderer {
                     &self.device,
                     &mut encoder,
                     frame,
-                    (targets.scene.raw(), destination),
+                    (targets.scene.raw(), motion.as_ref(), destination),
                     (&self.images, &self.surfaces),
                 )?;
             self.output.record_aa(

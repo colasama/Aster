@@ -602,5 +602,16 @@ five depth passes and matching retained target reuse. Additional requests switch
 back to depth and then repeat; they must retire, rebuild and reuse the depth allocation while
 reproducing the corresponding pixels exactly. An insufficient whole-frame GPU budget rejects without
 output. All frames enter the existing pixel/self-review gate and cached/uncached regression batches.
-This increment does not establish complete M7 coverage: lower depth tiers, combined motion/depth,
-material lighting, generators and auxiliary visualizations retain explicit ledger tasks.
+This increment does not establish complete M7 coverage: material lighting, generators and recursive
+scene integration retain explicit ledger tasks.
+
+An independent scene-output capture supplements the frozen corpus with sixty-four complete frames:
+overlapping translucent camera geometry, K0/K1/K2 depth with and without motion reconstruction,
+depth fog, an explicit skipped-depth clear, and eight diagnostic views across all four AA modes.
+Two independent TS devices must agree exactly. Sixteen paired controls require depth tier, motion
+and skipped-output changes to alter visible pixels. Capture runs separately from native comparison;
+its plan, resource and reference hashes are pinned in the ledger. Native cached/uncached batches
+must agree exactly, report expected depth and motion passes, and release inactive targets. Each
+output passes the GPU pixel profile and self-review; insufficient whole-frame memory rejects with
+no output. Floating auxiliary views use the supplied render extent for their range; integer ID views
+use real integer attachments rather than converting IDs to floats.

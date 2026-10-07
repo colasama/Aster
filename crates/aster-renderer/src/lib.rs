@@ -13,6 +13,7 @@ mod frame_motion;
 mod frame_surface;
 #[cfg(test)]
 mod frame_surface_tests;
+mod frame_visualizer;
 mod geometry_pipelines;
 mod image_cache;
 mod image_input;
@@ -40,6 +41,7 @@ mod temporal_cache;
 mod temporal_frame;
 mod temporal_plan;
 mod temporal_text;
+mod visualizer;
 
 pub use auxiliary_pipelines::AuxiliaryPrimaryPipelines;
 pub use auxiliary_primary::{AuxiliaryPrimaryPlan, AuxiliaryPrimaryTargets};

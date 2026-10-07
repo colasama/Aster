@@ -122,7 +122,7 @@ impl MotionOutput {
             &crate::image_cache::ImageCache,
             &crate::surface_cache::SurfaceCache,
         ),
-    ) -> Result<wgpu::TextureView, RenderError> {
+    ) -> Result<wgpu::Texture, RenderError> {
         let plan = frame
             .motion
             .as_ref()
@@ -151,6 +151,6 @@ impl MotionOutput {
             ],
             &targets.textures,
         )?;
-        Ok(targets.textures[2].create_view(&Default::default()))
+        Ok(targets.textures[2].clone())
     }
 }

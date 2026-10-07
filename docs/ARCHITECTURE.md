@@ -135,7 +135,10 @@ exact front color, transparency-weighted world positions and a second depth-peel
 targets remain GPU-resident, reuse matching extents and tiers, and retire before other caches can
 reuse their budget. Supplied camera geometry also executes the shared shadow depth pass at the
 plan's declared map size. Shadow caster geometry and map size participate in post-effect cache keys.
-Combined motion/depth, material lighting, recursive shadows and generators retain separate gates.
+Motion reconstruction feeds depth shading through its retained HDR texture; declared attachment
+roles select scene or motion pixels without CPU readback. All three depth tiers and diagnostic
+views execute shared shaders over real auxiliary attachments before AA. Integer ID views retain
+integer texture bindings. Material lighting, recursive shadows and generators retain separate gates.
 
 `aster-media-native` resolves PNG/JPEG sources from explicit job grants keyed by source hash and
 authorization scope. It checks file size, SHA-256 and the imported content identity, then feeds an

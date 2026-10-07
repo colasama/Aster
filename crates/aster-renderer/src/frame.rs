@@ -7,6 +7,7 @@ use crate::RenderError;
 
 /// Validated, owned execution inputs. No project evaluation or filesystem access occurs here.
 pub struct SuppliedFrame {
+    pub(crate) visualizer: Option<crate::frame_visualizer::FrameVisualizer>,
     pub(crate) depth: Option<crate::frame_depth::FrameDepth>,
     pub(crate) motion: Option<crate::frame_motion::FrameMotion>,
     pub(crate) temporal: crate::temporal_frame::TemporalFrame,
@@ -81,7 +82,13 @@ impl SuppliedFrame {
             effect.as_ref(),
             motion.is_some(),
         )?;
-        let surface = if depth.is_some() {
+        let visualizer = crate::frame_visualizer::FrameVisualizer::new(
+            &scene,
+            &output,
+            auxiliary.as_ref(),
+            effect.as_ref(),
+        )?;
+        let surface = if depth.is_some() || visualizer.is_some() {
             None
         } else {
             crate::frame_surface::FrameSurface::new(
@@ -145,6 +152,9 @@ impl SuppliedFrame {
             surface.validate_resources(&scene, &surfaces)?;
         }
         if let Some(auxiliary) = depth.as_ref().and_then(|d| d.auxiliary.as_ref()) {
+            auxiliary.validate_resources(&scene, &surfaces)?;
+        }
+        if let Some(auxiliary) = visualizer.as_ref().and_then(|v| v.auxiliary.as_ref()) {
             auxiliary.validate_resources(&scene, &surfaces)?;
         }
         if let Some(motion) = &motion {
@@ -212,6 +222,7 @@ impl SuppliedFrame {
             ));
         }
         Ok(Self {
+            visualizer,
             depth,
             motion,
             temporal,

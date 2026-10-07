@@ -16,6 +16,7 @@ import {
 import { runNativeMediaFrameGate } from "./native-media-frame-gate.mjs";
 import { runNativeMotionFrameGate } from "./native-motion-frame-gate.mjs";
 import { nativeSceneCases, runNativeSceneBatch } from "./native-scene-batch.mjs";
+import { runNativeSceneOutputGate } from "./native-scene-output-gate.mjs";
 import { runNativeSequenceGate } from "./native-sequence-gate.mjs";
 import { runNativeVideoGate } from "./native-video-gate.mjs";
 
@@ -300,6 +301,12 @@ export async function runNativeCoreGate(context, execute = runStep) {
       report.frames.push(...extra.frames);
       candidate.frames.push(...extra.candidate);
       report.scene_batch = extra.batch;
+      report.native_scene_output = await runNativeSceneOutputGate(
+        { ...context, output: join(context.output, "native-scene-output") },
+        { binary, compiler, validateReceipt: validateNativeReceipt },
+        execute,
+      );
+      assert.equal(report.native_scene_output.status, "passed", "Native scene output gate failed");
     }
     report.required_count = cases.reduce(
       (count, id) => count + corpus.cases.find((item) => item.id === id).frames.length,

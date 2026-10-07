@@ -10,6 +10,7 @@ pub use post_effect::{
 mod generator;
 pub use final_output::{
     FinalBeautySource, FinalDepthMode, FinalOutputRoute, FinalOutputSlice, FinalSurfaceMode,
+    FinalVisualization,
 };
 mod precomposition;
 mod precomposition_bundle;
