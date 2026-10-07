@@ -896,3 +896,9 @@ stroke; other programs and adjustments retain full-frame passes. Targets still c
 composition still uses the current backdrop. Empty regions clear without drawing. The diagnostic
 `--full-effect-regions` switch restores full-frame execution; receipts count actual isolated shader
 passes and full/drawn pixel areas separately from cache hits.
+
+SSAA keeps isolated effects at the render target resolution. A GPU experiment evaluating blur and
+outer glow at output resolution, then reconstructing RGBA16Float before display and SSAA, changed
+edge coverage and exceeded pixel acceptance limits. That strategy remains test-only as a rejection
+control. Any future reduced-frequency decomposition must preserve high-resolution coverage and prove
+parity before becoming an execution path.

@@ -9,7 +9,7 @@ use super::{LayerFixture, NativeRenderer, surface_generation_tests::RecursiveFix
 pub(super) struct RegionFixture;
 
 impl RegionFixture {
-    fn frame()
+    pub(super) fn frame()
     -> Result<(SuppliedFrame, aster_render_ir::ResourceRegistry), Box<dyn std::error::Error>> {
         let (mut frame, registry) = RecursiveFixture::frame()?;
         frame.scene = frame.surfaces.targets.remove(0).scene;

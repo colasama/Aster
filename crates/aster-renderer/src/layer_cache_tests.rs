@@ -292,3 +292,6 @@ mod surface_generation_tests;
 
 #[path = "effect_region_tests.rs"]
 mod effect_region_tests;
+
+#[path = "ssaa_effect_tests.rs"]
+mod ssaa_effect_tests;

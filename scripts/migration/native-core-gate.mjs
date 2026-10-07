@@ -26,6 +26,7 @@ import { runNativeEffectBatch } from "./native-effect-batch.mjs";
 import { nativeEffectCases } from "./native-effect-scope.mjs";
 import { runNativeExrGate } from "./native-exr-gate.mjs";
 import { runNativeLayerCacheGate } from "./native-layer-cache-gate.mjs";
+import { runNativeSsaaEffectGate } from "./native-ssaa-effect-gate.mjs";
 import { runNativeStillGate } from "./native-still-gate.mjs";
 import { runNativeSurfaceFrameGate } from "./native-surface-frame-gate.mjs";
 import { runNativeSurfacePostGate } from "./native-surface-post-gate.mjs";
@@ -295,6 +296,16 @@ export async function runNativeCoreGate(context, execute = runStep) {
         execute,
       );
       assert.equal(report.native_layer_cache.status, "passed", "Native layer cache changed pixels");
+      report.native_ssaa_effect_evaluation = await runNativeSsaaEffectGate(
+        { ...context, output: join(context.output, "native-ssaa-effect-evaluation") },
+        binary,
+        execute,
+      );
+      assert.equal(
+        report.native_ssaa_effect_evaluation.status,
+        "passed",
+        "SSAA effect safety control failed",
+      );
     }
     assert.equal(
       await hashFile(binary),

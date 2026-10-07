@@ -470,9 +470,8 @@ GPU scenes prove descendant changes invalidate parent outputs and match uncached
 tests check geometry, lighting, LUT, media generation, aliases, clear/load semantics and recursive
 time dependencies. A shared-WGSL consumer audit pins every opcode that reads or changes effect time;
 unknown revisions retain the clock. Tint, LUT and combined layer-style replays must actually admit and
-reuse their
-precomposition inputs. Reduced-resolution SSAA effects remain a separate task; adjustments and dependencies with unknown
-history remain ineligible for result reuse.
+reuse their precomposition inputs. Adjustments and dependencies with unknown history remain
+ineligible for result reuse.
 
 Region comparisons must demonstrate a positive reduction in drawn pixel area with the cache disabled;
 full-region controls must report zero bounded passes and equal full/drawn areas. GPU fixtures compare
@@ -481,3 +480,14 @@ geometry offscreen to prove empty regions clear correctly. CPU controls cover co
 unproved warps, non-neutral base settings and non-finite vertices. This admission intentionally keeps
 spatial programs with unproved footprints full-frame; a surface quad spanning the viewport remains
 full-frame even if its child texture contains transparent areas.
+
+The SSAA effect-resolution safety control evaluates blur and outer glow at output resolution under
+SSAA2x and SSAA4x, then bilinearly reconstructs their RGBA16Float results before the unchanged display
+and AA passes. It retains the high-resolution geometry, source sampling, radii and blur pyramid.
+Each full-resolution control must first match actual native renderer bytes. All four reduced-grid
+comparisons exceed the hard maximum error of 8; three also exceed alpha coverage limits. Direct
+contact-sheet and heatmap reviews reject the strategy. It exists only in GPU tests, and the production
+renderer keeps full-resolution effects. G3 requires the expected rejection and matching ledger
+self-reviews; its successful safety-control status does not mean reduced-resolution pixels passed.
+No tolerance is loosened. This rejects the tested RGBA resampling strategy, not every possible
+future decomposition that could preserve high-resolution alpha and demonstrate whole-corpus parity.
