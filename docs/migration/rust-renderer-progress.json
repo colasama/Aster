@@ -181,48 +181,98 @@
     }
   },
   "last_cycle": {
-    "id": 93,
-    "time": "2026-10-07T08:54:07.498869+00:00",
+    "id": 94,
+    "time": "2026-10-07T09:14:36.405655+00:00",
     "milestone": "M4",
     "task": "M4-T5",
     "outcome": "passed",
-    "commit": "f4caf8b6f49770f170995194b7ca9e0907a446eb",
-    "verification": "artifacts/migration/verify-2026-10-07T08-39-52-545Z-4d5cac61.json",
-    "verification_sha256": "f0e7cfb773c8e5e4101aab04391490394c88f1bcf259157a9325a99916e768c2",
+    "commit": "a50b16fb61452dcc63a3e82ea6da2a55badb21b2",
+    "verification": "artifacts/migration/verify-2026-10-07T09-00-22-389Z-a18ae42c.json",
+    "verification_sha256": "fa7034edae100ad3b43ef1ec9af0f6244d32fc64b72cf65decdd6df3a5ccb5c2",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 104443
+        "duration_ms": 97771
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 671687
+        "duration_ms": 707803
       }
     ],
-    "verification_duration_ms": 777799,
-    "region_diagnostic": {
-      "path": "artifacts/migration/cycle93-region-diagnostic/report.json",
-      "sha256": "d098399c6cac3dd431efe9d6bfaa46ae07dca558a04512de3fb1943792ec05ef",
-      "status": "passed",
-      "required_count": 1248,
-      "exact": 4992,
-      "hits": 1240,
-      "bounded_passes": 40,
-      "saved_pixels": 1080000
+    "verification_duration_ms": 807264,
+    "ssaa_evaluation": {
+      "strategy": "output-resolution-rgba16-effect-with-bilinear-reconstruction",
+      "decision": "rejected",
+      "production_enabled": false,
+      "cases": [
+        {
+          "case_id": "ssaa-reduction-blur-ssaa2x",
+          "max_abs_channel_error": 25,
+          "alpha_changed_fraction": 0.008333333333333333,
+          "verdict": "rejected",
+          "evidence": {
+            "report": "artifacts/migration/cycle94-ssaa-gpu-final/blur-ssaa2x/report.json",
+            "report_sha256": "4a9fdda33e87cdae7f44b22d0eba5d7eb196aea3d8ae5a2afc4bdd261a39dd21",
+            "contact_sheet": "artifacts/migration/cycle94-ssaa-gpu-final/blur-ssaa2x/contact-sheet.png",
+            "contact_sheet_sha256": "bac2ce3b2d2de2680a08db7d15ff0b10bedf2df61da31ff394d6015c0de954fc",
+            "heatmap": "artifacts/migration/cycle94-ssaa-gpu-final/blur-ssaa2x/heatmap.png",
+            "heatmap_sha256": "be0d9170ef2b7fe6304f5a2c329868b1caf988b1651b521ea221320ad55eaf44"
+          }
+        },
+        {
+          "case_id": "ssaa-reduction-glow-ssaa2x",
+          "max_abs_channel_error": 18,
+          "alpha_changed_fraction": 0.005416666666666667,
+          "verdict": "rejected",
+          "evidence": {
+            "report": "artifacts/migration/cycle94-ssaa-gpu-final/glow-ssaa2x/report.json",
+            "report_sha256": "cfde47970dd78b05421c692b501a8693984c21b25dfee5ca296edb544a0dcf43",
+            "contact_sheet": "artifacts/migration/cycle94-ssaa-gpu-final/glow-ssaa2x/contact-sheet.png",
+            "contact_sheet_sha256": "ada90d69e7e26df0fb33369d5baa34f9e77ecc7be172bdf025279f8dc9261c91",
+            "heatmap": "artifacts/migration/cycle94-ssaa-gpu-final/glow-ssaa2x/heatmap.png",
+            "heatmap_sha256": "e192a598375e9257af1af0b319a49c43aa4038c1b5d124c762df6c9c2dd54867"
+          }
+        },
+        {
+          "case_id": "ssaa-reduction-blur-ssaa4x",
+          "max_abs_channel_error": 14,
+          "alpha_changed_fraction": 0.0027083333333333334,
+          "verdict": "rejected",
+          "evidence": {
+            "report": "artifacts/migration/cycle94-ssaa-gpu-final/blur-ssaa4x/report.json",
+            "report_sha256": "fdc5e4ddf8f4ca60197caa9a34c86a2b6b7d64bc9ee952a3a44f312551c3f3fc",
+            "contact_sheet": "artifacts/migration/cycle94-ssaa-gpu-final/blur-ssaa4x/contact-sheet.png",
+            "contact_sheet_sha256": "a66ced3ebddddb123da8eb0a986d3c88e26e976b84f4dd3cfb5a5038959c6c50",
+            "heatmap": "artifacts/migration/cycle94-ssaa-gpu-final/blur-ssaa4x/heatmap.png",
+            "heatmap_sha256": "7143a2fd99739f63f094b9ebc9b03fad9f0d60e1f4f34c521071099afca308bc"
+          }
+        },
+        {
+          "case_id": "ssaa-reduction-glow-ssaa4x",
+          "max_abs_channel_error": 11,
+          "alpha_changed_fraction": 6.944444444444444e-5,
+          "verdict": "rejected",
+          "evidence": {
+            "report": "artifacts/migration/cycle94-ssaa-gpu-final/glow-ssaa4x/report.json",
+            "report_sha256": "4aa671b60fab2c0de73d9e01c6d28281120c834af603f2f37b44bb908a5a8526",
+            "contact_sheet": "artifacts/migration/cycle94-ssaa-gpu-final/glow-ssaa4x/contact-sheet.png",
+            "contact_sheet_sha256": "4456c0084b30e9ba27f0024f7bc4b221ce9a6ac53a8ec184a5ff36e82faec45b",
+            "heatmap": "artifacts/migration/cycle94-ssaa-gpu-final/glow-ssaa4x/heatmap.png",
+            "heatmap_sha256": "a0ed3493bd71ca16c35df5658cf9a638e8c193c8da14ec6444df5f58954152ca"
+          }
+        }
+      ],
+      "gpu_log": "artifacts/migration/cycle94-ssaa-gpu-final.log",
+      "gpu_log_sha256": "eb6a81da100a5b71480fa81c76aae223d64b4c44477834c075cbff645cd0dd73",
+      "bootstrap_fix": "Initial experiment asserted every case must fail alpha coverage. Measurements showed glow SSAA4x passes that structural limit while exceeding pixel hard limits. Keep Rust controls neutral about acceptance and let the comparison report determine each verdict."
     },
-    "gpu_controls": {
-      "path": "artifacts/migration/cycle93-region-gpu-final.log",
-      "sha256": "efebf9720efeabf51cafc37f4f6ce51c559d89adb40d7119616780fe4d6c011e",
-      "status": "passed",
-      "scope": "Fractional projected bounds, padded outer glow and stroke, exact full-frame controls, and empty-region clearing after geometry moves offscreen."
-    },
-    "next_step": "Evaluate output-resolution SSAA effect execution against full-resolution native output; retain full-resolution fallback wherever parity fails.",
+    "next_step": "Audit the complete M4 exit against every registered effect/style fixture, supplemental surface route and accepted optimization evidence.",
     "notes": [
-      "All 1248 executable whole frames pass exact cached, uncached and full-region controls: 4992 outputs and 1240 cache hits.",
-      "With caching disabled, 40 bounded passes save 1080000 drawn pixels across the corpus. This is work-area evidence, not a frame-rate claim.",
-      "Fractional bounds, padded outer glow and stroke, offscreen clearing and uncertain-program fallback pass GPU controls. No shader, reference or tolerance changes."
+      "Native full-resolution controls equal actual native output for all four SSAA blur/glow cases. Reduced-grid candidates are rejected with recorded direct visual self-review; no tolerance changes or production reduced-resolution path.",
+      "The required full run keeps 1248 whole-frame cache/region comparisons exact in all four modes (4992 outputs), with 1240 cache hits and 1080000 fewer drawn pixels in uncached bounded passes.",
+      "M4-T5 is complete: budgeted static layer cache, conservative padded bounds and evaluated/rejected SSAA resampling. M4-T6 remains open."
     ]
   },
   "milestones": [
@@ -20176,17 +20226,19 @@
         {
           "id": "M4-T5",
           "title": "Cache static layer outputs, narrow padded effect regions and evaluate low-frequency SSAA effects at output resolution where parity allows",
-          "status": "in_progress",
+          "status": "done",
           "last_increment": {
-            "cycle": 93,
-            "commit": "f4caf8b6f49770f170995194b7ca9e0907a446eb",
-            "verification": "artifacts/migration/verify-2026-10-07T08-39-52-545Z-4d5cac61.json",
-            "verification_sha256": "f0e7cfb773c8e5e4101aab04391490394c88f1bcf259157a9325a99916e768c2",
-            "scope": "Conservative isolated effect scissors for neutral base controls, bounded posterize/tint/channel operations, LUT, outer glow and stroke. Unproved programs, adjustments and full-screen surface quads stay full-frame; low-frequency SSAA remains pending.",
-            "exact_outputs": 4992,
-            "bounded_passes": 40,
-            "saved_pixels": 1080000
-          }
+            "cycle": 94,
+            "commit": "a50b16fb61452dcc63a3e82ea6da2a55badb21b2",
+            "verification": "artifacts/migration/verify-2026-10-07T09-00-22-389Z-a18ae42c.json",
+            "verification_sha256": "fa7034edae100ad3b43ef1ec9af0f6244d32fc64b72cf65decdd6df3a5ccb5c2",
+            "ssaa_strategy": "rejected; full-resolution production retained"
+          },
+          "completed_at": "2026-10-07T09:14:36.405655+00:00",
+          "commit": "a50b16fb61452dcc63a3e82ea6da2a55badb21b2",
+          "verification": "artifacts/migration/verify-2026-10-07T09-00-22-389Z-a18ae42c.json",
+          "verification_sha256": "fa7034edae100ad3b43ef1ec9af0f6244d32fc64b72cf65decdd6df3a5ccb5c2",
+          "scope": "Budgeted GPU-resident static layer results with recursive generations, conservative padded effect scissors and SSAA effect-resolution evaluation. Reduced RGBA grids fail hard pixel limits and remain test-only; uncertain bounds, histories and adjustments retain conservative execution."
         },
         {
           "id": "M4-T6",
@@ -153593,6 +153645,422 @@
         "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916"
       },
       "inspection": "Directly inspected this full contact sheet and heatmap. Selection tint and outline or directional blur match in RGB and alpha across the supplied AA mode. Skipped plans show the specified uniform clear after a drawn frame. Heatmaps are entirely black; all RGBA bytes match and there is no observed residual. No tolerance changes."
+    },
+    {
+      "case_id": "ssaa-reduction-blur-ssaa2x",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "Rejected output-resolution isolated effect strategy; production remains full resolution",
+      "reviewed_at": "2026-10-07T09:00:06.720863+00:00",
+      "reference_rgba_sha256": "33416a18d221db00de56bf5afcaaca1c2f54ce712fdad665104abb5536bb8657",
+      "candidate_rgba_sha256": "eb1922f43b314bd7385ade679feec5babab87c5163d2c9776fd64a9acfa11022",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 25,
+        "mean_abs_error": 0.08462673611111111,
+        "mean_squared_error": 0.6955121527777778,
+        "rgb_mean_squared_error": 0.36138888888888887,
+        "psnr": {
+          "kind": "finite",
+          "db": 52.55105565073612
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 49.70775637987411
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 808
+      },
+      "ssim": {
+        "channels": [
+          0.9993539931661338, 0.9994869420095216, 0.9995085563997428, 0.9992574140864067
+        ],
+        "mean": 0.9994498305251328,
+        "rgba_mean": 0.9994017264154512,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 2,
+        "error_component_count": 4,
+        "signed_bias": [
+          -0.009583333333333333, -0.008055555555555555, 0.00034722222222222224,
+          -0.0027430555555555554
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 480,
+        "alpha_changed_fraction": 0.008333333333333333,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 120,
+            "min_y": 67,
+            "max_x": 199,
+            "max_y": 112
+          },
+          "candidate": {
+            "min_x": 119,
+            "min_y": 66,
+            "max_x": 200,
+            "max_y": 113
+          },
+          "edge_deltas": [-1, -1, 1, 1],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.10643524391783296,
+          "candidate_rms": 0.10587936835276314,
+          "reference_axis_ratio": 0.2803242575141906,
+          "candidate_axis_ratio": 0.3067114305136966,
+          "reference_window_energy_fraction": 0.9899622964216969,
+          "candidate_window_energy_fraction": 0.9898701967406287,
+          "active_frequencies": 3908,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.219775594049091,
+          "peak_to_sidelobe_ratio": 75.55894680686829,
+          "peak_coherence": 0.9999999982247033,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "structural",
+      "verdict": "rejected",
+      "evidence": {
+        "report": "artifacts/migration/cycle94-ssaa-gpu-final/blur-ssaa2x/report.json",
+        "report_sha256": "4a9fdda33e87cdae7f44b22d0eba5d7eb196aea3d8ae5a2afc4bdd261a39dd21",
+        "contact_sheet": "artifacts/migration/cycle94-ssaa-gpu-final/blur-ssaa2x/contact-sheet.png",
+        "contact_sheet_sha256": "bac2ce3b2d2de2680a08db7d15ff0b10bedf2df61da31ff394d6015c0de954fc",
+        "heatmap": "artifacts/migration/cycle94-ssaa-gpu-final/blur-ssaa2x/heatmap.png",
+        "heatmap_sha256": "be0d9170ef2b7fe6304f5a2c329868b1caf988b1651b521ea221320ad55eaf44"
+      },
+      "inspection": "Directly inspected full contact sheet and heatmap. Differences form an edge ring around the translucent quad; reconstruction softens coverage, and glow adds weaker halo bands. Full-resolution controls equal the native renderer exactly. All reduced outputs exceed the hard maximum error; three fail alpha coverage. Reject the strategy, keep full-resolution production execution, and make no tolerance changes."
+    },
+    {
+      "case_id": "ssaa-reduction-glow-ssaa2x",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "Rejected output-resolution isolated effect strategy; production remains full resolution",
+      "reviewed_at": "2026-10-07T09:00:06.720863+00:00",
+      "reference_rgba_sha256": "772f2f53ad9dc01ac100df9d86c294d11e4ce89c701d0bdcfd3f9aa3800f64db",
+      "candidate_rgba_sha256": "5e0672cfea6e84f505fd1547bf21a374b0a1344965167fec49f8b4bdeac137b5",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 18,
+        "mean_abs_error": 0.13264756944444445,
+        "mean_squared_error": 0.6028385416666666,
+        "rgb_mean_squared_error": 0.47184027777777776,
+        "psnr": {
+          "kind": "finite",
+          "db": 51.39285349985975
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 50.32879350307481
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 1186
+      },
+      "ssim": {
+        "channels": [0.9993297479899732, 0.999396160620104, 0.9991699830000649, 0.9991109170914734],
+        "mean": 0.999298630536714,
+        "rgba_mean": 0.9992517021754038,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 1,
+        "error_component_count": 4,
+        "signed_bias": [
+          -0.0011805555555555556, -0.0005555555555555556, -0.0030208333333333333,
+          -0.0015277777777777779
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 312,
+        "alpha_changed_fraction": 0.005416666666666667,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 108,
+            "min_y": 55,
+            "max_x": 211,
+            "max_y": 124
+          },
+          "candidate": {
+            "min_x": 108,
+            "min_y": 55,
+            "max_x": 211,
+            "max_y": 124
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.15955220611829732,
+          "candidate_rms": 0.159236131856353,
+          "reference_axis_ratio": 0.2861008309583304,
+          "candidate_axis_ratio": 0.3157280452221248,
+          "reference_window_energy_fraction": 0.986187970678159,
+          "candidate_window_energy_fraction": 0.9861366647666312,
+          "active_frequencies": 1916,
+          "spectral_bins": 524288,
+          "peak_ratio": 3.573348853069582,
+          "peak_to_sidelobe_ratio": 50.913009142943,
+          "peak_coherence": 0.9999999952485474,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "structural",
+      "verdict": "rejected",
+      "evidence": {
+        "report": "artifacts/migration/cycle94-ssaa-gpu-final/glow-ssaa2x/report.json",
+        "report_sha256": "cfde47970dd78b05421c692b501a8693984c21b25dfee5ca296edb544a0dcf43",
+        "contact_sheet": "artifacts/migration/cycle94-ssaa-gpu-final/glow-ssaa2x/contact-sheet.png",
+        "contact_sheet_sha256": "ada90d69e7e26df0fb33369d5baa34f9e77ecc7be172bdf025279f8dc9261c91",
+        "heatmap": "artifacts/migration/cycle94-ssaa-gpu-final/glow-ssaa2x/heatmap.png",
+        "heatmap_sha256": "e192a598375e9257af1af0b319a49c43aa4038c1b5d124c762df6c9c2dd54867"
+      },
+      "inspection": "Directly inspected full contact sheet and heatmap. Differences form an edge ring around the translucent quad; reconstruction softens coverage, and glow adds weaker halo bands. Full-resolution controls equal the native renderer exactly. All reduced outputs exceed the hard maximum error; three fail alpha coverage. Reject the strategy, keep full-resolution production execution, and make no tolerance changes."
+    },
+    {
+      "case_id": "ssaa-reduction-blur-ssaa4x",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "Rejected output-resolution isolated effect strategy; production remains full resolution",
+      "reviewed_at": "2026-10-07T09:00:06.720863+00:00",
+      "reference_rgba_sha256": "1c46093aed6c79619b939f000620372451fa501ca30833984e5b7a83201f5aca",
+      "candidate_rgba_sha256": "92e308e839b49c732cad6d4cf5b35bed2faa74329a647f9ecf7095ffd0336304",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 14,
+        "mean_abs_error": 0.049930555555555554,
+        "mean_squared_error": 0.24899305555555556,
+        "rgb_mean_squared_error": 0.14462962962962964,
+        "psnr": {
+          "kind": "finite",
+          "db": 56.52823086813578
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 54.16893126125423
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 652
+      },
+      "ssim": {
+        "channels": [
+          0.9996905685257123, 0.9997118617566122, 0.9997464674893765, 0.9997180906872036
+        ],
+        "mean": 0.9997162992572336,
+        "rgba_mean": 0.9997167471147261,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0.003958333333333334, 0.010208333333333333, 0.00986111111111111, 0.008888888888888889
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 156,
+        "alpha_changed_fraction": 0.0027083333333333334,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 120,
+            "min_y": 67,
+            "max_x": 199,
+            "max_y": 112
+          },
+          "candidate": {
+            "min_x": 119,
+            "min_y": 67,
+            "max_x": 200,
+            "max_y": 112
+          },
+          "edge_deltas": [-1, 0, 1, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.1064152730482699,
+          "candidate_rms": 0.1061563547249247,
+          "reference_axis_ratio": 0.28304254080161967,
+          "candidate_axis_ratio": 0.28625917396205264,
+          "reference_window_energy_fraction": 0.9899490883582713,
+          "candidate_window_energy_fraction": 0.9898781022563664,
+          "active_frequencies": 3944,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.2157212967515774,
+          "peak_to_sidelobe_ratio": 75.92049483194134,
+          "peak_coherence": 1.0,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "structural",
+      "verdict": "rejected",
+      "evidence": {
+        "report": "artifacts/migration/cycle94-ssaa-gpu-final/blur-ssaa4x/report.json",
+        "report_sha256": "fdc5e4ddf8f4ca60197caa9a34c86a2b6b7d64bc9ee952a3a44f312551c3f3fc",
+        "contact_sheet": "artifacts/migration/cycle94-ssaa-gpu-final/blur-ssaa4x/contact-sheet.png",
+        "contact_sheet_sha256": "a66ced3ebddddb123da8eb0a986d3c88e26e976b84f4dd3cfb5a5038959c6c50",
+        "heatmap": "artifacts/migration/cycle94-ssaa-gpu-final/blur-ssaa4x/heatmap.png",
+        "heatmap_sha256": "7143a2fd99739f63f094b9ebc9b03fad9f0d60e1f4f34c521071099afca308bc"
+      },
+      "inspection": "Directly inspected full contact sheet and heatmap. Differences form an edge ring around the translucent quad; reconstruction softens coverage, and glow adds weaker halo bands. Full-resolution controls equal the native renderer exactly. All reduced outputs exceed the hard maximum error; three fail alpha coverage. Reject the strategy, keep full-resolution production execution, and make no tolerance changes."
+    },
+    {
+      "case_id": "ssaa-reduction-glow-ssaa4x",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "Rejected output-resolution isolated effect strategy; production remains full resolution",
+      "reviewed_at": "2026-10-07T09:00:06.720863+00:00",
+      "reference_rgba_sha256": "cc255bc4b8e9d7b8365d5621db9bd96a89640be4f1089a7cc8398f77d5ca0629",
+      "candidate_rgba_sha256": "63cf98a94ef300e6025656dc867916659a79f30e69775be684a93872e5aa165f",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 11,
+        "mean_abs_error": 0.0777170138888889,
+        "mean_squared_error": 0.21655381944444443,
+        "rgb_mean_squared_error": 0.1721875,
+        "psnr": {
+          "kind": "finite",
+          "db": 55.77078740336031
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 54.77514512912795
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 580
+      },
+      "ssim": {
+        "channels": [
+          0.9996749974853333, 0.9996916252636556, 0.9996936888600683, 0.9997077040790208
+        ],
+        "mean": 0.9996867705363525,
+        "rgba_mean": 0.9996920039220195,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0.0096875, 0.0008680555555555555, -0.0038541666666666668, -0.0021527777777777778
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 4,
+        "alpha_changed_fraction": 6.944444444444444e-5,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 108,
+            "min_y": 55,
+            "max_x": 211,
+            "max_y": 124
+          },
+          "candidate": {
+            "min_x": 108,
+            "min_y": 55,
+            "max_x": 211,
+            "max_y": 124
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.15958198408972493,
+          "candidate_rms": 0.15939678417902603,
+          "reference_axis_ratio": 0.2872650693284281,
+          "candidate_axis_ratio": 0.29406126749315303,
+          "reference_window_energy_fraction": 0.9861700855545964,
+          "candidate_window_energy_fraction": 0.986135991735147,
+          "active_frequencies": 1912,
+          "spectral_bins": 524288,
+          "peak_ratio": 3.547324779687649,
+          "peak_to_sidelobe_ratio": 50.81514909392667,
+          "peak_coherence": 0.9999999999573731,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "sampling-order",
+      "verdict": "rejected",
+      "evidence": {
+        "report": "artifacts/migration/cycle94-ssaa-gpu-final/glow-ssaa4x/report.json",
+        "report_sha256": "4aa671b60fab2c0de73d9e01c6d28281120c834af603f2f37b44bb908a5a8526",
+        "contact_sheet": "artifacts/migration/cycle94-ssaa-gpu-final/glow-ssaa4x/contact-sheet.png",
+        "contact_sheet_sha256": "4456c0084b30e9ba27f0024f7bc4b221ce9a6ac53a8ec184a5ff36e82faec45b",
+        "heatmap": "artifacts/migration/cycle94-ssaa-gpu-final/glow-ssaa4x/heatmap.png",
+        "heatmap_sha256": "a0ed3493bd71ca16c35df5658cf9a638e8c193c8da14ec6444df5f58954152ca"
+      },
+      "inspection": "Directly inspected full contact sheet and heatmap. Differences form an edge ring around the translucent quad; reconstruction softens coverage, and glow adds weaker halo bands. Full-resolution controls equal the native renderer exactly. All reduced outputs exceed the hard maximum error; three fail alpha coverage. Reject the strategy, keep full-resolution production execution, and make no tolerance changes."
     }
   ],
   "history": [
@@ -154913,6 +155381,101 @@
         "All 1248 executable whole frames pass exact cached, uncached and full-region controls: 4992 outputs and 1240 cache hits.",
         "With caching disabled, 40 bounded passes save 1080000 drawn pixels across the corpus. This is work-area evidence, not a frame-rate claim.",
         "Fractional bounds, padded outer glow and stroke, offscreen clearing and uncertain-program fallback pass GPU controls. No shader, reference or tolerance changes."
+      ]
+    },
+    {
+      "id": 94,
+      "time": "2026-10-07T09:14:36.405655+00:00",
+      "milestone": "M4",
+      "task": "M4-T5",
+      "outcome": "passed",
+      "commit": "a50b16fb61452dcc63a3e82ea6da2a55badb21b2",
+      "verification": "artifacts/migration/verify-2026-10-07T09-00-22-389Z-a18ae42c.json",
+      "verification_sha256": "fa7034edae100ad3b43ef1ec9af0f6244d32fc64b72cf65decdd6df3a5ccb5c2",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 97771
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 707803
+        }
+      ],
+      "verification_duration_ms": 807264,
+      "ssaa_evaluation": {
+        "strategy": "output-resolution-rgba16-effect-with-bilinear-reconstruction",
+        "decision": "rejected",
+        "production_enabled": false,
+        "cases": [
+          {
+            "case_id": "ssaa-reduction-blur-ssaa2x",
+            "max_abs_channel_error": 25,
+            "alpha_changed_fraction": 0.008333333333333333,
+            "verdict": "rejected",
+            "evidence": {
+              "report": "artifacts/migration/cycle94-ssaa-gpu-final/blur-ssaa2x/report.json",
+              "report_sha256": "4a9fdda33e87cdae7f44b22d0eba5d7eb196aea3d8ae5a2afc4bdd261a39dd21",
+              "contact_sheet": "artifacts/migration/cycle94-ssaa-gpu-final/blur-ssaa2x/contact-sheet.png",
+              "contact_sheet_sha256": "bac2ce3b2d2de2680a08db7d15ff0b10bedf2df61da31ff394d6015c0de954fc",
+              "heatmap": "artifacts/migration/cycle94-ssaa-gpu-final/blur-ssaa2x/heatmap.png",
+              "heatmap_sha256": "be0d9170ef2b7fe6304f5a2c329868b1caf988b1651b521ea221320ad55eaf44"
+            }
+          },
+          {
+            "case_id": "ssaa-reduction-glow-ssaa2x",
+            "max_abs_channel_error": 18,
+            "alpha_changed_fraction": 0.005416666666666667,
+            "verdict": "rejected",
+            "evidence": {
+              "report": "artifacts/migration/cycle94-ssaa-gpu-final/glow-ssaa2x/report.json",
+              "report_sha256": "cfde47970dd78b05421c692b501a8693984c21b25dfee5ca296edb544a0dcf43",
+              "contact_sheet": "artifacts/migration/cycle94-ssaa-gpu-final/glow-ssaa2x/contact-sheet.png",
+              "contact_sheet_sha256": "ada90d69e7e26df0fb33369d5baa34f9e77ecc7be172bdf025279f8dc9261c91",
+              "heatmap": "artifacts/migration/cycle94-ssaa-gpu-final/glow-ssaa2x/heatmap.png",
+              "heatmap_sha256": "e192a598375e9257af1af0b319a49c43aa4038c1b5d124c762df6c9c2dd54867"
+            }
+          },
+          {
+            "case_id": "ssaa-reduction-blur-ssaa4x",
+            "max_abs_channel_error": 14,
+            "alpha_changed_fraction": 0.0027083333333333334,
+            "verdict": "rejected",
+            "evidence": {
+              "report": "artifacts/migration/cycle94-ssaa-gpu-final/blur-ssaa4x/report.json",
+              "report_sha256": "fdc5e4ddf8f4ca60197caa9a34c86a2b6b7d64bc9ee952a3a44f312551c3f3fc",
+              "contact_sheet": "artifacts/migration/cycle94-ssaa-gpu-final/blur-ssaa4x/contact-sheet.png",
+              "contact_sheet_sha256": "a66ced3ebddddb123da8eb0a986d3c88e26e976b84f4dd3cfb5a5038959c6c50",
+              "heatmap": "artifacts/migration/cycle94-ssaa-gpu-final/blur-ssaa4x/heatmap.png",
+              "heatmap_sha256": "7143a2fd99739f63f094b9ebc9b03fad9f0d60e1f4f34c521071099afca308bc"
+            }
+          },
+          {
+            "case_id": "ssaa-reduction-glow-ssaa4x",
+            "max_abs_channel_error": 11,
+            "alpha_changed_fraction": 6.944444444444444e-5,
+            "verdict": "rejected",
+            "evidence": {
+              "report": "artifacts/migration/cycle94-ssaa-gpu-final/glow-ssaa4x/report.json",
+              "report_sha256": "4aa671b60fab2c0de73d9e01c6d28281120c834af603f2f37b44bb908a5a8526",
+              "contact_sheet": "artifacts/migration/cycle94-ssaa-gpu-final/glow-ssaa4x/contact-sheet.png",
+              "contact_sheet_sha256": "4456c0084b30e9ba27f0024f7bc4b221ce9a6ac53a8ec184a5ff36e82faec45b",
+              "heatmap": "artifacts/migration/cycle94-ssaa-gpu-final/glow-ssaa4x/heatmap.png",
+              "heatmap_sha256": "a0ed3493bd71ca16c35df5658cf9a638e8c193c8da14ec6444df5f58954152ca"
+            }
+          }
+        ],
+        "gpu_log": "artifacts/migration/cycle94-ssaa-gpu-final.log",
+        "gpu_log_sha256": "eb6a81da100a5b71480fa81c76aae223d64b4c44477834c075cbff645cd0dd73",
+        "bootstrap_fix": "Initial experiment asserted every case must fail alpha coverage. Measurements showed glow SSAA4x passes that structural limit while exceeding pixel hard limits. Keep Rust controls neutral about acceptance and let the comparison report determine each verdict."
+      },
+      "next_step": "Audit the complete M4 exit against every registered effect/style fixture, supplemental surface route and accepted optimization evidence.",
+      "notes": [
+        "Native full-resolution controls equal actual native output for all four SSAA blur/glow cases. Reduced-grid candidates are rejected with recorded direct visual self-review; no tolerance changes or production reduced-resolution path.",
+        "The required full run keeps 1248 whole-frame cache/region comparisons exact in all four modes (4992 outputs), with 1240 cache hits and 1080000 fewer drawn pixels in uncached bounded passes.",
+        "M4-T5 is complete: budgeted static layer cache, conservative padded bounds and evaluated/rejected SSAA resampling. M4-T6 remains open."
       ]
     }
   ],
