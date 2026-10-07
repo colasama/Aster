@@ -653,5 +653,13 @@ arithmetic reassociation lost one thin streak pixel despite matching nearly the 
 The failed pre-invariance comparison remains recorded. Cached/uncached and bounded/unbounded
 effect-region runs must remain byte-identical, and a generator allocation-budget control must
 reject before publishing output. Unit controls reject mismatched frame identity, realization,
-missing/duplicate invocations and invalid shader text. Audio-driven and auxiliary generator output
-remain separate coverage work before M7-T4 can close.
+missing/duplicate invocations and invalid shader text. Generated auxiliary output remains separate
+coverage work before M7-T4 can close.
+
+Fifteen frozen bars, ring and oscilloscope frames now exercise supplied root-time audio analysis in
+the native generator graph. GPU controls silence the audio samples, add a visible sibling, omit
+that sibling's redundant audio payload, restore the original frame and reject contradictory audio
+records before output publication. Shared and inherited audio must produce identical pixels,
+restored frames must match the frozen-input native baseline exactly, and both silence and a new
+sibling must visibly change the image. The audio record is budgeted once per scene. These checks
+cover root beauty output; generated auxiliary attachments remain open.

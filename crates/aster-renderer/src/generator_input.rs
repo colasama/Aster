@@ -14,6 +14,7 @@ use crate::{RenderError, layer_key::LayerKey, surface_plan::SurfacePlan};
 pub(crate) struct GeneratorInput {
     pub invocation: SceneGeneratorSlice,
     pub payload: Vec<u8>,
+    pub audio: Option<Arc<[u8]>>,
     pub shaders: BTreeMap<ResourceHash, Arc<str>>,
     pub program_key: ResourceHash,
 }
@@ -27,7 +28,7 @@ impl GeneratorInput {
     ) -> Result<BTreeMap<Vec<u16>, Self>, RenderError> {
         let mut result = BTreeMap::new();
         let mut sources = BTreeMap::<ResourceHash, Arc<str>>::new();
-        let mut audio: Option<Vec<u8>> = None;
+        let mut audio: Option<Arc<[u8]>> = None;
         for record in records {
             let plan = FplnCodec::decode(registry.resolve(&record.plan)?.to_vec(), limits)?;
             let Some(PlanSlice::SceneGenerator(invocation)) = plan.metadata.slices.first() else {
@@ -81,7 +82,7 @@ impl GeneratorInput {
             let payload = plan.blob(invocation.blob_index as usize)?.to_vec();
             if invocation.has_audio {
                 if audio
-                    .as_ref()
+                    .as_deref()
                     .is_some_and(|audio| audio != &payload[2272..])
                 {
                     return Err(RenderError::Invalid(
@@ -89,10 +90,11 @@ impl GeneratorInput {
                     ));
                 }
                 if audio.is_none() {
-                    audio = Some(payload[2272..].to_vec());
+                    audio = Some(Arc::from(&payload[2272..]));
                 }
             }
             let value = Self {
+                audio: None,
                 invocation: invocation.clone(),
                 payload,
                 shaders,
@@ -125,6 +127,9 @@ impl GeneratorInput {
                 "generator command closure differs".into(),
             ));
         }
+        for input in result.values_mut() {
+            input.audio = audio.clone();
+        }
         Ok(result)
     }
 
@@ -134,6 +139,5 @@ impl GeneratorInput {
             + 208
             + 2048
             + 16
-            + 9280
     }
 }

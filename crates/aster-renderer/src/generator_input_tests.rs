@@ -100,6 +100,80 @@ impl GeneratorFixture {
             registry,
         })
     }
+
+    fn append_audio(&mut self, name: &str, value: u8) -> Result<(), Box<dyn std::error::Error>> {
+        let limits = DecodeLimits::default();
+        let mut plan = FplnCodec::decode(
+            self.registry.resolve(&self.records[0].plan)?.to_vec(),
+            &limits,
+        )?;
+        let mut payload = plan.blob(0)?.to_vec();
+        payload.resize(11552, value);
+        let Some(PlanSlice::SceneGenerator(invocation)) = plan.metadata.slices.first_mut() else {
+            return Err("invocation absent".into());
+        };
+        invocation.instance_id = aster_render_ir::CompositionIdentity::Unicode(name.to_owned());
+        invocation.has_audio = true;
+        invocation.program.audio_analysis = true;
+        let instance_id = invocation.instance_id.clone();
+        let blend_mode = invocation.blend_mode.clone();
+        plan.metadata.blobs[0].byte_length = payload.len() as u32;
+        plan.metadata.blobs[0].element_count = payload.len() as u32;
+        let hash = Self::register(
+            &mut self.registry,
+            FplnCodec::encode(plan.metadata, &[&payload], &limits)?,
+        )?;
+        self.records.push(PrecompositionGeneratorRecord {
+            instance_id: instance_id.clone(),
+            plan: hash,
+            ..self.records[0].clone()
+        });
+        let Some(PlanSlice::RootSceneCommands(root)) = self.root.metadata.slices.first_mut() else {
+            return Err("root absent".into());
+        };
+        root.commands.push(RootCommandRecord::Generator {
+            instance_id,
+            blend_mode,
+        });
+        Ok(())
+    }
+}
+
+#[test]
+fn supplied_audio_is_shared_and_conflicting_frame_records_are_rejected()
+-> Result<(), Box<dyn std::error::Error>> {
+    let limits = DecodeLimits::default();
+    let mut fixture = GeneratorFixture::new(b"shader source".to_vec())?;
+    fixture.append_audio("audio-first", 7)?;
+    fixture.append_audio("audio-second", 7)?;
+    let inputs =
+        GeneratorInput::collect(&fixture.records, &fixture.root, &fixture.registry, &limits)?;
+    let first = inputs
+        .values()
+        .next()
+        .and_then(|input| input.audio.as_ref())
+        .ok_or("audio absent")?;
+    assert_eq!(first.as_ref(), vec![7; 9280]);
+    assert_eq!(inputs.len(), 3);
+    for input in inputs.values() {
+        assert!(std::sync::Arc::ptr_eq(
+            first,
+            input.audio.as_ref().ok_or("shared audio absent")?
+        ));
+    }
+    fixture.append_audio("audio-conflict", 9)?;
+    let error =
+        GeneratorInput::collect(&fixture.records, &fixture.root, &fixture.registry, &limits)
+            .err()
+            .ok_or("conflict accepted")?;
+    assert!(error.to_string().contains("audio differs within frame"));
+    let silent = GeneratorFixture::new(b"shader source".to_vec())?;
+    assert!(
+        GeneratorInput::collect(&silent.records, &silent.root, &silent.registry, &limits)?
+            .values()
+            .all(|input| input.audio.is_none())
+    );
+    Ok(())
 }
 
 #[test]
@@ -111,7 +185,7 @@ fn supplied_generators_require_matching_frame_identity_closure_and_shader_text()
         GeneratorInput::collect(&fixture.records, &fixture.root, &fixture.registry, &limits)?;
     assert_eq!(inputs.len(), 1);
     let input = inputs.values().next().ok_or("input missing")?;
-    assert_eq!(input.required_bytes(), 1024 * 48 + 208 + 2048 + 16 + 9280);
+    assert_eq!(input.required_bytes(), 1024 * 48 + 208 + 2048 + 16);
     for mode in [
         "time",
         "capacity",

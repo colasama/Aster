@@ -13,6 +13,7 @@ import {
   coreLayerCases,
   coreSurfaceCases,
 } from "./native-core-scope.mjs";
+import { runNativeGeneratorAudioGate } from "./native-generator-audio-gate.mjs";
 import { runNativeMaterialGate } from "./native-material-gate.mjs";
 import { runNativeMediaFrameGate } from "./native-media-frame-gate.mjs";
 import { runNativeMotionFrameGate } from "./native-motion-frame-gate.mjs";
@@ -302,6 +303,16 @@ export async function runNativeCoreGate(context, execute = runStep) {
       report.frames.push(...extra.frames);
       candidate.frames.push(...extra.candidate);
       report.scene_batch = extra.batch;
+      report.native_generator_audio = await runNativeGeneratorAudioGate(
+        { ...context, output: join(context.output, "native-generator-audio") },
+        { binary, compiler, base, frames: extra.frames },
+        execute,
+      );
+      assert.equal(
+        report.native_generator_audio.status,
+        "passed",
+        "Native generator audio controls failed",
+      );
       report.native_scene_output = await runNativeSceneOutputGate(
         { ...context, output: join(context.output, "native-scene-output") },
         { binary, compiler, validateReceipt: validateNativeReceipt },

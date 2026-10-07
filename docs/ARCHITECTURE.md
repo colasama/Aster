@@ -849,6 +849,10 @@ from each time-addressed invocation, without CPU readback. Naga preserves invari
 outputs to prevent native arithmetic reassociation from changing thin-triangle raster coverage.
 The buffer allocation budget includes generator context, parameters, instances, indirect arguments
 and audio analysis. Auxiliary generator output and recursive generator scenes retain separate gates.
+Root generators share one authenticated audio record and one GPU audio buffer per scene, including
+invocations that omit a redundant audio payload. Conflicting supplied records fail before drawing.
+Each scene recreates this binding from its own input or the defined silence record, preventing audio
+from a preceding render from leaking into the next frame.
 
 Browser video uses hardware media decode and a persistent staging canvas before `queue.writeTexture`.
 This deterministic compatibility path exists because Chromium implementations can silently

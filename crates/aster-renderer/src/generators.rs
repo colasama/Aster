@@ -89,10 +89,19 @@ impl GeneratorPipelines {
         inputs: &BTreeMap<Vec<u16>, GeneratorInput>,
     ) -> Result<BTreeMap<Vec<u16>, GeneratorBindings>, RenderError> {
         let mut bindings = BTreeMap::new();
+        let Some(first) = inputs.values().next() else {
+            return Ok(bindings);
+        };
+        let audio = GeneratorBindings::audio(device, first);
         for (key, input) in inputs {
             bindings.insert(
                 key.clone(),
-                GeneratorBindings::new(device, input, (&self.compute_layout, &self.render_layout))?,
+                GeneratorBindings::new(
+                    device,
+                    input,
+                    (&self.compute_layout, &self.render_layout),
+                    &audio,
+                )?,
             );
         }
         if !bindings.is_empty() {

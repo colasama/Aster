@@ -13,6 +13,7 @@ impl GeneratorBindings {
         device: &wgpu::Device,
         input: &GeneratorInput,
         layouts: (&wgpu::BindGroupLayout, &wgpu::BindGroupLayout),
+        audio: &wgpu::Buffer,
     ) -> Result<Self, RenderError> {
         let invocation = &input.invocation;
         let storage_bytes =
@@ -48,26 +49,6 @@ impl GeneratorBindings {
             size: storage_bytes,
             usage: wgpu::BufferUsages::STORAGE,
             mapped_at_creation: false,
-        });
-        let mut silent = vec![0; 9280];
-        for (lane, value) in silent[..16].chunks_exact_mut(4).zip([128_u32, 16, 256, 0]) {
-            lane.copy_from_slice(&value.to_le_bytes());
-        }
-        for (lane, value) in
-            silent[16..32]
-                .chunks_exact_mut(4)
-                .zip([0_f32, 1.0 / 60.0, 30.0, 16000.0])
-        {
-            lane.copy_from_slice(&value.to_le_bytes());
-        }
-        let audio = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Supplied generator audio analysis"),
-            contents: if invocation.has_audio {
-                &input.payload[2272..]
-            } else {
-                &silent
-            },
-            usage: wgpu::BufferUsages::STORAGE,
         });
         let entries = [
             wgpu::BindGroupEntry {
@@ -110,6 +91,28 @@ impl GeneratorBindings {
             compute,
             render,
             indirect,
+        })
+    }
+
+    pub fn audio(device: &wgpu::Device, input: &GeneratorInput) -> wgpu::Buffer {
+        let mut silent = vec![0; 9280];
+        for (lane, value) in silent[..16].chunks_exact_mut(4).zip([128_u32, 16, 256, 0]) {
+            lane.copy_from_slice(&value.to_le_bytes());
+        }
+        for (lane, value) in
+            silent[16..32]
+                .chunks_exact_mut(4)
+                .zip([0_f32, 1.0 / 60.0, 30.0, 16000.0])
+        {
+            lane.copy_from_slice(&value.to_le_bytes());
+        }
+        device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Frame-shared generator audio analysis"),
+            contents: match &input.audio {
+                Some(audio) => audio,
+                None => &silent,
+            },
+            usage: wgpu::BufferUsages::STORAGE,
         })
     }
 }
