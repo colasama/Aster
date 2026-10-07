@@ -10,6 +10,7 @@ mod layers;
 mod lut_cache;
 mod output;
 mod pyramid;
+mod pyramid_levels;
 mod scene;
 mod scene_input;
 mod surface_cache;

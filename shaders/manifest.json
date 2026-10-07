@@ -80,7 +80,8 @@
     "diagnostic-fullscreen-vertex": "diagnostics/fullscreen-vertex.wgsl",
     "diagnostic-scene-fragment": "diagnostics/scene-fragment.wgsl",
     "diagnostic-float-fragment": "diagnostics/float-fragment.wgsl",
-    "diagnostic-uint-fragment": "diagnostics/uint-fragment.wgsl"
+    "diagnostic-uint-fragment": "diagnostics/uint-fragment.wgsl",
+    "native-pyramid-seed": "effects/native-pyramid-seed.wgsl"
   },
   "programs": {
     "output-anti-aliasing": {
@@ -459,7 +460,10 @@
         }
       ],
       "overrides": {
-        "root_zero_operations": { "type": "u32", "default": 0 }
+        "root_zero_operations": {
+          "type": "u32",
+          "default": 0
+        }
       }
     },
     "scene-generator-abi": {
@@ -592,6 +596,24 @@
         {
           "name": "fragment_main",
           "stage": "fragment"
+        }
+      ],
+      "overrides": {}
+    },
+    "native-pyramid-seed": {
+      "fragments": ["blur-downsample", "native-pyramid-seed"],
+      "entry_points": [
+        {
+          "stage": "vertex",
+          "name": "vertex_main"
+        },
+        {
+          "stage": "fragment",
+          "name": "fragment_main"
+        },
+        {
+          "stage": "fragment",
+          "name": "paired_fragment_main"
         }
       ],
       "overrides": {}

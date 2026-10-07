@@ -20121,7 +20121,7 @@
         {
           "id": "M4-T3",
           "title": "Complete blur/glow and layer-style execution with radius-bounded and shared native pyramids",
-          "status": "pending"
+          "status": "in_progress"
         },
         {
           "id": "M4-T4",
@@ -153083,5 +153083,38 @@
         "sha256": "2a52867f6da0c4ad4e8cd1ef9831d5eb9be11743fe6f26fa9f12fe8d5c83797a"
       }
     }
-  ]
+  ],
+  "active_cycle": {
+    "id": 87,
+    "started_at": "2026-10-07T05:40:55.598Z",
+    "milestone": "M4",
+    "task": "M4-T3",
+    "base_commit": "ebba73e0460439170f8abe880ca2835a3f0d0aa1",
+    "intent": "Bound native pyramid allocation and recorded levels by supplied effect radii, preserving original shader uniforms and validating exact output against the unoptimized native run.",
+    "unoptimized_reference": {
+      "path": "artifacts/migration/verify-2026-10-07T05-22-25-317Z-cd35d32a.json",
+      "sha256": "c33a067e4ad569fe641a853f98e6af0919ec8b15ee449203a3a7091ba56f8b5a"
+    },
+    "native_optimization": {
+      "path": "artifacts/migration/cycle87-native-pyramids-matched/report.json",
+      "sha256": "2cb64fc365a01729222cba07fcce4ccb98f09ed4bbe062a27ec37b713b491586",
+      "frames": 1232,
+      "exact_frames": 1232,
+      "binary_sha256": "2976e7f9f75de36d7933e5ee4cfb7843c03b10bccc7baef1eba13798cd9b32bc",
+      "compiler_policy": "Match each original G3 frame compiler, including the pinned DXC only where the reference used it.",
+      "initial_diagnostic": {
+        "path": "artifacts/migration/cycle87-native-pyramids/report.json",
+        "status": "failed",
+        "reason": "The first diagnostic forced DXC onto default-compiler core references. All 1087 effect frames were exact; 52 core frames differed. Rerunning with identical compiler selection is exact for all 1232 frames; preserve the unmatched attempt."
+      }
+    },
+    "failed_attempts": [
+      {
+        "gate": "G0",
+        "evidence": "artifacts/migration/2026-10-07T05-48-02-252Z-d310c6b7/migration-tests.log",
+        "reason": "Shared-shader catalog count assertion still expected 26 after adding native-pyramid-seed (27 programs).",
+        "resolution": "Updated the explicit catalog count; all six shader-source audit tests pass. Stopped the known-red full run before completing G3; retain failed logs."
+      }
+    ]
+  }
 }

@@ -105,10 +105,16 @@ impl SceneInput {
         })
     }
 
+    pub fn pyramid_levels(&self) -> crate::pyramid_levels::PyramidLevels {
+        self.layers.values().fold(
+            crate::pyramid_levels::PyramidLevels::default(),
+            |levels, layer| levels.union(layer.pyramids),
+        )
+    }
+
     pub fn transient_bytes(&self) -> u64 {
         let size = self.header.render_target;
-        let pyramid_count = u64::from(self.layers.values().any(|l| l.uses_blur))
-            + u64::from(self.layers.values().any(|l| l.uses_glow));
+        let levels = self.pyramid_levels();
         self.vertices.len() as u64
             + 8192
             + self
@@ -121,6 +127,7 @@ impl SceneInput {
             } else {
                 u64::from(size.width) * u64::from(size.height) * 20
             }
-            + pyramid_count * crate::pyramid::Pyramid::bytes(size)
+            + crate::pyramid::Pyramid::bytes(size, levels.blur)
+            + crate::pyramid::Pyramid::bytes(size, levels.glow)
     }
 }

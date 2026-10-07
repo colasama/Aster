@@ -22,7 +22,11 @@ pub(crate) struct LayerPipelines {
 }
 
 impl LayerTargets {
-    pub fn new(device: &wgpu::Device, size: Extent2d, blur: bool, glow: bool) -> Self {
+    pub fn new(
+        device: &wgpu::Device,
+        size: Extent2d,
+        levels: crate::pyramid_levels::PyramidLevels,
+    ) -> Self {
         let create = |label, format, usage| {
             TextureResource::create(
                 device,
@@ -37,8 +41,10 @@ impl LayerTargets {
         };
         let usage = wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING;
         Self {
-            blur: blur.then(|| crate::pyramid::Pyramid::new(device, size)),
-            glow: glow.then(|| crate::pyramid::Pyramid::new(device, size)),
+            blur: (levels.blur > 0)
+                .then(|| crate::pyramid::Pyramid::new(device, size, levels.blur)),
+            glow: (levels.glow > 0)
+                .then(|| crate::pyramid::Pyramid::new(device, size, levels.glow)),
             input: create(
                 "Layer source and backdrop",
                 wgpu::TextureFormat::Rgba16Float,
@@ -152,21 +158,43 @@ impl LayerPipelines {
                 scene.size(),
             );
         }
-        if plan.uses_blur {
+        let first_level = if plan.pyramids.blur > 0 && plan.pyramids.glow > 0 {
+            let (Some(blur), Some(glow)) = (&targets.blur, &targets.glow) else {
+                return Err(RenderError::Invalid("paired pyramids absent".into()));
+            };
+            self.pyramids
+                .record_pair(device, encoder, &source, blur, glow, plan.glow_threshold);
+            1
+        } else {
+            0
+        };
+        if plan.pyramids.blur > 0 {
             let pyramid = targets
                 .blur
                 .as_ref()
                 .ok_or_else(|| RenderError::Invalid("blur pyramid absent".into()))?;
-            self.pyramids
-                .record(device, encoder, &source, pyramid, None);
+            self.pyramids.record(
+                device,
+                encoder,
+                &source,
+                pyramid,
+                first_level..plan.pyramids.blur,
+                None,
+            );
         }
-        if plan.uses_glow {
+        if plan.pyramids.glow > 0 {
             let pyramid = targets
                 .glow
                 .as_ref()
                 .ok_or_else(|| RenderError::Invalid("glow pyramid absent".into()))?;
-            self.pyramids
-                .record(device, encoder, &source, pyramid, Some(plan.glow_threshold));
+            self.pyramids.record(
+                device,
+                encoder,
+                &source,
+                pyramid,
+                first_level..plan.pyramids.glow,
+                Some(plan.glow_threshold),
+            );
         }
         output.record_layer(
             device,

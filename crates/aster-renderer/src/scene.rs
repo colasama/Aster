@@ -179,8 +179,7 @@ impl ScenePipelines {
             crate::layers::LayerTargets::new(
                 device,
                 frame.header.render_target,
-                frame.layers.values().any(|l| l.uses_blur),
-                frame.layers.values().any(|l| l.uses_glow),
+                frame.pyramid_levels(),
             )
         });
         let layer_views = layer_targets.as_ref().map(|targets| {

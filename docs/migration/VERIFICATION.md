@@ -418,3 +418,14 @@ Surface post effects and native optimizations still require separate evidence be
 reference and candidate, so their acceptance does not prove nonempty behavior. Repeated frames
 within each LUT case must increase cache hits without another upload; this check is independent
 of the case position in the batch.
+
+Native blur/glow pyramids use radius-bounded mip counts for allocation, transient admission and
+per-layer recording. The radius audit covers every shared shader operation that samples a pyramid,
+including channel maxima, compound blur bounds and signed bokeh CoC. Non-finite or unknown data
+keeps full counts; shader operation admission still rejects unsupported programs. A guard mip
+preserves interpolation and LOD rounding, and supplied max-LOD uniforms are unchanged. A native-only
+two-target seed pass shares source taps when both chains are needed while preserving bright-pass
+ordering; subsequent levels remain independent. Optimization comparisons must match the old native
+compiler selection as well as the plan, adapter and pixels: early core cases use the default compiler,
+whereas effects and later core routes use the pinned DXC. Matching the whole currently executable
+1232-frame native scope does not establish support for later milestones' cases.

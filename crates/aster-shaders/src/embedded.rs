@@ -26,6 +26,10 @@ impl ShaderCatalog {
                 include_str!("../../../shaders/effects/brightpass-downsample.wgsl"),
             ),
             (
+                "effects/native-pyramid-seed.wgsl",
+                include_str!("../../../shaders/effects/native-pyramid-seed.wgsl"),
+            ),
+            (
                 "effects/depth-effects-layout.wgsl",
                 include_str!("../../../shaders/effects/depth-effects-layout.wgsl"),
             ),

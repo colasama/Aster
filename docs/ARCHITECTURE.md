@@ -761,6 +761,12 @@ HDR and negative values. A device-owned cache shares a LUT across root and child
 unchanged uploads and evicts unused entries under the shared image/surface/frame budget. Entire
 frame demand is admitted before LUT eviction; missing resources, non-finite samples and invalid
 shapes reject explicitly. Native receipts expose upload, hit, eviction and resident-byte counts.
+Native layer effects derive blur and glow mip counts from the supplied operation radii. Allocation,
+transient admission and per-layer recording share those counts; one guard level covers fractional
+sampling and LOD rounding without rewriting the supplied shader uniforms. When both chains are
+needed, a native-only two-target seed pass shares the source taps and applies the bright-pass before
+glow accumulation. Later levels retain separate textures and the existing downsample shader because
+the thresholded and unthresholded signals differ. The browser path keeps its existing passes.
 The shared post-process shader uses one source sample when blur, glow and chromatic aberration are
 all zero, skipping the chromatic offset samples and nine-tap blur. A single uniform branch preserves
 the original active effect path and keeps the source texture on the GPU.

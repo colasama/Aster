@@ -13,8 +13,7 @@ pub(crate) struct LayerPlan {
     pub uniforms: Vec<u8>,
     pub operations: Vec<u8>,
     pub composite: EffectComposite,
-    pub uses_blur: bool,
-    pub uses_glow: bool,
+    pub pyramids: crate::pyramid_levels::PyramidLevels,
     pub glow_threshold: f32,
 }
 
@@ -151,10 +150,14 @@ impl LayerPlan {
                         blend,
                         lut: uses_lut.then(|| lut_hash.clone()),
                         uniforms,
+                        pyramids: crate::pyramid_levels::PyramidLevels::for_program(
+                            root.metadata.header.render_target,
+                            &operations,
+                            effect.uses_blur,
+                            effect.uses_glow,
+                        ),
                         operations,
                         composite: route.composite.clone(),
-                        uses_blur: effect.uses_blur,
-                        uses_glow: effect.uses_glow,
                         glow_threshold: f64::from_le_bytes(
                             bytes[4192..4200]
                                 .try_into()
