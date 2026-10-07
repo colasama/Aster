@@ -216,47 +216,103 @@
     }
   },
   "last_cycle": {
-    "id": 104,
-    "time": "2026-10-07T14:31:28.208117+00:00",
+    "id": 105,
+    "time": "2026-10-07T14:58:10.257582+00:00",
     "milestone": "M6",
-    "task": "M6-T3",
-    "increment": "M6-T3-mixed",
+    "task": "M6-T4",
     "outcome": "passed",
-    "commit": "c08dca317a66adcc419064602334e908522450de",
-    "verification": "artifacts/migration/verify-2026-10-07T14-13-21-790Z-b39def7e.json",
-    "verification_sha256": "2380eab79c525ded9b9023da434ef269dccf7e158979ee9daf4920e9a919447a",
+    "commit": "c6e7643e80ff2a3636ad267107d6f72e354028f2",
+    "verification": "artifacts/migration/verify-2026-10-07T14-39-31-205Z-2959f56b.json",
+    "verification_sha256": "13ad1650a5abaad35decdbca9cb8cb5b80932560dc11025242d119a6770f0419",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 81361
+        "duration_ms": 88802
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 850440
+        "duration_ms": 855208
       }
     ],
-    "verification_duration_ms": 933748,
-    "native_regression_frames": 1256,
-    "cache_comparisons": 5088,
-    "sequence_frames": 12,
-    "video_frames": 44,
-    "mixed_frames": 6,
-    "next_step": "Audit complete M6 native media coverage, current execution evidence, exact frame identities, authorization and resource lifetimes.",
+    "verification_duration_ms": 1030764,
+    "milestone_exit_satisfied": true,
+    "exit_audit": {
+      "status": "passed",
+      "scope": "Native exact-frame media with recursive, temporal and retained resources",
+      "native_gpu_execution": true,
+      "media": {
+        "sequences": {
+          "frames": 12,
+          "executions": 24,
+          "checked_files": 4338
+        },
+        "videos": {
+          "frames": 44,
+          "executions": 44,
+          "checked_files": 4603
+        },
+        "cache": {
+          "exact_comparisons": 148,
+          "modes": 4
+        },
+        "mixed": {
+          "frames": 6,
+          "supplied_file_pixel_rejections": 2
+        }
+      },
+      "pixels": {
+        "frames": 1256,
+        "checked_files": 12496
+      },
+      "effects": {
+        "surface_frames": 16,
+        "surface_post": 2,
+        "primary_attachments": 30,
+        "cache": {
+          "exact": 5088,
+          "hits": 1240,
+          "bounded_passes": 40,
+          "saved_pixels": 1080000
+        },
+        "ssaa_strategy": "rejected; production remains full resolution"
+      },
+      "rasters": {
+        "rasters": 4,
+        "recursive": {
+          "frames": 2,
+          "executions": 20,
+          "controls": 4
+        },
+        "motion": {
+          "frames": 6,
+          "executions": 24,
+          "controls": 5
+        }
+      },
+      "boundaries": [
+        "FFmpeg snapshot decoding uploads CPU pixels; no zero-copy interop claim",
+        "Distinct uncached video frames still require probe/decode processes",
+        "3D, depth effects, lighting and generators remain M7",
+        "Production preview/export remain TS until their integration milestones"
+      ],
+      "checked_files": 14466
+    },
+    "next_step": "Start M7 by inventorying camera, depth, lighting/material and generator execution gaps; define bounded tasks and implement the first native scene increment.",
     "notes": [
-      "Native file media composes with supplied raster generations, recursive surfaces and temporal samples. Production SHA-256 source identities are verified alongside corpus FNV identities.",
-      "Six independent mixed scenes pass decode metrics and all structural checks with maximum channel error two. Four unique contact-sheet/heatmap pairs inspected directly; forward/backward repeated evidence hashes are identical. Six decoder-rounding self-reviews accepted.",
-      "Blank recursive provisional fixture was rejected by frame identity. Wrapper geometry fixed, visible/changed-pixel capture guards added and failed evidence preserved.",
-      "First full verification passed G0 but rejected supplemental repair in the formal corpus repair list. Moved only that record into native_media_frame.provisional_repairs; subsequent full G0/G3 passed with unchanged source.",
-      "Both supplied-file-pixel bypass controls reject without output. No dependency, tolerance or production routing change. M6 exit audit remains pending."
+      "Current full G0/G3 and M6 completion audit pass with unchanged source. M0 through M6 are complete; production preview/export still use TS pending integration milestones.",
+      "Audit reopens real plans, snapshots, batch logs, pixel outputs, profiles and self-review evidence. It covers twelve sequence frames plus reverse/hold requests, forty-four exact video frames, six mixed root/recursive temporal frames and 148 decoded-cache exact comparisons.",
+      "LRU counters are recomputed per request. Authorization, budget, timeout, invalid-time and supplied-file-pixel controls leave no output; the neighboring-frame control fails frame identity. Private snapshot directories are empty.",
+      "The same run audits 1256 prior native frames, 5088 cache comparisons, sixteen surface frames, thirty auxiliary attachments, temporal rasters and complete motion output. Reduced-resolution SSAA remains rejected.",
+      "Full verification took 1030764 ms, including 88802 ms G0 and 855208 ms G3; 14466 files were checked by the completion audit. Targeted audit tests pass after updating an obsolete expected reason string; the initial test failure remains logged.",
+      "No dependency or tolerance changes. Native media currently uses bounded FFmpeg snapshots and CPU upload; uncached frames are not a streaming codec, and no zero-copy claim is made."
     ],
-    "failed_evidence": [
-      "artifacts/migration/cycle104-mixed-capture/process.json",
-      "artifacts/migration/cycle104-mixed-diagnostic/report.json",
-      "artifacts/migration/cycle104-mixed-invalid-manifest.json",
-      "artifacts/migration/cycle104-mixed-visible/report.json",
-      "artifacts/migration/verify-2026-10-07T14-09-43-754Z-28da63b1.json"
+    "diagnostics": [
+      "artifacts/migration/cycle105-audit-components.log",
+      "artifacts/migration/cycle105-mixed-audit/audit.json",
+      "artifacts/migration/cycle105-audit-tests.log",
+      "artifacts/migration/cycle105-audit-tests-fixed.log"
     ]
   },
   "milestones": [
@@ -20409,7 +20465,7 @@
     {
       "id": "M6",
       "title": "Native media decode",
-      "status": "in_progress",
+      "status": "done",
       "gates": ["G0", "G3"],
       "tasks": [
         {
@@ -20457,26 +20513,94 @@
         {
           "id": "M6-T4",
           "title": "Audit complete native media coverage, exact frame identities and authorization, color and resource-lifetime evidence",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-10-07T14:58:10.257582+00:00",
+          "commit": "c6e7643e80ff2a3636ad267107d6f72e354028f2",
+          "verification": "artifacts/migration/verify-2026-10-07T14-39-31-205Z-2959f56b.json"
         }
       ],
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
-        "milestone_exit_satisfied": false,
-        "report": "artifacts/migration/verify-2026-10-07T14-13-21-790Z-b39def7e.json",
+        "milestone_exit_satisfied": true,
+        "report": "artifacts/migration/verify-2026-10-07T14-39-31-205Z-2959f56b.json",
         "gates": [
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 81361
+            "duration_ms": 88802
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 850440
+            "duration_ms": 855208
           }
         ]
+      },
+      "completed_at": "2026-10-07T14:58:10.257582+00:00",
+      "commit": "c6e7643e80ff2a3636ad267107d6f72e354028f2",
+      "verification": "artifacts/migration/verify-2026-10-07T14-39-31-205Z-2959f56b.json",
+      "verification_sha256": "13ad1650a5abaad35decdbca9cb8cb5b80932560dc11025242d119a6770f0419",
+      "exit_audit": {
+        "status": "passed",
+        "scope": "Native exact-frame media with recursive, temporal and retained resources",
+        "native_gpu_execution": true,
+        "media": {
+          "sequences": {
+            "frames": 12,
+            "executions": 24,
+            "checked_files": 4338
+          },
+          "videos": {
+            "frames": 44,
+            "executions": 44,
+            "checked_files": 4603
+          },
+          "cache": {
+            "exact_comparisons": 148,
+            "modes": 4
+          },
+          "mixed": {
+            "frames": 6,
+            "supplied_file_pixel_rejections": 2
+          }
+        },
+        "pixels": {
+          "frames": 1256,
+          "checked_files": 12496
+        },
+        "effects": {
+          "surface_frames": 16,
+          "surface_post": 2,
+          "primary_attachments": 30,
+          "cache": {
+            "exact": 5088,
+            "hits": 1240,
+            "bounded_passes": 40,
+            "saved_pixels": 1080000
+          },
+          "ssaa_strategy": "rejected; production remains full resolution"
+        },
+        "rasters": {
+          "rasters": 4,
+          "recursive": {
+            "frames": 2,
+            "executions": 20,
+            "controls": 4
+          },
+          "motion": {
+            "frames": 6,
+            "executions": 24,
+            "controls": 5
+          }
+        },
+        "boundaries": [
+          "FFmpeg snapshot decoding uploads CPU pixels; no zero-copy interop claim",
+          "Distinct uncached video frames still require probe/decode processes",
+          "3D, depth effects, lighting and generators remain M7",
+          "Production preview/export remain TS until their integration milestones"
+        ],
+        "checked_files": 14466
       }
     },
     {
@@ -166365,6 +166489,106 @@
         "artifacts/migration/cycle104-mixed-invalid-manifest.json",
         "artifacts/migration/cycle104-mixed-visible/report.json",
         "artifacts/migration/verify-2026-10-07T14-09-43-754Z-28da63b1.json"
+      ]
+    },
+    {
+      "id": 105,
+      "time": "2026-10-07T14:58:10.257582+00:00",
+      "milestone": "M6",
+      "task": "M6-T4",
+      "outcome": "passed",
+      "commit": "c6e7643e80ff2a3636ad267107d6f72e354028f2",
+      "verification": "artifacts/migration/verify-2026-10-07T14-39-31-205Z-2959f56b.json",
+      "verification_sha256": "13ad1650a5abaad35decdbca9cb8cb5b80932560dc11025242d119a6770f0419",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 88802
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 855208
+        }
+      ],
+      "verification_duration_ms": 1030764,
+      "milestone_exit_satisfied": true,
+      "exit_audit": {
+        "status": "passed",
+        "scope": "Native exact-frame media with recursive, temporal and retained resources",
+        "native_gpu_execution": true,
+        "media": {
+          "sequences": {
+            "frames": 12,
+            "executions": 24,
+            "checked_files": 4338
+          },
+          "videos": {
+            "frames": 44,
+            "executions": 44,
+            "checked_files": 4603
+          },
+          "cache": {
+            "exact_comparisons": 148,
+            "modes": 4
+          },
+          "mixed": {
+            "frames": 6,
+            "supplied_file_pixel_rejections": 2
+          }
+        },
+        "pixels": {
+          "frames": 1256,
+          "checked_files": 12496
+        },
+        "effects": {
+          "surface_frames": 16,
+          "surface_post": 2,
+          "primary_attachments": 30,
+          "cache": {
+            "exact": 5088,
+            "hits": 1240,
+            "bounded_passes": 40,
+            "saved_pixels": 1080000
+          },
+          "ssaa_strategy": "rejected; production remains full resolution"
+        },
+        "rasters": {
+          "rasters": 4,
+          "recursive": {
+            "frames": 2,
+            "executions": 20,
+            "controls": 4
+          },
+          "motion": {
+            "frames": 6,
+            "executions": 24,
+            "controls": 5
+          }
+        },
+        "boundaries": [
+          "FFmpeg snapshot decoding uploads CPU pixels; no zero-copy interop claim",
+          "Distinct uncached video frames still require probe/decode processes",
+          "3D, depth effects, lighting and generators remain M7",
+          "Production preview/export remain TS until their integration milestones"
+        ],
+        "checked_files": 14466
+      },
+      "next_step": "Start M7 by inventorying camera, depth, lighting/material and generator execution gaps; define bounded tasks and implement the first native scene increment.",
+      "notes": [
+        "Current full G0/G3 and M6 completion audit pass with unchanged source. M0 through M6 are complete; production preview/export still use TS pending integration milestones.",
+        "Audit reopens real plans, snapshots, batch logs, pixel outputs, profiles and self-review evidence. It covers twelve sequence frames plus reverse/hold requests, forty-four exact video frames, six mixed root/recursive temporal frames and 148 decoded-cache exact comparisons.",
+        "LRU counters are recomputed per request. Authorization, budget, timeout, invalid-time and supplied-file-pixel controls leave no output; the neighboring-frame control fails frame identity. Private snapshot directories are empty.",
+        "The same run audits 1256 prior native frames, 5088 cache comparisons, sixteen surface frames, thirty auxiliary attachments, temporal rasters and complete motion output. Reduced-resolution SSAA remains rejected.",
+        "Full verification took 1030764 ms, including 88802 ms G0 and 855208 ms G3; 14466 files were checked by the completion audit. Targeted audit tests pass after updating an obsolete expected reason string; the initial test failure remains logged.",
+        "No dependency or tolerance changes. Native media currently uses bounded FFmpeg snapshots and CPU upload; uncached frames are not a streaming codec, and no zero-copy claim is made."
+      ],
+      "diagnostics": [
+        "artifacts/migration/cycle105-audit-components.log",
+        "artifacts/migration/cycle105-mixed-audit/audit.json",
+        "artifacts/migration/cycle105-audit-tests.log",
+        "artifacts/migration/cycle105-audit-tests-fixed.log"
       ]
     }
   ],
