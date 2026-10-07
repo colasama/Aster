@@ -13,6 +13,7 @@ import {
   coreLayerCases,
   coreSurfaceCases,
 } from "./native-core-scope.mjs";
+import { runNativeMotionFrameGate } from "./native-motion-frame-gate.mjs";
 
 export {
   coreGeometryCases,
@@ -297,6 +298,22 @@ export async function runNativeCoreGate(context, execute = runStep) {
         "passed",
         "Native temporal frame gate failed",
       );
+    }
+    if (rasters) {
+      report.native_motion_frames = await runNativeMotionFrameGate(
+        { ...context, output: join(context.output, "native-motion-frames") },
+        {
+          binary,
+          compiler,
+          adapter: report.frames[0].receipt.adapter.name,
+          motionFrame: report.frames.find(
+            (f) => f.case_id === "scene-motion-blur" && f.frame === 15,
+          ),
+          ordinaryFrame: report.frames.find((f) => f.case_id === "layer-text" && f.frame === 0),
+        },
+        execute,
+      );
+      assert.equal(report.native_motion_frames.status, "passed", "Native motion frame gate failed");
     }
     report.native_stills = await runNativeStillGate(
       { ...context, output: join(context.output, "native-stills") },

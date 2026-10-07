@@ -327,15 +327,15 @@ the native batch reuses one device and records real image-cache uploads and hits
 outputs are RGBA-exact and have section 6.6 self-review evidence. CPU and GPU controls also cover
 typed `RasterPixels` frame identity, eviction, changed pixel generations and atomic budget rejection.
 G1 retains resource transport and lifetime checks. Passing raster admission does not establish M5
-exit: complete root motion-blur output and the milestone exit audit still require coverage.
+exit: the complete milestone exit audit remains separate from individual supplements.
 
 The native temporal supplement executes four frozen M2 sample sets (full exposure, enters, exits and
 transparent), using their original pass bytes and sample pixels. The input manifest is pinned in the
 ledger and traced to the accepted M2 exit report; reference PNGs are unchanged. GPU controls require
 identical repeated output from retained targets, atomic budget rejection, rejection of wrong sample
 identities and transparent output after zeroing exposure. G3 compares the resolved raster directly
-to its frozen reference and requires section 6.6 self-review. This supplement does not yet establish
-complete root motion-reconstruction coverage.
+to its frozen reference and requires section 6.6 self-review. Complete root reconstruction is checked
+by the separate motion-frame supplement below.
 
 The native temporal frame supplement freezes two warmed production frames with two effect-isolated
 precomposition surfaces and exact independent-device TS replay. It runs cached and uncached sequences
@@ -344,7 +344,16 @@ Poisoning resolved pixels must preserve output and allocations; changing actual 
 more than 16 pixels and invalidate nested effect generations. All cached outputs must equal uncached
 outputs. An intervening ordinary raster releases temporal targets, and restored temporal rendering
 must still match. Budget rejection and explicit skipped-surface routing publish no PNG. Original
-root reconstruction and 3D-shadow captures remain preserved for their separate native capabilities.
+3D-shadow captures remain preserved for their later native capability.
+
+The root motion supplement adds all four `scene-motion-blur` corpus frames to the native raster
+batch and compares six frozen production temporal frames (full, entering and exiting exposure)
+against independent-device TS replay. Cached and uncached sequences must agree, clear retained
+motion targets, release them on an ordinary frame and restore the original result. Zero radius and
+zero vectors must each change more than 16 pixels and produce the same unblurred output. Missing
+auxiliary inputs, inconsistent beauty routing and insufficient GPU budget must reject without PNGs.
+Receipts expose three reconstruction passes, target reuse and resident texture bytes. These checks
+exercise the shared HDR shaders before the existing display transform, without CPU frame transport.
 
 ## Native geometry, blend and supplied-image acceptance
 

@@ -1,6 +1,6 @@
 use aster_render_ir::{
     AuxiliaryStatus, FinalBeautySource, FinalOutputRoute, FinalSurfaceMode, OwnedFpln, PlanSlice,
-    PostEffect, RootTextureReference, SurfaceEffectMode,
+    PostEffect, SurfaceEffectMode,
 };
 
 use crate::{AuxiliaryPrimaryPlan, RenderError, SurfacePostPlan};
@@ -16,6 +16,7 @@ impl FrameSurface {
         output: &OwnedFpln,
         auxiliary: Option<&OwnedFpln>,
         effect: Option<&OwnedFpln>,
+        motion: bool,
     ) -> Result<Option<Self>, RenderError> {
         let Some(PlanSlice::FinalOutput(output)) = output.metadata.slices.first() else {
             return Err(RenderError::Invalid("output stage missing".into()));
@@ -23,9 +24,13 @@ impl FrameSurface {
         let FinalOutputRoute::Surface { mode } = &output.route else {
             if output.route
                 != (FinalOutputRoute::Beauty {
-                    source: FinalBeautySource::Scene,
+                    source: if motion {
+                        FinalBeautySource::MotionBlur
+                    } else {
+                        FinalBeautySource::Scene
+                    },
                 })
-                || auxiliary.is_some()
+                || (auxiliary.is_some() && !motion)
                 || effect.is_some()
             {
                 return Err(RenderError::Unsupported(
@@ -34,6 +39,11 @@ impl FrameSurface {
             }
             return Ok(None);
         };
+        if motion {
+            return Err(RenderError::Unsupported(
+                "motion reconstruction with surface output".into(),
+            ));
+        }
         let effect =
             effect.ok_or_else(|| RenderError::Invalid("surface output effect missing".into()))?;
         let Some(PlanSlice::PostEffect(slice)) = effect.metadata.slices.first() else {
@@ -76,31 +86,7 @@ impl FrameSurface {
         surfaces: &crate::surface_plan::SurfacePlan,
     ) -> Result<(), RenderError> {
         if let Some(auxiliary) = &self.auxiliary {
-            for draw in &auxiliary.draws {
-                if !scene.root.draws.iter().any(|root| {
-                    root.instance_id == draw.instance_id
-                        && root.first_vertex == draw.first_vertex
-                        && root.vertex_count == draw.vertex_count
-                        && root.texture == draw.texture
-                }) {
-                    return Err(RenderError::Invalid(
-                        "auxiliary draw differs from root geometry".into(),
-                    ));
-                }
-                match &draw.texture {
-                    RootTextureReference::None => {}
-                    RootTextureReference::Media { hash } if scene.images.contains_key(hash) => {}
-                    RootTextureReference::Surface { instance_id }
-                        if surfaces
-                            .bindings
-                            .contains_key(&crate::surface_plan::SurfacePlan::key(instance_id)) => {}
-                    _ => {
-                        return Err(RenderError::Invalid(
-                            "auxiliary image or surface binding missing".into(),
-                        ));
-                    }
-                }
-            }
+            auxiliary.validate_resources(scene, surfaces)?;
         }
         Ok(())
     }

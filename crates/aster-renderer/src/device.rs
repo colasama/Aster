@@ -47,6 +47,7 @@ pub struct RenderedFrame {
     pub layer_cache: crate::LayerCacheStatistics,
     pub effect_regions: crate::EffectRegionStatistics,
     pub temporal_cache: crate::TemporalCacheStatistics,
+    pub motion_reconstruction: crate::MotionStatistics,
     _lease: Arc<()>,
 }
 
@@ -73,6 +74,7 @@ pub struct NativeRenderer {
     surfaces: crate::surface_cache::SurfaceCache,
     layer_cache: crate::layer_cache::LayerCache,
     temporal: crate::temporal_cache::TemporalCache,
+    motion_output: Option<crate::motion_output::MotionOutput>,
 }
 
 impl FrameTargets {
@@ -205,6 +207,7 @@ impl NativeRenderer {
             surfaces: Default::default(),
             layer_cache: Default::default(),
             temporal: Default::default(),
+            motion_output: None,
         })
     }
 
@@ -228,7 +231,11 @@ impl NativeRenderer {
             .iter()
             .map(|t| u64::from(t.size.width) * u64::from(t.size.height) * 12)
             .sum::<u64>();
-        let bytes = frame.temporal.required_bytes()
+        let bytes = frame
+            .motion
+            .as_ref()
+            .map_or(0, crate::frame_motion::FrameMotion::required_bytes)
+            + frame.temporal.required_bytes()
             + u64::from(render_size.width) * u64::from(render_size.height) * 16
             + u64::from(size.width) * u64::from(size.height) * 4
             + frame.scene.transient_bytes()
@@ -302,6 +309,15 @@ impl NativeRenderer {
                 "images exceed GPU allocation budget".into(),
             ));
         }
+        if frame.motion.is_some() && self.motion_output.is_none() {
+            self.motion_output = Some(crate::motion_output::MotionOutput::new(
+                &self.device,
+                &self.images.layout,
+            )?);
+        }
+        if let Some(motion) = &mut self.motion_output {
+            motion.retire(&self.device, frame.motion.as_ref(), self.options.timeout)?;
+        }
         self.images.install_derived(&self.device, Vec::new());
         self.temporal.retire(
             &self.device,
@@ -360,6 +376,9 @@ impl NativeRenderer {
             self.options.timeout,
         )?;
         self.layer_cache.allocate(&self.device);
+        if let Some(motion) = &mut self.motion_output {
+            motion.allocate(&self.device, frame.motion.as_ref())?;
+        }
         if resized {
             self.targets = Some(FrameTargets::new(&self.device, render_size, size));
         }
@@ -412,6 +431,20 @@ impl NativeRenderer {
             ),
             &self.output,
         )?;
+        let scene = if frame.motion.is_some() {
+            self.motion_output
+                .as_ref()
+                .ok_or_else(|| RenderError::Invalid("motion pipeline missing".into()))?
+                .record(
+                    &self.device,
+                    &mut encoder,
+                    frame,
+                    targets.scene.raw(),
+                    (&self.images, &self.surfaces),
+                )?
+        } else {
+            scene
+        };
         if frame.surface.is_some() {
             let destination = if frame.scene.header.aa == AntiAliasing::Off {
                 targets.output.raw()
@@ -457,6 +490,7 @@ impl NativeRenderer {
             self.layer_cache.invalidate();
             self.images.invalidate();
             self.temporal.invalidate();
+            self.motion_output = None;
             self.surfaces.invalidate();
             self.output.luts.invalidate();
             return Err(RenderError::Gpu(error.to_string()));
@@ -474,6 +508,10 @@ impl NativeRenderer {
             layer_cache: self.layer_cache.statistics,
             effect_regions: effect_regions.statistics,
             temporal_cache: self.temporal.statistics,
+            motion_reconstruction: self
+                .motion_output
+                .as_ref()
+                .map_or_else(Default::default, |m| m.statistics),
             _lease: lease,
         })
     }

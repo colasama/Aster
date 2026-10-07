@@ -1,10 +1,12 @@
 //! Native, GPU-resident execution of supplied frame plans.
+mod auxiliary_bindings;
 mod auxiliary_pipelines;
 mod auxiliary_primary;
 mod device;
 mod effect_region;
 mod fixed_composite;
 mod frame;
+mod frame_motion;
 mod frame_surface;
 #[cfg(test)]
 mod frame_surface_tests;
@@ -16,6 +18,8 @@ mod layer_key;
 mod layer_plan;
 mod layers;
 mod lut_cache;
+mod motion_output;
+mod motion_reconstruction;
 mod output;
 mod program_time;
 mod pyramid;
@@ -41,6 +45,7 @@ pub use frame::SuppliedFrame;
 pub use image_cache::ImageCacheStatistics;
 pub use layer_cache::LayerCacheStatistics;
 pub use lut_cache::LutCacheStatistics;
+pub use motion_output::MotionStatistics;
 pub use surface_cache::SurfaceCacheStatistics;
 pub use surface_post::{SurfacePostPipeline, SurfacePostPlan};
 pub use temporal_cache::TemporalCacheStatistics;

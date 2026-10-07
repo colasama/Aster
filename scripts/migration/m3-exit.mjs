@@ -106,7 +106,6 @@ export async function auditM3Exit(root, report) {
         "raster-budget",
         "scene-dof-15",
         "scene-particles-billboard",
-        "scene-motion-blur",
         "scene-lighting-directional",
         "corrupt-resource",
         ...(report.runtime.platform === "win32" ? ["missing-compiler"] : []),

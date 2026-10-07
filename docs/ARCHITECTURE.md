@@ -125,7 +125,11 @@ outputs before root and recursive scene draws. Samples reuse the image cache; ca
 pixels are validated but never uploaded. Derived generation keys include the pass and every sample
 pixel generation, so nested effect caches invalidate when exposure or samples change. Temporal targets
 and aligned uniforms share the frame GPU budget; obsolete targets retire before other caches allocate.
-Root motion reconstruction and 3D shadow execution remain separate capability gates.
+Root beauty motion reconstruction now consumes the same supplied auxiliary geometry, object IDs
+and motion vectors, including GPU-derived temporal text. Shared tile-max, neighbor-max and
+ID-aware reconstruction passes retain linear HDR targets within the frame budget before display
+transform and AA. Switching to an ordinary frame retires motion targets before cache budgets are
+reassigned. Unsupported depth effects and 3D shadows retain separate capability gates.
 
 `aster-media-native` resolves PNG/JPEG sources from explicit job grants keyed by source hash and
 authorization scope. It checks file size, SHA-256 and the imported content identity, then feeds an

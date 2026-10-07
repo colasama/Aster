@@ -11,6 +11,7 @@ export const nativeRasterCases = [
   "media-psd-layer",
   "media-svg",
   "scene-text-animators",
+  "scene-motion-blur",
 ];
 
 /** Execute supplied raster generations with the same plan and pixel provenance as core frames. */

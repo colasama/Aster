@@ -165,6 +165,7 @@ impl ResolutionExperiment {
         for targets in [&reference, &candidate] {
             let rendered = RenderedFrame {
                 temporal_cache: Default::default(),
+                motion_reconstruction: Default::default(),
                 texture: targets.output.raw().clone(),
                 size: target,
                 submission: submission.clone(),

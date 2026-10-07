@@ -34,23 +34,8 @@ impl SurfaceOutput {
             .ok_or_else(|| RenderError::Invalid("surface output missing".into()))?;
         let targets = if let Some(plan) = &surface.auxiliary {
             let targets = AuxiliaryPrimaryTargets::new(device, plan, plan.required_bytes())?;
-            let bindings =
-                plan.draws
-                    .iter()
-                    .map(|draw| match &draw.texture {
-                        aster_render_ir::RootTextureReference::None => Ok(None),
-                        aster_render_ir::RootTextureReference::Media { hash } => {
-                            let image = frame.images.get(hash).ok_or_else(|| {
-                                RenderError::Invalid("auxiliary image absent".into())
-                            })?;
-                            caches.0.binding(image).map(Some)
-                        }
-                        aster_render_ir::RootTextureReference::Surface { instance_id } => {
-                            caches.1.binding(&frame.surfaces, instance_id).map(Some)
-                        }
-                        _ => Err(RenderError::Unsupported("auxiliary texture".into())),
-                    })
-                    .collect::<Result<Vec<_>, RenderError>>()?;
+            let bindings = plan.bindings(frame, caches)?;
+            let bindings = bindings.iter().map(Option::as_ref).collect::<Vec<_>>();
             self.auxiliary
                 .record(device, encoder, plan, &targets, &bindings)?;
             Some(targets)

@@ -1,12 +1,13 @@
 use aster_render_ir::{
-    BundleDependencies, ContractLevel, DecodeLimits, EffectBlendMode, FplnCodec,
-    MotionReconstructionStatus, OwnedFpln, PlanSlice, ResourceRegistry,
+    BundleDependencies, ContractLevel, DecodeLimits, EffectBlendMode, FplnCodec, OwnedFpln,
+    PlanSlice, ResourceRegistry,
 };
 
 use crate::RenderError;
 
 /// Validated, owned execution inputs. No project evaluation or filesystem access occurs here.
 pub struct SuppliedFrame {
+    pub(crate) motion: Option<crate::frame_motion::FrameMotion>,
     pub(crate) temporal: crate::temporal_frame::TemporalFrame,
     pub(crate) scene: crate::scene_input::SceneInput,
     pub(crate) surfaces: crate::surface_plan::SurfacePlan,
@@ -61,12 +62,6 @@ impl SuppliedFrame {
         }
         let motion = stage(&bundle.motion, ContractLevel::MotionReconstructionSliceV1)?;
         let output = stage(&bundle.output, ContractLevel::FinalOutputSliceV1)?;
-        if !matches!(motion.metadata.slices.first(), Some(PlanSlice::MotionReconstruction(value)) if value.status == MotionReconstructionStatus::Skipped)
-        {
-            return Err(RenderError::Unsupported(
-                "motion or diagnostic output".into(),
-            ));
-        }
         let auxiliary = bundle
             .auxiliary
             .as_ref()
@@ -77,11 +72,13 @@ impl SuppliedFrame {
             .as_ref()
             .map(|hash| stage(hash, ContractLevel::PostEffectSliceV1))
             .transpose()?;
+        let motion = crate::frame_motion::FrameMotion::new(&scene, &motion, auxiliary.as_ref())?;
         let surface = crate::frame_surface::FrameSurface::new(
             &scene,
             &output,
             auxiliary.as_ref(),
             effect.as_ref(),
+            motion.is_some(),
         )?;
         if !decoded_images.is_empty() && !bundle.media_pixels.is_empty() {
             return Err(RenderError::Invalid(
@@ -136,6 +133,9 @@ impl SuppliedFrame {
         )?;
         if let Some(surface) = &surface {
             surface.validate_resources(&scene, &surfaces)?;
+        }
+        if let Some(motion) = &motion {
+            motion.auxiliary.validate_resources(&scene, &surfaces)?;
         }
         for surface in &surfaces.targets {
             for (hash, image) in &surface.scene.images {
@@ -199,6 +199,7 @@ impl SuppliedFrame {
             ));
         }
         Ok(Self {
+            motion,
             temporal,
             scene,
             surface,

@@ -78,7 +78,6 @@ export async function runNativeRejections(context, { reader, base, binary }, exe
     "media-image-sequence",
     "scene-dof-15",
     "scene-particles-billboard",
-    "scene-motion-blur",
     "scene-lighting-directional",
   ]) {
     await invoke(id, id, [], /unsupported native feature/);

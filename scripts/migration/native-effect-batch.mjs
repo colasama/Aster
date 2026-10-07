@@ -110,8 +110,8 @@ export async function runNativeEffectBatch(context, inputs, execute) {
     const bad =
       kind === "partial"
         ? {
-            plan: `${base}/scene-motion-blur/5/replay.fpln`,
-            resources: `${base}/scene-motion-blur/frame-resources`,
+            plan: `${base}/scene-dof-15/0/replay.fpln`,
+            resources: `${base}/scene-dof-15/frame-resources`,
             out: failedOutput,
           }
         : { ...first, out: kind === "duplicate" ? output : failedOutput };
