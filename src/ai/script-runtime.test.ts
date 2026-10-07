@@ -57,7 +57,8 @@ describe("isolated editing scripts", () => {
   });
 
   it("interrupts a nonterminating script and enforces the remaining workspace budget", async () => {
-    await expect(executeScript(task("while(true) {}"), undefined, 25)).rejects.toMatchObject({
+    // Include VM bootstrap time when the suite runs under parallel worker load.
+    await expect(executeScript(task("while(true) {}"), undefined, 250)).rejects.toMatchObject({
       code: "execution_timeout",
     });
     await expect(
