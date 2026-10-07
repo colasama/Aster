@@ -270,6 +270,7 @@ export const nativeEffectCases = [
   "effect-wire-removal",
   "effect-write-on",
   "effect-zebra-overlay",
+  "effects-layer-style-chain",
   "filmic-aces",
   "lut-tetrahedral",
 ];
@@ -277,7 +278,11 @@ export const nativeEffectCases = [
 export function validateNativeEffectScope(corpus) {
   assert.equal(new Set(nativeEffectCases).size, nativeEffectCases.length);
   const expected = corpus.cases
-    .filter((item) => item.features.some((feature) => feature.startsWith("effect:")))
+    .filter((item) =>
+      item.features.some(
+        (feature) => feature.startsWith("effect:") || feature === "feature:layer-styles",
+      ),
+    )
     .map((item) => item.id)
     .sort();
   assert.deepEqual(

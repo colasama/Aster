@@ -75,6 +75,12 @@
         "resume_milestone": "M4",
         "resume_task": "M4-T2",
         "cycle": 85
+      },
+      "last_resume": {
+        "recorded_at": "2026-10-07T05:20:22.528Z",
+        "authorization": "Owner requested continuation on 2026-10-07 (Asia/Tokyo).",
+        "used_percent": 0,
+        "remaining_percent": 100
       }
     }
   },
@@ -151493,6 +151499,438 @@
         "layout": "row-major: each tile contains the original contact sheet above its original heatmap, no resizing or pixel alteration"
       },
       "inspection": "Directly inspected this frame original contact sheet and heatmap in the lossless case page, including every listed frame. Effect appearance, shapes, fine lines, alpha coverage and addressed moving target match the TS reference; heatmaps contain only sparse one-code-value residuals or are black for exact results. No missing element, shifted contour, temporal mismatch or visible color bias. All numerical and structural checks pass at unchanged profile limits."
+    },
+    {
+      "case_id": "effects-layer-style-chain",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M4 composed layer-style acceptance",
+      "reviewed_at": "2026-10-07T05:22:09.386Z",
+      "reference_rgba_sha256": "70bacf53d1646228d7357cc9a7ac790499416c908f061299254b15257dbcab06",
+      "candidate_rgba_sha256": "1d6abbf718725e26fdc6c31d2907d9cfb4fcc32350d40b9d6e84837954e37c44",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00001736111111111111,
+        "mean_squared_error": 0.00001736111111111111,
+        "rgb_mean_squared_error": 0.000023148148148148147,
+        "psnr": {
+          "kind": "finite",
+          "db": 94.48564107682822
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 95.73502844291122
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999997054089137, 0.9999999797024012, 1, 1],
+        "mean": 0.9999998950371051,
+        "rgba_mean": 0.9999999212778288,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.00001736111111111111, -0.00001736111111111111, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 7,
+            "min_y": 1,
+            "max_x": 298,
+            "max_y": 175
+          },
+          "candidate": {
+            "min_x": 7,
+            "min_y": 1,
+            "max_x": 298,
+            "max_y": 175
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.22981710383592818,
+          "candidate_rms": 0.22981707552006775,
+          "reference_axis_ratio": 0.4244556776934605,
+          "candidate_axis_ratio": 0.4244559364148163,
+          "reference_window_energy_fraction": 0.7921173938445853,
+          "candidate_window_energy_fraction": 0.7921173488905784,
+          "active_frequencies": 3620,
+          "spectral_bins": 524288,
+          "peak_ratio": 1.3681433984422477,
+          "peak_to_sidelobe_ratio": 74.17814409118948,
+          "peak_coherence": 0.9999999999888743,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle86-style-chain/pixels/frames/effects-layer-style-chain-0/report.json",
+        "heatmap": "artifacts/migration/cycle86-style-chain/pixels/frames/effects-layer-style-chain-0/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle86-style-chain/pixels/frames/effects-layer-style-chain-0/contact-sheet.png",
+        "report_sha256": "f0d51344c944aa8e76f4ff9fb5c17ee5391017233e78f9ca08bc80506947079c",
+        "heatmap_sha256": "482734e6e5e3c3992decca522c2e9fa7b2da6f0063e48329e0240bbfd313a533",
+        "contact_sheet_sha256": "e21c3ba231ad6a8b5d9a4f4006fcb45eb7fcd846c5f577420d806284dafa7a72"
+      },
+      "inspection_page": {
+        "case_id": "effects-layer-style-chain",
+        "frames": [0, 15, 30, 59],
+        "path": "artifacts/migration/cycle86-style-chain/inspection/effects-layer-style-chain.png",
+        "sha256": "e0f43fd9ea0cb22cbdb4d5816ffa1f5a903f85b1c13a8f0084e183681a6ce1da",
+        "layout": "row-major: each tile contains the original contact sheet above its original heatmap, no resizing or pixel alteration"
+      },
+      "inspection": "Directly inspected all four original contact sheets and heatmaps in the lossless case page. The stacked outline, glow falloff, fine lines, semi-transparent fills and moving marker match the TS reference in every addressed frame. Sparse one-code-value residuals show no shifted contour, missing element or visible color bias. Unchanged numerical and structural limits pass."
+    },
+    {
+      "case_id": "effects-layer-style-chain",
+      "frame": 15,
+      "profile": "gpu",
+      "purpose": "M4 composed layer-style acceptance",
+      "reviewed_at": "2026-10-07T05:22:09.387Z",
+      "reference_rgba_sha256": "3bfa7ea8eec96b1754bae32bd823e51de2f05547edef132de700dc2795be5671",
+      "candidate_rgba_sha256": "392cd87132869ddea273f48ed2fb45fcd708a13f4868f185a89860b2efb90bb7",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.000030381944444444444,
+        "mean_squared_error": 0.000030381944444444444,
+        "rgb_mean_squared_error": 0.00003472222222222222,
+        "psnr": {
+          "kind": "finite",
+          "db": 92.7247284862714
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 93.30464795604827
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          0.9999997054089137, 0.9999999797024012, 0.9999999775072318, 0.9999999917473148
+        ],
+        "mean": 0.9999998875395155,
+        "rgba_mean": 0.9999999135914653,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.00001736111111111111, -0.00001736111111111111, 0, 0.00001736111111111111],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 19,
+            "min_y": 1,
+            "max_x": 298,
+            "max_y": 175
+          },
+          "candidate": {
+            "min_x": 19,
+            "min_y": 1,
+            "max_x": 298,
+            "max_y": 175
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.23088430750904643,
+          "candidate_rms": 0.23088429662289126,
+          "reference_axis_ratio": 0.42129852509159155,
+          "candidate_axis_ratio": 0.42129844992954696,
+          "reference_window_energy_fraction": 0.7961478105832015,
+          "candidate_window_energy_fraction": 0.7961477605847115,
+          "active_frequencies": 3442,
+          "spectral_bins": 524288,
+          "peak_ratio": 1.3831342929405863,
+          "peak_to_sidelobe_ratio": 71.95161340891748,
+          "peak_coherence": 0.9999999999695853,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle86-style-chain/pixels/frames/effects-layer-style-chain-15/report.json",
+        "heatmap": "artifacts/migration/cycle86-style-chain/pixels/frames/effects-layer-style-chain-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle86-style-chain/pixels/frames/effects-layer-style-chain-15/contact-sheet.png",
+        "report_sha256": "4108d7ad6a2a071edd8b5f08a5882746033f52e2446b84d107d97d85308e18a6",
+        "heatmap_sha256": "7c52a9545d0d98d39f00cc4823fb353e8f7bc5832c10586a505965440a50e22a",
+        "contact_sheet_sha256": "9f30bb9a80e66b26965b7d73e149ec446213c1aefac1734bad8095b181022312"
+      },
+      "inspection_page": {
+        "case_id": "effects-layer-style-chain",
+        "frames": [0, 15, 30, 59],
+        "path": "artifacts/migration/cycle86-style-chain/inspection/effects-layer-style-chain.png",
+        "sha256": "e0f43fd9ea0cb22cbdb4d5816ffa1f5a903f85b1c13a8f0084e183681a6ce1da",
+        "layout": "row-major: each tile contains the original contact sheet above its original heatmap, no resizing or pixel alteration"
+      },
+      "inspection": "Directly inspected all four original contact sheets and heatmaps in the lossless case page. The stacked outline, glow falloff, fine lines, semi-transparent fills and moving marker match the TS reference in every addressed frame. Sparse one-code-value residuals show no shifted contour, missing element or visible color bias. Unchanged numerical and structural limits pass."
+    },
+    {
+      "case_id": "effects-layer-style-chain",
+      "frame": 30,
+      "profile": "gpu",
+      "purpose": "M4 composed layer-style acceptance",
+      "reviewed_at": "2026-10-07T05:22:09.387Z",
+      "reference_rgba_sha256": "e9dada8330883e9a49000c0db3762fbaf9cca9bef734fd7b7f31f98def899bca",
+      "candidate_rgba_sha256": "a1120e0aba391ce8de6aff2c66a5703ea24851b78bba7a7c0c77b6fcd8fe77d3",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00001736111111111111,
+        "mean_squared_error": 0.00001736111111111111,
+        "rgb_mean_squared_error": 0.000023148148148148147,
+        "psnr": {
+          "kind": "finite",
+          "db": 94.48564107682822
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 95.73502844291122
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999997054089137, 0.9999999797024012, 1, 1],
+        "mean": 0.9999998950371051,
+        "rgba_mean": 0.9999999212778288,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.00001736111111111111, -0.00001736111111111111, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 19,
+            "min_y": 1,
+            "max_x": 298,
+            "max_y": 175
+          },
+          "candidate": {
+            "min_x": 19,
+            "min_y": 1,
+            "max_x": 298,
+            "max_y": 175
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.23108174289806924,
+          "candidate_rms": 0.23108171469504388,
+          "reference_axis_ratio": 0.4200133510886154,
+          "candidate_axis_ratio": 0.4200136298752226,
+          "reference_window_energy_fraction": 0.7983346413311211,
+          "candidate_window_energy_fraction": 0.798334598283918,
+          "active_frequencies": 3266,
+          "spectral_bins": 524288,
+          "peak_ratio": 1.3623233503109757,
+          "peak_to_sidelobe_ratio": 70.22079783209763,
+          "peak_coherence": 0.9999999999894603,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle86-style-chain/pixels/frames/effects-layer-style-chain-30/report.json",
+        "heatmap": "artifacts/migration/cycle86-style-chain/pixels/frames/effects-layer-style-chain-30/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle86-style-chain/pixels/frames/effects-layer-style-chain-30/contact-sheet.png",
+        "report_sha256": "db5f0efb42893b7552cbdecd1ba5807521ce57f2ec42b02ef1c43d8dbf0dd52a",
+        "heatmap_sha256": "482734e6e5e3c3992decca522c2e9fa7b2da6f0063e48329e0240bbfd313a533",
+        "contact_sheet_sha256": "6cc7b5f999f2bb91c2549b4d511bd04fe7ffc04758ae73bc6d53643984f3ae07"
+      },
+      "inspection_page": {
+        "case_id": "effects-layer-style-chain",
+        "frames": [0, 15, 30, 59],
+        "path": "artifacts/migration/cycle86-style-chain/inspection/effects-layer-style-chain.png",
+        "sha256": "e0f43fd9ea0cb22cbdb4d5816ffa1f5a903f85b1c13a8f0084e183681a6ce1da",
+        "layout": "row-major: each tile contains the original contact sheet above its original heatmap, no resizing or pixel alteration"
+      },
+      "inspection": "Directly inspected all four original contact sheets and heatmaps in the lossless case page. The stacked outline, glow falloff, fine lines, semi-transparent fills and moving marker match the TS reference in every addressed frame. Sparse one-code-value residuals show no shifted contour, missing element or visible color bias. Unchanged numerical and structural limits pass."
+    },
+    {
+      "case_id": "effects-layer-style-chain",
+      "frame": 59,
+      "profile": "gpu",
+      "purpose": "M4 composed layer-style acceptance",
+      "reviewed_at": "2026-10-07T05:22:09.387Z",
+      "reference_rgba_sha256": "428bf47a890f2843dab08c0e77eecf017e9a5b4c963983fad60832318763b547",
+      "candidate_rgba_sha256": "19b693572e153ec7358bb009f533d68ade939af6eac933cedb291ba21b326148",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.000013020833333333334,
+        "mean_squared_error": 0.000013020833333333334,
+        "rgb_mean_squared_error": 0.000011574074074074073,
+        "psnr": {
+          "kind": "finite",
+          "db": 97.49594103346803
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 96.98441580899421
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999999839413646, 0.9999999673572983, 1, 0.9999999966343762],
+        "mean": 0.9999999837662209,
+        "rgba_mean": 0.9999999869832598,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -0.00001736111111111111, -0.00001736111111111111, 0, 0.00001736111111111111
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 19,
+            "min_y": 1,
+            "max_x": 307,
+            "max_y": 175
+          },
+          "candidate": {
+            "min_x": 19,
+            "min_y": 1,
+            "max_x": 307,
+            "max_y": 175
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.22987678440996182,
+          "candidate_rms": 0.229876795488275,
+          "reference_axis_ratio": 0.42355423096664274,
+          "candidate_axis_ratio": 0.4235534004657179,
+          "reference_window_energy_fraction": 0.7913430431148535,
+          "candidate_window_energy_fraction": 0.79134306413893,
+          "active_frequencies": 3596,
+          "spectral_bins": 524288,
+          "peak_ratio": 1.3803917639175367,
+          "peak_to_sidelobe_ratio": 74.294025864265,
+          "peak_coherence": 0.9999999999853153,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle86-style-chain/pixels/frames/effects-layer-style-chain-59/report.json",
+        "heatmap": "artifacts/migration/cycle86-style-chain/pixels/frames/effects-layer-style-chain-59/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle86-style-chain/pixels/frames/effects-layer-style-chain-59/contact-sheet.png",
+        "report_sha256": "c85190762ce817d0574d067dc079dc2d4ef76df4dd1143e983dc305ae34f89b0",
+        "heatmap_sha256": "33f834b2f5cc433c91ef59ccb3dbefe8a0b16d126b8925951e3635186d761cc7",
+        "contact_sheet_sha256": "17e672cffef2b444a6daa53f9a539abbee139a242b41b5ca7bd7f3859c8860f8"
+      },
+      "inspection_page": {
+        "case_id": "effects-layer-style-chain",
+        "frames": [0, 15, 30, 59],
+        "path": "artifacts/migration/cycle86-style-chain/inspection/effects-layer-style-chain.png",
+        "sha256": "e0f43fd9ea0cb22cbdb4d5816ffa1f5a903f85b1c13a8f0084e183681a6ce1da",
+        "layout": "row-major: each tile contains the original contact sheet above its original heatmap, no resizing or pixel alteration"
+      },
+      "inspection": "Directly inspected all four original contact sheets and heatmaps in the lossless case page. The stacked outline, glow falloff, fine lines, semi-transparent fills and moving marker match the TS reference in every addressed frame. Sparse one-code-value residuals show no shifted contour, missing element or visible color bias. Unchanged numerical and structural limits pass."
     }
   ],
   "history": [
@@ -152607,5 +153045,23 @@
         "sha256": "2a52867f6da0c4ad4e8cd1ef9831d5eb9be11743fe6f26fa9f12fe8d5c83797a"
       }
     }
-  ]
+  ],
+  "active_cycle": {
+    "id": 86,
+    "started_at": "2026-10-07T05:20:22.502Z",
+    "milestone": "M4",
+    "task": "M4-T2",
+    "base_commit": "53100e99402218163d1b0d4649e754c8d390f031",
+    "intent": "Verify composed layer-style execution and audit supplied base parameter handling before completing fused-program admission.",
+    "base_parameter_audit": {
+      "path": "artifacts/migration/cycle86-base-parameter-audit.json",
+      "sha256": "4f22f625d315d2044af4369d10e88b3b0c12e769fd7587441297bf70a0074a1c"
+    },
+    "style_chain": {
+      "report": "artifacts/migration/cycle86-style-chain/report.json",
+      "sha256": "7b97393ddbd12493ff4bb1e728e797ddb1e486ffdb77c61df524a847a28c593c",
+      "frames": 4,
+      "accepted": 4
+    }
+  }
 }

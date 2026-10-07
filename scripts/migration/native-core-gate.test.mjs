@@ -10,6 +10,7 @@ test("native effect admission rejects added, omitted and duplicate catalog cases
   for (const cases of [
     corpus.cases.slice(1),
     [...corpus.cases, { id: "new-effect", features: ["effect:new"] }],
+    [...corpus.cases, { id: "new-style-chain", features: ["feature:layer-styles"] }],
     [...corpus.cases, corpus.cases[0]],
   ])
     assert.throws(() => validateNativeEffectScope({ cases }), /differs from catalog/);
