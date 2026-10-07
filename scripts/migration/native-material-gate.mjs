@@ -12,43 +12,60 @@ export async function runNativeMaterialGate(
   execute = runStep,
 ) {
   const report = { status: "failed", frames: [], batches: [], exact_cache_comparisons: 0 };
+  const animated = normal === "animated";
   const reader = new M0Evidence(context.root);
   const local = (p) => relative(context.root, p).replaceAll("\\", "/");
   try {
     await mkdir(context.output, { recursive: true });
     const ledger = await reader.json("docs/migration/rust-renderer-progress.json");
-    const pin = ledger.reference_baseline[normal ? "native_normal" : "native_material"];
+    const pin =
+      ledger.reference_baseline[
+        animated ? "native_animated_normal" : normal ? "native_normal" : "native_material"
+      ];
     assert(pin, "Material output references must be captured independently and pinned");
     const manifest = await reader.json(pin.path, pin.sha256);
     assert.equal(manifest.status, "passed");
-    assert.equal(manifest.frames.length, normal ? 144 : 60);
-    assert.equal(manifest.controls.length, normal ? 108 : 44);
+    const requiredFrames = animated ? 24 : normal ? 144 : 60;
+    assert.equal(manifest.frames.length, requiredFrames);
+    assert.equal(manifest.controls.length, animated ? 12 : normal ? 108 : 44);
     assert(manifest.controls.every((c) => c.changed_bytes > 16));
     const gpu = manifest.gpu_info.gpuDevice.find((g) => g.active);
     assert(gpu, "Captured TS adapter absent");
     const adapter = { name: gpu.deviceString, vendorId: gpu.vendorId, deviceId: gpu.deviceId };
-    const expected = normal
-      ? ["directional", "point", "spot"].flatMap((light) =>
-          ["off", "fxaa", "ssaa2x", "ssaa4x"].flatMap((aa) =>
-            ["png", "jpeg", "webp"].flatMap((encoding) =>
-              ["normal", "negative", "zero", "combined"].map((mode) => ({
-                light,
-                aa,
-                encoding,
-                mode,
-              })),
-            ),
-          ),
-        )
-      : ["directional", "point", "spot"].flatMap((light) =>
-          ["off", "fxaa", "ssaa2x", "ssaa4x"].flatMap((aa) =>
-            ["fallback", "hdr", "rotated", "replaced", "unshadowed"].map((mode) => ({
-              light,
+    const expected = animated
+      ? ["off", "fxaa", "ssaa2x", "ssaa4x"].flatMap((aa) =>
+          ["full", "offset-blend", "offset-replace"].flatMap((variant) =>
+            ["normal", "zero"].map((mode) => ({
+              light: "directional",
               aa,
+              encoding: "webp",
+              variant,
               mode,
             })),
           ),
-        );
+        )
+      : normal
+        ? ["directional", "point", "spot"].flatMap((light) =>
+            ["off", "fxaa", "ssaa2x", "ssaa4x"].flatMap((aa) =>
+              ["png", "jpeg", "webp"].flatMap((encoding) =>
+                ["normal", "negative", "zero", "combined"].map((mode) => ({
+                  light,
+                  aa,
+                  encoding,
+                  mode,
+                })),
+              ),
+            ),
+          )
+        : ["directional", "point", "spot"].flatMap((light) =>
+            ["off", "fxaa", "ssaa2x", "ssaa4x"].flatMap((aa) =>
+              ["fallback", "hdr", "rotated", "replaced", "unshadowed"].map((mode) => ({
+                light,
+                aa,
+                mode,
+              })),
+            ),
+          );
     for (const [index, f] of manifest.frames.entries()) {
       assert.deepEqual(
         Object.fromEntries(Object.keys(expected[index]).map((k) => [k, f[k]])),
@@ -66,18 +83,20 @@ export async function runNativeMaterialGate(
     const frames = manifest.frames;
     report.coverage = normal
       ? {
-          supported_encodings: ["png", "jpeg", "webp"],
+          supported_encodings: animated ? ["animated-webp-first-frame"] : ["png", "jpeg", "webp"],
           deferred_encodings: [],
-          required_frames: 144,
+          required_frames: requiredFrames,
           deferred_jpeg_frames: 0,
         }
       : { required_frames: 60 };
-    assert.equal(frames.length, normal ? 144 : 60);
+    assert.equal(frames.length, requiredFrames);
     report.reference = pin;
     report.controls = manifest.controls;
     const receiptsByMode = [],
       pathsByMode = [];
     for (const cached of [false, true]) {
+      const decodedGenerations = new Map(),
+        uploadedGenerations = new Map();
       const mode = cached ? "cached" : "uncached";
       const jobs = frames.map((f) => ({
         plan: join(context.root, f.plan.path),
@@ -131,12 +150,16 @@ export async function runNativeMaterialGate(
           const decoded = receipt.native_textures[0];
           assert.equal(decoded.encoded, f.normal);
           assert.equal(decoded.encoding, f.encoding);
-          assert.equal(decoded.width, 3);
-          assert.equal(decoded.height, 2);
           const fixture = (
-            await reader.json("tests/parity/assets/normal-textures.json")
+            await reader.json(
+              animated
+                ? "tests/parity/assets/animated-normal-textures.json"
+                : "tests/parity/assets/normal-textures.json",
+            )
           ).fixtures.find((t) => t.message.hash === f.normal);
           assert(fixture);
+          assert.equal(decoded.width, fixture.width);
+          assert.equal(decoded.height, fixture.height);
           assert.equal(decoded.rgba_sha256, fixture.rgba_sha256);
           assert.equal(
             decoded.backend,
@@ -146,13 +169,13 @@ export async function runNativeMaterialGate(
                 ? "windows-wic-jpeg-texture"
                 : "rust-webp-texture",
           );
-          assert.equal(
-            receipt.texture_decode_cache.decodes,
-            Math.min(3, 1 + Math.floor(index / 4)),
-          );
+          const bytes = fixture.width * fixture.height * 4;
+          decodedGenerations.set(f.normal, bytes);
+          uploadedGenerations.set(`${f.normal}:${fixture.rgba_sha256}`, bytes);
+          assert.equal(receipt.texture_decode_cache.decodes, decodedGenerations.size);
           assert.equal(
             receipt.texture_decode_cache.resident_bytes,
-            receipt.texture_decode_cache.decodes * 24,
+            [...decodedGenerations.values()].reduce((a, b) => a + b, 0),
           );
           assert.equal(
             receipt.texture_decode_cache.hits,
@@ -160,11 +183,12 @@ export async function runNativeMaterialGate(
           );
           assert.equal(
             receipt.image_cache.uploads,
-            receipt.texture_decode_cache.decodes + Number(index >= 3),
+            uploadedGenerations.size + Number(!animated && index >= 3),
           );
           assert.equal(
             receipt.image_cache.resident_bytes,
-            receipt.texture_decode_cache.resident_bytes + (index >= 3 ? 256 : 0),
+            [...uploadedGenerations.values()].reduce((a, b) => a + b, 0) +
+              (!animated && index >= 3 ? 256 : 0),
           );
         } else {
           const uploads = index === 0 ? 0 : index < 3 ? 1 : 2;
@@ -180,7 +204,7 @@ export async function runNativeMaterialGate(
       }
     }
     for (const [index, f] of frames.entries()) {
-      const caseId = `native-${normal ? "normal" : "material"}-${f.id}`;
+      const caseId = `native-${animated ? "animated-normal" : normal ? "normal" : "material"}-${f.id}`;
       const ctx = join(context.output, `${f.id}.context.json`),
         out = join(context.output, f.id);
       await writeAtomicJson(ctx, { case_id: caseId, isolated: true, background: [0, 0, 0, 0] });
@@ -219,7 +243,7 @@ export async function runNativeMaterialGate(
         receipts: receiptsByMode.map((r) => r[index]),
       });
     }
-    const f = frames.find((f) => f.mode === (normal ? "combined" : "hdr")),
+    const f = frames.find((f) => f.mode === (animated ? "normal" : normal ? "combined" : "hdr")),
       out = join(context.output, "budget-rejected.png");
     report.budget_rejection = await execute(
       {

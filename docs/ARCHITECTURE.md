@@ -138,7 +138,7 @@ plan's declared map size. Shadow caster geometry and map size participate in pos
 Motion reconstruction feeds depth shading through its retained HDR texture; declared attachment
 roles select scene or motion pixels without CPU readback. All three depth tiers and diagnostic
 views execute shared shaders over real auxiliary attachments before AA. Integer ID views retain
-integer texture bindings. Material HDR lighting uses the shared shape variant; encoded normal maps,
+integer texture bindings. Material HDR lighting and native normal textures use the shared shape variant;
 recursive shadows and generators retain separate gates.
 
 `aster-media-native` resolves PNG/JPEG sources from explicit job grants keyed by source hash and
@@ -830,14 +830,15 @@ Native mesh draws consume supplied material scalars and content-addressed RGBA16
 textures through the shared material WGSL. Environment textures share the budgeted image cache;
 material controls and texture generations participate in post-effect layer keys. Material pipelines
 are initialized only for active draws. Directional and spot shadows use the supplied map geometry
-and linear comparison filtering, matching the retained browser path. Inline PNG, JPEG and static WebP
+and linear comparison filtering, matching the retained browser path. Inline PNG, JPEG and WebP
 normal maps are decoded behind `aster-media-native`, authenticated separately from their derived
 pixel resources, and uploaded as linear RGBA8. A bounded session cache retains decoded pixels;
 the existing GPU image cache retains texture generations. PNG uses the packaged FFmpeg snapshot
 boundary; WebP uses the pure Rust `image-webp` decoder with browser-compatible bilinear chroma
 and alpha handling. On Windows, JPEG uses the built-in Microsoft WIC codec through a bounded
 in-memory stream, with no color transform. Its COM scope preserves the caller's apartment. Other
-platforms currently reject JPEG normals; animated WebP remains unsupported. Inline decoding grants
+platforms currently reject JPEG normals. Animated WebP uses its first subframe on a transparent
+canvas, matching ImageBitmap rather than advancing with composition time. Inline decoding grants
 no filesystem media access.
 
 Browser video uses hardware media decode and a persistent staging canvas before `queue.writeTexture`.

@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "source": "Independent retained browser ImageBitmap and resource upload captures on two devices",
+  "capture": "artifacts/migration/cycle110-animated-capture-v2/provided.json",
+  "capture_sha256": "0daa3d76cc696fe803c28177307ca1cf8e35f0a3ea3e893c939466035608e0de",
+  "fixtures": [
+    {
+      "id": "full",
+      "message": {
+        "kind": "encoded_texture",
+        "descriptor": {
+          "encoding": "webp",
+          "format": "rgba8unorm",
+          "color_space_conversion": "none"
+        },
+        "hash": "401e06f4d4ce917f1fadc73da672cd38171d05046763f250679c2836c5256a2d"
+      },
+      "encoded": "UklGRt4AAABXRUJQVlA4WAoAAAASAAAAAgAAAQAAQU5JTQYAAAAA/wD/AABBTk1GggAAAAAAAAAAAAIAAAEAAGQAAAJBTFBIBwAAAAD///9/QAAAVlA4IFoAAAAwAwCdASoDAAIAAMASJagCdLcAowFUAfwDKAP0ABbs9sRgAMsiHv6y/+3DUHfU+SHQpcYpbMvzOYuXuV18zmLl7ff/2a/6RWIXh/+hZf+0w/SKxC8P/z4gAABBTk1GKAAAAAAAAAAAAAIAAAEAAGQAAAJWUDhMDwAAAC8CQAAABxD9j/4HIqL/AQA=",
+      "rgba": [
+        196, 100, 215, 255, 91, 82, 137, 255, 57, 220, 156, 255, 207, 110, 225, 127, 92, 84, 139,
+        64, 0, 0, 0, 0
+      ],
+      "rgba_sha256": "19d67eca9ffd363fd4ee47448d16ca6e461c796456b6c5f31da83be5e7a1cbad",
+      "width": 3,
+      "height": 2,
+      "independent_devices_exact": true
+    },
+    {
+      "id": "offset-blend",
+      "message": {
+        "kind": "encoded_texture",
+        "descriptor": {
+          "encoding": "webp",
+          "format": "rgba8unorm",
+          "color_space_conversion": "none"
+        },
+        "hash": "36d241f36b38f1ef4860740f10519975cdbb7adba4d1d80925080ca4cc4e818b"
+      },
+      "encoded": "UklGRt4AAABXRUJQVlA4WAoAAAASAAAABgAABQAAQU5JTQYAAAAA/wD/AABBTk1GggAAAAEAAAEAAAIAAAEAAGQAAABBTFBIBwAAAAD///9/QAAAVlA4IFoAAAAwAwCdASoDAAIAAMASJagCdLcAowFUAfwDKAP0ABbs9sRgAMsiHv6y/+3DUHfU+SHQpcYpbMvzOYuXuV18zmLl7ff/2a/6RWIXh/+hZf+0w/SKxC8P/z4gAABBTk1GKAAAAAAAAAAAAAIAAAEAAGQAAAJWUDhMDwAAAC8CQAAABxD9j/4HIqL/AQA=",
+      "rgba": [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 196, 100, 215, 255, 91, 82, 137, 255, 57, 220, 156, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 207, 110, 225, 127, 92, 84, 139, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+      ],
+      "rgba_sha256": "1ee5004cab3fd59f3d1381a4becf890902ae8f3dc9fb2c06a7144d695519cc61",
+      "width": 7,
+      "height": 6,
+      "independent_devices_exact": true
+    },
+    {
+      "id": "offset-replace",
+      "message": {
+        "kind": "encoded_texture",
+        "descriptor": {
+          "encoding": "webp",
+          "format": "rgba8unorm",
+          "color_space_conversion": "none"
+        },
+        "hash": "72a056da9b55ce4e695ca120d0b46ac85e87cbd373e430a90aeb7eb542eab5c2"
+      },
+      "encoded": "UklGRt4AAABXRUJQVlA4WAoAAAASAAAABgAABQAAQU5JTQYAAAAA/wD/AABBTk1GggAAAAEAAAEAAAIAAAEAAGQAAAJBTFBIBwAAAAD///9/QAAAVlA4IFoAAAAwAwCdASoDAAIAAMASJagCdLcAowFUAfwDKAP0ABbs9sRgAMsiHv6y/+3DUHfU+SHQpcYpbMvzOYuXuV18zmLl7ff/2a/6RWIXh/+hZf+0w/SKxC8P/z4gAABBTk1GKAAAAAAAAAAAAAIAAAEAAGQAAAJWUDhMDwAAAC8CQAAABxD9j/4HIqL/AQA=",
+      "rgba": [
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 196, 100, 215, 255, 91, 82, 137, 255, 57, 220, 156, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 207, 110, 225, 127, 92, 84, 139, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+      ],
+      "rgba_sha256": "1ee5004cab3fd59f3d1381a4becf890902ae8f3dc9fb2c06a7144d695519cc61",
+      "width": 7,
+      "height": 6,
+      "independent_devices_exact": true
+    }
+  ]
+}

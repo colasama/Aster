@@ -31,7 +31,7 @@ impl TextureFixtures {
             "nonexistent-ffmpeg".into(),
             TextureLimits {
                 texture_max_source_bytes: 4096,
-                texture_max_pixel_bytes: 128,
+                texture_max_pixel_bytes: 256,
                 texture_max_dimension: 8,
                 texture_timeout_ms: 1000,
                 texture_cache_bytes: budget,
@@ -111,6 +111,36 @@ fn native_lossy_normals_match_browser_and_reuse_authenticated_generations()
         ));
     }
     assert_eq!(count, if cfg!(windows) { 3 } else { 2 });
+    Ok(())
+}
+
+#[test]
+fn animated_normal_uses_the_browser_first_frame_and_transparent_canvas()
+-> Result<(), Box<dyn std::error::Error>> {
+    let fixtures: TextureFixtures = serde_json::from_str(include_str!(
+        "../../../tests/parity/assets/animated-normal-textures.json"
+    ))?;
+    assert_eq!(fixtures.fixtures.len(), 3);
+    let mut registry = ResourceRegistry::new(ResourceLimits::default())?;
+    let mut session = TextureFixtures::session(256)?;
+    for fixture in fixtures.fixtures {
+        let hash = fixture.message.hash.clone();
+        registry.put(
+            fixture.message,
+            base64::prelude::BASE64_STANDARD.decode(fixture.encoded)?,
+        )?;
+        let decoded = session.decode(&hash, &registry, &CancellationToken::default())?;
+        assert_eq!(decoded.bytes.as_ref(), fixture.rgba);
+        let cached = session.decode(&hash, &registry, &CancellationToken::default())?;
+        assert!(std::sync::Arc::ptr_eq(&decoded.bytes, &cached.bytes));
+        assert_eq!(
+            session.statistics().resident_bytes,
+            decoded.bytes.len() as u64
+        );
+    }
+    assert_eq!(session.statistics().decodes, 3);
+    assert_eq!(session.statistics().hits, 3);
+    assert_eq!(session.statistics().evictions, 2);
     Ok(())
 }
 

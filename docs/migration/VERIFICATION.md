@@ -631,7 +631,14 @@ requires all 144 frames under the unchanged GPU profile, exact cached/uncached o
 decoded texture hashes, and native decode/cache receipts. Windows JPEG normals use the built-in
 Microsoft WIC decoder, whose pixels match the browser oracle. Earlier FFmpeg JPEG rounding
 amplified to unacceptable material shading error; its failed evidence remains rejected. Other
-platforms still reject JPEG normals. Animated WebP remains open work.
+platforms still reject JPEG normals. Another 24 independently repeated TS material frames cover
+animated WebP first images: full and offset subframes, blend/replace flags, transparent canvas,
+normal/zero scale and all four AA modes. Twelve controls establish visible normal-map influence.
+`tests/parity/assets/animated-normal-textures.json` pins exact decoded bytes, which ignore the
+opaque animation background and later red frame. The native adapter copies the decoded first
+subframe onto a transparent canvas to avoid animated source-over rounding of opaque pixels.
+Cached and uncached rendering must remain exact, with three decoded and GPU generations retained
+under their byte budgets.
 Dimension, chunk-boundary, cancelled-cache and allocation controls reject invalid inputs before
 publication. `tests/parity/assets/normal-textures.json` preserves independently captured linear
 texture bytes, including fractional and zero alpha. `image-webp` 0.2.4 (MIT OR Apache-2.0) replaces

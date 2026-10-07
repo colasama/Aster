@@ -96,4 +96,42 @@ async function replay(inputs: { message: PutResource; bytes: number[] }[]) {
   }
 }
 
-Object.assign(window, { captureNormalTextures: capture, replayNormalTextures: replay });
+async function captureProvided(inputs: { id: string; bytes: number[] }[]) {
+  const adapter = await navigator.gpu.requestAdapter();
+  if (!adapter) throw Error("GPU unavailable");
+  const device = await adapter.requestDevice();
+  device.pushErrorScope("validation");
+  try {
+    const results = [];
+    for (const input of inputs) {
+      const blob = new Blob([new Uint8Array(input.bytes)], { type: "image/webp" });
+      const texture = await legacyNormalUpload(device, blob);
+      const width = texture.width;
+      const height = texture.height;
+      const reference = await read(device, texture);
+      const prepared = await prepareEncodedTexture(blob);
+      const uploaded = await uploadEncodedTexture(
+        device,
+        prepared.message,
+        prepared.bytes,
+        "Provided texture replay",
+        true,
+      );
+      const replay = await read(device, uploaded.texture);
+      if (reference.length !== replay.length || reference.some((v, i) => v !== replay[i]))
+        throw Error("Provided texture changed through the resource upload path");
+      results.push({ id: input.id, width, height, message: prepared.message, reference });
+    }
+    const error = await device.popErrorScope();
+    if (error) throw Error(error.message);
+    return results;
+  } finally {
+    device.destroy();
+  }
+}
+
+Object.assign(window, {
+  captureNormalTextures: capture,
+  replayNormalTextures: replay,
+  captureProvidedNormalTextures: captureProvided,
+});

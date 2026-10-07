@@ -6,7 +6,10 @@ import { build, preview } from "vite";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 
-assert.equal(process.argv.length, 3, "Expected one output directory");
+assert(
+  [3, 4].includes(process.argv.length),
+  "Expected output directory and optional input manifest",
+);
 const root = process.cwd();
 const output = resolve(process.argv[2]);
 await mkdir(output, { recursive: true });
@@ -33,13 +36,18 @@ try {
   await writeAtomicJson(config, {
     output,
     root,
+    inputs: process.argv[3] ? resolve(process.argv[3]) : null,
     url: `http://127.0.0.1:${server.httpServer.address().port}/${entry}`,
   });
   const result = await runStep(
     {
       id: "electron",
       file: electron,
-      args: ["scripts/migration/encoded-texture-electron.mjs"],
+      args: [
+        process.argv[3]
+          ? "scripts/migration/provided-texture-electron.mjs"
+          : "scripts/migration/encoded-texture-electron.mjs",
+      ],
       timeout_ms: 120_000,
       env: { ASTER_ENCODED_GPU_CONFIG: config },
     },

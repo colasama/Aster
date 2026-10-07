@@ -320,6 +320,16 @@ export async function runNativeCoreGate(context, execute = runStep) {
         execute,
       );
       assert.equal(report.native_normal.status, "passed", "Native normal texture gate failed");
+      report.native_animated_normal = await runNativeMaterialGate(
+        { ...context, output: join(context.output, "native-animated-normal") },
+        { binary, compiler, validateReceipt: validateNativeReceipt, normal: "animated" },
+        execute,
+      );
+      assert.equal(
+        report.native_animated_normal.status,
+        "passed",
+        "Native animated normal gate failed",
+      );
     }
     report.required_count = cases.reduce(
       (count, id) => count + corpus.cases.find((item) => item.id === id).frames.length,

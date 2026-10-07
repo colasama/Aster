@@ -74,6 +74,43 @@ fn webp_admission_checks_all_extents_and_chunk_boundaries() -> Result<(), Ffmpeg
 }
 
 #[test]
+fn animated_webp_admission_checks_canvas_and_nested_bitstream_extents() -> Result<(), FfmpegError> {
+    let canvas = [0x12, 0, 0, 0, 11, 0, 0, 7, 0, 0];
+    let mut frame = vec![1, 0, 0, 1, 0, 0, 7, 0, 0, 3, 0, 0, 100, 0, 0, 2];
+    let nested = WebpFixture::riff(&[(b"VP8L", &[0x2f, 7, 0xc0, 0, 0])]);
+    frame.extend_from_slice(&nested[12..]);
+    let bytes = WebpFixture::riff(&[(b"VP8X", &canvas), (b"ANIM", &[0; 6]), (b"ANMF", &frame)]);
+    assert_eq!(StillEncoding::Webp.dimensions(&bytes)?, (12, 8));
+    for end in 0..bytes.len() {
+        assert!(StillEncoding::Webp.dimensions(&bytes[..end]).is_err());
+    }
+    for (index, value) in [(0, 8), (3, 8), (6, 8), (9, 4), (15, 128), (16, b'X')] {
+        let mut invalid = frame.clone();
+        invalid[index] = value;
+        assert!(
+            StillEncoding::Webp
+                .dimensions(&WebpFixture::riff(&[
+                    (b"VP8X", &canvas),
+                    (b"ANIM", &[0; 6]),
+                    (b"ANMF", &invalid),
+                ]))
+                .is_err()
+        );
+    }
+    frame.extend_from_slice(&nested[12..]);
+    assert!(
+        StillEncoding::Webp
+            .dimensions(&WebpFixture::riff(&[
+                (b"VP8X", &canvas),
+                (b"ANIM", &[0; 6]),
+                (b"ANMF", &frame),
+            ]))
+            .is_err()
+    );
+    Ok(())
+}
+
+#[test]
 fn encoded_extent_and_malformed_segments_are_checked_before_spawn() -> Result<(), FfmpegError> {
     let jpeg = vec![
         0xff, 0xd8, 0xff, 0xe0, 0, 2, 0xff, 0xc0, 0, 8, 8, 0, 4, 0, 8, 1,

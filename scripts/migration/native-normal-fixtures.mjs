@@ -5,7 +5,7 @@ import { createServer } from "vite";
 import { materialFixtures } from "./native-material-fixtures.mjs";
 
 /** Reuse authenticated browser encodings, including fractional and zero alpha. */
-export async function normalFixtures(root, encodedCapture) {
+export async function normalFixtures(root, encodedCapture, provided = false) {
   const source = await materialFixtures(root);
   const server = await createServer({
     root,
@@ -18,26 +18,33 @@ export async function normalFixtures(root, encodedCapture) {
     const modules = {};
     for (const name of ["codec", "frame-bundle-read", "frame-bundle-plan", "resources"])
       Object.assign(modules, await server.ssrLoadModule(`/src/renderer/frame-plan/${name}.ts`));
-    const capture = JSON.parse(await readFile(join(encodedCapture, "gpu.json"), "utf8"));
+    const capture = JSON.parse(
+      await readFile(join(encodedCapture, provided ? "provided.json" : "gpu.json"), "utf8"),
+    );
     assert.equal(capture.status, "passed");
-    const messages = JSON.parse(await readFile(join(encodedCapture, "input.json"), "utf8"));
+    const messages = provided
+      ? capture.fixtures.map((f) => ({ type: "put_resource", ...f.message }))
+      : JSON.parse(await readFile(join(encodedCapture, "input.json"), "utf8"));
     assert.deepEqual(
       messages.map((m) => m.descriptor.encoding),
-      ["png", "jpeg", "webp"],
+      provided ? ["webp", "webp", "webp"] : ["png", "jpeg", "webp"],
     );
     const normals = await Promise.all(
-      messages.map(async (message) => ({
+      messages.map(async (message, index) => ({
         message,
-        bytes: new Uint8Array(
-          await readFile(join(encodedCapture, "payloads", `${message.hash}.bin`)),
-        ),
+        variant: provided ? capture.fixtures[index].id : null,
+        bytes: provided
+          ? new Uint8Array(Buffer.from(capture.fixtures[index].encoded, "base64"))
+          : new Uint8Array(await readFile(join(encodedCapture, "payloads", `${message.hash}.bin`))),
       })),
     );
     const frames = [];
-    for (const light of ["directional", "point", "spot"])
+    for (const light of provided ? ["directional"] : ["directional", "point", "spot"])
       for (const aa of ["off", "fxaa", "ssaa2x", "ssaa4x"])
         for (const normal of normals)
-          for (const mode of ["normal", "negative", "zero", "combined"]) {
+          for (const mode of provided
+            ? ["normal", "zero"]
+            : ["normal", "negative", "zero", "combined"]) {
             const input = source.find(
               (f) =>
                 f.light === light &&
@@ -78,10 +85,11 @@ export async function normalFixtures(root, encodedCapture) {
             });
             const encoding = normal.message.descriptor.encoding;
             frames.push({
-              id: `${light}-${aa}-${encoding}-${mode}`,
+              id: `${light}-${aa}-${normal.variant ?? encoding}-${mode}`,
               light,
               aa,
               encoding,
+              ...(provided ? { variant: normal.variant } : {}),
               mode,
               width: input.width,
               height: input.height,

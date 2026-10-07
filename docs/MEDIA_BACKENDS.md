@@ -280,13 +280,15 @@ the encoder actually used and must never silently switch a release build to a le
 ## Test and release gates
 
 The experimental supplied-frame renderer also decodes authenticated inline normal textures.
-PNG uses the existing bounded FFmpeg pipe decoder; static WebP uses `image-webp` 0.2.4, a pure Rust
+PNG uses the existing bounded FFmpeg pipe decoder; WebP uses `image-webp` 0.2.4, a pure Rust
 MIT/Apache-2.0 dependency. Both produce separately hashed linear RGBA8 pixels and retain decoded
 generations in a bounded session cache before GPU upload. Source payloads are limited to 64 MiB,
 decoded output to 64 MiB, and texture dimensions to 4096; callers can lower these limits.
 Windows JPEG normal maps use the built-in Microsoft WIC decoder through an in-memory stream
 and straight RGBA conversion, without a color transform. Other platforms reject JPEG normals;
-animated WebP remains unsupported. This adapter receives registry bytes, has no source-path grants, and changes neither
+animated WebP decodes its first subframe onto a transparent canvas, ignoring the animation
+background hint as the browser does. Canvas offsets and all nested bitstream extents are checked
+before decoding. This adapter receives registry bytes, has no source-path grants, and changes neither
 the distributed FFmpeg build nor production preview/export routing.
 
 A backend or export target is enabled only when all applicable gates pass:
