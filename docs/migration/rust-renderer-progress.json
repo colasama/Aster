@@ -175,43 +175,43 @@
     }
   },
   "last_cycle": {
-    "id": 88,
-    "time": "2026-10-07T06:29:17.391Z",
+    "id": 89,
+    "time": "2026-10-07T06:49:41.081Z",
     "milestone": "M4",
     "task": "M4-T4",
     "outcome": "passed",
-    "commit": "f34aa5e8b980dabd5427e626fc3303d7dad9baa6",
-    "verification": "artifacts/migration/verify-2026-10-07T06-13-08-169Z-a48accd6.json",
-    "verification_sha256": "2ee3d2a047179477442dd8e961d5ff5e83fba70b67ebdefb604d7af46433dd01",
+    "commit": "87d62ed064c71442d315026009b94fd5dedb9efa",
+    "verification": "artifacts/migration/verify-2026-10-07T06-36-13-945Z-104c283e.json",
+    "verification_sha256": "bb48493521e0b240b9a4da8ff8fbbd8130001e6812679663043be9fcba3666af",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 99243
+        "duration_ms": 94698
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 618163
+        "duration_ms": 639405
       }
     ],
-    "verification_duration_ms": 719158,
-    "surface_diagnostic": {
-      "path": "artifacts/migration/cycle88-surface-review/report.json",
-      "sha256": "066dfc1b17457b00c107e52f38e9f18fa88c1d9863346d48253cda4a50d53f07",
-      "compared": 2,
-      "exact": 2,
-      "review_status": "accepted after direct image inspection; initial report correctly failed before reviews existed"
+    "verification_duration_ms": 735679,
+    "auxiliary_diagnostic": {
+      "path": "artifacts/migration/cycle89-auxiliary-gate/report.json",
+      "sha256": "9d357303a49167d4d1efab4f5fa0ed2bfceb915bee136c8eb640c6329a941bc4",
+      "status": "passed",
+      "cases": 6,
+      "exact_attachments": 30
     },
     "bootstrap_fixes": [
-      "Corrected wgpu mapped-range Result propagation before GPU execution.",
-      "Corrected integer ID, motion texture and uniform bindings to match shared WGSL (bindings 2, 3, 4); validation errors are now surfaced before polling a failed submission."
+      "Removed a test-only serde_json import; existing FPLN metadata supplies resource bindings without adding a dependency.",
+      "Use the final M2 replay capture after raster-cache references were converted to content-addressed media; all six retained TS replay outputs match the unchanged frozen references."
     ],
-    "next_step": "Integrate native auxiliary GPU attachments and surface post output routing into supplied whole frames.",
+    "next_step": "Connect validated auxiliary and surface post stages to complete native frame output, including AA and captured skips.",
     "notes": [
-      "Retained GPU surface post pipeline reproduces both frozen selection isolation and vector motion blur outputs exactly. Direct image self-reviews are accepted and required by G3.",
-      "All 1232 whole-frame regression outputs and two supplemental surface post outputs pass required G0/G3 with source unchanged.",
-      "Surface post is not yet integrated into the native root frame path. M4-T4 and M4 remain in progress; production preview/export remain TS."
+      "Six frozen auxiliary replays reproduce all 30 primary attachments byte-for-byte; no tolerance or reference changes. Tests prove high integer IDs, alpha-tested textures, motion, draw omission, clear-on-reuse and budget rejection.",
+      "All 1232 whole-frame regressions and two surface-post pairs retain accepted self-reviews. Full G0/G3 pass with unchanged source.",
+      "Only primary MRT attachments are implemented; higher-tier transparency/depth-peel attachments and generators remain pending. Full root surface routing remains M4-T4; production preview/export remain TS."
     ]
   },
   "milestones": [
@@ -20147,13 +20147,13 @@
           "title": "Execute surface post effects and complete the remaining registered effect routes",
           "status": "in_progress",
           "last_increment": {
-            "cycle": 88,
-            "commit": "f34aa5e8b980dabd5427e626fc3303d7dad9baa6",
-            "verification": "artifacts/migration/verify-2026-10-07T06-13-08-169Z-a48accd6.json",
-            "verification_sha256": "2ee3d2a047179477442dd8e961d5ff5e83fba70b67ebdefb604d7af46433dd01",
+            "cycle": 89,
+            "commit": "87d62ed064c71442d315026009b94fd5dedb9efa",
+            "verification": "artifacts/migration/verify-2026-10-07T06-36-13-945Z-104c283e.json",
+            "verification_sha256": "bb48493521e0b240b9a4da8ff8fbbd8130001e6812679663043be9fcba3666af",
             "whole_frame_regressions": 1232,
-            "supplemental_surface_outputs": 2,
-            "exact_surface_outputs": 2
+            "surface_outputs": 2,
+            "exact_primary_attachments": 30
           }
         },
         {
@@ -153231,6 +153231,46 @@
         "All 1232 whole-frame regression outputs and two supplemental surface post outputs pass required G0/G3 with source unchanged.",
         "Surface post is not yet integrated into the native root frame path. M4-T4 and M4 remain in progress; production preview/export remain TS."
       ]
+    },
+    {
+      "id": 89,
+      "time": "2026-10-07T06:49:41.081Z",
+      "milestone": "M4",
+      "task": "M4-T4",
+      "outcome": "passed",
+      "commit": "87d62ed064c71442d315026009b94fd5dedb9efa",
+      "verification": "artifacts/migration/verify-2026-10-07T06-36-13-945Z-104c283e.json",
+      "verification_sha256": "bb48493521e0b240b9a4da8ff8fbbd8130001e6812679663043be9fcba3666af",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 94698
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 639405
+        }
+      ],
+      "verification_duration_ms": 735679,
+      "auxiliary_diagnostic": {
+        "path": "artifacts/migration/cycle89-auxiliary-gate/report.json",
+        "sha256": "9d357303a49167d4d1efab4f5fa0ed2bfceb915bee136c8eb640c6329a941bc4",
+        "status": "passed",
+        "cases": 6,
+        "exact_attachments": 30
+      },
+      "bootstrap_fixes": [
+        "Removed a test-only serde_json import; existing FPLN metadata supplies resource bindings without adding a dependency.",
+        "Use the final M2 replay capture after raster-cache references were converted to content-addressed media; all six retained TS replay outputs match the unchanged frozen references."
+      ],
+      "next_step": "Connect validated auxiliary and surface post stages to complete native frame output, including AA and captured skips.",
+      "notes": [
+        "Six frozen auxiliary replays reproduce all 30 primary attachments byte-for-byte; no tolerance or reference changes. Tests prove high integer IDs, alpha-tested textures, motion, draw omission, clear-on-reuse and budget rejection.",
+        "All 1232 whole-frame regressions and two surface-post pairs retain accepted self-reviews. Full G0/G3 pass with unchanged source.",
+        "Only primary MRT attachments are implemented; higher-tier transparency/depth-peel attachments and generators remain pending. Full root surface routing remains M4-T4; production preview/export remain TS."
+      ]
     }
   ],
   "known_boundaries": [
@@ -153403,24 +153443,5 @@
         "sha256": "2a52867f6da0c4ad4e8cd1ef9831d5eb9be11743fe6f26fa9f12fe8d5c83797a"
       }
     }
-  ],
-  "active_cycle": {
-    "id": 89,
-    "started_at": "2026-10-07T06:29:36.420Z",
-    "milestone": "M4",
-    "task": "M4-T4",
-    "base_commit": "b85c0a035bce4e54f574e1c66b5e3779eecfd5ed",
-    "intent": "Execute supplied primary auxiliary GPU attachments for surface post routes; validate frozen geometry, integer IDs and motion before whole-frame routing.",
-    "bootstrap_fixes": [
-      "Removed a test-only serde_json import; existing FPLN metadata supplies resource bindings without adding a dependency.",
-      "Use the final M2 replay capture after raster-cache references were converted to content-addressed media; all six retained TS replay outputs match the unchanged frozen references."
-    ],
-    "auxiliary_diagnostic": {
-      "path": "artifacts/migration/cycle89-auxiliary-gate/report.json",
-      "sha256": "9d357303a49167d4d1efab4f5fa0ed2bfceb915bee136c8eb640c6329a941bc4",
-      "status": "passed",
-      "cases": 6,
-      "exact_attachments": 30
-    }
-  }
+  ]
 }
