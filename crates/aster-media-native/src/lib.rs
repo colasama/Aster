@@ -4,7 +4,11 @@ pub use authorization::StillAuthorization;
 mod exr_snapshot;
 #[cfg(test)]
 mod exr_tests;
+mod session;
+#[cfg(test)]
+mod session_tests;
 mod still;
+pub use session::{DecodedMedia, MediaCacheLimits, MediaCacheStatistics, NativeMediaSession};
 mod video;
 mod video_time;
 pub use video::{DecodedVideo, NativeVideoDecoder, NativeVideoReceipt, VideoLimits};

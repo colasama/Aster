@@ -1,7 +1,4 @@
-use crate::{
-    ir::IrArgs,
-    native_stills::{NativeStillArgs, NativeStillResources},
-};
+use crate::{ir::IrArgs, native_stills::NativeStillResources};
 use aster_render_ir::{
     DecodeLimits, FplnCodec, IrError, ResourceKind, ResourceLimits, ResourceMessage,
     ResourceRegistry,
@@ -33,7 +30,7 @@ impl RenderInput {
         job: RenderJob,
         limits: &DecodeLimits,
         resource_byte_budget: u64,
-        native_stills: &NativeStillArgs,
+        native_media: Option<&mut aster_media_native::NativeMediaSession>,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         if job.out.exists() {
             return Err("output already exists".into());
@@ -85,7 +82,7 @@ impl RenderInput {
             }
             registry.put(request, payload)?;
         }
-        let native = native_stills.install(&plan, &mut registry, limits)?;
+        let native = NativeStillResources::install(native_media, &plan, &mut registry)?;
         let frame = SuppliedFrame::new(plan, &registry, limits, &native.pixels)?;
         Ok(Self {
             frame,

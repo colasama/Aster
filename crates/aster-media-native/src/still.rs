@@ -23,7 +23,7 @@ pub struct StillLimits {
     pub still_max_header_bytes: usize,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct NativeImageReceipt {
     pub frame: ResourceHash,
     pub source: ResourceHash,
@@ -35,6 +35,7 @@ pub struct NativeImageReceipt {
     pub format: MediaTextureFormat,
 }
 
+#[derive(Clone)]
 pub struct DecodedStill {
     pub bytes: Vec<u8>,
     pub receipt: NativeImageReceipt,

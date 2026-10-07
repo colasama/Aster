@@ -3,6 +3,7 @@ import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { runPixelGate } from "../parity/pixel-gate.mjs";
 import { M0Evidence } from "./m0-evidence.mjs";
+import { runNativeMediaCacheGate } from "./native-media-cache-gate.mjs";
 import { runStillRejections } from "./native-still-rejections.mjs";
 import { runNativeVideoControls } from "./native-video-controls.mjs";
 import { runStep } from "./process.mjs";
@@ -191,6 +192,11 @@ export async function runNativeVideoGate(
       });
     }
     report.batch = { step, frames: receipts.length, device_reuses: receipts.length - 1 };
+    report.decode_cache = await runNativeMediaCacheGate(
+      execution,
+      { inputs, receipts, binary, common, reader },
+      execute,
+    );
     const first = inputs[0];
     report.rejections = await runStillRejections(
       execution,

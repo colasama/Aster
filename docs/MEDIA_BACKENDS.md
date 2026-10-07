@@ -64,8 +64,14 @@ recursive media integration is tracked separately.
 
 Source bytes, decoder pixels, index output, subprocess time and cancellation are bounded. Decode
 errors, inconsistent timestamps and out-of-duration requests publish no PNG; private snapshots are
-removed when the operation ends. Decoding starts from a complete snapshot for each request in this
-initial path; retained decode state and production integration remain separate work.
+removed when the operation ends. A native batch keeps immutable grants and a decoded-frame cache
+for its lifetime. The full content-addressed frame identity keys reuse, including the source, sample,
+format and extent. The default limits are 64 MiB of retained pixels and 256 entries; zero disables
+retention, oversized frames bypass it, and least-recently-used entries are evicted before insertion.
+Cancellation precedes cache lookup. A hit reuses already-verified bytes without reopening a source;
+an eviction requires a new authorized snapshot and decode. Receipts expose hits, misses, actual
+decodes, evictions and retained pixel bytes. Distinct uncached video frames still probe and decode
+individually; streaming codec state, recursive media and production integration remain separate work.
 
 ## Required backend contract
 

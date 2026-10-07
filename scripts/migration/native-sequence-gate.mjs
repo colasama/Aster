@@ -175,6 +175,21 @@ export async function runNativeSequenceGate(
     }
     for (let i = 0; i < 8; i += 2) assert.equal(forward[i], forward[i + 1]);
     assert.equal(new Set(forward.slice(8)).size, 4);
+    const uniqueFrames = new Map(inputs.map((input) => [input.media.hash, input.media.descriptor]));
+    const decodeCache = receipts.at(-1).media_decode_cache;
+    assert.equal(decodeCache.decodes, uniqueFrames.size);
+    assert.equal(decodeCache.misses, uniqueFrames.size);
+    assert.equal(decodeCache.hits, jobs.length - uniqueFrames.size);
+    assert.equal(decodeCache.entries, uniqueFrames.size);
+    assert.equal(decodeCache.evictions, 0);
+    assert.equal(
+      decodeCache.resident_bytes,
+      [...uniqueFrames.values()].reduce(
+        (bytes, frame) => bytes + frame.width * frame.height * 4,
+        0,
+      ),
+    );
+    report.decode_cache = decodeCache;
     report.batch = { step, receipts, frames: jobs.length, reverse_exact: 12, hold_pairs_exact: 4 };
     const first = inputs[0],
       grant = first.grant,

@@ -30,7 +30,7 @@ pub struct VideoLimits {
     pub video_max_index_bytes: usize,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct NativeVideoReceipt {
     pub frame: ResourceHash,
     pub requested_time: FrameTime,

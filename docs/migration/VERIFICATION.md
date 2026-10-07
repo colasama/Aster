@@ -561,4 +561,13 @@ rational timestamp, retain source color metadata, and report CPU upload honestly
 structural checks and neighboring-frame identity are reviewed independently. Timestamp mismatch and
 out-of-duration controls reject before publishing; an intentionally selected neighboring frame must
 fail the pixel oracle. Source/pixel/index budgets and timeout controls remain required. These checks
-do not establish production routing or retained decoder integration.
+do not establish production routing or recursive media integration.
+
+The video gate also checks 148 exact output comparisons across retained forward/reverse requests,
+disabled decode caching, pixel-byte pressure and entry-count pressure. Every receipt must match the
+original frame's source, selected timestamp, decoded hash and GPU output; cache counters must match
+the requested identities and LRU limits. Sequence batches similarly require one decode per distinct
+member identity and reuse for held/reversed frames. In-process EXR tests verify cancellation before
+a cache hit, reuse of verified bytes after source removal, fresh authorization across job boundaries,
+and renewed source access after either budget evicts the frame. This proves bounded decoded-frame
+reuse; it does not claim a persistent streaming video codec or GPU decode interop.

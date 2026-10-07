@@ -150,8 +150,11 @@ Native SDR BT.709 H.264 video uses the same source authorization boundary and a 
 snapshot. FFprobe supplies presentation timestamps; exact rational interval selection and matching
 requested/uploaded frame identities precede FFmpeg decode by presentation-order index. Centered
 chroma reconstruction through 4:4:4 preserves the browser upload contract. Receipts retain source
-color metadata and identify the CPU decode/upload path. Root-plan video is supported; recursive
-media integration, retained decoding and production routing remain separate capability work.
+color metadata and identify the CPU decode/upload path. Batch jobs retain immutable grants and a
+bounded LRU of verified decoded frames, keyed by full frame content identity. Pixel-byte and entry
+budgets independently bound retention; cancellation is checked even for a cache hit. GPU image
+reuse remains independent of the CPU decode cache. Root-plan video is supported; recursive media
+integration, streaming codec state and production routing remain separate capability work.
 
 Authorized EXR snapshots use the existing Rust `exr` library with bounded metadata and single-layer
 float RGB(A) admission. The frame descriptor declares `rgba16float`; half-float byte budgets flow

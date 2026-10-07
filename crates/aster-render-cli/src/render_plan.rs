@@ -73,6 +73,7 @@ struct RenderReport {
     native_image_decode: bool,
     native_images: Vec<aster_media_native::NativeImageReceipt>,
     native_videos: Vec<aster_media_native::NativeVideoReceipt>,
+    media_decode_cache: aster_media_native::MediaCacheStatistics,
     image_cache: aster_renderer::ImageCacheStatistics,
     lut_cache: aster_renderer::LutCacheStatistics,
     surface_cache: aster_renderer::SurfaceCacheStatistics,
@@ -148,10 +149,15 @@ impl RenderPlanArgs {
             _ => NativeBackend::Vulkan,
         };
         let mut renderer = None;
+        let mut native_media = self.native_stills.session(&limits)?;
         for (frame_index, job) in jobs.into_iter().enumerate() {
             let started = Instant::now();
-            let input =
-                RenderInput::load(job, &limits, self.resource_byte_budget, &self.native_stills)?;
+            let input = RenderInput::load(
+                job,
+                &limits,
+                self.resource_byte_budget,
+                native_media.as_mut(),
+            )?;
             let reused = renderer.is_some();
             if renderer.is_none() {
                 renderer = Some(NativeRenderer::new(NativeOptions {
@@ -180,6 +186,7 @@ impl RenderPlanArgs {
                     native_image_decode: !input.native.receipts.is_empty(),
                     native_images: input.native.receipts,
                     native_videos: input.native.video_receipts,
+                    media_decode_cache: input.native.decode_cache,
                     image_cache: rendered.image_cache,
                     lut_cache: rendered.lut_cache,
                     surface_cache: rendered.surface_cache,

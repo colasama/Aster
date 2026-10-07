@@ -1,7 +1,8 @@
 use crate::ir::IrArgs;
 use aster_media_native::{
-    NativeImageReceipt, NativeStillDecoder, NativeVideoDecoder, NativeVideoReceipt,
-    StillAuthorization, StillLimits, VideoLimits,
+    MediaCacheLimits, MediaCacheStatistics, NativeImageReceipt, NativeMediaSession,
+    NativeStillDecoder, NativeVideoDecoder, NativeVideoReceipt, StillAuthorization, StillLimits,
+    VideoLimits,
 };
 use aster_render_ir::{
     BufferResourceDescriptor, DecodeLimits, ElementType, OwnedFpln, PlanSlice,
@@ -26,41 +27,29 @@ pub struct NativeStillArgs {
     limits: StillLimits,
     #[command(flatten)]
     video_limits: VideoLimits,
+    #[command(flatten)]
+    cache_limits: MediaCacheLimits,
 }
 
+#[derive(Default)]
 pub struct NativeStillResources {
     pub pixels: Vec<PrecompositionMediaPixels>,
     pub receipts: Vec<NativeImageReceipt>,
     pub video_receipts: Vec<NativeVideoReceipt>,
+    pub decode_cache: MediaCacheStatistics,
 }
 
 impl NativeStillArgs {
-    pub fn install(
+    pub fn session(
         &self,
-        plan: &OwnedFpln,
-        registry: &mut ResourceRegistry,
         limits: &DecodeLimits,
-    ) -> Result<NativeStillResources, Box<dyn std::error::Error>> {
-        let mut result = NativeStillResources {
-            pixels: Vec::new(),
-            receipts: Vec::new(),
-            video_receipts: Vec::new(),
-        };
+    ) -> Result<Option<NativeMediaSession>, Box<dyn std::error::Error>> {
         let Some(path) = &self.media_authorizations else {
-            return Ok(result);
+            return Ok(None);
         };
-        let Some(PlanSlice::FrameBundle(bundle)) = plan.metadata.slices.first() else {
-            return Err("native media requires a complete frame bundle".into());
-        };
-        if !bundle.media_pixels.is_empty()
-            || bundle.precompositions.is_some()
-            || !bundle.temporal.is_empty()
-        {
-            return Err("native still decode requires original root plans without supplied pixel payloads or derived surfaces".into());
-        }
         let authorizations: Vec<StillAuthorization> =
             serde_json::from_slice(&IrArgs::read_bounded(path, limits)?)?;
-        let decoder = NativeStillDecoder::new(
+        let still = NativeStillDecoder::new(
             self.ffmpeg.clone().ok_or("FFmpeg executable absent")?,
             authorizations.clone(),
             self.limits.clone(),
@@ -78,6 +67,33 @@ impl NativeStillArgs {
                 .map_err(Into::<Box<dyn std::error::Error>>::into)
             })
             .transpose()?;
+        Ok(Some(NativeMediaSession::new(
+            still,
+            video,
+            self.cache_limits.clone(),
+        )))
+    }
+}
+
+impl NativeStillResources {
+    pub fn install(
+        session: Option<&mut NativeMediaSession>,
+        plan: &OwnedFpln,
+        registry: &mut ResourceRegistry,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        let mut result = Self::default();
+        let Some(session) = session else {
+            return Ok(result);
+        };
+        let Some(PlanSlice::FrameBundle(bundle)) = plan.metadata.slices.first() else {
+            return Err("native media requires a complete frame bundle".into());
+        };
+        if !bundle.media_pixels.is_empty()
+            || bundle.precompositions.is_some()
+            || !bundle.temporal.is_empty()
+        {
+            return Err("native still decode requires original root plans without supplied pixel payloads or derived surfaces".into());
+        }
         let mut requested = 0_u64;
         let mut frames = Vec::new();
         for hash in &plan.metadata.resources {
@@ -99,23 +115,11 @@ impl NativeStillArgs {
         let cancellation = aster_video::CancellationToken::default();
         let mut staged = Vec::new();
         for frame in frames {
-            let is_video = matches!(
-                registry.descriptor(&frame)?,
-                ResourceDescriptor::MediaFrame(aster_render_ir::MediaFrameDescriptor {
-                    sample: aster_render_ir::MediaSample::Video { .. },
-                    ..
-                })
-            );
-            let decoded = if is_video {
-                let decoded = video
-                    .as_ref()
-                    .ok_or("--ffprobe is required for native video")?
-                    .decode(&frame, registry, &cancellation)?;
-                result.video_receipts.push(decoded.receipt);
-                decoded.image
-            } else {
-                decoder.decode(&frame, registry, &cancellation)?
-            };
+            let decoded = session.decode(&frame, registry, &cancellation)?;
+            if let Some(receipt) = decoded.video {
+                result.video_receipts.push(receipt);
+            }
+            let decoded = decoded.image;
             let length = u32::try_from(decoded.bytes.len())?;
             let descriptor = BufferResourceDescriptor {
                 element_type: ElementType::U8,
@@ -139,6 +143,7 @@ impl NativeStillArgs {
         for (request, bytes) in staged {
             registry.put(request, bytes)?;
         }
+        result.decode_cache = session.statistics();
         Ok(result)
     }
 }
