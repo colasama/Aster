@@ -193,8 +193,10 @@ Registry eviction unregisters bindings while the media cache remains the allocat
 accounting includes retired owners still referenced by submitted frames, without double-counting
 current owners. The scene slice now carries ordered draw-index media references with explicit pending
 states and frame hashes included in the plan resource table. Root preparation builds these references
-after readiness and resolves the supplied plan before encoding. TS/Rust FPLN preserves them exactly;
-authorized native media resolution and full captured-frame replay remain pending.
+after readiness and resolves the supplied plan before encoding. TS/Rust FPLN preserves them exactly.
+Native authorized still, sequence and video resolution now feeds captured-frame execution together
+with supplied raster generations; application routing remains gated until native export and preview
+integration.
 
 Ordinary text raster acquisition now owns sampled-time evaluation, font revision, raster density and
 glyph-state reuse. A separate GPU consumer receives the prepared canvas, extent and copied ink bounds;

@@ -136,7 +136,7 @@ test("M6 sequence increments execute native media with no premature video comple
   assert(called);
   assert.equal(result.report.required_gates_passed, true);
   assert.equal(result.report.milestone_exit_satisfied, false);
-  assert.match(result.report.milestone_exit_reason, /exact video timing/);
+  assert.match(result.report.milestone_exit_reason, /full M6 exit audit/);
 });
 
 test("M4 effect increments execute native GPU gates without claiming complete effect coverage", async (t) => {
@@ -829,6 +829,39 @@ test("M5 completion requires a successful exit audit even when all gates pass", 
       auditM5Exit: async () => {
         audited = true;
         if (!accepted) throw new Error("Missing temporal evidence");
+        return { status: "passed" };
+      },
+    });
+    assert(audited);
+    assert.equal(result.report.required_gates_passed, true);
+    assert.equal(result.report.milestone_exit_satisfied, accepted);
+    assert.equal(result.exitCode, accepted ? 0 : 1);
+  }
+});
+
+test("M6 completion requires a successful exit audit even when all gates pass", async (t) => {
+  for (const accepted of [false, true]) {
+    const context = await fixture(t);
+    await writeAtomicJson(context.ledger, {
+      status: "running",
+      milestones: [
+        {
+          id: "M6",
+          status: "in_progress",
+          gates: ["G0", "G3"],
+          tasks: [{ id: "M6-T4", status: "in_progress" }],
+        },
+      ],
+    });
+    let audited = false;
+    const result = await verifyMigration(context, {
+      provenance,
+      execute: fakeHook,
+      runIrGate: async () => ({ id: "G1", status: "passed" }),
+      runNativeCoreGate: async () => ({ id: "G3", status: "passed", full_coverage: true }),
+      auditM6Exit: async () => {
+        audited = true;
+        if (!accepted) throw new Error("Missing native media evidence");
         return { status: "passed" };
       },
     });

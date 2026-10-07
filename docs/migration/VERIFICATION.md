@@ -582,3 +582,15 @@ the active capture adapter, complete immutable resource closure, native decode r
 execution, `decode` metrics/structural checks, sequence identity and full section 6.6 review evidence.
 Root and recursive replay payloads containing supplied file-media pixels must be rejected without
 publishing a PNG. The initial off-canvas fixture and failed comparison remain in the cycle evidence.
+
+The M6 exit audit runs when `M6-T4` is active or M6 is already done. It requires current full G0/G3,
+all earlier media tasks, all 12 sequence and 44 video corpus frames, and six frozen mixed scenes.
+It rereads native batch logs, authorized snapshots, original plans, output PNGs, comparison reports
+and matching self-reviews. Exact rational frame identity, color metadata, reverse/held sequence
+pixels, 148 cache comparisons and independently recomputed LRU counters must agree with execution.
+Authorization, budget, timeout, invalid-time and supplied-file-pixel controls must reject without
+output; a neighboring video frame must fail the pixel oracle. Private snapshot directories must be
+empty. Earlier core, effect, raster and GPU cache regressions are audited in the same run. Missing,
+stale, duplicated or inconsistent evidence prevents completion even if a summary says passed.
+This acceptance covers FFmpeg snapshot decode and GPU upload; streaming codec state, optional
+hardware surface interop and production preview/export routing remain separate work.

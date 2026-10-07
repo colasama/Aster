@@ -186,6 +186,7 @@ export async function runNativeMediaFrameGate(context, { binary, compiler }, exe
         result = await reader.json(evidence);
       const comparison = result.comparison;
       report.frames.push({
+        step: compared,
         case_id: caseId,
         frame: sample,
         receipt,

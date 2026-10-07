@@ -11,6 +11,7 @@ import { auditM2Exit } from "./m2-exit.mjs";
 import { auditM3Exit } from "./m3-exit.mjs";
 import { auditM4Exit } from "./m4-exit.mjs";
 import { auditM5Exit } from "./m5-exit.mjs";
+import { auditM6Exit } from "./m6-exit.mjs";
 import { runNativeCoreGate } from "./native-core-gate.mjs";
 import { runPerformanceGate } from "./performance-gate.mjs";
 import { selectRequiredGates } from "./performance-policy.mjs";
@@ -196,7 +197,7 @@ export async function verifyMigration(options, dependencies = {}) {
         );
         report.milestone_exit_reason =
           milestone.id === "M6"
-            ? "Native media increments require exact video timing, media integration and the complete M6 exit audit"
+            ? "Native media completion requires the full M6 exit audit"
             : milestone.id === "M5"
               ? "Native raster increments require temporal text and the complete M5 exit audit"
               : milestone.id === "M4"
@@ -356,6 +357,23 @@ export async function verifyMigration(options, dependencies = {}) {
           throw new Error("M5 native raster audit failed");
         report.milestone_exit_reason =
           "Supplied rasters, temporal GPU execution, root motion output and IR resource lifetimes audited";
+      } catch (error) {
+        report.milestone_exit = { status: "failed", error: error.message };
+        report.milestone_exit_reason = error.message;
+      }
+    }
+    const mediaExit = milestone.tasks.find((task) => task.id === "M6-T4");
+    if (
+      milestone.id === "M6" &&
+      !quick &&
+      (milestone.status === "done" || ["in_progress", "done"].includes(mediaExit?.status))
+    ) {
+      try {
+        report.milestone_exit = await (dependencies.auditM6Exit ?? auditM6Exit)(root, report);
+        if (report.milestone_exit.status !== "passed")
+          throw new Error("M6 native media audit failed");
+        report.milestone_exit_reason =
+          "Exact sequence/video identities, mixed frames, authorization and bounded decode lifetimes audited";
       } catch (error) {
         report.milestone_exit = { status: "failed", error: error.message };
         report.milestone_exit_reason = error.message;
