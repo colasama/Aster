@@ -181,53 +181,50 @@
     }
   },
   "last_cycle": {
-    "id": 90,
-    "time": "2026-10-07T07:21:13.390828Z",
+    "id": 91,
+    "time": "2026-10-07T07:53:25.180652+00:00",
     "milestone": "M4",
-    "task": "M4-T4",
+    "task": "M4-T5",
     "outcome": "passed",
-    "commit": "5062bd0180fbbb4efa99075a04ff1aa710dacfb7",
-    "verification": "artifacts/migration/verify-2026-10-07T07-03-58-249Z-bf8a6431.json",
-    "verification_sha256": "adb097111a8d8811837501ca7a0621061947d4e5418ac4ba41da06004b29f575",
+    "commit": "c2055e315b7163d4457cdf54ae80bea76aef6e00",
+    "verification": "artifacts/migration/verify-2026-10-07T07-34-08-909Z-84046749.json",
+    "verification_sha256": "e032d05b54d693f62c3df555fb6975eaec126acefd870fbe8e6de062a2a18cf0",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 91940
+        "duration_ms": 121809
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 654335
+        "duration_ms": 982703
       }
     ],
-    "verification_duration_ms": 747935,
-    "next_step": "Implement budgeted GPU-resident static layer output reuse, then bounded regions and SSAA eligibility in M4-T5.",
-    "notes": [
-      "Complete native root surface routes pass sixteen independently repeated TS references across both supplied effects, all four AA modes and ready/skipped states; all sixteen are exact and reviewed.",
-      "All 1232 existing whole-frame regressions, two standalone surface outputs and 30 primary auxiliary attachments pass; G0/G3 source-stable.",
-      "Production preview/export remain TS. Higher-tier auxiliary transparency/depth peeling and generators remain M7 scope."
-    ],
+    "verification_duration_ms": 1109667,
+    "cache_diagnostic": {
+      "path": "artifacts/migration/cycle91-cache-diagnostic/report.json",
+      "sha256": "0f9c62271be72d4f5d64c0dca37e3a906f54140700b3229abc1971043e08cd1e",
+      "status": "passed",
+      "frames": 1248,
+      "exact_outputs": 3744,
+      "cache_hits": 106
+    },
     "bootstrap_fixes": [
-      "Exported existing FinalSurfaceMode from the IR crate for native route matching; wire schema is unchanged.",
-      "Initial TS reference capture timed out because top-level await blocked Electron ready; corrected to the established async-main entry. Preserve cycle90-surface-reference/electron.log."
+      "Corrected test media format spelling to the existing Rgba8UnormSrgb variant; no schema or dependency change."
     ],
-    "surface_frame_diagnostic": {
-      "path": "artifacts/migration/cycle90-surface-frame-reviewed/report.json",
-      "sha256": "79a77c36b82db9a5e6e1258384d0a6c45cd05035c1ed0922547c8e1772d0eebf",
-      "compared": 16,
-      "exact": 16,
-      "review_status": "accepted after direct inspection; initial report preserves missing-review rejection"
+    "cache_acceptance": {
+      "status": "passed",
+      "required_count": 1248,
+      "exact": 3744,
+      "hits": 106
     },
-    "ts_reference": {
-      "path": "artifacts/migration/cycle90-surface-reference-corrected/report.json",
-      "sha256": "988299afcb4822c56527bc53fde755c62957e1f11d0ef70b19887cb09a1006ea",
-      "independent_devices_exact": true
-    },
-    "interrupted_verification": {
-      "log": "artifacts/migration/cycle90-full-verify.log",
-      "reason": "Stopped early during static checks to correct a stale architecture paragraph before the final source-stable verification; no gate failure inferred."
-    }
+    "next_step": "Add dependency-complete recursive surface fingerprints to layer caching; retain unused generations within the cache budget to avoid waits when there is no memory pressure. Then implement padded regions and evaluate reduced-resolution SSAA eligibility.",
+    "notes": [
+      "All 1248 executable whole frames produce exact pixels across disabled, first and repeated cache execution (3744 outputs, 106 cache hits). Existing TS pair self-reviews remain valid; no references or tolerances changed.",
+      "GPU controls cover a real fused effect, cross-time reuse, current-backdrop composition, effect invalidation, total/cache budget fallback, and abandoned-encoder generation rejection.",
+      "This increment caches isolated geometry/media results only. Recursive surface inputs, adjustments, region narrowing and SSAA reductions remain open; production preview/export remain TS."
+    ]
   },
   "milestones": [
     {
@@ -20180,7 +20177,16 @@
         {
           "id": "M4-T5",
           "title": "Cache static layer outputs, narrow padded effect regions and evaluate low-frequency SSAA effects at output resolution where parity allows",
-          "status": "in_progress"
+          "status": "in_progress",
+          "last_increment": {
+            "cycle": 91,
+            "commit": "c2055e315b7163d4457cdf54ae80bea76aef6e00",
+            "verification": "artifacts/migration/verify-2026-10-07T07-34-08-909Z-84046749.json",
+            "verification_sha256": "e032d05b54d693f62c3df555fb6975eaec126acefd870fbe8e6de062a2a18cf0",
+            "scope": "Optional isolated geometry/media post-effect output reuse. Exact time retained except audited time-independent operations and zero grain. Recursive surfaces and adjustments remain uncached; region bounds and SSAA reductions remain open.",
+            "cache_exact_outputs": 3744,
+            "cache_hits": 106
+          }
         },
         {
           "id": "M4-T6",
@@ -154753,6 +154759,52 @@
         "log": "artifacts/migration/cycle90-full-verify.log",
         "reason": "Stopped early during static checks to correct a stale architecture paragraph before the final source-stable verification; no gate failure inferred."
       }
+    },
+    {
+      "id": 91,
+      "time": "2026-10-07T07:53:25.180652+00:00",
+      "milestone": "M4",
+      "task": "M4-T5",
+      "outcome": "passed",
+      "commit": "c2055e315b7163d4457cdf54ae80bea76aef6e00",
+      "verification": "artifacts/migration/verify-2026-10-07T07-34-08-909Z-84046749.json",
+      "verification_sha256": "e032d05b54d693f62c3df555fb6975eaec126acefd870fbe8e6de062a2a18cf0",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 121809
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 982703
+        }
+      ],
+      "verification_duration_ms": 1109667,
+      "cache_diagnostic": {
+        "path": "artifacts/migration/cycle91-cache-diagnostic/report.json",
+        "sha256": "0f9c62271be72d4f5d64c0dca37e3a906f54140700b3229abc1971043e08cd1e",
+        "status": "passed",
+        "frames": 1248,
+        "exact_outputs": 3744,
+        "cache_hits": 106
+      },
+      "bootstrap_fixes": [
+        "Corrected test media format spelling to the existing Rgba8UnormSrgb variant; no schema or dependency change."
+      ],
+      "cache_acceptance": {
+        "status": "passed",
+        "required_count": 1248,
+        "exact": 3744,
+        "hits": 106
+      },
+      "next_step": "Add dependency-complete recursive surface fingerprints to layer caching; retain unused generations within the cache budget to avoid waits when there is no memory pressure. Then implement padded regions and evaluate reduced-resolution SSAA eligibility.",
+      "notes": [
+        "All 1248 executable whole frames produce exact pixels across disabled, first and repeated cache execution (3744 outputs, 106 cache hits). Existing TS pair self-reviews remain valid; no references or tolerances changed.",
+        "GPU controls cover a real fused effect, cross-time reuse, current-backdrop composition, effect invalidation, total/cache budget fallback, and abandoned-encoder generation rejection.",
+        "This increment caches isolated geometry/media results only. Recursive surface inputs, adjustments, region narrowing and SSAA reductions remain open; production preview/export remain TS."
+      ]
     }
   ],
   "known_boundaries": [
@@ -154925,25 +154977,5 @@
         "sha256": "2a52867f6da0c4ad4e8cd1ef9831d5eb9be11743fe6f26fa9f12fe8d5c83797a"
       }
     }
-  ],
-  "active_cycle": {
-    "id": 91,
-    "started_at": "2026-10-07T07:24:24.755878+00:00",
-    "milestone": "M4",
-    "task": "M4-T5",
-    "base_commit": "ee794eacfd2a1466dc33eb1256c0fcc8353fe0d3",
-    "intent": "Cache supplied isolated layer post-effect outputs on the GPU with input-complete keys, optional bounded admission and exact cached/uncached verification. Keep recursive surface inputs uncached until dependency keys are proven.",
-    "cache_diagnostic": {
-      "path": "artifacts/migration/cycle91-cache-diagnostic/report.json",
-      "sha256": "0f9c62271be72d4f5d64c0dca37e3a906f54140700b3229abc1971043e08cd1e",
-      "status": "passed",
-      "frames": 1248,
-      "exact_outputs": 3744,
-      "cache_hits": 106
-    },
-    "bootstrap_fixes": [
-      "Corrected test media format spelling to the existing Rgba8UnormSrgb variant; no schema or dependency change."
-    ],
-    "scope": "Optional isolated geometry/media post-effect output reuse. Exact time retained except audited time-independent operations and zero grain. Recursive surfaces and adjustments remain uncached; region bounds and SSAA reductions remain open."
-  }
+  ]
 }
