@@ -168,59 +168,43 @@
     }
   },
   "last_cycle": {
-    "id": 87,
-    "time": "2026-10-07T06:03:48.942Z",
+    "id": 88,
+    "time": "2026-10-07T06:29:17.391Z",
     "milestone": "M4",
-    "task": "M4-T3",
+    "task": "M4-T4",
     "outcome": "passed",
-    "commit": "79784e275d69472c846f39983815db3884b4172b",
-    "verification": "artifacts/migration/verify-2026-10-07T05-50-51-980Z-40dac0eb.json",
-    "verification_sha256": "ab1b8535d9b209a70a085941e173b93dd6f628a67f4cacdf1ba69791d53f2721",
+    "commit": "f34aa5e8b980dabd5427e626fc3303d7dad9baa6",
+    "verification": "artifacts/migration/verify-2026-10-07T06-13-08-169Z-a48accd6.json",
+    "verification_sha256": "2ee3d2a047179477442dd8e961d5ff5e83fba70b67ebdefb604d7af46433dd01",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 92495
+        "duration_ms": 99243
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 628109
+        "duration_ms": 618163
       }
     ],
-    "verification_duration_ms": 722282,
-    "unoptimized_reference": {
-      "path": "artifacts/migration/verify-2026-10-07T05-22-25-317Z-cd35d32a.json",
-      "sha256": "c33a067e4ad569fe641a853f98e6af0919ec8b15ee449203a3a7091ba56f8b5a"
+    "verification_duration_ms": 719158,
+    "surface_diagnostic": {
+      "path": "artifacts/migration/cycle88-surface-review/report.json",
+      "sha256": "066dfc1b17457b00c107e52f38e9f18fa88c1d9863346d48253cda4a50d53f07",
+      "compared": 2,
+      "exact": 2,
+      "review_status": "accepted after direct image inspection; initial report correctly failed before reviews existed"
     },
-    "native_optimization": {
-      "path": "artifacts/migration/cycle87-native-pyramids-matched/report.json",
-      "sha256": "2cb64fc365a01729222cba07fcce4ccb98f09ed4bbe062a27ec37b713b491586",
-      "frames": 1232,
-      "exact_frames": 1232,
-      "binary_sha256": "2976e7f9f75de36d7933e5ee4cfb7843c03b10bccc7baef1eba13798cd9b32bc",
-      "compiler_policy": "Match each original G3 frame compiler, including the pinned DXC only where the reference used it.",
-      "initial_diagnostic": {
-        "path": "artifacts/migration/cycle87-native-pyramids/report.json",
-        "status": "failed",
-        "reason": "The first diagnostic forced DXC onto default-compiler core references. All 1087 effect frames were exact; 52 core frames differed. Rerunning with identical compiler selection is exact for all 1232 frames; preserve the unmatched attempt."
-      }
-    },
-    "failed_attempts": [
-      {
-        "gate": "G0",
-        "evidence": "artifacts/migration/2026-10-07T05-48-02-252Z-d310c6b7/migration-tests.log",
-        "reason": "Shared-shader catalog count assertion still expected 26 after adding native-pyramid-seed (27 programs).",
-        "resolution": "Updated the explicit catalog count; all six shader-source audit tests pass. Stopped the known-red full run before completing G3; retain failed logs."
-      }
+    "bootstrap_fixes": [
+      "Corrected wgpu mapped-range Result propagation before GPU execution.",
+      "Corrected integer ID, motion texture and uniform bindings to match shared WGSL (bindings 2, 3, 4); validation errors are now surfaced before polling a failed submission."
     ],
-    "next_step": "M4-T4: integrate native surface post effects using the frozen output-replay plans and auxiliary inputs; retain capability rejection for unsupported routes.",
+    "next_step": "Integrate native auxiliary GPU attachments and surface post output routing into supplied whole frames.",
     "notes": [
-      "Conservative radius demand now controls allocation, transient admission and recorded levels. Supplied max-LOD uniforms remain unchanged and an interpolation/rounding guard is retained.",
-      "A native-only two-target seed pass shares blur/glow source taps and preserves bright-pass ordering. Later downsampling remains independent because the signals differ.",
-      "All 1232 formal G3 outputs are byte-identical to cycle86 unoptimized native outputs and match already accepted TS/native pixel pairs. No reference or tolerance changed. Full G0/G3, image/EXR/cache and rejection checks pass with source unchanged.",
-      "Initial all-DXC diagnostic used the wrong compiler for early core cases; matched-compiler rerun is exact. The first G0 run found the stale 26-program catalog count; updated it to 27 and reran green. Preserve both failed attempts.",
-      "M4 remains in progress. Production Rust preview/export and overall completion are not achieved."
+      "Retained GPU surface post pipeline reproduces both frozen selection isolation and vector motion blur outputs exactly. Direct image self-reviews are accepted and required by G3.",
+      "All 1232 whole-frame regression outputs and two supplemental surface post outputs pass required G0/G3 with source unchanged.",
+      "Surface post is not yet integrated into the native root frame path. M4-T4 and M4 remain in progress; production preview/export remain TS."
     ]
   },
   "milestones": [
@@ -20154,7 +20138,16 @@
         {
           "id": "M4-T4",
           "title": "Execute surface post effects and complete the remaining registered effect routes",
-          "status": "in_progress"
+          "status": "in_progress",
+          "last_increment": {
+            "cycle": 88,
+            "commit": "f34aa5e8b980dabd5427e626fc3303d7dad9baa6",
+            "verification": "artifacts/migration/verify-2026-10-07T06-13-08-169Z-a48accd6.json",
+            "verification_sha256": "2ee3d2a047179477442dd8e961d5ff5e83fba70b67ebdefb604d7af46433dd01",
+            "whole_frame_regressions": 1232,
+            "supplemental_surface_outputs": 2,
+            "exact_surface_outputs": 2
+          }
         },
         {
           "id": "M4-T5",
@@ -153191,6 +153184,46 @@
         "Initial all-DXC diagnostic used the wrong compiler for early core cases; matched-compiler rerun is exact. The first G0 run found the stale 26-program catalog count; updated it to 27 and reran green. Preserve both failed attempts.",
         "M4 remains in progress. Production Rust preview/export and overall completion are not achieved."
       ]
+    },
+    {
+      "id": 88,
+      "time": "2026-10-07T06:29:17.391Z",
+      "milestone": "M4",
+      "task": "M4-T4",
+      "outcome": "passed",
+      "commit": "f34aa5e8b980dabd5427e626fc3303d7dad9baa6",
+      "verification": "artifacts/migration/verify-2026-10-07T06-13-08-169Z-a48accd6.json",
+      "verification_sha256": "2ee3d2a047179477442dd8e961d5ff5e83fba70b67ebdefb604d7af46433dd01",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 99243
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 618163
+        }
+      ],
+      "verification_duration_ms": 719158,
+      "surface_diagnostic": {
+        "path": "artifacts/migration/cycle88-surface-review/report.json",
+        "sha256": "066dfc1b17457b00c107e52f38e9f18fa88c1d9863346d48253cda4a50d53f07",
+        "compared": 2,
+        "exact": 2,
+        "review_status": "accepted after direct image inspection; initial report correctly failed before reviews existed"
+      },
+      "bootstrap_fixes": [
+        "Corrected wgpu mapped-range Result propagation before GPU execution.",
+        "Corrected integer ID, motion texture and uniform bindings to match shared WGSL (bindings 2, 3, 4); validation errors are now surfaced before polling a failed submission."
+      ],
+      "next_step": "Integrate native auxiliary GPU attachments and surface post output routing into supplied whole frames.",
+      "notes": [
+        "Retained GPU surface post pipeline reproduces both frozen selection isolation and vector motion blur outputs exactly. Direct image self-reviews are accepted and required by G3.",
+        "All 1232 whole-frame regression outputs and two supplemental surface post outputs pass required G0/G3 with source unchanged.",
+        "Surface post is not yet integrated into the native root frame path. M4-T4 and M4 remain in progress; production preview/export remain TS."
+      ]
     }
   ],
   "known_boundaries": [
@@ -153363,24 +153396,5 @@
         "sha256": "2a52867f6da0c4ad4e8cd1ef9831d5eb9be11743fe6f26fa9f12fe8d5c83797a"
       }
     }
-  ],
-  "active_cycle": {
-    "id": 88,
-    "started_at": "2026-10-07T06:05:16.241Z",
-    "milestone": "M4",
-    "task": "M4-T4",
-    "base_commit": "fd5a682eafc8d4e5c9b7345d9fe0ebb2e205fca6",
-    "intent": "Add a retained native surface post pipeline consuming validated supplied plans and GPU attachments; verify selection isolation and vector blur against frozen M2 outputs before root auxiliary integration.",
-    "surface_diagnostic": {
-      "path": "artifacts/migration/cycle88-surface-review/report.json",
-      "sha256": "066dfc1b17457b00c107e52f38e9f18fa88c1d9863346d48253cda4a50d53f07",
-      "compared": 2,
-      "exact": 2,
-      "review_status": "accepted after direct image inspection; initial report correctly failed before reviews existed"
-    },
-    "bootstrap_fixes": [
-      "Corrected wgpu mapped-range Result propagation before GPU execution.",
-      "Corrected integer ID, motion texture and uniform bindings to match shared WGSL (bindings 2, 3, 4); validation errors are now surfaced before polling a failed submission."
-    ]
-  }
+  ]
 }
