@@ -85,7 +85,7 @@ impl AuxiliaryPrimaryPlan {
 
 pub struct AuxiliaryPrimaryTargets {
     pub(crate) colors: Vec<wgpu::Texture>,
-    depth: wgpu::Texture,
+    pub(crate) depth: wgpu::Texture,
     budget: u64,
 }
 
@@ -136,7 +136,7 @@ impl AuxiliaryPrimaryTargets {
                 .collect(),
             depth: texture(
                 wgpu::TextureFormat::Depth24Plus,
-                wgpu::TextureUsages::RENDER_ATTACHMENT,
+                wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
             ),
         })
     }

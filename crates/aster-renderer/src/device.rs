@@ -48,6 +48,7 @@ pub struct RenderedFrame {
     pub effect_regions: crate::EffectRegionStatistics,
     pub temporal_cache: crate::TemporalCacheStatistics,
     pub motion_reconstruction: crate::MotionStatistics,
+    pub depth_effects: crate::DepthStatistics,
     _lease: Arc<()>,
 }
 
@@ -68,6 +69,7 @@ pub struct NativeRenderer {
     scene: ScenePipelines,
     output: OutputPipelines,
     surface_output: Option<crate::surface_output::SurfaceOutput>,
+    depth_output: Option<crate::depth_output::DepthOutput>,
     targets: Option<FrameTargets>,
     output_lease: Weak<()>,
     images: crate::image_cache::ImageCache,
@@ -201,6 +203,7 @@ impl NativeRenderer {
             scene,
             output,
             surface_output: None,
+            depth_output: None,
             targets: None,
             output_lease: Weak::new(),
             images,
@@ -235,10 +238,19 @@ impl NativeRenderer {
             .motion
             .as_ref()
             .map_or(0, crate::frame_motion::FrameMotion::required_bytes)
+            + frame
+                .depth
+                .as_ref()
+                .map_or(0, crate::frame_depth::FrameDepth::required_bytes)
             + frame.temporal.required_bytes()
             + u64::from(render_size.width) * u64::from(render_size.height) * 16
             + u64::from(size.width) * u64::from(size.height) * 4
             + frame.scene.transient_bytes()
+            + if frame.scene.shadow_draws.is_empty() {
+                0
+            } else {
+                u64::from(frame.scene.shadow_size).pow(2) * 4
+            }
             + frame.surface.as_ref().map_or(0, |surface| {
                 32 + surface
                     .auxiliary
@@ -268,6 +280,12 @@ impl NativeRenderer {
         let memory = self.device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
         let internal = self.device.push_error_scope(wgpu::ErrorFilter::Internal);
         let validation = self.device.push_error_scope(wgpu::ErrorFilter::Validation);
+        if frame.depth.is_some() && self.depth_output.is_none() {
+            self.depth_output = Some(crate::depth_output::DepthOutput::new(
+                &self.device,
+                &self.images.layout,
+            )?);
+        }
         if frame.surface.is_some() && self.surface_output.is_none() {
             self.surface_output = Some(crate::surface_output::SurfaceOutput::new(
                 &self.device,
@@ -317,6 +335,9 @@ impl NativeRenderer {
         }
         if let Some(motion) = &mut self.motion_output {
             motion.retire(&self.device, frame.motion.as_ref(), self.options.timeout)?;
+        }
+        if let Some(depth) = &mut self.depth_output {
+            depth.retire(&self.device, frame.depth.as_ref(), self.options.timeout)?;
         }
         self.images.install_derived(&self.device, Vec::new());
         self.temporal.retire(
@@ -378,6 +399,9 @@ impl NativeRenderer {
         self.layer_cache.allocate(&self.device);
         if let Some(motion) = &mut self.motion_output {
             motion.allocate(&self.device, frame.motion.as_ref())?;
+        }
+        if let Some(depth) = &mut self.depth_output {
+            depth.allocate(&self.device, frame.depth.as_ref())?;
         }
         if resized {
             self.targets = Some(FrameTargets::new(&self.device, render_size, size));
@@ -445,7 +469,30 @@ impl NativeRenderer {
         } else {
             scene
         };
-        if frame.surface.is_some() {
+        if frame.depth.is_some() {
+            let destination = if frame.scene.header.aa == AntiAliasing::Off {
+                targets.output.raw()
+            } else {
+                targets.display.raw()
+            };
+            self.depth_output
+                .as_ref()
+                .ok_or_else(|| RenderError::Invalid("depth pipeline missing".into()))?
+                .record(
+                    &self.device,
+                    &mut encoder,
+                    frame,
+                    (targets.scene.raw(), destination),
+                    (&self.images, &self.surfaces),
+                )?;
+            self.output.record_aa(
+                &self.device,
+                &mut encoder,
+                frame.scene.header.aa,
+                &display,
+                &output,
+            )?;
+        } else if frame.surface.is_some() {
             let destination = if frame.scene.header.aa == AntiAliasing::Off {
                 targets.output.raw()
             } else {
@@ -491,6 +538,7 @@ impl NativeRenderer {
             self.images.invalidate();
             self.temporal.invalidate();
             self.motion_output = None;
+            self.depth_output = None;
             self.surfaces.invalidate();
             self.output.luts.invalidate();
             return Err(RenderError::Gpu(error.to_string()));
@@ -512,6 +560,10 @@ impl NativeRenderer {
                 .motion_output
                 .as_ref()
                 .map_or_else(Default::default, |m| m.statistics),
+            depth_effects: self
+                .depth_output
+                .as_ref()
+                .map_or_else(Default::default, |d| d.statistics),
             _lease: lease,
         })
     }

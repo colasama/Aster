@@ -130,7 +130,12 @@ Root beauty motion reconstruction now consumes the same supplied auxiliary geome
 and motion vectors, including GPU-derived temporal text. Shared tile-max, neighbor-max and
 ID-aware reconstruction passes retain linear HDR targets within the frame budget before display
 transform and AA. Switching to an ordinary frame retires motion targets before cache budgets are
-reassigned. Unsupported depth effects and 3D shadows retain separate capability gates.
+reassigned. Root depth output now executes the shared depth shader against primary surface data,
+exact front color, transparency-weighted world positions and a second depth-peeled layer. These
+targets remain GPU-resident, reuse matching extents and tiers, and retire before other caches can
+reuse their budget. Supplied camera geometry also executes the shared shadow depth pass at the
+plan's declared map size. Shadow caster geometry and map size participate in post-effect cache keys.
+Combined motion/depth, material lighting, recursive shadows and generators retain separate gates.
 
 `aster-media-native` resolves PNG/JPEG sources from explicit job grants keyed by source hash and
 authorization scope. It checks file size, SHA-256 and the imported content identity, then feeds an

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile, stat } from "node:fs/promises";
+import { readFile, stat, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { validateFrameArtifacts } from "../parity/frame-artifacts.mjs";
 import { nativeEffectCases, validateNativeEffectScope } from "./native-effect-scope.mjs";
@@ -103,6 +103,8 @@ export async function runNativeEffectBatch(context, inputs, execute) {
     });
   }
   const rejections = [];
+  const invalidPlan = join(context.output, "invalid-batch-plan.fpln");
+  await writeFile(invalidPlan, Buffer.alloc(32), { flag: "wx" });
   for (const kind of ["duplicate", "limit", "partial"]) {
     const output = join(context.output, "batch-rejections", `${kind}.png`);
     const first = { ...jobs[0], out: output },
@@ -110,8 +112,8 @@ export async function runNativeEffectBatch(context, inputs, execute) {
     const bad =
       kind === "partial"
         ? {
-            plan: `${base}/scene-dof-15/0/replay.fpln`,
-            resources: `${base}/scene-dof-15/frame-resources`,
+            plan: invalidPlan,
+            resources: jobs[0].resources,
             out: failedOutput,
           }
         : { ...first, out: kind === "duplicate" ? output : failedOutput };
@@ -141,7 +143,7 @@ export async function runNativeEffectBatch(context, inputs, execute) {
         ? /duplicate batch destination/
         : kind === "limit"
           ? /batch frame count/
-          : /unsupported native feature/,
+          : /FPLN magic is invalid/,
     );
     if (kind === "partial") {
       assert.equal(

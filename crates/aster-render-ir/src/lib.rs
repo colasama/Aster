@@ -8,7 +8,9 @@ pub use post_effect::{
     SurfaceEffectMode,
 };
 mod generator;
-pub use final_output::{FinalBeautySource, FinalOutputRoute, FinalOutputSlice, FinalSurfaceMode};
+pub use final_output::{
+    FinalBeautySource, FinalDepthMode, FinalOutputRoute, FinalOutputSlice, FinalSurfaceMode,
+};
 mod precomposition;
 mod precomposition_bundle;
 pub use precomposition::{

@@ -29,6 +29,48 @@ impl AuxiliaryPrimaryPipelines {
             bind_group_layouts: &[Some(image_layout)],
             immediate_size: 0,
         });
+        let targets = AuxiliaryPrimaryTargets::formats().map(|format| {
+            Some(wgpu::ColorTargetState {
+                format,
+                blend: None,
+                write_mask: wgpu::ColorWrites::ALL,
+            })
+        });
+        let depth = Some(wgpu::DepthStencilState {
+            format: wgpu::TextureFormat::Depth24Plus,
+            depth_write_enabled: Some(true),
+            depth_compare: Some(wgpu::CompareFunction::LessEqual),
+            stencil: Default::default(),
+            bias: Default::default(),
+        });
+        Ok(Self {
+            shape: Self::pipeline(
+                device,
+                &module,
+                "surface_fragment",
+                None,
+                &targets,
+                depth.clone(),
+            ),
+            media: Self::pipeline(
+                device,
+                &module,
+                "media_fragment",
+                Some(&layout),
+                &targets,
+                depth,
+            ),
+        })
+    }
+
+    pub(crate) fn pipeline(
+        device: &wgpu::Device,
+        module: &wgpu::ShaderModule,
+        entry: &str,
+        layout: Option<&wgpu::PipelineLayout>,
+        targets: &[Option<wgpu::ColorTargetState>],
+        depth_stencil: Option<wgpu::DepthStencilState>,
+    ) -> wgpu::RenderPipeline {
         let attributes = [
             (0, 0, wgpu::VertexFormat::Float32x3),
             (1, 12, wgpu::VertexFormat::Float32x2),
@@ -45,61 +87,42 @@ impl AuxiliaryPrimaryPipelines {
         });
         let ids = wgpu::vertex_attr_array![12 => Uint32, 13 => Uint32];
         let motion = wgpu::vertex_attr_array![14 => Float32x2];
-        let targets = AuxiliaryPrimaryTargets::formats().map(|format| {
-            Some(wgpu::ColorTargetState {
-                format,
-                blend: None,
-                write_mask: wgpu::ColorWrites::ALL,
-            })
-        });
-        let pipeline = |entry, layout| {
-            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some("Native primary auxiliary pipeline"),
-                layout,
-                vertex: wgpu::VertexState {
-                    module: &module,
-                    entry_point: Some("surface_vertex"),
-                    compilation_options: Default::default(),
-                    buffers: &[
-                        Some(wgpu::VertexBufferLayout {
-                            array_stride: 160,
-                            step_mode: wgpu::VertexStepMode::Vertex,
-                            attributes: &attributes,
-                        }),
-                        Some(wgpu::VertexBufferLayout {
-                            array_stride: 8,
-                            step_mode: wgpu::VertexStepMode::Instance,
-                            attributes: &ids,
-                        }),
-                        Some(wgpu::VertexBufferLayout {
-                            array_stride: 8,
-                            step_mode: wgpu::VertexStepMode::Vertex,
-                            attributes: &motion,
-                        }),
-                    ],
-                },
-                fragment: Some(wgpu::FragmentState {
-                    module: &module,
-                    entry_point: Some(entry),
-                    compilation_options: Default::default(),
-                    targets: &targets,
-                }),
-                primitive: Default::default(),
-                depth_stencil: Some(wgpu::DepthStencilState {
-                    format: wgpu::TextureFormat::Depth24Plus,
-                    depth_write_enabled: Some(true),
-                    depth_compare: Some(wgpu::CompareFunction::LessEqual),
-                    stencil: Default::default(),
-                    bias: Default::default(),
-                }),
-                multisample: Default::default(),
-                multiview_mask: None,
-                cache: None,
-            })
-        };
-        Ok(Self {
-            shape: pipeline("surface_fragment", None),
-            media: pipeline("media_fragment", Some(&layout)),
+        device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Native primary auxiliary pipeline"),
+            layout,
+            vertex: wgpu::VertexState {
+                module,
+                entry_point: Some("surface_vertex"),
+                compilation_options: Default::default(),
+                buffers: &[
+                    Some(wgpu::VertexBufferLayout {
+                        array_stride: 160,
+                        step_mode: wgpu::VertexStepMode::Vertex,
+                        attributes: &attributes,
+                    }),
+                    Some(wgpu::VertexBufferLayout {
+                        array_stride: 8,
+                        step_mode: wgpu::VertexStepMode::Instance,
+                        attributes: &ids,
+                    }),
+                    Some(wgpu::VertexBufferLayout {
+                        array_stride: 8,
+                        step_mode: wgpu::VertexStepMode::Vertex,
+                        attributes: &motion,
+                    }),
+                ],
+            },
+            fragment: Some(wgpu::FragmentState {
+                module,
+                entry_point: Some(entry),
+                compilation_options: Default::default(),
+                targets,
+            }),
+            primitive: Default::default(),
+            depth_stencil,
+            multisample: Default::default(),
+            multiview_mask: None,
+            cache: None,
         })
     }
 }

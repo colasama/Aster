@@ -2,10 +2,13 @@
 mod auxiliary_bindings;
 mod auxiliary_pipelines;
 mod auxiliary_primary;
+mod depth_auxiliary;
+mod depth_output;
 mod device;
 mod effect_region;
 mod fixed_composite;
 mod frame;
+mod frame_depth;
 mod frame_motion;
 mod frame_surface;
 #[cfg(test)]
@@ -27,6 +30,7 @@ mod pyramid_levels;
 mod region_program;
 mod scene;
 mod scene_input;
+mod shadow;
 mod surface_cache;
 mod surface_generation;
 mod surface_output;
@@ -39,6 +43,7 @@ mod temporal_text;
 
 pub use auxiliary_pipelines::AuxiliaryPrimaryPipelines;
 pub use auxiliary_primary::{AuxiliaryPrimaryPlan, AuxiliaryPrimaryTargets};
+pub use depth_output::DepthStatistics;
 pub use device::{NativeOptions, NativeRenderer, RenderedFrame};
 pub use effect_region::EffectRegionStatistics;
 pub use frame::SuppliedFrame;

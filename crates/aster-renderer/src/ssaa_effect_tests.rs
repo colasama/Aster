@@ -166,6 +166,7 @@ impl ResolutionExperiment {
             let rendered = RenderedFrame {
                 temporal_cache: Default::default(),
                 motion_reconstruction: Default::default(),
+                depth_effects: Default::default(),
                 texture: targets.output.raw().clone(),
                 size: target,
                 submission: submission.clone(),

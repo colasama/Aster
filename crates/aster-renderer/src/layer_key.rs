@@ -37,6 +37,16 @@ impl LayerKey {
             bytes.extend(frame.header.render_target.height.to_le_bytes());
             bytes.extend((frame.lighting.len() as u64).to_le_bytes());
             bytes.extend(&frame.lighting);
+            if !frame.shadow_draws.is_empty() {
+                bytes.extend(frame.shadow_size.to_le_bytes());
+                bytes.extend((frame.vertices.len() as u64).to_le_bytes());
+                bytes.extend(&frame.vertices);
+                bytes.extend((frame.shadow_draws.len() as u64).to_le_bytes());
+                for range in &frame.shadow_draws {
+                    bytes.extend(range.start.to_le_bytes());
+                    bytes.extend(range.end.to_le_bytes());
+                }
+            }
             Self::append_program(&mut bytes, plan)?;
             let mut end = None;
             let mut supported = true;

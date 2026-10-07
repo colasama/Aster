@@ -12,6 +12,7 @@ pub(crate) struct ScenePipelines {
     image_pipelines: BTreeMap<u8, wgpu::RenderPipeline>,
     surface_pipelines: BTreeMap<u8, wgpu::RenderPipeline>,
     shadow: wgpu::Texture,
+    shadow_pipeline: crate::shadow::ShadowPipeline,
     shadow_sampler: wgpu::Sampler,
     layers: crate::layers::LayerPipelines,
 }
@@ -109,6 +110,7 @@ impl ScenePipelines {
             image_pipelines,
             surface_pipelines,
             shadow,
+            shadow_pipeline: crate::shadow::ShadowPipeline::new(device, catalog)?,
             shadow_sampler,
         })
     }
@@ -146,7 +148,13 @@ impl ScenePipelines {
             },
             usage: wgpu::BufferUsages::VERTEX,
         });
-        let shadow_view = self.shadow.create_view(&Default::default());
+        let shadow_view = self.shadow_pipeline.record(
+            device,
+            encoder,
+            frame,
+            (&lighting, &vertices),
+            &self.shadow,
+        )?;
         let bindings = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Supplied scene bindings"),
             layout: &self.layout,
@@ -165,19 +173,6 @@ impl ScenePipelines {
                 },
             ],
         });
-        drop(encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            label: Some("Clear unoccluded shadow"),
-            color_attachments: &[],
-            depth_stencil_attachment: Some(wgpu::RenderPassDepthStencilAttachment {
-                view: &shadow_view,
-                depth_ops: Some(wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(1.0),
-                    store: wgpu::StoreOp::Store,
-                }),
-                stencil_ops: None,
-            }),
-            ..Default::default()
-        }));
         let scene_view = scene.create_view(&Default::default());
         let layer_targets = (!frame.layers.is_empty()).then(|| {
             crate::layers::LayerTargets::new(

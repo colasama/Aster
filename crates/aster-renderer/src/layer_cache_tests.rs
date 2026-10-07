@@ -295,3 +295,21 @@ mod effect_region_tests;
 
 #[path = "ssaa_effect_tests.rs"]
 mod ssaa_effect_tests;
+
+#[test]
+fn shadow_occluders_outside_cached_draws_invalidate_layer_keys()
+-> Result<(), Box<dyn std::error::Error>> {
+    let (mut frame, _) = LayerFixture::frame()?;
+    let initial = LayerFixture::key(&frame)?;
+    let first = frame.scene.vertices.len() as u32 / 160;
+    frame.scene.vertices.extend_from_slice(&[0; 480]);
+    assert_eq!(LayerFixture::key(&frame)?, initial);
+    frame.scene.shadow_size = 512;
+    frame.scene.shadow_draws.push(first..first + 3);
+    let shadow = LayerFixture::key(&frame)?;
+    assert_ne!(shadow, initial);
+    let offset = first as usize * 160 + 68;
+    frame.scene.vertices[offset..offset + 4].copy_from_slice(&1_f32.to_le_bytes());
+    assert_ne!(LayerFixture::key(&frame)?, shadow);
+    Ok(())
+}

@@ -9,6 +9,8 @@ use std::collections::BTreeMap;
 pub(crate) struct SceneInput {
     pub header: FrameHeaderSlice,
     pub lighting: Vec<u8>,
+    pub shadow_size: u32,
+    pub shadow_draws: Vec<std::ops::Range<u32>>,
     pub vertices: Vec<u8>,
     pub root: RootSceneCommandsSlice,
     pub clears: Vec<[f64; 5]>,
@@ -37,7 +39,10 @@ impl SceneInput {
         let Some(PlanSlice::SceneBuffers(scene_slice)) = scene.metadata.slices.first() else {
             return Err(RenderError::Invalid("scene buffers required".into()));
         };
-        if scene_slice.shadows_enabled && scene_slice.draws.iter().any(|draw| draw.casts_shadow) {
+        if nested
+            && scene_slice.shadows_enabled
+            && scene_slice.draws.iter().any(|draw| draw.casts_shadow)
+        {
             return Err(RenderError::Unsupported("shadow draws".into()));
         }
         let Some(PlanSlice::RootSceneCommands(commands)) = root.metadata.slices.first() else {
@@ -97,6 +102,13 @@ impl SceneInput {
         Ok(Self {
             header: scene.metadata.header.clone(),
             lighting: scene_bytes[..592].to_vec(),
+            shadow_size: 1,
+            shadow_draws: scene_slice
+                .draws
+                .iter()
+                .filter(|d| scene_slice.shadows_enabled && d.casts_shadow)
+                .map(|d| d.first_vertex..d.first_vertex + d.vertex_count)
+                .collect(),
             vertices: scene_bytes[592..592 + scene_slice.vertex_count as usize * 160].to_vec(),
             root: commands.clone(),
             clears,

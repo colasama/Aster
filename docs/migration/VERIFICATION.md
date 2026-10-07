@@ -594,3 +594,13 @@ empty. Earlier core, effect, raster and GPU cache regressions are audited in the
 stale, duplicated or inconsistent evidence prevents completion even if a summary says passed.
 This acceptance covers FFmpeg snapshot decode and GPU upload; streaming codec state, optional
 hardware surface interop and production preview/export routing remain separate work.
+
+M7 begins with twenty frozen orthographic/perspective camera and depth-of-field frames. Native
+execution uses the captured shadow-map size and geometry, primary auxiliary MRT, front-color,
+transparent aggregate and second-layer peel passes before shared depth shading. Receipts require
+five depth passes and matching retained target reuse. Additional requests switch to ordinary beauty,
+back to depth and then repeat; they must retire, rebuild and reuse the depth allocation while
+reproducing the corresponding pixels exactly. An insufficient whole-frame GPU budget rejects without
+output. All frames enter the existing pixel/self-review gate and cached/uncached regression batches.
+This increment does not establish complete M7 coverage: lower depth tiers, combined motion/depth,
+material lighting, generators and auxiliary visualizations retain explicit ledger tasks.

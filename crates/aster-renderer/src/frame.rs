@@ -7,6 +7,7 @@ use crate::RenderError;
 
 /// Validated, owned execution inputs. No project evaluation or filesystem access occurs here.
 pub struct SuppliedFrame {
+    pub(crate) depth: Option<crate::frame_depth::FrameDepth>,
     pub(crate) motion: Option<crate::frame_motion::FrameMotion>,
     pub(crate) temporal: crate::temporal_frame::TemporalFrame,
     pub(crate) scene: crate::scene_input::SceneInput,
@@ -73,13 +74,24 @@ impl SuppliedFrame {
             .map(|hash| stage(hash, ContractLevel::PostEffectSliceV1))
             .transpose()?;
         let motion = crate::frame_motion::FrameMotion::new(&scene, &motion, auxiliary.as_ref())?;
-        let surface = crate::frame_surface::FrameSurface::new(
+        let depth = crate::frame_depth::FrameDepth::new(
             &scene,
             &output,
             auxiliary.as_ref(),
             effect.as_ref(),
             motion.is_some(),
         )?;
+        let surface = if depth.is_some() {
+            None
+        } else {
+            crate::frame_surface::FrameSurface::new(
+                &scene,
+                &output,
+                auxiliary.as_ref(),
+                effect.as_ref(),
+                motion.is_some(),
+            )?
+        };
         let merged_pixels = bundle
             .media_pixels
             .iter()
@@ -121,6 +133,7 @@ impl SuppliedFrame {
             limits,
             false,
         )?;
+        scene.shadow_size = bundle.shadow_map_size;
         let mut surfaces = crate::surface_plan::SurfacePlan::collect(
             bundle.precompositions.as_ref(),
             &scene,
@@ -130,6 +143,9 @@ impl SuppliedFrame {
         )?;
         if let Some(surface) = &surface {
             surface.validate_resources(&scene, &surfaces)?;
+        }
+        if let Some(auxiliary) = depth.as_ref().and_then(|d| d.auxiliary.as_ref()) {
+            auxiliary.validate_resources(&scene, &surfaces)?;
         }
         if let Some(motion) = &motion {
             motion.auxiliary.validate_resources(&scene, &surfaces)?;
@@ -196,6 +212,7 @@ impl SuppliedFrame {
             ));
         }
         Ok(Self {
+            depth,
             motion,
             temporal,
             scene,

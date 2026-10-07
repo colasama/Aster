@@ -15,6 +15,7 @@ import {
 } from "./native-core-scope.mjs";
 import { runNativeMediaFrameGate } from "./native-media-frame-gate.mjs";
 import { runNativeMotionFrameGate } from "./native-motion-frame-gate.mjs";
+import { nativeSceneCases, runNativeSceneBatch } from "./native-scene-batch.mjs";
 import { runNativeSequenceGate } from "./native-sequence-gate.mjs";
 import { runNativeVideoGate } from "./native-video-gate.mjs";
 
@@ -60,20 +61,27 @@ export function validateNativeReceipt(receipt, expected) {
 /** Native gate coverage is scoped to the current milestone; its exit audit checks provenance. */
 export async function runNativeCoreGate(context, execute = runStep) {
   const started = Date.now();
-  const media = context.milestone === "M6";
+  const scenes = context.milestone === "M7";
+  const media = scenes || context.milestone === "M6";
   const rasters = media || context.milestone === "M5";
   const effects = rasters || context.milestone === "M4";
-  const extraCases = [...(effects ? nativeEffectCases : []), ...(rasters ? nativeRasterCases : [])];
+  const extraCases = [
+    ...(effects ? nativeEffectCases : []),
+    ...(rasters ? nativeRasterCases : []),
+    ...(scenes ? nativeSceneCases : []),
+  ];
   const report = {
     id: "G3",
     status: "failed",
-    scope: media
-      ? "native-media-mixed-v1"
-      : rasters
-        ? "native-rasters-v1"
-        : effects
-          ? "native-effects-fused-v4"
-          : "native-core-v5",
+    scope: scenes
+      ? "native-scene-depth-v1"
+      : media
+        ? "native-media-mixed-v1"
+        : rasters
+          ? "native-rasters-v1"
+          : effects
+            ? "native-effects-fused-v4"
+            : "native-core-v5",
     native_image_decode: true,
     full_coverage: false,
     milestone_exit_eligible: false,
@@ -274,6 +282,25 @@ export async function runNativeCoreGate(context, execute = runStep) {
       candidate.frames.push(...extra.candidate);
       report.raster_batch = extra.batch;
     }
+    if (scenes) {
+      const extra = await runNativeSceneBatch(
+        context,
+        {
+          reader,
+          binary,
+          base,
+          manifest,
+          corpus,
+          compiler,
+          validateReceipt: validateNativeReceipt,
+        },
+        execute,
+      );
+      report.cases.push(...extra.cases);
+      report.frames.push(...extra.frames);
+      candidate.frames.push(...extra.candidate);
+      report.scene_batch = extra.batch;
+    }
     report.required_count = cases.reduce(
       (count, id) => count + corpus.cases.find((item) => item.id === id).frames.length,
       0,
@@ -417,8 +444,8 @@ export async function runNativeCoreGate(context, execute = runStep) {
     );
     report.checked_files = await reader.stable();
     report.status = "passed";
-    report.full_coverage = true;
-    report.milestone_exit_eligible = true;
+    report.full_coverage = !scenes;
+    report.milestone_exit_eligible = !scenes;
   } catch (error) {
     report.error = error.stack ?? error.message;
   }

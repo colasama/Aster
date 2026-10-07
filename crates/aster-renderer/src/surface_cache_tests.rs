@@ -21,6 +21,8 @@ impl SurfaceFixture {
             key: vec![key],
             size,
             scene: SceneInput {
+                shadow_size: 1,
+                shadow_draws: Vec::new(),
                 header,
                 lighting: vec![],
                 vertices: vec![],

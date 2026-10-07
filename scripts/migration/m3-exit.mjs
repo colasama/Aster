@@ -103,7 +103,6 @@ export async function auditM3Exit(root, report) {
         "gpu-budget",
         "image-budget",
         "raster-budget",
-        "scene-dof-15",
         "scene-particles-billboard",
         "scene-lighting-directional",
         "corrupt-resource",
