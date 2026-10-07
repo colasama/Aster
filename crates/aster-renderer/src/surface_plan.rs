@@ -115,7 +115,7 @@ impl SurfacePlan {
             let input = SceneInput::new(
                 &scene,
                 &commands,
-                &record.effects,
+                (&record.effects, &record.generators),
                 &pixels,
                 (registry, decoded_textures),
                 limits,

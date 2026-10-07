@@ -286,6 +286,12 @@ impl NativeRenderer {
         let memory = self.device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
         let internal = self.device.push_error_scope(wgpu::ErrorFilter::Internal);
         let validation = self.device.push_error_scope(wgpu::ErrorFilter::Validation);
+        if !frame.scene.generators.is_empty() && self.scene.generators.is_none() {
+            self.scene.generators = Some(crate::generators::GeneratorPipelines::new(&self.device));
+        }
+        if let Some(generators) = &mut self.scene.generators {
+            generators.prepare(&self.device, frame)?;
+        }
         if std::iter::once(&frame.scene)
             .chain(frame.surfaces.targets.iter().map(|s| &s.scene))
             .any(|s| s.materials.values().any(|m| m.active))

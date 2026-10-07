@@ -74,9 +74,12 @@ export async function runNativeRejections(context, { reader, base, binary }, exe
     ["--gpu-budget-bytes", "16"],
     /GPU allocation budget/,
   );
-  for (const id of ["scene-particles-billboard"]) {
-    await invoke(id, id, [], /unsupported native feature/);
-  }
+  await invoke(
+    "generator-budget",
+    "scene-particles-billboard",
+    ["--gpu-budget-bytes", "16"],
+    /GPU allocation budget/,
+  );
   const messages = await reader.json(`${base}/layer-solid/0/resources.json`);
   const corrupted = join(context.output, "corrupt-resources");
   await mkdir(corrupted);

@@ -1,0 +1,79 @@
+{
+  "blend_mode": "add",
+  "blob_index": 0,
+  "capacity": 1024,
+  "dispatches": [[1, 1, 1]],
+  "effective_count": 256,
+  "has_audio": false,
+  "instance_id": "root/5ab78bdc-bbc2-4e6b-aa85-2e0d10a1f69b",
+  "kind": "scene_generator",
+  "program": {
+    "audio_analysis": false,
+    "graph": {
+      "api_version": 1,
+      "compute_passes": [
+        {
+          "entry_point": "compute_main",
+          "id": "simulate",
+          "phase": "simulation",
+          "shader": "09ccb1819176147bfadca235b839c42c14c15eba43880073444203433467f787",
+          "workgroup_size": [256, 1, 1]
+        }
+      ],
+      "instance_stride": 48,
+      "max_instances": 1000000,
+      "render_variants": [
+        {
+          "auxiliary": {
+            "fragment_entry": "billboard_auxiliary",
+            "shader": "ee8d1149ca1608902e4d7e5c9254d091f5a575c754d8aeb158bab247af7616bc",
+            "vertex_entry": "billboard_vertex"
+          },
+          "blend": "layer",
+          "cull": "none",
+          "depth": "none",
+          "fragment_entry": "billboard_fragment",
+          "id": "billboard",
+          "shader": "ee8d1149ca1608902e4d7e5c9254d091f5a575c754d8aeb158bab247af7616bc",
+          "vertex_count": 6,
+          "vertex_entry": "billboard_vertex"
+        },
+        {
+          "auxiliary": {
+            "fragment_entry": "streak_auxiliary",
+            "shader": "ee8d1149ca1608902e4d7e5c9254d091f5a575c754d8aeb158bab247af7616bc",
+            "vertex_entry": "streak_vertex"
+          },
+          "blend": "layer",
+          "cull": "none",
+          "depth": "none",
+          "fragment_entry": "streak_fragment",
+          "id": "streak",
+          "shader": "ee8d1149ca1608902e4d7e5c9254d091f5a575c754d8aeb158bab247af7616bc",
+          "vertex_count": 6,
+          "vertex_entry": "streak_vertex"
+        },
+        {
+          "auxiliary": {
+            "fragment_entry": "mesh_auxiliary",
+            "shader": "ee8d1149ca1608902e4d7e5c9254d091f5a575c754d8aeb158bab247af7616bc",
+            "vertex_entry": "mesh_vertex"
+          },
+          "blend": "layer",
+          "cull": "back",
+          "depth": "read_write",
+          "fragment_entry": "mesh_fragment",
+          "id": "mesh",
+          "shader": "ee8d1149ca1608902e4d7e5c9254d091f5a575c754d8aeb158bab247af7616bc",
+          "vertex_count": 36,
+          "vertex_entry": "mesh_vertex"
+        }
+      ]
+    },
+    "label": "Particles",
+    "source_key": "org.aster.builtin.particles:particle_system:58ca-7f4ed2f0-2f72e66c"
+  },
+  "requested_count": 256,
+  "selection_id": "5ab78bdc-bbc2-4e6b-aa85-2e0d10a1f69b",
+  "variant_index": 0
+}

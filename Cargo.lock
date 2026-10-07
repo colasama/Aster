@@ -258,6 +258,7 @@ dependencies = [
  "exr",
  "pollster",
  "serde",
+ "serde_json",
  "sha2",
  "thiserror",
  "uuid",

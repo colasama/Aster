@@ -15,6 +15,12 @@ mod frame_surface;
 #[cfg(test)]
 mod frame_surface_tests;
 mod frame_visualizer;
+mod generator_bindings;
+mod generator_input;
+#[cfg(test)]
+mod generator_input_tests;
+mod generator_program;
+mod generators;
 mod geometry_pipelines;
 mod image_cache;
 mod image_input;

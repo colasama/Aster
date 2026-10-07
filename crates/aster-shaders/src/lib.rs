@@ -17,6 +17,7 @@ pub use types::{
 mod constant_tests;
 #[cfg(test)]
 mod coverage_tests;
+mod generator;
 #[cfg(test)]
 mod generator_tests;
 #[cfg(test)]
@@ -27,3 +28,4 @@ mod post_process_tests;
 mod runtime_shader_tests;
 #[cfg(test)]
 mod tests;
+pub use generator::GeneratorShader;

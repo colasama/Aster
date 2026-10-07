@@ -47,9 +47,6 @@ impl SuppliedFrame {
             registry.resolve(hash)?;
         }
         BundleDependencies::default().validate(&plan.metadata, registry, limits)?;
-        if !bundle.generators.is_empty() {
-            return Err(RenderError::Unsupported("generator pass".into()));
-        }
         let stage =
             |hash: &aster_render_ir::ResourceHash, contract| -> Result<OwnedFpln, RenderError> {
                 let decoded = FplnCodec::decode(registry.resolve(hash)?.to_vec(), limits)?;
@@ -145,7 +142,7 @@ impl SuppliedFrame {
         let mut scene = crate::scene_input::SceneInput::new(
             &scene,
             &root,
-            &bundle.effects,
+            (&bundle.effects, &bundle.generators),
             &root_pixels,
             (registry, &textures),
             limits,

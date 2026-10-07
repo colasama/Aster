@@ -645,3 +645,13 @@ texture bytes, including fractional and zero alpha. `image-webp` 0.2.4 (MIT OR A
 FFmpeg WebP color conversion because its bilinear reconstruction matches the browser texture oracle;
 the shipped FFmpeg build and source authorization contract are unchanged. WIC uses the existing
 locked Windows bindings and the operating-system codec; it adds no bundled native codec library.
+
+Root particle coverage executes twelve frozen billboard, mesh and streak frames at four supplied
+rational times. The unchanged GPU profile includes sequence-neighbor identity checks and section
+6.6 review. Native generator positions are marked invariant during Naga compilation: unrestricted
+arithmetic reassociation lost one thin streak pixel despite matching nearly the entire image.
+The failed pre-invariance comparison remains recorded. Cached/uncached and bounded/unbounded
+effect-region runs must remain byte-identical, and a generator allocation-budget control must
+reject before publishing output. Unit controls reject mismatched frame identity, realization,
+missing/duplicate invocations and invalid shader text. Audio-driven and auxiliary generator output
+remain separate coverage work before M7-T4 can close.

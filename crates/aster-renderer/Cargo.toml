@@ -11,8 +11,9 @@ aster-render-ir.workspace = true
 aster-shaders.workspace = true
 pollster.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 thiserror.workspace = true
-wgpu.workspace = true
+wgpu = { workspace = true, features = ["naga-ir"] }
 
 [dev-dependencies]
 aster-media-native.workspace = true

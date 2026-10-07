@@ -16,6 +16,7 @@ pub(crate) struct ScenePipelines {
     shadow_sampler: wgpu::Sampler,
     layers: crate::layers::LayerPipelines,
     materials: Option<crate::material::MaterialPipelines>,
+    pub(crate) generators: Option<crate::generators::GeneratorPipelines>,
 }
 
 impl ScenePipelines {
@@ -107,6 +108,7 @@ impl ScenePipelines {
         });
         let layers = crate::layers::LayerPipelines::new(device, catalog)?;
         Ok(Self {
+            generators: None,
             materials: None,
             layers,
             layout,
@@ -153,6 +155,11 @@ impl ScenePipelines {
         let (scene, depth) = target;
         let (images, surfaces, surface_plan, cache, effects) = resources;
         let regions = effects.collect(frame)?;
+        let generator_bindings = match &self.generators {
+            Some(pipelines) => pipelines.compute(device, encoder, &frame.generators)?,
+            None if frame.generators.is_empty() => BTreeMap::new(),
+            None => return Err(RenderError::Invalid("generator executor absent".into())),
+        };
         let layer_keys = crate::layer_key::LayerKey::collect(frame, &cache.generations)?;
         let materials = match &self.materials {
             Some(materials) => materials.bindings(device, frame, images)?,
@@ -401,6 +408,24 @@ impl ScenePipelines {
                                 draw.first_vertex..draw.first_vertex + draw.vertex_count,
                                 0..1,
                             );
+                        }
+                        RootCommandRecord::Generator {
+                            instance_id,
+                            blend_mode,
+                        } => {
+                            let key = crate::surface_plan::SurfacePlan::key(instance_id);
+                            let input = frame.generators.get(&key).ok_or_else(|| {
+                                RenderError::Invalid("generator invocation absent".into())
+                            })?;
+                            let binding = generator_bindings.get(&key).ok_or_else(|| {
+                                RenderError::Invalid("generator bindings absent".into())
+                            })?;
+                            self.generators
+                                .as_ref()
+                                .ok_or_else(|| {
+                                    RenderError::Invalid("generator pipelines absent".into())
+                                })?
+                                .draw(&mut pass, input, binding, blend_mode)?;
                         }
                         _ => return Err(RenderError::Invalid("unexpected scene command".into())),
                     }

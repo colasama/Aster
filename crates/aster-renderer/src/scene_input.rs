@@ -17,18 +17,23 @@ pub(crate) struct SceneInput {
     pub layers: BTreeMap<u32, LayerPlan>,
     pub images: BTreeMap<ResourceHash, ImageInput>,
     pub materials: BTreeMap<u32, crate::material_input::MaterialInput>,
+    pub generators: BTreeMap<Vec<u16>, crate::generator_input::GeneratorInput>,
 }
 impl SceneInput {
     pub fn new(
         scene: &OwnedFpln,
         root: &OwnedFpln,
-        effects: &[PrecompositionEffectRecord],
+        programs: (
+            &[PrecompositionEffectRecord],
+            &[aster_render_ir::PrecompositionGeneratorRecord],
+        ),
         pixels: &[PrecompositionMediaPixels],
         resources: (&ResourceRegistry, &BTreeMap<ResourceHash, ImageInput>),
         limits: &DecodeLimits,
         nested: bool,
     ) -> Result<Self, RenderError> {
         let (registry, decoded_textures) = resources;
+        let (effects, generator_records) = programs;
         if scene.metadata.contract_level != ContractLevel::SceneBuffersSliceV1
             || root.metadata.contract_level != ContractLevel::RootSceneCommandsSliceV1
             || scene.metadata.header != root.metadata.header
@@ -38,6 +43,12 @@ impl SceneInput {
             ));
         }
         let layers = LayerPlan::collect(effects, root, registry, limits, nested)?;
+        let generators = crate::generator_input::GeneratorInput::collect(
+            generator_records,
+            root,
+            registry,
+            limits,
+        )?;
         let Some(PlanSlice::SceneBuffers(scene_slice)) = scene.metadata.slices.first() else {
             return Err(RenderError::Invalid("scene buffers required".into()));
         };
@@ -85,6 +96,9 @@ impl SceneInput {
                 RootCommandRecord::Geometry { blend_mode, .. } => {
                     crate::SuppliedFrame::blend_index(blend_mode)?;
                 }
+                RootCommandRecord::Generator { blend_mode, .. } => {
+                    crate::SuppliedFrame::blend_index(blend_mode)?;
+                }
                 RootCommandRecord::BeginLayer { effect_blob_index }
                 | RootCommandRecord::Adjustment { effect_blob_index }
                     if layers.contains_key(effect_blob_index) => {}
@@ -124,6 +138,7 @@ impl SceneInput {
             layers,
             images,
             materials,
+            generators,
         })
     }
 
@@ -138,6 +153,11 @@ impl SceneInput {
         let size = self.header.render_target;
         let levels = self.pyramid_levels();
         self.vertices.len() as u64
+            + self
+                .generators
+                .values()
+                .map(crate::generator_input::GeneratorInput::required_bytes)
+                .sum::<u64>()
             + 8192
             + self.materials.len() as u64 * 16
             + self

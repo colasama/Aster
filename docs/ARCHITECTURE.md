@@ -841,6 +841,15 @@ platforms currently reject JPEG normals. Animated WebP uses its first subframe o
 canvas, matching ImageBitmap rather than advancing with composition time. Inline decoding grants
 no filesystem media access.
 
+Native root scene generators authenticate their invocation and shader resources against the frame
+header and realized capacity. The supplied shared WGSL graph runs compute directly into GPU
+instance and indirect-draw buffers, followed by ordered beauty draws. Program pipelines are shared
+by graph identity and retired when absent from the active frame; instance buffers are initialized
+from each time-addressed invocation, without CPU readback. Naga preserves invariant position
+outputs to prevent native arithmetic reassociation from changing thin-triangle raster coverage.
+The buffer allocation budget includes generator context, parameters, instances, indirect arguments
+and audio analysis. Auxiliary generator output and recursive generator scenes retain separate gates.
+
 Browser video uses hardware media decode and a persistent staging canvas before `queue.writeTexture`.
 This deterministic compatibility path exists because Chromium implementations can silently
 zero `copyExternalImageToTexture` for decoded video surfaces. The native video backend is expected to
