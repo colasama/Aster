@@ -438,5 +438,13 @@ these supplied controls. G3 checks pixels, structural metrics and matching self-
 the GPU test also proves control mutations change output, captured skips preserve the destination,
 invalid attachment formats fail before writes, and replay restores identical pixels. These two
 supplemental outputs are separate from the 1232 whole-frame corpus replays. Root-frame auxiliary
-attachment generation and surface-output routing remain pending; this pipeline proof does not
+integration and surface-output routing remain pending; this pipeline proof does not
 enable unsupported complete frames.
+
+G3 also requires six native primary-auxiliary replays, comparing all five MRT attachments byte for
+byte with the frozen M2 auxiliary references. The supplied scene, ID and motion plans are pinned in
+`tests/parity/native-auxiliary-primary`; alpha-tested media and precomposition bindings retain their
+captured inputs. Checks cover ID changes including `u32::MAX`, omitted draws, alpha texture removal,
+motion removal, exact replay restoration, budget rejection and clearing previously drawn targets.
+Only the primary normal/ID/world-position/motion attachments are claimed for higher-tier fixtures;
+transparency aggregation, front color, depth peeling and generator execution remain pending.

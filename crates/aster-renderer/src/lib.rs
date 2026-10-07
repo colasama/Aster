@@ -1,4 +1,6 @@
 //! Native, GPU-resident execution of supplied frame plans.
+mod auxiliary_pipelines;
+mod auxiliary_primary;
 mod device;
 mod fixed_composite;
 mod frame;
@@ -17,6 +19,8 @@ mod surface_cache;
 mod surface_plan;
 mod surface_post;
 
+pub use auxiliary_pipelines::AuxiliaryPrimaryPipelines;
+pub use auxiliary_primary::{AuxiliaryPrimaryPlan, AuxiliaryPrimaryTargets};
 pub use device::{NativeOptions, NativeRenderer, RenderedFrame};
 pub use frame::SuppliedFrame;
 pub use image_cache::ImageCacheStatistics;

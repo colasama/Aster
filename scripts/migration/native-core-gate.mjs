@@ -4,6 +4,7 @@ import { join, posix, relative } from "node:path";
 import { validateFrameArtifacts } from "../parity/frame-artifacts.mjs";
 import { runPixelGate } from "../parity/pixel-gate.mjs";
 import { M0Evidence } from "./m0-evidence.mjs";
+import { runNativeAuxiliaryPrimaryGate } from "./native-auxiliary-primary-gate.mjs";
 import {
   coreAdditionalGeometryCases,
   coreCases,
@@ -262,6 +263,15 @@ export async function runNativeCoreGate(context, execute = runStep) {
         execute,
       );
       assert.equal(report.native_surface_post.status, "passed", "Native surface post gate failed");
+      report.native_auxiliary_primary = await runNativeAuxiliaryPrimaryGate(
+        { ...context, output: join(context.output, "native-auxiliary-primary") },
+        execute,
+      );
+      assert.equal(
+        report.native_auxiliary_primary.status,
+        "passed",
+        "Native primary auxiliary gate failed",
+      );
     }
     assert.equal(
       await hashFile(binary),

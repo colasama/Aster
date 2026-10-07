@@ -414,3 +414,7 @@ impl NativeRenderer {
         Ok(pixels)
     }
 }
+
+#[cfg(test)]
+#[path = "auxiliary_primary_tests.rs"]
+mod auxiliary_primary_tests;

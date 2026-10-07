@@ -10,3 +10,5 @@ tests/parity/lut-draw/reference/*.bin binary
 tests/parity/root-scene/reference/*.bin binary
 tests/parity/native-surface-post/*.bin binary
 tests/parity/native-surface-post/*.fpln binary
+tests/parity/native-auxiliary-primary/*.bin binary
+tests/parity/native-auxiliary-primary/*.fpln binary

@@ -770,7 +770,7 @@ the thresholded and unthresholded signals differ. The browser path keeps its exi
 `SurfacePostPlan` validates transported surface controls, and a retained `SurfacePostPipeline`
 records selection isolation or vector motion blur directly from GPU-resident HDR, integer object-ID
 and motion-vector attachments. It checks attachment formats and dimensions before recording and
-preserves captured skips. Root-frame auxiliary generation and output routing are still capability
+preserves captured skips. Root-frame auxiliary integration and output routing are still capability
 gated until integrated; standalone supplied-pass execution does not widen complete-frame admission.
 The shared post-process shader uses one source sample when blur, glow and chromatic aberration are
 all zero, skipping the chromatic offset samples and nine-tap blur. A single uniform branch preserves
@@ -860,3 +860,9 @@ The built-in linear wipe can curve its alpha boundary without warping the source
 optional amplitude, wavelength, phase, and phase speed occupy unused slots in the existing GPU
 operation; enabled bends add one sine in the pixel pass and require no additional surface or pass.
 See [Semantic vector compositing](SEMANTIC_VECTOR_COMPOSITING.md) for parameter and validation details.
+
+Native primary auxiliary execution consumes supplied scene vertices, unsigned integer IDs and motion
+attributes through the shared five-target MRT shader. Target allocation is admitted against a byte
+budget before GPU writes. Geometry and alpha-tested media share the captured depth ordering, and
+cleared plans clear every attachment. This pass provides the GPU inputs for surface post effects;
+root-frame routing and the separate transparency, depth-peel and generator passes remain pending.

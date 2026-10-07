@@ -165,6 +165,13 @@
       "sha256": "8ee42369d815643345173ed1ecfc41bcc78565987de2df5cb8357a3bf7c05c3c",
       "source": "artifacts/parity/ts-check/2026-10-05T14-19-54-212Z-c1eea6f2/output-replay/replay-input.json",
       "scope": "Two unchanged M2 supplied effect plans and shared HDR/object-ID/motion attachments; full original input JSON hashes matched the frozen output reference before extraction."
+    },
+    "native_auxiliary_primary": {
+      "path": "tests/parity/native-auxiliary-primary/manifest.json",
+      "sha256": "9bdea77ac4f410dd951ae53e38426f417718850c41b310377ca6e55a425d32fd",
+      "profile": "exact",
+      "cases": 6,
+      "attachments_per_case": 5
     }
   },
   "last_cycle": {
@@ -153396,5 +153403,24 @@
         "sha256": "2a52867f6da0c4ad4e8cd1ef9831d5eb9be11743fe6f26fa9f12fe8d5c83797a"
       }
     }
-  ]
+  ],
+  "active_cycle": {
+    "id": 89,
+    "started_at": "2026-10-07T06:29:36.420Z",
+    "milestone": "M4",
+    "task": "M4-T4",
+    "base_commit": "b85c0a035bce4e54f574e1c66b5e3779eecfd5ed",
+    "intent": "Execute supplied primary auxiliary GPU attachments for surface post routes; validate frozen geometry, integer IDs and motion before whole-frame routing.",
+    "bootstrap_fixes": [
+      "Removed a test-only serde_json import; existing FPLN metadata supplies resource bindings without adding a dependency.",
+      "Use the final M2 replay capture after raster-cache references were converted to content-addressed media; all six retained TS replay outputs match the unchanged frozen references."
+    ],
+    "auxiliary_diagnostic": {
+      "path": "artifacts/migration/cycle89-auxiliary-gate/report.json",
+      "sha256": "9d357303a49167d4d1efab4f5fa0ed2bfceb915bee136c8eb640c6329a941bc4",
+      "status": "passed",
+      "cases": 6,
+      "exact_attachments": 30
+    }
+  }
 }
