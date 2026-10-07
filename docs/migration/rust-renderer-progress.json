@@ -178,97 +178,70 @@
       "sha256": "2c42bb3cdc9d175e22cb797d1d25ecd8dd9d4310baefa600ed6d59b39116edfd",
       "cases": 16,
       "profile": "gpu"
+    },
+    "native_temporal_text": {
+      "path": "tests/parity/native-temporal-text/manifest.json",
+      "sha256": "d8718615799da69ae08473091510ac6d7762095e2893dd75fa138b382aa9c8cf",
+      "policy": "Immutable copies of accepted M2 temporal pass plans and sampled pixels; output references remain the existing frozen temporal PNGs."
     }
   },
   "last_cycle": {
-    "id": 96,
-    "time": "2026-10-07T10:04:11.432270+00:00",
+    "id": 97,
+    "time": "2026-10-07T10:27:01.141914+00:00",
     "milestone": "M5",
-    "task": "M5-T1",
+    "task": "M5-T2",
     "outcome": "passed",
-    "commit": "bfc2753f41285815d41d7fce26f2ac379cefeed7",
-    "verification": "artifacts/migration/verify-2026-10-07T09-49-28-865Z-1a590519.json",
-    "verification_sha256": "c9b5195c0fabe925d8c833a774b8ab29d854648d0741b241576456acc6db7039",
+    "commit": "73aafba8fc1b6fcb56fff746c0d234d6e3c44264",
+    "verification": "artifacts/migration/verify-2026-10-07T10-11-29-409Z-e7357e4b.json",
+    "verification_sha256": "9cf2d384682e1840252e9f60139d1244901feded7ee6dffca22ab64ddae7ec92",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 87184
+        "duration_ms": 91845
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 32106
+        "duration_ms": 59620
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 699378
+        "duration_ms": 719206
       }
     ],
-    "verification_duration_ms": 820405,
-    "raster_batch": {
-      "status": "passed",
-      "step": {
-        "id": "native-raster-batch",
-        "command": [
-          "D:\\code\\Aster\\target\\release\\aster-render-cli.exe",
-          "render-plan",
-          "--batch",
-          "D:\\code\\Aster\\artifacts\\migration\\2026-10-07T09-49-28-865Z-1a590519\\G3\\raster-batch.json",
-          "--dxcompiler",
-          "D:\\code\\Aster\\node_modules\\electron\\dist\\dxcompiler.dll"
-        ],
-        "started_at": "2026-10-07T09:55:06.605Z",
-        "log": "artifacts/migration/2026-10-07T09-49-28-865Z-1a590519/G3/native-raster-batch.log",
-        "status": "passed",
-        "exit_code": 0,
-        "signal": null,
-        "finished_at": "2026-10-07T09:55:07.659Z",
-        "duration_ms": 1054
-      },
-      "request": {
-        "path": "artifacts/migration/2026-10-07T09-49-28-865Z-1a590519/G3/raster-batch.json",
-        "sha256": "a8c76c11c8594cbf6566d2d6133a65307e90e828f95f5902da08cc01a6e83530"
-      },
-      "frames": 20,
-      "device_reuses": 19,
-      "image_cache": {
-        "uploads": 8,
-        "hits": 12,
-        "evictions": 0,
-        "resident_bytes": 953568
-      }
-    },
-    "native_frames": 1252,
-    "diagnostics": [
+    "verification_duration_ms": 872413,
+    "temporal_frames": [
       {
-        "path": "artifacts/migration/cycle96-raster-cpu.log",
-        "sha256": "9032874d4e305233842b6dd4933c1cad0a8df983ace64ae4508df1022d136254",
-        "status": "passed"
+        "case_id": "native-temporal-full",
+        "exact": true,
+        "evidence": "artifacts/migration/2026-10-07T10-11-29-409Z-e7357e4b/G3/native-temporal-text/full/report.json"
       },
       {
-        "path": "artifacts/migration/cycle96-raster-gpu.log",
-        "sha256": "4f5ede4d0a5f1988fbc4b7dd3dd9306efa362352989ef561ee3870232a9cd9e7",
-        "status": "passed"
+        "case_id": "native-temporal-enters",
+        "exact": true,
+        "evidence": "artifacts/migration/2026-10-07T10-11-29-409Z-e7357e4b/G3/native-temporal-text/enters/report.json"
       },
       {
-        "path": "artifacts/migration/cycle96-verify-tests-final.log",
-        "sha256": "701d4c91897145650e94314ee9261838297deec30a51e92689afdbe2725c87bd",
-        "status": "passed"
+        "case_id": "native-temporal-exits",
+        "exact": true,
+        "evidence": "artifacts/migration/2026-10-07T10-11-29-409Z-e7357e4b/G3/native-temporal-text/exits/report.json"
       },
       {
-        "path": "artifacts/migration/cycle96-raster-reviewed/report.json",
-        "sha256": "cd896074b4d5471103a6a60f072dab1e72c561b0b07f6db6875df6f61d499666",
-        "status": "passed"
+        "case_id": "native-temporal-transparent",
+        "exact": true,
+        "evidence": "artifacts/migration/2026-10-07T10-11-29-409Z-e7357e4b/G3/native-temporal-text/transparent/report.json"
       }
     ],
-    "next_step": "Implement supplied temporal text accumulation and resolve using shared WGSL; retain GPU resources and validate against the frozen M2 temporal samples.",
+    "native_regression_frames": 1252,
+    "cache_comparisons": 5072,
+    "next_step": "Integrate temporal outputs into native whole-frame resource resolution and recursive surfaces, with sample/weight-sensitive generation keys and a shared GPU budget.",
     "notes": [
-      "All 20 text/SVG/PSD and animated text frames are RGBA-exact with accepted section 6.6 reviews. The native raster batch performs 8 uploads and 12 cache hits on one device.",
-      "Typed RasterPixels and captured byte buffers share validated native image admission. GPU tests cover changed generations, eviction and atomic budget rejection.",
-      "Full G0/G1/G3 pass on unchanged source. M5 temporal text and exit audit remain open; production preview/export integration is still pending.",
-      "The M5 routing test caught an omitted G1 dispatch before full verification; corrected and rerun successfully."
+      "The reusable native pass executes shared WGSL against frozen M2 sample inputs; all four resolved rasters are RGBA-exact and accepted after direct visual self-review.",
+      "GPU controls prove retained targets clear history, wrong identities and insufficient budgets reject before allocation, and zero exposure changes actual output to transparent.",
+      "Full G0/G1/G3 pass on unchanged source. M5-T2 remains in progress because whole-frame temporal integration and cache generation propagation remain pending.",
+      "No dependencies or output references changed. The frozen sample manifest was repinned after formatting before verification; the initial stale-manifest diagnostic remains preserved."
     ]
   },
   "milestones": [
@@ -20310,7 +20283,16 @@
         {
           "id": "M5-T2",
           "title": "Execute supplied temporal text raster sample and accumulation passes with GPU-resident reuse and budget controls",
-          "status": "pending"
+          "status": "in_progress",
+          "increments": [
+            {
+              "cycle": 97,
+              "status": "done",
+              "title": "Reusable supplied temporal GPU pass with frozen sample parity",
+              "commit": "73aafba8fc1b6fcb56fff746c0d234d6e3c44264",
+              "verification": "artifacts/migration/verify-2026-10-07T10-11-29-409Z-e7357e4b.json"
+            }
+          ]
         },
         {
           "id": "M5-T3",
@@ -20327,22 +20309,22 @@
         "status": "passed",
         "required_gates_passed": true,
         "milestone_exit_satisfied": false,
-        "report": "artifacts/migration/verify-2026-10-07T09-49-28-865Z-1a590519.json",
+        "report": "artifacts/migration/verify-2026-10-07T10-11-29-409Z-e7357e4b.json",
         "gates": [
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 87184
+            "duration_ms": 91845
           },
           {
             "id": "G1",
             "status": "passed",
-            "duration_ms": 32106
+            "duration_ms": 59620
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 699378
+            "duration_ms": 719206
           }
         ]
       }
@@ -155916,6 +155898,388 @@
         "contact_sheet_sha256": "9837f3aa2070a12ae49df337ea06306e72bb7ba2f9eef9f542b69945a129b27a"
       },
       "inspection": "Directly inspected every unique full-resolution contact-sheet and heatmap pair; repeated static frames and equivalent PSD outputs were grouped only by identical image SHA-256. Text outlines, multiscript animated glyph positions, SVG gradients and PSD transparency agree. All 20 comparisons are RGBA-exact and all heatmaps are black, with no structural, registration or alpha discrepancy. No tolerance changes."
+    },
+    {
+      "case_id": "native-temporal-full",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "Native shared-WGSL temporal text accumulation and resolve",
+      "reviewed_at": "2026-10-07T10:11:01.331581+00:00",
+      "reference_rgba_sha256": "fdfdc9bdc719bb52b0101f3e18f08a93463d6a99e0fc79fd9ddfe2a48eb1734b",
+      "candidate_rgba_sha256": "fdfdc9bdc719bb52b0101f3e18f08a93463d6a99e0fc79fd9ddfe2a48eb1734b",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 53028,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 53028,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 1,
+            "min_y": 2,
+            "max_x": 489,
+            "max_y": 106
+          },
+          "candidate": {
+            "min_x": 1,
+            "min_y": 2,
+            "max_x": 489,
+            "max_y": 106
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle97-temporal-diagnostic-final/full/report.json",
+        "report_sha256": "0ef904e8934252a8732159a9f921756106adfd6be02c05a3c0e3eb7618926a5f",
+        "heatmap": "artifacts/migration/cycle97-temporal-diagnostic-final/full/heatmap.png",
+        "heatmap_sha256": "29450bbb71c4d4018e6b7fa372fa2ce6429f3120d367abd17bc53f8b164ba12f",
+        "contact_sheet": "artifacts/migration/cycle97-temporal-diagnostic-final/full/contact-sheet.png",
+        "contact_sheet_sha256": "033369638627c1f3ad8c892019d922a48029b439ddd25578c6225214a2da82b0"
+      },
+      "inspection": "Directly inspected all four full-resolution contact sheets and heatmaps. ASTER glyph contours and alpha agree exactly; entering and exiting exposure retain half alpha without visible-sample renormalization. The empty-sample case remains fully transparent. Every heatmap is black and all RGBA metrics are exact; no structural shift or tolerance changes."
+    },
+    {
+      "case_id": "native-temporal-enters",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "Native shared-WGSL temporal text accumulation and resolve",
+      "reviewed_at": "2026-10-07T10:11:01.332084+00:00",
+      "reference_rgba_sha256": "bc55597ebf75ca245b100f6485581617988785891186ae945b4fcd0641c6e469",
+      "candidate_rgba_sha256": "bc55597ebf75ca245b100f6485581617988785891186ae945b4fcd0641c6e469",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 53028,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 53028,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 1,
+            "min_y": 2,
+            "max_x": 489,
+            "max_y": 106
+          },
+          "candidate": {
+            "min_x": 1,
+            "min_y": 2,
+            "max_x": 489,
+            "max_y": 106
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle97-temporal-diagnostic-final/enters/report.json",
+        "report_sha256": "54ff17466ae169c9f388435deb2e9483545847e4e4170dfc2e18a5ce34354bfb",
+        "heatmap": "artifacts/migration/cycle97-temporal-diagnostic-final/enters/heatmap.png",
+        "heatmap_sha256": "29450bbb71c4d4018e6b7fa372fa2ce6429f3120d367abd17bc53f8b164ba12f",
+        "contact_sheet": "artifacts/migration/cycle97-temporal-diagnostic-final/enters/contact-sheet.png",
+        "contact_sheet_sha256": "37a121da5fbe50a96f05d7ecc3d8a560be1c6217c2a18504218529cd74c96796"
+      },
+      "inspection": "Directly inspected all four full-resolution contact sheets and heatmaps. ASTER glyph contours and alpha agree exactly; entering and exiting exposure retain half alpha without visible-sample renormalization. The empty-sample case remains fully transparent. Every heatmap is black and all RGBA metrics are exact; no structural shift or tolerance changes."
+    },
+    {
+      "case_id": "native-temporal-exits",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "Native shared-WGSL temporal text accumulation and resolve",
+      "reviewed_at": "2026-10-07T10:11:01.332513+00:00",
+      "reference_rgba_sha256": "7ad19b4b298b5e7f6b23854d861e87e2a0dc20bb53bb8f737ab02cd570022431",
+      "candidate_rgba_sha256": "7ad19b4b298b5e7f6b23854d861e87e2a0dc20bb53bb8f737ab02cd570022431",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 53028,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 53028,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 1,
+            "min_y": 2,
+            "max_x": 488,
+            "max_y": 106
+          },
+          "candidate": {
+            "min_x": 1,
+            "min_y": 2,
+            "max_x": 488,
+            "max_y": 106
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle97-temporal-diagnostic-final/exits/report.json",
+        "report_sha256": "ca8b9c38615d9f1859548f51e858d8114c608a2da6fe29a8905c38b5f8c0f76a",
+        "heatmap": "artifacts/migration/cycle97-temporal-diagnostic-final/exits/heatmap.png",
+        "heatmap_sha256": "29450bbb71c4d4018e6b7fa372fa2ce6429f3120d367abd17bc53f8b164ba12f",
+        "contact_sheet": "artifacts/migration/cycle97-temporal-diagnostic-final/exits/contact-sheet.png",
+        "contact_sheet_sha256": "21d9e01e11b6a91495de219a1af88d8b3f2ebc96a00e6b271c1c73995e0118db"
+      },
+      "inspection": "Directly inspected all four full-resolution contact sheets and heatmaps. ASTER glyph contours and alpha agree exactly; entering and exiting exposure retain half alpha without visible-sample renormalization. The empty-sample case remains fully transparent. Every heatmap is black and all RGBA metrics are exact; no structural shift or tolerance changes."
+    },
+    {
+      "case_id": "native-temporal-transparent",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "Native shared-WGSL temporal text accumulation and resolve",
+      "reviewed_at": "2026-10-07T10:11:01.332854+00:00",
+      "reference_rgba_sha256": "fa569e2360c540e6280e34a4627516770f1a5f34d81d35689334a99cc1013357",
+      "candidate_rgba_sha256": "fa569e2360c540e6280e34a4627516770f1a5f34d81d35689334a99cc1013357",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 20480,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 20480,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": null,
+          "candidate": null,
+          "edge_deltas": null,
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle97-temporal-diagnostic-final/transparent/report.json",
+        "report_sha256": "c2ea36a31cf92e4d96ffa96dd633af8efc0bedc9cd4b6e194146144a2e9dacaf",
+        "heatmap": "artifacts/migration/cycle97-temporal-diagnostic-final/transparent/heatmap.png",
+        "heatmap_sha256": "0b8cdf606ad4b06af4744e424cbafe6f6491ca2590f1e76f6159ee9afd5e3c52",
+        "contact_sheet": "artifacts/migration/cycle97-temporal-diagnostic-final/transparent/contact-sheet.png",
+        "contact_sheet_sha256": "c3c995c020deef50d2f08faf1ea9283b17b99b7fd04bbe27fc18568afb88ff3e"
+      },
+      "inspection": "Directly inspected all four full-resolution contact sheets and heatmaps. ASTER glyph contours and alpha agree exactly; entering and exiting exposure retain half alpha without visible-sample renormalization. The empty-sample case remains fully transparent. Every heatmap is black and all RGBA metrics are exact; no structural shift or tolerance changes."
     }
   ],
   "history": [
@@ -157500,6 +157864,65 @@
         "Typed RasterPixels and captured byte buffers share validated native image admission. GPU tests cover changed generations, eviction and atomic budget rejection.",
         "Full G0/G1/G3 pass on unchanged source. M5 temporal text and exit audit remain open; production preview/export integration is still pending.",
         "The M5 routing test caught an omitted G1 dispatch before full verification; corrected and rerun successfully."
+      ]
+    },
+    {
+      "id": 97,
+      "time": "2026-10-07T10:27:01.141914+00:00",
+      "milestone": "M5",
+      "task": "M5-T2",
+      "outcome": "passed",
+      "commit": "73aafba8fc1b6fcb56fff746c0d234d6e3c44264",
+      "verification": "artifacts/migration/verify-2026-10-07T10-11-29-409Z-e7357e4b.json",
+      "verification_sha256": "9cf2d384682e1840252e9f60139d1244901feded7ee6dffca22ab64ddae7ec92",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 91845
+        },
+        {
+          "id": "G1",
+          "status": "passed",
+          "duration_ms": 59620
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 719206
+        }
+      ],
+      "verification_duration_ms": 872413,
+      "temporal_frames": [
+        {
+          "case_id": "native-temporal-full",
+          "exact": true,
+          "evidence": "artifacts/migration/2026-10-07T10-11-29-409Z-e7357e4b/G3/native-temporal-text/full/report.json"
+        },
+        {
+          "case_id": "native-temporal-enters",
+          "exact": true,
+          "evidence": "artifacts/migration/2026-10-07T10-11-29-409Z-e7357e4b/G3/native-temporal-text/enters/report.json"
+        },
+        {
+          "case_id": "native-temporal-exits",
+          "exact": true,
+          "evidence": "artifacts/migration/2026-10-07T10-11-29-409Z-e7357e4b/G3/native-temporal-text/exits/report.json"
+        },
+        {
+          "case_id": "native-temporal-transparent",
+          "exact": true,
+          "evidence": "artifacts/migration/2026-10-07T10-11-29-409Z-e7357e4b/G3/native-temporal-text/transparent/report.json"
+        }
+      ],
+      "native_regression_frames": 1252,
+      "cache_comparisons": 5072,
+      "next_step": "Integrate temporal outputs into native whole-frame resource resolution and recursive surfaces, with sample/weight-sensitive generation keys and a shared GPU budget.",
+      "notes": [
+        "The reusable native pass executes shared WGSL against frozen M2 sample inputs; all four resolved rasters are RGBA-exact and accepted after direct visual self-review.",
+        "GPU controls prove retained targets clear history, wrong identities and insufficient budgets reject before allocation, and zero exposure changes actual output to transparent.",
+        "Full G0/G1/G3 pass on unchanged source. M5-T2 remains in progress because whole-frame temporal integration and cache generation propagation remain pending.",
+        "No dependencies or output references changed. The frozen sample manifest was repinned after formatting before verification; the initial stale-manifest diagnostic remains preserved."
       ]
     }
   ],
