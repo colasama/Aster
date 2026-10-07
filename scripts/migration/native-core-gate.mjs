@@ -26,6 +26,7 @@ import { runNativeEffectBatch } from "./native-effect-batch.mjs";
 import { nativeEffectCases } from "./native-effect-scope.mjs";
 import { runNativeExrGate } from "./native-exr-gate.mjs";
 import { runNativeStillGate } from "./native-still-gate.mjs";
+import { runNativeSurfaceFrameGate } from "./native-surface-frame-gate.mjs";
 import { runNativeSurfacePostGate } from "./native-surface-post-gate.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
@@ -271,6 +272,16 @@ export async function runNativeCoreGate(context, execute = runStep) {
         report.native_auxiliary_primary.status,
         "passed",
         "Native primary auxiliary gate failed",
+      );
+      report.native_surface_frames = await runNativeSurfaceFrameGate(
+        { ...context, output: join(context.output, "native-surface-frames") },
+        { binary, compiler, validateReceipt: validateNativeReceipt },
+        execute,
+      );
+      assert.equal(
+        report.native_surface_frames.status,
+        "passed",
+        "Native complete surface frames failed",
       );
     }
     assert.equal(

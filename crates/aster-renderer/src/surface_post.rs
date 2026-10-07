@@ -10,7 +10,7 @@ use crate::RenderError;
 pub struct SurfacePostPlan {
     size: Extent2d,
     uniforms: Vec<u8>,
-    ready: bool,
+    pub(crate) ready: bool,
 }
 
 impl SurfacePostPlan {

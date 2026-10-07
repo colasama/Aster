@@ -12,3 +12,5 @@ tests/parity/native-surface-post/*.bin binary
 tests/parity/native-surface-post/*.fpln binary
 tests/parity/native-auxiliary-primary/*.bin binary
 tests/parity/native-auxiliary-primary/*.fpln binary
+tests/parity/native-surface-frame/**/*.bin binary
+tests/parity/native-surface-frame/**/*.fpln binary

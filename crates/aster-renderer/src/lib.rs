@@ -4,6 +4,9 @@ mod auxiliary_primary;
 mod device;
 mod fixed_composite;
 mod frame;
+mod frame_surface;
+#[cfg(test)]
+mod frame_surface_tests;
 mod geometry_pipelines;
 mod image_cache;
 mod image_input;
@@ -16,6 +19,7 @@ mod pyramid_levels;
 mod scene;
 mod scene_input;
 mod surface_cache;
+mod surface_output;
 mod surface_plan;
 mod surface_post;
 

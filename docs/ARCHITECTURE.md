@@ -770,8 +770,8 @@ the thresholded and unthresholded signals differ. The browser path keeps its exi
 `SurfacePostPlan` validates transported surface controls, and a retained `SurfacePostPipeline`
 records selection isolation or vector motion blur directly from GPU-resident HDR, integer object-ID
 and motion-vector attachments. It checks attachment formats and dimensions before recording and
-preserves captured skips. Root-frame auxiliary integration and output routing are still capability
-gated until integrated; standalone supplied-pass execution does not widen complete-frame admission.
+preserves captured skips. Complete native frames connect primary auxiliary attachments to these
+effects and the existing display AA pass. Unsupported diagnostic routes remain capability gated.
 The shared post-process shader uses one source sample when blur, glow and chromatic aberration are
 all zero, skipping the chromatic offset samples and nine-tap blur. A single uniform branch preserves
 the original active effect path and keeps the source texture on the GPU.
@@ -865,4 +865,10 @@ Native primary auxiliary execution consumes supplied scene vertices, unsigned in
 attributes through the shared five-target MRT shader. Target allocation is admitted against a byte
 budget before GPU writes. Geometry and alpha-tested media share the captured depth ordering, and
 cleared plans clear every attachment. This pass provides the GPU inputs for surface post effects;
-root-frame routing and the separate transparency, depth-peel and generator passes remain pending.
+complete root surface-output routing is supported. Separate transparency, depth-peel and generator
+passes remain pending.
+
+Native surface output validates the final mode against the supplied post-effect stage and binds
+auxiliary draws to the same root geometry and cached media/precomposition generations. Ready effects
+require valid attachments; captured skips still clear the final target before AA. The GPU budget
+includes primary MRT textures, depth and attribute buffers before any frame allocation.

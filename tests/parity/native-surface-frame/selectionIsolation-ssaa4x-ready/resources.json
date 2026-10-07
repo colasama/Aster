@@ -1,0 +1,50 @@
+[
+  {
+    "type": "put_resource",
+    "kind": "buffer",
+    "descriptor": { "element_type": "u8", "element_count": 848, "byte_length": 848 },
+    "hash": "58f59b2a9cd8f396569d018566f14cc0f9b21439fc19807bafb57997aeefb590"
+  },
+  {
+    "type": "put_resource",
+    "kind": "buffer",
+    "descriptor": { "element_type": "u8", "element_count": 912, "byte_length": 912 },
+    "hash": "73fbe394fef44c1c5894c5d1cf50dc6a419bb44e52fa549fc97a3b512a242266"
+  },
+  {
+    "type": "put_resource",
+    "kind": "buffer",
+    "descriptor": { "element_type": "u8", "element_count": 1104, "byte_length": 1104 },
+    "hash": "75dcb90f9bab269c4a9878a7d84ac04553abadace0b7855145881b8265431a50"
+  },
+  {
+    "type": "put_resource",
+    "kind": "buffer",
+    "descriptor": { "element_type": "u8", "element_count": 1248, "byte_length": 1248 },
+    "hash": "7798c508cf98ef1bccbc1dded38f96420d84472c47296261831fc94225466edf"
+  },
+  {
+    "type": "put_resource",
+    "kind": "buffer",
+    "descriptor": { "element_type": "u8", "element_count": 79952, "byte_length": 79952 },
+    "hash": "79aabeda048091889e80cd760266e61e35571b56d61336ef1e1554fd463b2f77"
+  },
+  {
+    "type": "put_resource",
+    "kind": "buffer",
+    "descriptor": { "element_type": "u8", "element_count": 4896, "byte_length": 4896 },
+    "hash": "c18ba2eacd246264a4f254d657c0b900624f6bcc575fd0dae64a86b6d4571a3b"
+  },
+  {
+    "type": "put_resource",
+    "kind": "buffer",
+    "descriptor": { "element_type": "u8", "element_count": 880, "byte_length": 880 },
+    "hash": "c503278cba200b30deee0342538e4a836d83b991c7239f9f2aae21fa08757311"
+  },
+  {
+    "type": "put_resource",
+    "kind": "buffer",
+    "descriptor": { "element_type": "u8", "element_count": 960, "byte_length": 960 },
+    "hash": "f044c3f98331433ece251c36328605ab1f9f9601b534cc25acfbf3f906152e42"
+  }
+]

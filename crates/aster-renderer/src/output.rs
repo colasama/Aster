@@ -383,7 +383,18 @@ impl OutputPipelines {
             pass.set_bind_group(0, &bindings, &[]);
             pass.draw(0..3, 0..1);
         }
-        let mode = match frame.scene.header.aa {
+        self.record_aa(device, encoder, frame.scene.header.aa, display, output)
+    }
+
+    pub(crate) fn record_aa(
+        &self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        aa: AntiAliasing,
+        display: &wgpu::TextureView,
+        output: &wgpu::TextureView,
+    ) -> Result<(), RenderError> {
+        let mode = match aa {
             AntiAliasing::Off => return Ok(()),
             AntiAliasing::Fxaa => 1,
             AntiAliasing::Ssaa2x => 2,

@@ -1,7 +1,6 @@
 use aster_render_ir::{
-    BundleDependencies, ContractLevel, DecodeLimits, EffectBlendMode, FinalBeautySource,
-    FinalOutputRoute, FplnCodec, MotionReconstructionStatus, OwnedFpln, PlanSlice,
-    ResourceRegistry,
+    BundleDependencies, ContractLevel, DecodeLimits, EffectBlendMode, FplnCodec,
+    MotionReconstructionStatus, OwnedFpln, PlanSlice, ResourceRegistry,
 };
 
 use crate::RenderError;
@@ -11,6 +10,7 @@ pub struct SuppliedFrame {
     pub(crate) scene: crate::scene_input::SceneInput,
     pub(crate) surfaces: crate::surface_plan::SurfacePlan,
     pub(crate) post: Vec<u8>,
+    pub(crate) surface: Option<crate::frame_surface::FrameSurface>,
     pub(crate) luts:
         std::collections::BTreeMap<aster_render_ir::ResourceHash, crate::lut_cache::LutInput>,
     pub(crate) output_clear: wgpu::Color,
@@ -32,13 +32,9 @@ impl SuppliedFrame {
             registry.resolve(hash)?;
         }
         BundleDependencies::default().validate(&plan.metadata, registry, limits)?;
-        if bundle.auxiliary.is_some()
-            || bundle.effect.is_some()
-            || !bundle.temporal.is_empty()
-            || !bundle.generators.is_empty()
-        {
+        if !bundle.temporal.is_empty() || !bundle.generators.is_empty() {
             return Err(RenderError::Unsupported(
-                "effect, auxiliary, temporal or generator pass".into(),
+                "temporal or generator pass".into(),
             ));
         }
         let stage =
@@ -67,12 +63,27 @@ impl SuppliedFrame {
         let motion = stage(&bundle.motion, ContractLevel::MotionReconstructionSliceV1)?;
         let output = stage(&bundle.output, ContractLevel::FinalOutputSliceV1)?;
         if !matches!(motion.metadata.slices.first(), Some(PlanSlice::MotionReconstruction(value)) if value.status == MotionReconstructionStatus::Skipped)
-            || !matches!(output.metadata.slices.first(), Some(PlanSlice::FinalOutput(value)) if value.route == (FinalOutputRoute::Beauty { source: FinalBeautySource::Scene }))
         {
             return Err(RenderError::Unsupported(
                 "motion or diagnostic output".into(),
             ));
         }
+        let auxiliary = bundle
+            .auxiliary
+            .as_ref()
+            .map(|hash| stage(hash, ContractLevel::AuxiliarySliceV1))
+            .transpose()?;
+        let effect = bundle
+            .effect
+            .as_ref()
+            .map(|hash| stage(hash, ContractLevel::PostEffectSliceV1))
+            .transpose()?;
+        let surface = crate::frame_surface::FrameSurface::new(
+            &scene,
+            &output,
+            auxiliary.as_ref(),
+            effect.as_ref(),
+        )?;
         if !decoded_images.is_empty() && !bundle.media_pixels.is_empty() {
             return Err(RenderError::Invalid(
                 "native and supplied image generations cannot be mixed".into(),
@@ -98,6 +109,9 @@ impl SuppliedFrame {
             limits,
         )?;
         let mut images = scene.images.clone();
+        if let Some(surface) = &surface {
+            surface.validate_resources(&scene, &surfaces)?;
+        }
         for surface in &surfaces.targets {
             for (hash, image) in &surface.scene.images {
                 if images
@@ -132,6 +146,7 @@ impl SuppliedFrame {
         }
         Ok(Self {
             scene,
+            surface,
             surfaces,
             post: post.blob(0)?.to_vec(),
             images,

@@ -1,0 +1,50 @@
+[
+  {
+    "type": "put_resource",
+    "kind": "buffer",
+    "descriptor": { "element_type": "u8", "element_count": 1088, "byte_length": 1088 },
+    "hash": "1827ebf04db5de6a868ff150fd26cc1951c8eaa94096274b3458c05f7af7e259"
+  },
+  {
+    "type": "put_resource",
+    "kind": "buffer",
+    "descriptor": { "element_type": "u8", "element_count": 1248, "byte_length": 1248 },
+    "hash": "31009556f169e84ae99f2ad44f1e48b6b3a22805af4219ad6e36222c65e272f1"
+  },
+  {
+    "type": "put_resource",
+    "kind": "buffer",
+    "descriptor": { "element_type": "u8", "element_count": 4896, "byte_length": 4896 },
+    "hash": "54724e68dcd521eb0c0c06fe43cb7ab5c2b2b8144781f860c16e24c31687c8b0"
+  },
+  {
+    "type": "put_resource",
+    "kind": "buffer",
+    "descriptor": { "element_type": "u8", "element_count": 832, "byte_length": 832 },
+    "hash": "6df6506b95698e75f563489fbe03ae7427f053c1d08195485e4427860fa80072"
+  },
+  {
+    "type": "put_resource",
+    "kind": "buffer",
+    "descriptor": { "element_type": "u8", "element_count": 960, "byte_length": 960 },
+    "hash": "8e3ac763d2cde4b7a2c3c2061da5b7f3509a8df0c95d4cee3e40e73dcb7c0e4d"
+  },
+  {
+    "type": "put_resource",
+    "kind": "buffer",
+    "descriptor": { "element_type": "u8", "element_count": 912, "byte_length": 912 },
+    "hash": "a5593174ea7158113138eeba5bcf7e5063b4f4ddc55fe7b81daf6e7e34177d1d"
+  },
+  {
+    "type": "put_resource",
+    "kind": "buffer",
+    "descriptor": { "element_type": "u8", "element_count": 79936, "byte_length": 79936 },
+    "hash": "ce816ba44c856a2ab8a7c08e5f9c535af086de3acda481846e8bab9b0eb63466"
+  },
+  {
+    "type": "put_resource",
+    "kind": "buffer",
+    "descriptor": { "element_type": "u8", "element_count": 880, "byte_length": 880 },
+    "hash": "dc554976193cc415f3750c617a879b01530cd8db15c78106b449d91dfa3e8f5f"
+  }
+]

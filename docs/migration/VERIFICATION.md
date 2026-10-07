@@ -437,9 +437,8 @@ hashes matched the frozen output manifest before extraction. A retained native G
 these supplied controls. G3 checks pixels, structural metrics and matching self-review records, while
 the GPU test also proves control mutations change output, captured skips preserve the destination,
 invalid attachment formats fail before writes, and replay restores identical pixels. These two
-supplemental outputs are separate from the 1232 whole-frame corpus replays. Root-frame auxiliary
-integration and surface-output routing remain pending; this pipeline proof does not
-enable unsupported complete frames.
+supplemental outputs are separate from the 1232 whole-frame corpus replays. Complete-frame surface
+routing is verified separately below.
 
 G3 also requires six native primary-auxiliary replays, comparing all five MRT attachments byte for
 byte with the frozen M2 auxiliary references. The supplied scene, ID and motion plans are pinned in
@@ -448,3 +447,12 @@ captured inputs. Checks cover ID changes including `u32::MAX`, omitted draws, al
 motion removal, exact replay restoration, budget rejection and clearing previously drawn targets.
 Only the primary normal/ID/world-position/motion attachments are claimed for higher-tier fixtures;
 transparency aggregation, front color, depth peeling and generator execution remain pending.
+
+Sixteen complete native surface frames cover selection isolation and vector motion blur with AA off,
+FXAA, SSAA2x and SSAA4x, each with ready and skipped plans. The added reference set combines frozen
+production geometry with explicit surface controls and a nonzero output clear; two independent TS
+GPU devices produced identical reference frames. G3 runs all plans on one retained native device,
+checks receipt identity, compares pixels and requires matching self-review records. Skipped frames
+follow ready frames to expose stale targets. Admission tests reject mismatched modes, frame headers,
+draw ranges and missing ready attachments before GPU recording; skipped plans without attachments
+remain valid. Existing whole-frame and supplemental references are unchanged.
