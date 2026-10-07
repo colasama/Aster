@@ -196,39 +196,40 @@
     }
   },
   "last_cycle": {
-    "id": 102,
-    "time": "2026-10-07T13:16:50.937692+00:00",
+    "id": 103,
+    "time": "2026-10-07T13:43:00.249515+00:00",
     "milestone": "M6",
-    "task": "M6-T2",
+    "task": "M6-T3",
+    "increment": "M6-T3-retained",
     "outcome": "passed",
-    "commit": "6dee4fe5e27b22049ccd4a31ffc3e364110bfaff",
-    "verification": "artifacts/migration/verify-2026-10-07T12-59-20-829Z-3ff31783.json",
-    "verification_sha256": "b57f6643a99af755be402c6acd782764889b12b190278bc365b5e00733c58786",
+    "commit": "75b7a2bf69207d8598eb0833565c21d32c1f7f00",
+    "verification": "artifacts/migration/verify-2026-10-07T13-25-35-727Z-4b88f74c.json",
+    "verification_sha256": "e174586fdbb835f5f1384e62ef6fce3d078a669f097db886f152ce34964700af",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 96054
+        "duration_ms": 92666
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 835411
+        "duration_ms": 853951
       }
     ],
-    "verification_duration_ms": 933283,
+    "verification_duration_ms": 948326,
     "native_regression_frames": 1256,
     "cache_comparisons": 5088,
-    "video_frames": 44,
-    "video_evidence": "artifacts/migration/2026-10-07T12-59-20-829Z-3ff31783/G3/native-videos/report.json",
-    "next_step": "Integrate native media with mixed raster inputs and recursive surfaces, and retain decoded media under explicit budgets across batch frames.",
+    "media_cache_exact_comparisons": 148,
+    "media_cache_evidence": "artifacts/migration/2026-10-07T13-25-35-727Z-4b88f74c/G3/native-videos/decode-cache/report.json",
+    "next_step": "Integrate native file media with supplied rasters, recursive and temporal inputs; support production SHA-256 media identities as well as corpus FNV identities.",
     "notes": [
-      "Native MP4/MOV snapshots are authorized and content-verified before bounded FFprobe/FFmpeg access; exact rational and binary-rational presentation interval selection honors the existing request bias.",
-      "All 44 fractional-rate and seek frames pass decode and frame identity without tolerance changes: maximum channel error 3, maximum mean error 0.064879, minimum RGB PSNR 58.6118 dB. Forty-four accepted section 6.6 reviews and one rejected neighboring-frame control are recorded.",
-      "Seven authorization/budget/timeout rejections and timestamp mismatch, outside-duration and neighboring-frame controls pass. Private snapshots are absent after both successful and rejected requests.",
-      "G0 and G3 pass with unchanged source during verification. All 1256 prior native frames and 5088 cache comparisons remain green; no dependency changes.",
-      "The first diagnostic failed due to a codec-aligned extent limit; corrected evidence is retained separately. The aligned diagnostic predates self-review and remains failed. Full verification establishes acceptance.",
-      "Native video reports cpu_copy and supports tagged SDR BT.709 H.264 4:2:0. Mixed media, retained decode integration and the complete M6 exit audit remain open."
+      "One batch now retains immutable authorization decoders and a decoded-frame LRU with independent pixel-byte and entry budgets. Cancellation precedes cache access; frame identity keys include source and exact sample.",
+      "All 148 cache output comparisons are exact. Eighty-eight forward/reverse video requests decode 44 distinct frames and hit 44 times. Each byte/entry pressure run records six decodes, two hits and four evictions; disabled caching retains no pixels.",
+      "The 24 sequence requests decode eight distinct members and hit sixteen times, retaining 196608 pixel bytes. Source/member/authorization rejection controls remain green.",
+      "Native EXR tests prove verified-byte reuse after source removal, cancellation before a hit, new-job authorization isolation and renewed source access after eviction. All nine media-native tests pass.",
+      "Full G0/G3 pass with unchanged source, unchanged pixel outputs and existing matching self-reviews. No dependency or tolerance changes. Mixed-media integration and the M6 exit audit remain open.",
+      "Read-only integration inventory found owner-main contains image, raster and video frames with SHA-256 media source identities; current corpus snapshots use FNV identities. Uncached distinct video frames still use separate probe/decode processes, so this increment is decoded-frame reuse, not streaming codec state."
     ]
   },
   "milestones": [
@@ -20403,7 +20404,22 @@
         {
           "id": "M6-T3",
           "title": "Integrate native media with recursive surfaces, temporal inputs and bounded retained decode lifetimes",
-          "status": "pending"
+          "status": "in_progress",
+          "increments": [
+            {
+              "id": "M6-T3-retained",
+              "title": "Retain authorized native decoded frames within pixel-byte and entry budgets across batch requests",
+              "status": "done",
+              "completed_at": "2026-10-07T13:43:00.249515+00:00",
+              "commit": "75b7a2bf69207d8598eb0833565c21d32c1f7f00",
+              "verification": "artifacts/migration/verify-2026-10-07T13-25-35-727Z-4b88f74c.json"
+            },
+            {
+              "id": "M6-T3-mixed",
+              "title": "Integrate native media with supplied rasters, recursive surfaces and temporal inputs",
+              "status": "pending"
+            }
+          ]
         },
         {
           "id": "M6-T4",
@@ -20415,17 +20431,17 @@
         "status": "passed",
         "required_gates_passed": true,
         "milestone_exit_satisfied": false,
-        "report": "artifacts/migration/verify-2026-10-07T12-59-20-829Z-3ff31783.json",
+        "report": "artifacts/migration/verify-2026-10-07T13-25-35-727Z-4b88f74c.json",
         "gates": [
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 96054
+            "duration_ms": 92666
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 835411
+            "duration_ms": 853951
           }
         ]
       }
@@ -165422,6 +165438,43 @@
         "G0 and G3 pass with unchanged source during verification. All 1256 prior native frames and 5088 cache comparisons remain green; no dependency changes.",
         "The first diagnostic failed due to a codec-aligned extent limit; corrected evidence is retained separately. The aligned diagnostic predates self-review and remains failed. Full verification establishes acceptance.",
         "Native video reports cpu_copy and supports tagged SDR BT.709 H.264 4:2:0. Mixed media, retained decode integration and the complete M6 exit audit remain open."
+      ]
+    },
+    {
+      "id": 103,
+      "time": "2026-10-07T13:43:00.249515+00:00",
+      "milestone": "M6",
+      "task": "M6-T3",
+      "increment": "M6-T3-retained",
+      "outcome": "passed",
+      "commit": "75b7a2bf69207d8598eb0833565c21d32c1f7f00",
+      "verification": "artifacts/migration/verify-2026-10-07T13-25-35-727Z-4b88f74c.json",
+      "verification_sha256": "e174586fdbb835f5f1384e62ef6fce3d078a669f097db886f152ce34964700af",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 92666
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 853951
+        }
+      ],
+      "verification_duration_ms": 948326,
+      "native_regression_frames": 1256,
+      "cache_comparisons": 5088,
+      "media_cache_exact_comparisons": 148,
+      "media_cache_evidence": "artifacts/migration/2026-10-07T13-25-35-727Z-4b88f74c/G3/native-videos/decode-cache/report.json",
+      "next_step": "Integrate native file media with supplied rasters, recursive and temporal inputs; support production SHA-256 media identities as well as corpus FNV identities.",
+      "notes": [
+        "One batch now retains immutable authorization decoders and a decoded-frame LRU with independent pixel-byte and entry budgets. Cancellation precedes cache access; frame identity keys include source and exact sample.",
+        "All 148 cache output comparisons are exact. Eighty-eight forward/reverse video requests decode 44 distinct frames and hit 44 times. Each byte/entry pressure run records six decodes, two hits and four evictions; disabled caching retains no pixels.",
+        "The 24 sequence requests decode eight distinct members and hit sixteen times, retaining 196608 pixel bytes. Source/member/authorization rejection controls remain green.",
+        "Native EXR tests prove verified-byte reuse after source removal, cancellation before a hit, new-job authorization isolation and renewed source access after eviction. All nine media-native tests pass.",
+        "Full G0/G3 pass with unchanged source, unchanged pixel outputs and existing matching self-reviews. No dependency or tolerance changes. Mixed-media integration and the M6 exit audit remain open.",
+        "Read-only integration inventory found owner-main contains image, raster and video frames with SHA-256 media source identities; current corpus snapshots use FNV identities. Uncached distinct video frames still use separate probe/decode processes, so this increment is decoded-frame reuse, not streaming codec state."
       ]
     }
   ],
