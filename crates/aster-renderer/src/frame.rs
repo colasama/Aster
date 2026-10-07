@@ -80,16 +80,13 @@ impl SuppliedFrame {
             effect.as_ref(),
             motion.is_some(),
         )?;
-        if !decoded_images.is_empty() && !bundle.media_pixels.is_empty() {
-            return Err(RenderError::Invalid(
-                "native and supplied image generations cannot be mixed".into(),
-            ));
-        }
-        let pixels = if decoded_images.is_empty() {
-            &bundle.media_pixels
-        } else {
-            decoded_images
-        };
+        let merged_pixels = bundle
+            .media_pixels
+            .iter()
+            .chain(decoded_images)
+            .cloned()
+            .collect::<Vec<_>>();
+        let pixels = &merged_pixels;
         let mut images = std::collections::BTreeMap::new();
         for record in pixels {
             let input = crate::image_input::ImageInput::from_record(record, registry)?;

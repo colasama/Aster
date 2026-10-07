@@ -90,7 +90,8 @@ impl MediaGrants {
             right = (right ^ u32::from(*byte)).wrapping_mul(0x85ebca6b);
         }
         if sha256 != grant.sha256
-            || identity != format!("fnv64:{left:08x}{right:08x}:{}", bytes.len())
+            || (identity != format!("sha256:{sha256}")
+                && identity != format!("fnv64:{left:08x}{right:08x}:{}", bytes.len()))
         {
             return Err(MediaError::Identity);
         }

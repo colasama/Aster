@@ -27,7 +27,7 @@ impl Drop for Fixture {
 }
 
 impl Fixture {
-    fn new(value: f32) -> Result<Self, Box<dyn std::error::Error>> {
+    fn new(value: f32, sha_identity: bool) -> Result<Self, Box<dyn std::error::Error>> {
         let mut encoded = Cursor::new(Vec::new());
         Image::from_channels(
             (2, 1),
@@ -44,7 +44,11 @@ impl Fixture {
         }
         let descriptor = ResourceDescriptor::MediaSource(MediaSourceDescriptor {
             source_id: CompositionIdentity::Unicode(format!("cache-{value}")),
-            content_identity: format!("fnv64:{left:08x}{right:08x}:{}", encoded.len()),
+            content_identity: if sha_identity {
+                format!("sha256:{:x}", Sha256::digest(&encoded))
+            } else {
+                format!("fnv64:{left:08x}{right:08x}:{}", encoded.len())
+            },
             authorization_scope: "cache-job".into(),
             media_kind: MediaKind::Image,
         });
@@ -121,8 +125,8 @@ impl Fixture {
 fn retained_verified_bytes_survive_source_removal_but_not_eviction_or_job_boundary()
 -> Result<(), Box<dyn std::error::Error>> {
     for (bytes, entries) in [(16, 2), (32, 1)] {
-        let a = Fixture::new(0.25)?;
-        let b = Fixture::new(0.75)?;
+        let a = Fixture::new(0.25, false)?;
+        let b = Fixture::new(0.75, false)?;
         let mut session = Fixture::session(vec![a.grant.clone(), b.grant.clone()], bytes, entries)?;
         let token = CancellationToken::default();
         let original = session.decode(&a.frame, &a.registry, &token)?;
@@ -164,7 +168,7 @@ fn retained_verified_bytes_survive_source_removal_but_not_eviction_or_job_bounda
 #[test]
 fn disabled_or_undersized_cache_never_retains_decoded_pixels()
 -> Result<(), Box<dyn std::error::Error>> {
-    let a = Fixture::new(0.5)?;
+    let a = Fixture::new(0.5, false)?;
     for (bytes, entries) in [(0, 2), (15, 2), (32, 0)] {
         let mut session = Fixture::session(vec![a.grant.clone()], bytes, entries)?;
         let token = CancellationToken::default();
@@ -182,5 +186,16 @@ fn disabled_or_undersized_cache_never_retains_decoded_pixels()
             (2, 0, 0, 0)
         );
     }
+    Ok(())
+}
+
+#[test]
+fn production_sha256_identity_decodes_verified_source() -> Result<(), Box<dyn std::error::Error>> {
+    let a = Fixture::new(0.5, true)?;
+    let mut session = Fixture::session(vec![a.grant.clone()], 32, 2)?;
+    let decoded = session.decode(&a.frame, &a.registry, &CancellationToken::default())?;
+    assert_eq!(decoded.image.receipt.source_sha256, a.grant.sha256);
+    assert_eq!(decoded.image.bytes.len(), 16);
+    assert_eq!(session.statistics().decodes, 1);
     Ok(())
 }

@@ -5,9 +5,9 @@ use aster_media_native::{
     VideoLimits,
 };
 use aster_render_ir::{
-    BufferResourceDescriptor, DecodeLimits, ElementType, OwnedFpln, PlanSlice,
-    PrecompositionMediaPixels, PutResource, ResourceDescriptor, ResourceHash, ResourceKind,
-    ResourceRegistry,
+    BufferResourceDescriptor, DecodeLimits, ElementType, FplnCodec, MediaSample, OwnedFpln,
+    PlanSlice, PrecompositionMediaPixels, PutResource, ResourceDescriptor, ResourceHash,
+    ResourceKind, ResourceRegistry,
 };
 use clap::Args;
 use std::path::PathBuf;
@@ -80,6 +80,7 @@ impl NativeStillResources {
         session: Option<&mut NativeMediaSession>,
         plan: &OwnedFpln,
         registry: &mut ResourceRegistry,
+        limits: &DecodeLimits,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let mut result = Self::default();
         let Some(session) = session else {
@@ -88,16 +89,22 @@ impl NativeStillResources {
         let Some(PlanSlice::FrameBundle(bundle)) = plan.metadata.slices.first() else {
             return Err("native media requires a complete frame bundle".into());
         };
-        if !bundle.media_pixels.is_empty()
-            || bundle.precompositions.is_some()
-            || !bundle.temporal.is_empty()
-        {
-            return Err("native still decode requires original root plans without supplied pixel payloads or derived surfaces".into());
+        Self::validate_rasters(&bundle.media_pixels, registry)?;
+        if let Some(hash) = &bundle.precompositions {
+            let nested = FplnCodec::decode(registry.resolve(hash)?.to_vec(), limits)?;
+            let Some(PlanSlice::PrecompositionBundle(surfaces)) = nested.metadata.slices.first()
+            else {
+                return Err("native media requires a complete precomposition bundle".into());
+            };
+            Self::validate_rasters(&surfaces.media_pixels, registry)?;
         }
         let mut requested = 0_u64;
         let mut frames = Vec::new();
         for hash in &plan.metadata.resources {
             if let ResourceDescriptor::MediaFrame(frame) = registry.descriptor(hash)? {
+                if matches!(frame.sample, MediaSample::Raster(_)) {
+                    continue;
+                }
                 requested = requested
                     .checked_add(
                         u64::from(frame.width)
@@ -145,5 +152,19 @@ impl NativeStillResources {
         }
         result.decode_cache = session.statistics();
         Ok(result)
+    }
+
+    fn validate_rasters(
+        pixels: &[PrecompositionMediaPixels],
+        registry: &ResourceRegistry,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        for pixel in pixels {
+            if !matches!(registry.descriptor(&pixel.frame)?, ResourceDescriptor::MediaFrame(frame)
+                if matches!(frame.sample, MediaSample::Raster(_)))
+            {
+                return Err("native media cannot accept supplied file-media pixels".into());
+            }
+        }
+        Ok(())
     }
 }

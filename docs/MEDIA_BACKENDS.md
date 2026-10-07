@@ -59,8 +59,10 @@ FFmpeg decodes the selected presentation-order frame. Centered bilinear chroma r
 4:4:4 matches the existing browser RGB upload boundary. Receipts retain original color tags, source
 pixel format/chroma location, selected frame index, timestamp and duration. This is process decode
 plus CPU upload (`cpu_copy`), with no zero-copy claim. Untagged/HDR or other codec/color combinations
-reject explicitly. Original root plans remain the supported integration scope; supplied raster and
-recursive media integration is tracked separately.
+reject explicitly. Native file media may share root and recursive plans with supplied raster pixels,
+including text shutter samples. Supplied file-media pixels are rejected in native mode, so a captured
+video/image payload cannot replace authorized decoding. Source identities accept exact `sha256:` or
+legacy `fnv64:` content identities in addition to the explicit grant's SHA-256.
 
 Source bytes, decoder pixels, index output, subprocess time and cancellation are bounded. Decode
 errors, inconsistent timestamps and out-of-duration requests publish no PNG; private snapshots are
@@ -71,7 +73,7 @@ retention, oversized frames bypass it, and least-recently-used entries are evict
 Cancellation precedes cache lookup. A hit reuses already-verified bytes without reopening a source;
 an eviction requires a new authorized snapshot and decode. Receipts expose hits, misses, actual
 decodes, evictions and retained pixel bytes. Distinct uncached video frames still probe and decode
-individually; streaming codec state, recursive media and production integration remain separate work.
+individually; streaming codec state and production integration remain separate work.
 
 ## Required backend contract
 

@@ -82,7 +82,7 @@ impl RenderInput {
             }
             registry.put(request, payload)?;
         }
-        let native = NativeStillResources::install(native_media, &plan, &mut registry)?;
+        let native = NativeStillResources::install(native_media, &plan, &mut registry, limits)?;
         let frame = SuppliedFrame::new(plan, &registry, limits, &native.pixels)?;
         Ok(Self {
             frame,

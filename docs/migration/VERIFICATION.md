@@ -561,7 +561,7 @@ rational timestamp, retain source color metadata, and report CPU upload honestly
 structural checks and neighboring-frame identity are reviewed independently. Timestamp mismatch and
 out-of-duration controls reject before publishing; an intentionally selected neighboring frame must
 fail the pixel oracle. Source/pixel/index budgets and timeout controls remain required. These checks
-do not establish production routing or recursive media integration.
+do not establish production routing.
 
 The video gate also checks 148 exact output comparisons across retained forward/reverse requests,
 disabled decode caching, pixel-byte pressure and entry-count pressure. Every receipt must match the
@@ -571,3 +571,14 @@ member identity and reuse for held/reversed frames. In-process EXR tests verify 
 a cache hit, reuse of verified bytes after source removal, fresh authorization across job boundaries,
 and renewed source access after either budget evicts the frame. This proves bounded decoded-frame
 reuse; it does not claim a persistent streaming video codec or GPU decode interop.
+
+Mixed-media inputs are independently captured through the production TS renderer and replayed exactly
+on another device before freezing under `tests/parity/native-media-frame`. Six frames cover root and
+two-level recursive scenes containing PNG, fractional-rate video and eight-sample temporal text at
+forward/backward times. Capture requires visible alpha coverage and changing pixels; an empty
+recursive fixture cannot pass merely because both renderers produced transparent output. Native
+plans retain only raster pixel attachments and decode file media from SHA-256-bound grants. G3 checks
+the active capture adapter, complete immutable resource closure, native decode receipts, temporal
+execution, `decode` metrics/structural checks, sequence identity and full section 6.6 review evidence.
+Root and recursive replay payloads containing supplied file-media pixels must be rejected without
+publishing a PNG. The initial off-canvas fixture and failed comparison remain in the cycle evidence.

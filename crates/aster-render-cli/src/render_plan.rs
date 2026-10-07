@@ -27,7 +27,7 @@ pub struct RenderPlanArgs {
     batch: Option<PathBuf>,
     #[arg(long, default_value_t = 4096)]
     max_batch_frames: usize,
-    /// Content-addressed .bin payload directory. No media source path is opened.
+    /// Content-addressed .bin payload directory; native file access requires separate grants.
     #[arg(long)]
     resources: Option<PathBuf>,
     /// Defaults to resources.json beside the plan.

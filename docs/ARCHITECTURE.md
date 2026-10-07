@@ -138,8 +138,9 @@ immutable snapshot to the existing bounded FFmpeg process through stdin. Encoded
 checked before codec execution; source/pixel budgets, timeout and cancellation bound the work.
 The child receives no source path. Eight-bit associated-alpha rounding preserves the browser import
 precision boundary before straight sRGB pixels enter the GPU cache. The CLI accepts original plans
-with `--media-authorizations` and `--ffmpeg`; captured pixel attachments cannot be mixed with native
-decode. Receipts bind source and decoded hashes.
+with `--media-authorizations` and `--ffmpeg`. Supplied pixel attachments may accompany native media
+only for raster descriptors such as text, SVG and PSD; file-media pixels cannot bypass native decode.
+Receipts bind source and decoded hashes, including FNV and SHA-256 imported source identities.
 
 Image-sequence grants additionally bind an exact integer member. The snapshot must match both the
 grant SHA-256 and the member file identity carried by the plan. Source-wide still grants cannot open
@@ -153,8 +154,9 @@ chroma reconstruction through 4:4:4 preserves the browser upload contract. Recei
 color metadata and identify the CPU decode/upload path. Batch jobs retain immutable grants and a
 bounded LRU of verified decoded frames, keyed by full frame content identity. Pixel-byte and entry
 budgets independently bound retention; cancellation is checked even for a cache hit. GPU image
-reuse remains independent of the CPU decode cache. Root-plan video is supported; recursive media
-integration, streaming codec state and production routing remain separate capability work.
+reuse remains independent of the CPU decode cache. Native files and supplied raster generations
+share the same root and recursive scene resource closure, including temporal text samples and
+derived outputs. Streaming codec state and production routing remain separate capability work.
 
 Authorized EXR snapshots use the existing Rust `exr` library with bounded metadata and single-layer
 float RGB(A) admission. The frame descriptor declares `rgba16float`; half-float byte budgets flow

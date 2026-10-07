@@ -18,7 +18,7 @@ import { auditTemporalFrameReplay } from "./whole-frame";
 
 type Mode = "full" | "enters" | "exits" | "transparent";
 
-function fixture(mode: Mode) {
+export function fixture(mode: Mode) {
   const project = createBlankProject();
   const composition = project.compositions[0];
   composition.motionBlur = {
