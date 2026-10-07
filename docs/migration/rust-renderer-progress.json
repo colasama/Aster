@@ -234,136 +234,97 @@
       "frames": 144,
       "controls": 108,
       "scope": "Independent repeated TS normal PNG/JPEG/WebP material output across three lights, four AA modes, positive/negative/zero scale and combined HDR"
+    },
+    "native_animated_normal": {
+      "path": "artifacts/migration/cycle110-animated-material-capture/report.json",
+      "sha256": "fdc74b9073037887d0e604dc9c2e785973865e8c13834173d4e534c0192562bb",
+      "frames": 24,
+      "controls": 12,
+      "scope": "Independently repeated TS first-frame animated WebP normals, full and offset subframes, transparent canvas and blending controls across four AA modes"
     }
   },
   "last_cycle": {
-    "id": 109,
-    "time": "2026-10-07T18:33:15.516356+00:00",
+    "id": 110,
+    "time": "2026-10-07T19:10:23.185298+00:00",
     "milestone": "M7",
     "task": "M7-T3",
     "outcome": "passed",
-    "commit": "e9b8c3b6259c60626d791c3cb3785064fae337a4",
-    "dependency_commit": "51a8867ec6525939a7a6b2dba01482422f0bf05a",
-    "verification": "artifacts/migration/verify-2026-10-07T18-07-09-462Z-ce8c3d27.json",
-    "verification_sha256": "b11c8aa3cf2c1cc675784ab18bedd9b8a9c55822ee60751763e4b5ae67ca8d06",
+    "commit": "71c92f83e49760b96f5a6f8f36fb4cb3082028f7",
+    "verification": "artifacts/migration/verify-2026-10-07T18-50-51-998Z-9ef9dc2f.json",
+    "verification_sha256": "218cb0ca252e6034b7e67a2940ecb993b6ed570996427d07e0a8044d559a0737",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 166658
+        "duration_ms": 120874
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 1271234
+        "duration_ms": 974928
       }
     ],
-    "verification_duration_ms": 1454308,
+    "verification_duration_ms": 1097843,
     "milestone_exit_satisfied": false,
-    "normal": {
-      "frames": 144,
-      "exact_frames": 139,
-      "nonexact_frames": 5,
+    "animated_normal": {
+      "frames": 24,
+      "exact_frames": 23,
+      "nonexact_frames": 1,
       "nonexact_max_abs": 1,
-      "exact_cache_comparisons": 144,
-      "native_executions": 288,
-      "captured_reference_frames": 144,
-      "reference_controls": 108,
+      "exact_cache_comparisons": 24,
+      "native_executions": 48,
+      "reference_controls": 12,
       "independent_ts_captures": 2,
-      "self_reviews_accepted": 144,
-      "self_reviews_rejected": 2,
-      "supported_encodings": ["png", "jpeg-windows-wic", "static-webp"],
-      "deferred_jpeg_frames": 0,
+      "self_reviews_accepted": 24,
       "texture_decodes": 3,
-      "texture_resident_bytes": 72,
-      "gpu_image_uploads": 4,
-      "gpu_image_resident_bytes": 328,
+      "texture_resident_bytes": 360,
+      "gpu_image_uploads": 3,
+      "gpu_image_resident_bytes": 360,
       "reference": {
-        "path": "artifacts/migration/cycle109-normal-capture/report.json",
-        "sha256": "78efe0f1e1340206e9843e1dc0a902f434600abf0710af328923fd3f1930d8e9",
-        "frames": 144,
-        "controls": 108,
-        "scope": "Independent repeated TS normal PNG/JPEG/WebP material output across three lights, four AA modes, positive/negative/zero scale and combined HDR"
+        "path": "artifacts/migration/cycle110-animated-material-capture/report.json",
+        "sha256": "fdc74b9073037887d0e604dc9c2e785973865e8c13834173d4e534c0192562bb",
+        "frames": 24,
+        "controls": 12,
+        "scope": "Independently repeated TS first-frame animated WebP normals, full and offset subframes, transparent canvas and blending controls across four AA modes"
       }
     },
     "regressions": {
       "pixel_frames": 1288,
       "cache_exact_comparisons": 5216,
       "scene_output_frames": 64,
-      "hdr_material_frames": 60
-    },
-    "dependency_audit": {
-      "rust": "passed",
-      "javascript": "passed-zero-vulnerabilities",
-      "added": ["image-webp 0.2.4", "byteorder-lite 0.1.0", "quick-error 2.0.1"],
-      "patched": [
-        "@modelcontextprotocol/sdk 1.32.1",
-        "proxy-addr 2.0.8",
-        "shell-quote 1.11.0",
-        "source-map-js 1.2.2",
-        "joi 18.2.9"
-      ],
-      "evidence": [
-        "artifacts/migration/cycle109-dependency-deny-final.log",
-        "artifacts/migration/cycle109-dependency-audit-final.log",
-        "artifacts/migration/cycle109-pnpm-audit-fixed.log",
-        "artifacts/migration/cycle109-js-licenses.json",
-        "artifacts/migration/cycle109-rust-dependencies.json"
-      ]
+      "hdr_material_frames": 60,
+      "normal_material_frames": 144
     },
     "diagnostics": [
-      "artifacts/migration/cycle109-texture-tests-final.log",
-      "artifacts/migration/cycle109-header-tests.log",
-      "artifacts/migration/cycle109-wic-clippy.log",
-      "artifacts/migration/cycle109-wic-build.log",
-      "artifacts/migration/cycle109-normal-native/report.json",
-      "artifacts/migration/cycle109-jpeg-wic-probe.json",
-      "artifacts/migration/cycle109-wic-apartment.log",
-      "artifacts/migration/cycle109-wic-tests.log",
-      "artifacts/migration/cycle109-normal-wic-v2/report.json"
+      "artifacts/migration/cycle110-header-tests.log",
+      "artifacts/migration/cycle110-webp-tests.log",
+      "artifacts/migration/cycle110-texture-tests.log",
+      "artifacts/migration/cycle110-clippy.log",
+      "artifacts/migration/cycle110-build.log",
+      "artifacts/migration/cycle110-animated-capture-v2/provided.json",
+      "artifacts/migration/cycle110-animated-native/report.json"
     ],
     "failed_attempts": [
       {
-        "report": "artifacts/migration/verify-2026-10-07T17-32-49-542Z-05729186.json",
-        "reason": "G3 passed but G0 caught package.json formatting after advisory repairs. Formatted the manifest and restarted all required gates including the new JPEG implementation."
+        "report": "artifacts/migration/cycle110-animated-capture.log",
+        "reason": "Electron top-level await on app readiness deadlocked module initialization. Moved the capture into the established asynchronous main pattern; the independent retry passed."
       },
       {
-        "report": "artifacts/migration/cycle109-normal-wic/report.json",
-        "reason": "Diagnostic started before the release link finished and exercised the previous executable. Waited for build completion and reran all 144 cases."
+        "report": "artifacts/migration/cycle110-animated-decode.log",
+        "reason": "The codec animated source-over operation reduced opaque channels by one. Decode the bounded first subframe as a still and copy it onto a transparent canvas, matching all captured bytes exactly."
       },
       {
-        "report": "artifacts/migration/cycle109-normal-ffmpeg/report.json",
-        "reason": "FFmpeg JPEG rounding amplifies to max 29 in normal shading. Explicitly rejected; bounded Windows WIC produces exact browser decode bytes and replaces this decoder."
-      },
-      {
-        "report": "artifacts/migration/cycle109-normal-ffmpeg/directional-off-webp-normal/report.json",
-        "reason": "FFmpeg WebP chroma reconstruction differs structurally. Replaced with a pure Rust codec and matching associated-alpha conversion."
-      },
-      {
-        "report": "artifacts/migration/cycle109-texture-tests-v2.log",
-        "reason": "Exploratory zune-jpeg upsampling differed from the browser at tiny extents. Dependency and decoder were removed; its failed evidence is retained."
-      },
-      {
-        "report": "artifacts/migration/cycle109-texture-tests-v3.log",
-        "reason": "Straight WebP decode needed browser-associated alpha quantization. Corrected; exact decoded hashes now pass."
-      },
-      {
-        "report": "artifacts/migration/cycle109-interrupted-verification.json",
-        "reason": "Stopped the first full run after successful G0 to repair newly reported JavaScript advisories. Entire required G0/G3 was restarted after dependency changes."
-      },
-      {
-        "report": "artifacts/migration/cycle109-normal-native/report.json",
-        "reason": "All 96 pixel/cache comparisons passed before review records were installed. Final full verification checks the recorded self-reviews."
+        "report": "artifacts/migration/cycle110-animated-native/report.json",
+        "reason": "All 24 pixel and cache comparisons passed before self-review records were appended; final full verification requires the recorded reviews."
       }
     ],
-    "next_step": "Continue M7-T3 with animated WebP first-image compatibility and finish the material capability audit. JPEG uses Windows WIC; other platforms reject it explicitly until a matching codec is verified.",
+    "next_step": "Start M7-T4: execute bundled scene generators through the shared WGSL ABI with supplied time and audio-analysis inputs.",
     "notes": [
-      "Content hashes of encoded resources remain immutable. Derived linear textures are authenticated separately and uploaded once per generation.",
-      "Browser references were captured independently on two devices before native comparison. Every supported frame passes the unchanged GPU profile and structural checks; direct inspection accepts only five one-code-value SSAA residuals.",
-      "Windows JPEG uses the existing locked windows bindings and Microsoft WIC codec through bounded memory streams. Scoped COM cleanup preserves caller STA ownership, including failed decodes; non-Windows JPEG remains explicitly unsupported.",
-      "Decode cache tests cover content replacement, byte/entry eviction, disabled retention, cancelled hits and oversized headers. WebP RIFF admission checks truncation, dimensions, duplicate image chunks and animation rejection.",
-      "The new WebP dependency is pure Rust with MIT/Apache-2.0 licensing, avoids maintaining a codec, and fixes observed chroma errors. No bundled C/C++ library or FFmpeg build changes. Existing allowed paste warning remains documented by deny policy.",
-      "All 1288 primary native frames, prior scene/material gates and cache equivalence checks remain green. Production preview/export routing is unchanged; M7 and M7-T3 remain in progress."
+      "The adapter validates RIFF lengths, canvas/subframe bounds, flags, every nested image extent, duplicate bitstreams and truncation before codec execution. Encoded resources retain their original identities.",
+      "The browser first-frame oracle ignores later frames and the opaque animation background hint. Full/offset frames and blend/replace variants agree on two independently created browser devices.",
+      "Inspected all 24 contact sheets and the SSAA2x heatmap directly. One one-code-value floating-point residual passes unchanged GPU and structural limits; no tolerance changes.",
+      "M7-T3 is complete on the owner-authorized Windows host. Non-Windows JPEG remains an explicit capability error; point-shadow behavior remains the retained TS unsupported boundary.",
+      "M7 remains in progress for generators, recursive scene integration and final coverage. Production preview/export routing is unchanged; no native delivery performance acceptance is claimed."
     ]
   },
   "milestones": [
@@ -20679,20 +20640,21 @@
         {
           "id": "M7-T3",
           "title": "Execute mesh materials, HDR environment lighting and directional/spot shadow passes",
-          "status": "in_progress",
+          "status": "done",
           "last_increment": {
-            "cycle": 109,
-            "commit": "e9b8c3b6259c60626d791c3cb3785064fae337a4",
-            "verification": "artifacts/migration/verify-2026-10-07T18-07-09-462Z-ce8c3d27.json",
+            "cycle": 110,
+            "commit": "71c92f83e49760b96f5a6f8f36fb4cb3082028f7",
+            "verification": "artifacts/migration/verify-2026-10-07T18-50-51-998Z-9ef9dc2f.json",
             "completed": [
-              "Bounded authenticated inline PNG, static WebP and Windows JPEG normal texture decoding",
-              "Linear RGBA8 GPU binding, decoded/GPU caches and material generation invalidation",
-              "144 independent TS material comparisons with 139 exact frames and five max-one-code-value residuals"
+              "Animated WebP first-frame normals with bounded subframe admission and browser-exact transparent canvas composition",
+              "24 material frames across all AA modes; decoded/GPU cache generation and budget checks",
+              "Completes supplied mesh materials, HDR environments, directional/spot shadows and encoded normals on the authorized Windows host"
             ],
-            "remaining": [
-              "Animated WebP first-image compatibility currently rejected by the native adapter"
-            ]
-          }
+            "remaining": []
+          },
+          "completed_at": "2026-10-07T19:10:23.185298+00:00",
+          "commit": "71c92f83e49760b96f5a6f8f36fb4cb3082028f7",
+          "verification": "artifacts/migration/verify-2026-10-07T18-50-51-998Z-9ef9dc2f.json"
         },
         {
           "id": "M7-T4",
@@ -20714,17 +20676,17 @@
         "status": "passed",
         "required_gates_passed": true,
         "milestone_exit_satisfied": false,
-        "report": "artifacts/migration/verify-2026-10-07T18-07-09-462Z-ce8c3d27.json",
+        "report": "artifacts/migration/verify-2026-10-07T18-50-51-998Z-9ef9dc2f.json",
         "gates": [
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 166658
+            "duration_ms": 120874
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 1271234
+            "duration_ms": 974928
           }
         ]
       }
@@ -195128,6 +195090,2408 @@
         }
       },
       "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-off-full-normal",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.122594+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "4e0f3b6ff505808f34b5b09e435e71f0394cdf517c0c4422476f46ca3d2a453a",
+      "candidate_rgba_sha256": "4e0f3b6ff505808f34b5b09e435e71f0394cdf517c0c4422476f46ca3d2a453a",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-off-full-normal/report.json",
+        "report_sha256": "3269c8dc5dbeea1cb6e4bca0a94baee1c24b08cda2b7a9eb404e963b835d329e",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-off-full-normal/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-off-full-normal/contact-sheet.png",
+        "contact_sheet_sha256": "c327f161193853b636678b55804feac6edf72fc385dffacaa32610ee8fd050a2"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 259,
+            "max_y": 169
+          },
+          "candidate": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 259,
+            "max_y": 169
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-off-full-zero",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.122917+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "022eba7f542ee7a5aefa393fab3d2d58901a7a311e7f0bed5adac077e6974cd5",
+      "candidate_rgba_sha256": "022eba7f542ee7a5aefa393fab3d2d58901a7a311e7f0bed5adac077e6974cd5",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-off-full-zero/report.json",
+        "report_sha256": "96c9cdc39dea84aab84959b11f503ce945c777c52127c0afa7800144797a550d",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-off-full-zero/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-off-full-zero/contact-sheet.png",
+        "contact_sheet_sha256": "d9a4adb79d9f4d9e4a7a699f3e5888e6562245f58f2ae8e03988961d1f8dc166"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 259,
+            "max_y": 169
+          },
+          "candidate": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 259,
+            "max_y": 169
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-off-offset-blend-normal",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.123194+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "37189935c6d4e5db8c3fddf0b2b17b8864d592a020454874d9ba26ca9d403ddc",
+      "candidate_rgba_sha256": "37189935c6d4e5db8c3fddf0b2b17b8864d592a020454874d9ba26ca9d403ddc",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-off-offset-blend-normal/report.json",
+        "report_sha256": "aacd056c81fd02375dfa32070c3773ca631e42880755083164007e15edc3772a",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-off-offset-blend-normal/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-off-offset-blend-normal/contact-sheet.png",
+        "contact_sheet_sha256": "6378652ba605da343fd30dc5d50ebc6375b47a0547e20d24a159ffad5abbb3a2"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 259,
+            "max_y": 169
+          },
+          "candidate": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 259,
+            "max_y": 169
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-off-offset-blend-zero",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.123444+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "40d3742a1c9f76c999d37076b986791ed5a4856826a93bbffd7e5a6e04107e9c",
+      "candidate_rgba_sha256": "40d3742a1c9f76c999d37076b986791ed5a4856826a93bbffd7e5a6e04107e9c",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-off-offset-blend-zero/report.json",
+        "report_sha256": "76671db477ba6a30ba5687b09098b000bca5b91bd58b889d4e111b62ac1cd5c9",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-off-offset-blend-zero/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-off-offset-blend-zero/contact-sheet.png",
+        "contact_sheet_sha256": "9db013baa9fe01e68d93abfbca9d5af33f46b5c2fc6b4e9b58247401c92b30ec"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 259,
+            "max_y": 169
+          },
+          "candidate": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 259,
+            "max_y": 169
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-off-offset-replace-normal",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.123696+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "37189935c6d4e5db8c3fddf0b2b17b8864d592a020454874d9ba26ca9d403ddc",
+      "candidate_rgba_sha256": "37189935c6d4e5db8c3fddf0b2b17b8864d592a020454874d9ba26ca9d403ddc",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-off-offset-replace-normal/report.json",
+        "report_sha256": "343a9e959df69051327f8b79776305661aa5fd1c36c51ae0419d96a4a42e238b",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-off-offset-replace-normal/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-off-offset-replace-normal/contact-sheet.png",
+        "contact_sheet_sha256": "6378652ba605da343fd30dc5d50ebc6375b47a0547e20d24a159ffad5abbb3a2"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 259,
+            "max_y": 169
+          },
+          "candidate": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 259,
+            "max_y": 169
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-off-offset-replace-zero",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.123950+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "40d3742a1c9f76c999d37076b986791ed5a4856826a93bbffd7e5a6e04107e9c",
+      "candidate_rgba_sha256": "40d3742a1c9f76c999d37076b986791ed5a4856826a93bbffd7e5a6e04107e9c",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-off-offset-replace-zero/report.json",
+        "report_sha256": "568ed8d32d9bb3ced71e1f53883a9838e50ec31d6d6c97f7d8fedbaf1a8501b6",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-off-offset-replace-zero/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-off-offset-replace-zero/contact-sheet.png",
+        "contact_sheet_sha256": "9db013baa9fe01e68d93abfbca9d5af33f46b5c2fc6b4e9b58247401c92b30ec"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 259,
+            "max_y": 169
+          },
+          "candidate": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 259,
+            "max_y": 169
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-fxaa-full-normal",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.124194+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "21f2a9d416dea9a472ca8a3713ae17b555c7068446c52cc53cbe5556e583830b",
+      "candidate_rgba_sha256": "21f2a9d416dea9a472ca8a3713ae17b555c7068446c52cc53cbe5556e583830b",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-fxaa-full-normal/report.json",
+        "report_sha256": "f3be3591d51f1adcecbd21d663dabcb63b19f672b9bbb65031ca9e9e121405cf",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-fxaa-full-normal/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-fxaa-full-normal/contact-sheet.png",
+        "contact_sheet_sha256": "f073eee51aa2a61943119bda309567d818f0fdded2d840883fcd9447f5b18bcf"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "candidate": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-fxaa-full-zero",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.124432+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "484d03d2591358adf649ece5b80ddf9d9d74f5b78b2c2a1715ec08a7cb5b3a7d",
+      "candidate_rgba_sha256": "484d03d2591358adf649ece5b80ddf9d9d74f5b78b2c2a1715ec08a7cb5b3a7d",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-fxaa-full-zero/report.json",
+        "report_sha256": "daefa8b9e7d550b02e525bdee44e930bc9df635fec40a231005db83483ba977c",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-fxaa-full-zero/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-fxaa-full-zero/contact-sheet.png",
+        "contact_sheet_sha256": "4ec412a1825052815753f984030ad3d2333451b347221bab2b7a30b66dd08928"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "candidate": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-fxaa-offset-blend-normal",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.124761+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "173c506485dd076c9f253aedb9c25b82d5ca3e399723d09bc4a8064a2aeed1f8",
+      "candidate_rgba_sha256": "173c506485dd076c9f253aedb9c25b82d5ca3e399723d09bc4a8064a2aeed1f8",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-fxaa-offset-blend-normal/report.json",
+        "report_sha256": "e1affd910054bc1b0a4d720ef511dac4526bb5d47100df81804654ad0f22b989",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-fxaa-offset-blend-normal/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-fxaa-offset-blend-normal/contact-sheet.png",
+        "contact_sheet_sha256": "4eb8a13cc5c5d688cfa99019b84833b35ecd9057fa05baeee946bccbb542de59"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "candidate": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-fxaa-offset-blend-zero",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.125053+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "fb462d22a7448e83f624e620e48de4ee9b916ba24f567a3c5c40b13cfa1c002c",
+      "candidate_rgba_sha256": "fb462d22a7448e83f624e620e48de4ee9b916ba24f567a3c5c40b13cfa1c002c",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-fxaa-offset-blend-zero/report.json",
+        "report_sha256": "5c4a17e06f77227b567f55612c4d186222ac7212fb6d1330208347ed01a36a5f",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-fxaa-offset-blend-zero/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-fxaa-offset-blend-zero/contact-sheet.png",
+        "contact_sheet_sha256": "fd796d03c24f5aaf6008cdbb0352b5c140c379e8d5cbe1b35c1f6837b333635b"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "candidate": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-fxaa-offset-replace-normal",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.125300+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "173c506485dd076c9f253aedb9c25b82d5ca3e399723d09bc4a8064a2aeed1f8",
+      "candidate_rgba_sha256": "173c506485dd076c9f253aedb9c25b82d5ca3e399723d09bc4a8064a2aeed1f8",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-fxaa-offset-replace-normal/report.json",
+        "report_sha256": "f65d8f27dacdbe9b5a159bd28c15741736b0646543a9c39dbea233d5d644e095",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-fxaa-offset-replace-normal/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-fxaa-offset-replace-normal/contact-sheet.png",
+        "contact_sheet_sha256": "4eb8a13cc5c5d688cfa99019b84833b35ecd9057fa05baeee946bccbb542de59"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "candidate": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-fxaa-offset-replace-zero",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.125540+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "fb462d22a7448e83f624e620e48de4ee9b916ba24f567a3c5c40b13cfa1c002c",
+      "candidate_rgba_sha256": "fb462d22a7448e83f624e620e48de4ee9b916ba24f567a3c5c40b13cfa1c002c",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-fxaa-offset-replace-zero/report.json",
+        "report_sha256": "9c94551568ccb46ef1c992e05ec254ae6655b3850a4bf600af4622f62bb62aff",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-fxaa-offset-replace-zero/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-fxaa-offset-replace-zero/contact-sheet.png",
+        "contact_sheet_sha256": "fd796d03c24f5aaf6008cdbb0352b5c140c379e8d5cbe1b35c1f6837b333635b"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "candidate": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-ssaa2x-full-normal",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.125838+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "636252190c4b65511739d364ae23070b6943ca7b9b4b60889e3e841a9a5332f8",
+      "candidate_rgba_sha256": "faa1dc7197da487d1e98d39c99a83bdc3330e17165538b4eecb2c27d90aeeecb",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-ssaa2x-full-normal/report.json",
+        "report_sha256": "e6aaaf9c11d93e3074ea4589185673a3ffd0838ef96b77b1157355a01ea7ceb3",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-ssaa2x-full-normal/heatmap.png",
+        "heatmap_sha256": "195dd91c0fe7e4402d2df00999680cbd2ba986be64aeb25f39dfd08dcdfb906f",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-ssaa2x-full-normal/contact-sheet.png",
+        "contact_sheet_sha256": "5100d062226144a9a962b0234caca35e2213b3fa632ed008249848e8e903d8ec"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 4.340277777777778e-6,
+        "mean_squared_error": 4.340277777777778e-6,
+        "rgb_mean_squared_error": 5.787037037037037e-6,
+        "psnr": {
+          "kind": "finite",
+          "db": 100.50624099010784
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 101.75562835619084
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 0.9999999327471971, 1, 1],
+        "mean": 0.999999977582399,
+        "rgba_mean": 0.9999999831867993,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, -1.736111111111111e-5, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "candidate": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.3215976905495096,
+          "candidate_rms": 0.3215976823307334,
+          "reference_axis_ratio": 0.45777892451704416,
+          "candidate_axis_ratio": 0.4577789530236105,
+          "reference_window_energy_fraction": 0.9218905077875689,
+          "candidate_window_energy_fraction": 0.9218905110388749,
+          "active_frequencies": 1898,
+          "spectral_bins": 524288,
+          "peak_ratio": 6.284186991662632,
+          "peak_to_sidelobe_ratio": 51.991271798277786,
+          "peak_coherence": 0.9999999999989853,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-ssaa2x-full-zero",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.126078+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "7a2b111b39722627cd3bc18d4446d0254e2aaa8834b85a7747fff57f2bafcab1",
+      "candidate_rgba_sha256": "7a2b111b39722627cd3bc18d4446d0254e2aaa8834b85a7747fff57f2bafcab1",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-ssaa2x-full-zero/report.json",
+        "report_sha256": "73f2b996e9880403a724e77a4d2b2135f3f32de4cfed0d961c5f1cbbe7af7186",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-ssaa2x-full-zero/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-ssaa2x-full-zero/contact-sheet.png",
+        "contact_sheet_sha256": "552f69ef53775a76d225ee117fcfff2fdb1b048b338d1daf172283585855ced6"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "candidate": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-ssaa2x-offset-blend-normal",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.126332+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "5d85247a3853fb941161ea2b89d56512bffe6803992d237b97cf3935f30e87b9",
+      "candidate_rgba_sha256": "5d85247a3853fb941161ea2b89d56512bffe6803992d237b97cf3935f30e87b9",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-ssaa2x-offset-blend-normal/report.json",
+        "report_sha256": "bca51031efff2893fe240b9457e70ad1636e97fef31d8e4f28a4e4f0c2236f33",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-ssaa2x-offset-blend-normal/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-ssaa2x-offset-blend-normal/contact-sheet.png",
+        "contact_sheet_sha256": "317b2aed8e074a44daa288e128c4cbd85ec475777a7b021d6b7ea2e1acca21d8"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "candidate": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-ssaa2x-offset-blend-zero",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.126585+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "58c785cde9314f9ad0236c73b4a0269511b9cb15b1d6da8f198ce398e3307826",
+      "candidate_rgba_sha256": "58c785cde9314f9ad0236c73b4a0269511b9cb15b1d6da8f198ce398e3307826",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-ssaa2x-offset-blend-zero/report.json",
+        "report_sha256": "764d50e11ebbe50e4edab701ab33222f6e1ad16c676afcb394c804c741cd2fa0",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-ssaa2x-offset-blend-zero/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-ssaa2x-offset-blend-zero/contact-sheet.png",
+        "contact_sheet_sha256": "6db32f8faa982a7096cabb35eb0d197e9142d633007159427a76942113b150a2"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "candidate": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-ssaa2x-offset-replace-normal",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.126828+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "5d85247a3853fb941161ea2b89d56512bffe6803992d237b97cf3935f30e87b9",
+      "candidate_rgba_sha256": "5d85247a3853fb941161ea2b89d56512bffe6803992d237b97cf3935f30e87b9",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-ssaa2x-offset-replace-normal/report.json",
+        "report_sha256": "1a005bcdade813f9dc91e8a4bbed730d7525d3acf2b58f4041738f1c008c12dd",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-ssaa2x-offset-replace-normal/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-ssaa2x-offset-replace-normal/contact-sheet.png",
+        "contact_sheet_sha256": "317b2aed8e074a44daa288e128c4cbd85ec475777a7b021d6b7ea2e1acca21d8"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "candidate": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-ssaa2x-offset-replace-zero",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.127066+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "58c785cde9314f9ad0236c73b4a0269511b9cb15b1d6da8f198ce398e3307826",
+      "candidate_rgba_sha256": "58c785cde9314f9ad0236c73b4a0269511b9cb15b1d6da8f198ce398e3307826",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-ssaa2x-offset-replace-zero/report.json",
+        "report_sha256": "d47578aa7d1727d7725dab91d56d49acc5248d805fb83db8dcd87017214b44da",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-ssaa2x-offset-replace-zero/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-ssaa2x-offset-replace-zero/contact-sheet.png",
+        "contact_sheet_sha256": "6db32f8faa982a7096cabb35eb0d197e9142d633007159427a76942113b150a2"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "candidate": {
+            "min_x": 64,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-ssaa4x-full-normal",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.127303+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "1a475729c10bb71cf9aad5aae467590147f4987f68033a1948e9679d8f9a8432",
+      "candidate_rgba_sha256": "1a475729c10bb71cf9aad5aae467590147f4987f68033a1948e9679d8f9a8432",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-ssaa4x-full-normal/report.json",
+        "report_sha256": "b300822749a192f75aec51012350890813aa100c48b11e253a43a42512cb64b4",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-ssaa4x-full-normal/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-ssaa4x-full-normal/contact-sheet.png",
+        "contact_sheet_sha256": "49652c66c512bc01a2d89f43b241b141128722af14b22833136253c4570271db"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "candidate": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-ssaa4x-full-zero",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.127554+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "f70eb470b796e0f4a5fd7b0cb915e82d06311a3886a8da9504148b0964a0748a",
+      "candidate_rgba_sha256": "f70eb470b796e0f4a5fd7b0cb915e82d06311a3886a8da9504148b0964a0748a",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-ssaa4x-full-zero/report.json",
+        "report_sha256": "5625e3bff34e26f4d9989021afcb00f4663fc010c6a590460fa94dc074402385",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-ssaa4x-full-zero/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-ssaa4x-full-zero/contact-sheet.png",
+        "contact_sheet_sha256": "773d3b5c4f0b56df81bb304d56bc83efb06b9b003df2c1ec1074d7ebfd2eec55"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "candidate": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-ssaa4x-offset-blend-normal",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.127831+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "25a6db7401f775141107ed0cc594a9d8231c7843e17211d8f26fb02f010fd108",
+      "candidate_rgba_sha256": "25a6db7401f775141107ed0cc594a9d8231c7843e17211d8f26fb02f010fd108",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-ssaa4x-offset-blend-normal/report.json",
+        "report_sha256": "420cdaf296a3a92099a0a28c3e44bae4ef50ff9ec2bd4d9dacba4e7c48a6b188",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-ssaa4x-offset-blend-normal/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-ssaa4x-offset-blend-normal/contact-sheet.png",
+        "contact_sheet_sha256": "1143a600933a580c7d46c7d1e677b8d2d80ae00c24ce0597545ec85d8f39d13a"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "candidate": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-ssaa4x-offset-blend-zero",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.128065+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "d02db2e4fc8acada61f990587badcfe32058d67960a9bf87d8a3d8f5730c7053",
+      "candidate_rgba_sha256": "d02db2e4fc8acada61f990587badcfe32058d67960a9bf87d8a3d8f5730c7053",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-ssaa4x-offset-blend-zero/report.json",
+        "report_sha256": "1e89f62b00ab643fa7df4c8cd39d2132b27c85792542273ad73501422102e5a6",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-ssaa4x-offset-blend-zero/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-ssaa4x-offset-blend-zero/contact-sheet.png",
+        "contact_sheet_sha256": "87fa22d9febf30abd6a9b74b86f9261dacb39445614d72a78281a4abd3cbc73a"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "candidate": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-ssaa4x-offset-replace-normal",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.128306+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "25a6db7401f775141107ed0cc594a9d8231c7843e17211d8f26fb02f010fd108",
+      "candidate_rgba_sha256": "25a6db7401f775141107ed0cc594a9d8231c7843e17211d8f26fb02f010fd108",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-ssaa4x-offset-replace-normal/report.json",
+        "report_sha256": "1b2fd4ff855a1e5c75eead5d70b37612a0a4fe9465ac6d2ec5c980e350d1b619",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-ssaa4x-offset-replace-normal/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-ssaa4x-offset-replace-normal/contact-sheet.png",
+        "contact_sheet_sha256": "1143a600933a580c7d46c7d1e677b8d2d80ae00c24ce0597545ec85d8f39d13a"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "candidate": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
+    },
+    {
+      "case_id": "native-animated-normal-directional-ssaa4x-offset-replace-zero",
+      "frame": 0,
+      "profile": "gpu",
+      "reviewed_at": "2026-10-07T18:50:22.128563+00:00",
+      "reviewer": "agent",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reference_rgba_sha256": "d02db2e4fc8acada61f990587badcfe32058d67960a9bf87d8a3d8f5730c7053",
+      "candidate_rgba_sha256": "d02db2e4fc8acada61f990587badcfe32058d67960a9bf87d8a3d8f5730c7053",
+      "evidence": {
+        "report": "artifacts/migration/cycle110-animated-native/directional-ssaa4x-offset-replace-zero/report.json",
+        "report_sha256": "2cbb833adf1fb2fca6fc29ae86a18c3f50fc12b579d415e4ab4b76422b1a95a4",
+        "heatmap": "artifacts/migration/cycle110-animated-native/directional-ssaa4x-offset-replace-zero/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet": "artifacts/migration/cycle110-animated-native/directional-ssaa4x-offset-replace-zero/contact-sheet.png",
+        "contact_sheet_sha256": "87fa22d9febf30abd6a9b74b86f9261dacb39445614d72a78281a4abd3cbc73a"
+      },
+      "notes": [
+        "Directly inspected all 24 native/reference contact sheets and the non-exact SSAA2x heatmap. Geometry, silhouettes, alpha and material lighting agree. One isolated one-code-value residual passes the unchanged GPU and structural limits; decoded first-frame pixels match the independent browser oracle exactly."
+      ],
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "candidate": {
+            "min_x": 63,
+            "min_y": 23,
+            "max_x": 260,
+            "max_y": 170
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null
     }
   ],
   "history": [
@@ -197541,6 +199905,90 @@
         "Decode cache tests cover content replacement, byte/entry eviction, disabled retention, cancelled hits and oversized headers. WebP RIFF admission checks truncation, dimensions, duplicate image chunks and animation rejection.",
         "The new WebP dependency is pure Rust with MIT/Apache-2.0 licensing, avoids maintaining a codec, and fixes observed chroma errors. No bundled C/C++ library or FFmpeg build changes. Existing allowed paste warning remains documented by deny policy.",
         "All 1288 primary native frames, prior scene/material gates and cache equivalence checks remain green. Production preview/export routing is unchanged; M7 and M7-T3 remain in progress."
+      ]
+    },
+    {
+      "id": 110,
+      "time": "2026-10-07T19:10:23.185298+00:00",
+      "milestone": "M7",
+      "task": "M7-T3",
+      "outcome": "passed",
+      "commit": "71c92f83e49760b96f5a6f8f36fb4cb3082028f7",
+      "verification": "artifacts/migration/verify-2026-10-07T18-50-51-998Z-9ef9dc2f.json",
+      "verification_sha256": "218cb0ca252e6034b7e67a2940ecb993b6ed570996427d07e0a8044d559a0737",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 120874
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 974928
+        }
+      ],
+      "verification_duration_ms": 1097843,
+      "milestone_exit_satisfied": false,
+      "animated_normal": {
+        "frames": 24,
+        "exact_frames": 23,
+        "nonexact_frames": 1,
+        "nonexact_max_abs": 1,
+        "exact_cache_comparisons": 24,
+        "native_executions": 48,
+        "reference_controls": 12,
+        "independent_ts_captures": 2,
+        "self_reviews_accepted": 24,
+        "texture_decodes": 3,
+        "texture_resident_bytes": 360,
+        "gpu_image_uploads": 3,
+        "gpu_image_resident_bytes": 360,
+        "reference": {
+          "path": "artifacts/migration/cycle110-animated-material-capture/report.json",
+          "sha256": "fdc74b9073037887d0e604dc9c2e785973865e8c13834173d4e534c0192562bb",
+          "frames": 24,
+          "controls": 12,
+          "scope": "Independently repeated TS first-frame animated WebP normals, full and offset subframes, transparent canvas and blending controls across four AA modes"
+        }
+      },
+      "regressions": {
+        "pixel_frames": 1288,
+        "cache_exact_comparisons": 5216,
+        "scene_output_frames": 64,
+        "hdr_material_frames": 60,
+        "normal_material_frames": 144
+      },
+      "diagnostics": [
+        "artifacts/migration/cycle110-header-tests.log",
+        "artifacts/migration/cycle110-webp-tests.log",
+        "artifacts/migration/cycle110-texture-tests.log",
+        "artifacts/migration/cycle110-clippy.log",
+        "artifacts/migration/cycle110-build.log",
+        "artifacts/migration/cycle110-animated-capture-v2/provided.json",
+        "artifacts/migration/cycle110-animated-native/report.json"
+      ],
+      "failed_attempts": [
+        {
+          "report": "artifacts/migration/cycle110-animated-capture.log",
+          "reason": "Electron top-level await on app readiness deadlocked module initialization. Moved the capture into the established asynchronous main pattern; the independent retry passed."
+        },
+        {
+          "report": "artifacts/migration/cycle110-animated-decode.log",
+          "reason": "The codec animated source-over operation reduced opaque channels by one. Decode the bounded first subframe as a still and copy it onto a transparent canvas, matching all captured bytes exactly."
+        },
+        {
+          "report": "artifacts/migration/cycle110-animated-native/report.json",
+          "reason": "All 24 pixel and cache comparisons passed before self-review records were appended; final full verification requires the recorded reviews."
+        }
+      ],
+      "next_step": "Start M7-T4: execute bundled scene generators through the shared WGSL ABI with supplied time and audio-analysis inputs.",
+      "notes": [
+        "The adapter validates RIFF lengths, canvas/subframe bounds, flags, every nested image extent, duplicate bitstreams and truncation before codec execution. Encoded resources retain their original identities.",
+        "The browser first-frame oracle ignores later frames and the opaque animation background hint. Full/offset frames and blend/replace variants agree on two independently created browser devices.",
+        "Inspected all 24 contact sheets and the SSAA2x heatmap directly. One one-code-value floating-point residual passes unchanged GPU and structural limits; no tolerance changes.",
+        "M7-T3 is complete on the owner-authorized Windows host. Non-Windows JPEG remains an explicit capability error; point-shadow behavior remains the retained TS unsupported boundary.",
+        "M7 remains in progress for generators, recursive scene integration and final coverage. Production preview/export routing is unchanged; no native delivery performance acceptance is claimed."
       ]
     }
   ],
