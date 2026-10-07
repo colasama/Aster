@@ -10,6 +10,7 @@ import { auditM1Exit } from "./m1-exit.mjs";
 import { auditM2Exit } from "./m2-exit.mjs";
 import { auditM3Exit } from "./m3-exit.mjs";
 import { auditM4Exit } from "./m4-exit.mjs";
+import { auditM5Exit } from "./m5-exit.mjs";
 import { runNativeCoreGate } from "./native-core-gate.mjs";
 import { runPerformanceGate } from "./performance-gate.mjs";
 import { selectRequiredGates } from "./performance-policy.mjs";
@@ -336,6 +337,23 @@ export async function verifyMigration(options, dependencies = {}) {
           throw new Error("M4 native effects audit failed");
         report.milestone_exit_reason =
           "Every effect/style frame, surface output, native optimization and rejected SSAA strategy audited";
+      } catch (error) {
+        report.milestone_exit = { status: "failed", error: error.message };
+        report.milestone_exit_reason = error.message;
+      }
+    }
+    const rasterExit = milestone.tasks.find((task) => task.id === "M5-T4");
+    if (
+      milestone.id === "M5" &&
+      !quick &&
+      (milestone.status === "done" || ["in_progress", "done"].includes(rasterExit?.status))
+    ) {
+      try {
+        report.milestone_exit = await (dependencies.auditM5Exit ?? auditM5Exit)(root, report);
+        if (report.milestone_exit.status !== "passed")
+          throw new Error("M5 native raster audit failed");
+        report.milestone_exit_reason =
+          "Supplied rasters, temporal GPU execution, root motion output and IR resource lifetimes audited";
       } catch (error) {
         report.milestone_exit = { status: "failed", error: error.message };
         report.milestone_exit_reason = error.message;

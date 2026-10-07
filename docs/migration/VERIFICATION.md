@@ -355,6 +355,15 @@ auxiliary inputs, inconsistent beauty routing and insufficient GPU budget must r
 Receipts expose three reconstruction passes, target reuse and resident texture bytes. These checks
 exercise the shared HDR shaders before the existing display transform, without CPU frame transport.
 
+M5 exit requires a full current G0/G1/G3 run with all six raster/motion cases and retained core/effect
+regressions. The exit audit rereads frozen manifests, actual PNGs, batch jobs, CLI receipts and
+comparison reports, and matches section 6.6 reviews including sequence context. It also audits
+resource hash/ownership, typed raster bounds, eviction and temporal pass transport in G1; all four
+standalone temporal rasters; recursive and root whole frames; changed-input controls; retained-target
+release; and earlier native optimization safety evidence. Missing/stale frames or supplemental
+checks fail the exit even when a summary flag says passed. Native raster execution completes this
+phase; shaping, video decode and production preview/export integration remain separate milestones.
+
 ## Native geometry, blend and supplied-image acceptance
 
 M3 G3 executes the current release `aster-render-cli render-plan` against complete captured FPLN

@@ -775,3 +775,36 @@ test("owner project preserves configured values and reports unavailable paths as
   const fallback = await ownerProject({}, "win32");
   assert.equal(fallback.env.ASTER_PERF_PROJECT, "D:\\code\\SD04PV");
 });
+
+test("M5 completion requires a successful exit audit even when all gates pass", async (t) => {
+  for (const accepted of [false, true]) {
+    const context = await fixture(t);
+    await writeAtomicJson(context.ledger, {
+      status: "running",
+      milestones: [
+        {
+          id: "M5",
+          status: "in_progress",
+          gates: ["G0", "G1", "G3"],
+          tasks: [{ id: "M5-T4", status: "in_progress" }],
+        },
+      ],
+    });
+    let audited = false;
+    const result = await verifyMigration(context, {
+      provenance,
+      execute: fakeHook,
+      runIrGate: async () => ({ id: "G1", status: "passed" }),
+      runNativeCoreGate: async () => ({ id: "G3", status: "passed", full_coverage: true }),
+      auditM5Exit: async () => {
+        audited = true;
+        if (!accepted) throw new Error("Missing temporal evidence");
+        return { status: "passed" };
+      },
+    });
+    assert(audited);
+    assert.equal(result.report.required_gates_passed, true);
+    assert.equal(result.report.milestone_exit_satisfied, accepted);
+    assert.equal(result.exitCode, accepted ? 0 : 1);
+  }
+});

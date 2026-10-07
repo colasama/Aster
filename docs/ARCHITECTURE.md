@@ -69,15 +69,15 @@ allocation, resizing helpers, and disposal of its GPU resources and media/surfac
 submission has its own module. Frame buffers remain GPU-resident until an explicit readback.
 
 `aster-renderer` executes validated supplied frame bundles on a headless native wgpu device.
-Its initial capability covers solid/vector draws, supplied still-image pixels, fixed and backdrop
+Its supplied-plan capability covers solid/vector draws, image and raster pixels, fixed and backdrop
 blends, display conversion and all four AA modes. It consumes shared WGSL and exact supplied geometry, lighting, clear and
 post-process buffers; it does not evaluate projects or open media paths. Unsupported operations
 return explicit errors before rendering. Supplied layer programs now execute mask groups, channel
 mattes, feathering, exposure and inversion through the shared post shader. Fixed composites blend
 isolated output once; adjustment passes snapshot the accumulated scene and replace it after processing.
 Child-first precomposition surfaces use the shared premultiplied surface shader and the same scene
-executor, including nested adjustments and their blur/glow pyramids. The wider effect catalog remains
-pending; production preview/export still use TS.
+executor, including nested adjustments, the complete registered effect/style catalog, LUTs and
+blur/glow pyramids. Production preview/export still use TS until their integration milestones.
 
 Surface routing is checked against the graph, geometry mappings and exact resource closure before
 GPU execution. Child scene/effect headers retain their own time and composition identity. Cached
@@ -85,8 +85,9 @@ HDR/depth allocations are admitted for the complete frame before replacement; ex
 unused compatible targets are reassigned, and old incompatible targets retire after GPU completion.
 Pixels are rerendered from supplied inputs every frame, so allocation reuse cannot serve stale content.
 Image and surface caches share the configured GPU budget with frame, layer and pyramid intermediates.
-Blur and bright-pass chains currently retain the shared TS mip semantics; radius-bound optimization
-and cross-layer result caching remain separate effect-stage work.
+Blur and bright-pass chains allocate only the mip levels their supplied radii require. Conservative
+effect bounds and GPU-resident layer results reduce repeated work while unsupported bounds/history
+retain full execution. SSAA effects remain full resolution after reduced-grid parity rejection.
 
 The application host may supply an explicit DXC library through `NativeOptions.dxcompiler`
 (`render-plan --dxcompiler` for diagnostics). The renderer has no dependency on a development install
