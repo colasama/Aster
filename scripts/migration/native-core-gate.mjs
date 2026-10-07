@@ -25,6 +25,7 @@ import { runNativeEffectBatch } from "./native-effect-batch.mjs";
 import { nativeEffectCases } from "./native-effect-scope.mjs";
 import { runNativeExrGate } from "./native-exr-gate.mjs";
 import { runNativeStillGate } from "./native-still-gate.mjs";
+import { runNativeSurfacePostGate } from "./native-surface-post-gate.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile } from "./source.mjs";
@@ -254,6 +255,14 @@ export async function runNativeCoreGate(context, execute = runStep) {
       execute,
     );
     assert.equal(report.native_exr.status, "passed", "Native EXR execution failed");
+    if (effects) {
+      report.native_surface_post = await runNativeSurfacePostGate(
+        { ...context, output: join(context.output, "native-surface-post") },
+        binary,
+        execute,
+      );
+      assert.equal(report.native_surface_post.status, "passed", "Native surface post gate failed");
+    }
     assert.equal(
       await hashFile(binary),
       report.binary.sha256,

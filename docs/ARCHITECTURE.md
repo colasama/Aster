@@ -767,6 +767,11 @@ sampling and LOD rounding without rewriting the supplied shader uniforms. When b
 needed, a native-only two-target seed pass shares the source taps and applies the bright-pass before
 glow accumulation. Later levels retain separate textures and the existing downsample shader because
 the thresholded and unthresholded signals differ. The browser path keeps its existing passes.
+`SurfacePostPlan` validates transported surface controls, and a retained `SurfacePostPipeline`
+records selection isolation or vector motion blur directly from GPU-resident HDR, integer object-ID
+and motion-vector attachments. It checks attachment formats and dimensions before recording and
+preserves captured skips. Root-frame auxiliary generation and output routing are still capability
+gated until integrated; standalone supplied-pass execution does not widen complete-frame admission.
 The shared post-process shader uses one source sample when blur, glow and chromatic aberration are
 all zero, skipping the chromatic offset samples and nine-tap blur. A single uniform branch preserves
 the original active effect path and keeps the source texture on the GPU.

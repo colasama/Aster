@@ -15,12 +15,14 @@ mod scene;
 mod scene_input;
 mod surface_cache;
 mod surface_plan;
+mod surface_post;
 
 pub use device::{NativeOptions, NativeRenderer, RenderedFrame};
 pub use frame::SuppliedFrame;
 pub use image_cache::ImageCacheStatistics;
 pub use lut_cache::LutCacheStatistics;
 pub use surface_cache::SurfaceCacheStatistics;
+pub use surface_post::{SurfacePostPipeline, SurfacePostPlan};
 
 #[derive(Debug, thiserror::Error)]
 pub enum RenderError {

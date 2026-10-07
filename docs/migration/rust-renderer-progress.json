@@ -159,6 +159,12 @@
       "sha256": "9f4af4260aec5aa4aeb57131add08f2698bf0b6caeb6c948caf772c0652c6e7a",
       "profile": "exact",
       "cases": 23
+    },
+    "native_surface_post": {
+      "path": "tests/parity/native-surface-post/manifest.json",
+      "sha256": "8ee42369d815643345173ed1ecfc41bcc78565987de2df5cb8357a3bf7c05c3c",
+      "source": "artifacts/parity/ts-check/2026-10-05T14-19-54-212Z-c1eea6f2/output-replay/replay-input.json",
+      "scope": "Two unchanged M2 supplied effect plans and shared HDR/object-ID/motion attachments; full original input JSON hashes matched the frozen output reference before extraction."
     }
   },
   "last_cycle": {
@@ -20148,7 +20154,7 @@
         {
           "id": "M4-T4",
           "title": "Execute surface post effects and complete the remaining registered effect routes",
-          "status": "pending"
+          "status": "in_progress"
         },
         {
           "id": "M4-T5",
@@ -151952,6 +151958,202 @@
         "layout": "row-major: each tile contains the original contact sheet above its original heatmap, no resizing or pixel alteration"
       },
       "inspection": "Directly inspected all four original contact sheets and heatmaps in the lossless case page. The stacked outline, glow falloff, fine lines, semi-transparent fills and moving marker match the TS reference in every addressed frame. Sparse one-code-value residuals show no shifted contour, missing element or visible color bias. Unchanged numerical and structural limits pass."
+    },
+    {
+      "case_id": "native-surface-selectionIsolation",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M4 supplied native surface post execution",
+      "reviewed_at": "2026-10-07T06:12:52.861Z",
+      "reference_rgba_sha256": "410a6ca02afcec03015e1f92eaa17ba2c563a4def2d5cc65e499ace6344b70a9",
+      "candidate_rgba_sha256": "410a6ca02afcec03015e1f92eaa17ba2c563a4def2d5cc65e499ace6344b70a9",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 3072,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 3072,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 63,
+            "max_y": 47
+          },
+          "candidate": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 63,
+            "max_y": 47
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle88-surface-review/selectionIsolation/report.json",
+        "contact_sheet": "artifacts/migration/cycle88-surface-review/selectionIsolation/contact-sheet.png",
+        "heatmap": "artifacts/migration/cycle88-surface-review/selectionIsolation/heatmap.png",
+        "report_sha256": "6bbd70ed872fa5493c525b5427d0ea67d3dbe00a6aec45c8d89ec0bd50e1b652",
+        "contact_sheet_sha256": "34f867a977fe02c7636896a23316ebaa194e8321eda56c709678a62385a00613",
+        "heatmap_sha256": "b0181511b3a26a776bb822caa6fc88859821b421954a7bd76c213d6b18ad96ab"
+      },
+      "inspection": "Directly inspected the full original contact sheet and heatmap. Selection tint/glow or directional vector blur, checker structure and split alpha match the frozen TS output. Heatmap is entirely black and RGBA bytes are identical, with no observed residual. No tolerance changes."
+    },
+    {
+      "case_id": "native-surface-vectorMotionBlur",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "M4 supplied native surface post execution",
+      "reviewed_at": "2026-10-07T06:12:52.862Z",
+      "reference_rgba_sha256": "eb1cd6d95d4da930b970ebcb343074e1303175c3bf25873de9001e521cb8422c",
+      "candidate_rgba_sha256": "eb1cd6d95d4da930b970ebcb343074e1303175c3bf25873de9001e521cb8422c",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 3072,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1, 1, 1, 1],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 3072,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0, 0, 0, 0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [0, 0, 0, 0],
+          "reference": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 63,
+            "max_y": 47
+          },
+          "candidate": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 63,
+            "max_y": 47
+          },
+          "edge_deltas": [0, 0, 0, 0],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "evidence": {
+        "report": "artifacts/migration/cycle88-surface-review/vectorMotionBlur/report.json",
+        "contact_sheet": "artifacts/migration/cycle88-surface-review/vectorMotionBlur/contact-sheet.png",
+        "heatmap": "artifacts/migration/cycle88-surface-review/vectorMotionBlur/heatmap.png",
+        "report_sha256": "431c67682345ac063dc3573d67e9629bc2eb56e22da971a442e785bb414ea3bd",
+        "contact_sheet_sha256": "03e17d114d2f60bca89d04a9a2cd1555f521929c9198998d1d80d4011d1ca77a",
+        "heatmap_sha256": "b0181511b3a26a776bb822caa6fc88859821b421954a7bd76c213d6b18ad96ab"
+      },
+      "inspection": "Directly inspected the full original contact sheet and heatmap. Selection tint/glow or directional vector blur, checker structure and split alpha match the frozen TS output. Heatmap is entirely black and RGBA bytes are identical, with no observed residual. No tolerance changes."
     }
   ],
   "history": [
@@ -153161,5 +153363,24 @@
         "sha256": "2a52867f6da0c4ad4e8cd1ef9831d5eb9be11743fe6f26fa9f12fe8d5c83797a"
       }
     }
-  ]
+  ],
+  "active_cycle": {
+    "id": 88,
+    "started_at": "2026-10-07T06:05:16.241Z",
+    "milestone": "M4",
+    "task": "M4-T4",
+    "base_commit": "fd5a682eafc8d4e5c9b7345d9fe0ebb2e205fca6",
+    "intent": "Add a retained native surface post pipeline consuming validated supplied plans and GPU attachments; verify selection isolation and vector blur against frozen M2 outputs before root auxiliary integration.",
+    "surface_diagnostic": {
+      "path": "artifacts/migration/cycle88-surface-review/report.json",
+      "sha256": "066dfc1b17457b00c107e52f38e9f18fa88c1d9863346d48253cda4a50d53f07",
+      "compared": 2,
+      "exact": 2,
+      "review_status": "accepted after direct image inspection; initial report correctly failed before reviews existed"
+    },
+    "bootstrap_fixes": [
+      "Corrected wgpu mapped-range Result propagation before GPU execution.",
+      "Corrected integer ID, motion texture and uniform bindings to match shared WGSL (bindings 2, 3, 4); validation errors are now surfaced before polling a failed submission."
+    ]
+  }
 }

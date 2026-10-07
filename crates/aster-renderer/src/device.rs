@@ -18,6 +18,9 @@ mod image_cache_tests;
 #[cfg(test)]
 #[path = "surface_cache_tests.rs"]
 mod surface_cache_tests;
+#[cfg(test)]
+#[path = "surface_post_tests.rs"]
+mod surface_post_tests;
 
 pub struct NativeOptions {
     pub backend: NativeBackend,

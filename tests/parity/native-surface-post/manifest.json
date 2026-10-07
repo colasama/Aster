@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "reference_manifest": "tests/parity/output-replay/reference/manifest.json",
+  "reference_manifest_sha256": "9f4af4260aec5aa4aeb57131add08f2698bf0b6caeb6c948caf772c0652c6e7a",
+  "cases": [
+    {
+      "id": "selectionIsolation",
+      "plan": "selectionIsolation.fpln",
+      "plan_sha256": "a392204a1ea32a2f461bdff99d68005d74c74d813feba45641fb08963356e9ff",
+      "reference": "tests/parity/output-replay/reference/selectionIsolation.bin",
+      "reference_sha256": "410a6ca02afcec03015e1f92eaa17ba2c563a4def2d5cc65e499ace6344b70a9",
+      "captured_input_sha256": "b8e4466ca4a48f8dd95f2b8c007d9b0325f705917c9437563d39e4c7f3f43d7d"
+    },
+    {
+      "id": "vectorMotionBlur",
+      "plan": "vectorMotionBlur.fpln",
+      "plan_sha256": "dc7a7a714d17aea51ddd5752b398830fb523dc1fc0683d88bd3aaefa870f5a24",
+      "reference": "tests/parity/output-replay/reference/vectorMotionBlur.bin",
+      "reference_sha256": "eb1cd6d95d4da930b970ebcb343074e1303175c3bf25873de9001e521cb8422c",
+      "captured_input_sha256": "e550ccf999a1dbabf41b2ce29f787a6e45c308ee3d56728d07c19a4b69440d2e"
+    }
+  ],
+  "attachments": [
+    {
+      "role": "scene",
+      "format": "rgba16float",
+      "bpp": 8,
+      "path": "scene.bin",
+      "sha256": "9b0e4c5e1e17b8988c3a2e0f7cfe17203db35d88700076564b22b87180aa4f6c"
+    },
+    {
+      "role": "objectId",
+      "format": "r32uint",
+      "bpp": 4,
+      "path": "objectId.bin",
+      "sha256": "8408152ac9ea4f27760578f8615bc3c4a90c75eb5000a031eb771365dde78d33"
+    },
+    {
+      "role": "motionVector",
+      "format": "rg16float",
+      "bpp": 4,
+      "path": "motionVector.bin",
+      "sha256": "26a804474ebfadfa769b048e4194d04c8314e10f0b227206684ff39977c264af"
+    }
+  ]
+}

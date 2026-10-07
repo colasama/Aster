@@ -429,3 +429,14 @@ ordering; subsequent levels remain independent. Optimization comparisons must ma
 compiler selection as well as the plan, adapter and pixels: early core cases use the default compiler,
 whereas effects and later core routes use the pinned DXC. Matching the whole currently executable
 1232-frame native scope does not establish support for later milestones' cases.
+
+M4 additionally requires two native surface-post replays against the separately frozen M2 output
+fixtures: selection isolation and vector motion blur. Extracted FPLN controls and HDR/object-ID/motion
+attachments are pinned under `tests/parity/native-surface-post`; their original complete input JSON
+hashes matched the frozen output manifest before extraction. A retained native GPU pipeline consumes
+these supplied controls. G3 checks pixels, structural metrics and matching self-review records, while
+the GPU test also proves control mutations change output, captured skips preserve the destination,
+invalid attachment formats fail before writes, and replay restores identical pixels. These two
+supplemental outputs are separate from the 1232 whole-frame corpus replays. Root-frame auxiliary
+attachment generation and surface-output routing remain pending; this pipeline proof does not
+enable unsupported complete frames.
