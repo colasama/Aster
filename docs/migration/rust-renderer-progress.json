@@ -162,48 +162,42 @@
     }
   },
   "last_cycle": {
-    "id": 85,
-    "time": "2026-10-06T02:45:14.292Z",
+    "id": 86,
+    "time": "2026-10-07T05:39:22.156Z",
     "milestone": "M4",
     "task": "M4-T2",
     "outcome": "passed",
-    "commit": "692bd3089d4fbc2009435d51dc95566195bf669d",
-    "verification": "artifacts/migration/verify-2026-10-06T02-32-51-379Z-b30df8de.json",
-    "verification_sha256": "6b3ab94fcff94ec3d2531ac1104c4a67f1ac92111f14049d8f64d68fd18535fc",
+    "commit": "ac7387d88f13284c55b79d6ef62cf53388283939",
+    "verification": "artifacts/migration/verify-2026-10-07T05-22-25-317Z-cd35d32a.json",
+    "verification_sha256": "c33a067e4ad569fe641a853f98e6af0919ec8b15ee449203a3a7091ba56f8b5a",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 84682
+        "duration_ms": 121135
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 587547
+        "duration_ms": 833105
       }
     ],
-    "verification_duration_ms": 673921,
-    "effect_diagnostic": {
-      "report": "artifacts/migration/cycle85-all-effects-first/report.json",
-      "report_sha256": "1953fd8cc06e780998267ba935fc400d856bc8719e465b9a323b943d078103fe",
-      "cases": 270,
-      "frames": 1083,
-      "metric_and_structural_passed": 1083,
-      "exact_frames": 69,
-      "max_abs_channel_error": 1,
-      "new_frame_reviews": 986,
-      "required_new_frame_reviews": 986,
-      "inspection_pages": "artifacts/migration/cycle85-all-effects-first/inspection/groups.json",
-      "inspection_pages_sha256": "a9e147e8182332cd454d6f132b44b591a4f88e209220596463c571ceb9c590da",
-      "formal_gate_coverage_pending": false
+    "verification_duration_ms": 974339,
+    "base_parameter_audit": {
+      "path": "artifacts/migration/cycle86-base-parameter-audit.json",
+      "sha256": "4f22f625d315d2044af4369d10e88b3b0c12e769fd7587441297bf70a0074a1c"
     },
-    "next_step": "Resume M4-T2: verify supplied base-effect controls and the combined layer-style fixture, repairing unsupported routes before advancing to native blur/glow optimization. M4-T3 through M4-T6 and production migration remain open.",
+    "style_chain": {
+      "report": "artifacts/migration/cycle86-style-chain/report.json",
+      "sha256": "7b97393ddbd12493ff4bb1e728e797ddb1e486ffdb77c61df524a847a28c593c",
+      "frames": 4,
+      "accepted": 4
+    },
+    "next_step": "M4-T3: bound native blur/glow levels by supplied sampling radii and share their source downsampling where exact parity holds.",
     "notes": [
-      "All 270 captured effect-tagged cases now execute in required G3: 1083 effect frames plus 145 retained core frames. The explicit admission list rejects catalog additions, omissions and duplicates.",
-      "All 986 newly required frame reviews were directly inspected and accepted at unchanged profile limits. All 1228 formal replay comparisons passed and matched accepted reference/candidate pixel hashes. Color-range and twister fixtures are transparent on both sides; acceptance does not establish nonempty behavior.",
-      "The complete effect batch passed in 12193 ms with 1082 device reuses. Per-case LUT hits increase without upload. Duplicate destinations and limits reject before output; later invalid frames preserve complete earlier output. This is diagnostic timing, not production export FPS.",
-      "Full M4 G0/G3 also retains native PNG/JPEG, EXR and GPU cache tests. Source did not change during verification. M4-T2 remains in progress because supplied base controls and combined routes need separate coverage; M4 exit and production Rust preview/export are not achieved.",
-      "Owner allowance checkpoint reached 80 percent used / 20 percent remaining. New work stopped; this cycle is committed green before pausing the goal."
+      "All 1232 native replay comparisons passed and match accepted reference/candidate pixel hash pairs. Four composed-style frames were directly reviewed; no tolerance or reference changes.",
+      "Current production builders supply neutral base parameters and compile user effects into operations. Supplied six-operation composed styles execute successfully. This completes M4-T2 without claiming arbitrary legacy base blur/glow support.",
+      "Full G0/G3 retain PNG/JPEG, EXR, cache and rejection checks. Source remained unchanged during verification. M4 exit is still false and production preview/export remain TS."
     ]
   },
   "milestones": [
@@ -20107,17 +20101,22 @@
         {
           "id": "M4-T2",
           "title": "Execute supplied fused layer programs and base effects through retained native pipelines",
-          "status": "in_progress",
+          "status": "done",
           "last_increment": {
-            "cycle": 85,
-            "commit": "692bd3089d4fbc2009435d51dc95566195bf669d",
-            "verification": "artifacts/migration/verify-2026-10-06T02-32-51-379Z-b30df8de.json",
-            "verification_sha256": "6b3ab94fcff94ec3d2531ac1104c4a67f1ac92111f14049d8f64d68fd18535fc",
-            "effect_cases": 270,
-            "effect_frames": 1083,
+            "cycle": 86,
+            "commit": "ac7387d88f13284c55b79d6ef62cf53388283939",
+            "verification": "artifacts/migration/verify-2026-10-07T05-22-25-317Z-cd35d32a.json",
+            "verification_sha256": "c33a067e4ad569fe641a853f98e6af0919ec8b15ee449203a3a7091ba56f8b5a",
+            "effect_cases": 271,
+            "effect_frames": 1087,
             "core_regression_frames": 145,
-            "device_reuses": 1082
-          }
+            "device_reuses": 1086
+          },
+          "completed_at": "2026-10-07T05:39:22.156Z",
+          "commit": "ac7387d88f13284c55b79d6ef62cf53388283939",
+          "verification": "artifacts/migration/verify-2026-10-07T05-22-25-317Z-cd35d32a.json",
+          "verification_sha256": "c33a067e4ad569fe641a853f98e6af0919ec8b15ee449203a3a7091ba56f8b5a",
+          "scope": "Current supplied production layer/base contract; 271 captured effect/style cases, 1087 effect frames and 145 retained core frames. Arbitrary legacy base blur/glow are unsupported; surface post and native optimizations remain later M4 tasks."
         },
         {
           "id": "M4-T3",
@@ -152873,6 +152872,45 @@
         "Full M4 G0/G3 also retains native PNG/JPEG, EXR and GPU cache tests. Source did not change during verification. M4-T2 remains in progress because supplied base controls and combined routes need separate coverage; M4 exit and production Rust preview/export are not achieved.",
         "Owner allowance checkpoint reached 80 percent used / 20 percent remaining. New work stopped; this cycle is committed green before pausing the goal."
       ]
+    },
+    {
+      "id": 86,
+      "time": "2026-10-07T05:39:22.156Z",
+      "milestone": "M4",
+      "task": "M4-T2",
+      "outcome": "passed",
+      "commit": "ac7387d88f13284c55b79d6ef62cf53388283939",
+      "verification": "artifacts/migration/verify-2026-10-07T05-22-25-317Z-cd35d32a.json",
+      "verification_sha256": "c33a067e4ad569fe641a853f98e6af0919ec8b15ee449203a3a7091ba56f8b5a",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 121135
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 833105
+        }
+      ],
+      "verification_duration_ms": 974339,
+      "base_parameter_audit": {
+        "path": "artifacts/migration/cycle86-base-parameter-audit.json",
+        "sha256": "4f22f625d315d2044af4369d10e88b3b0c12e769fd7587441297bf70a0074a1c"
+      },
+      "style_chain": {
+        "report": "artifacts/migration/cycle86-style-chain/report.json",
+        "sha256": "7b97393ddbd12493ff4bb1e728e797ddb1e486ffdb77c61df524a847a28c593c",
+        "frames": 4,
+        "accepted": 4
+      },
+      "next_step": "M4-T3: bound native blur/glow levels by supplied sampling radii and share their source downsampling where exact parity holds.",
+      "notes": [
+        "All 1232 native replay comparisons passed and match accepted reference/candidate pixel hash pairs. Four composed-style frames were directly reviewed; no tolerance or reference changes.",
+        "Current production builders supply neutral base parameters and compile user effects into operations. Supplied six-operation composed styles execute successfully. This completes M4-T2 without claiming arbitrary legacy base blur/glow support.",
+        "Full G0/G3 retain PNG/JPEG, EXR, cache and rejection checks. Source remained unchanged during verification. M4 exit is still false and production preview/export remain TS."
+      ]
     }
   ],
   "known_boundaries": [
@@ -153045,23 +153083,5 @@
         "sha256": "2a52867f6da0c4ad4e8cd1ef9831d5eb9be11743fe6f26fa9f12fe8d5c83797a"
       }
     }
-  ],
-  "active_cycle": {
-    "id": 86,
-    "started_at": "2026-10-07T05:20:22.502Z",
-    "milestone": "M4",
-    "task": "M4-T2",
-    "base_commit": "53100e99402218163d1b0d4649e754c8d390f031",
-    "intent": "Verify composed layer-style execution and audit supplied base parameter handling before completing fused-program admission.",
-    "base_parameter_audit": {
-      "path": "artifacts/migration/cycle86-base-parameter-audit.json",
-      "sha256": "4f22f625d315d2044af4369d10e88b3b0c12e769fd7587441297bf70a0074a1c"
-    },
-    "style_chain": {
-      "report": "artifacts/migration/cycle86-style-chain/report.json",
-      "sha256": "7b97393ddbd12493ff4bb1e728e797ddb1e486ffdb77c61df524a847a28c593c",
-      "frames": 4,
-      "accepted": 4
-    }
-  }
+  ]
 }
