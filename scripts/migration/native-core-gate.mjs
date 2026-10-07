@@ -25,6 +25,7 @@ import { runNativeRejections } from "./native-core-rejections.mjs";
 import { runNativeEffectBatch } from "./native-effect-batch.mjs";
 import { nativeEffectCases } from "./native-effect-scope.mjs";
 import { runNativeExrGate } from "./native-exr-gate.mjs";
+import { runNativeLayerCacheGate } from "./native-layer-cache-gate.mjs";
 import { runNativeStillGate } from "./native-still-gate.mjs";
 import { runNativeSurfaceFrameGate } from "./native-surface-frame-gate.mjs";
 import { runNativeSurfacePostGate } from "./native-surface-post-gate.mjs";
@@ -283,6 +284,17 @@ export async function runNativeCoreGate(context, execute = runStep) {
         "passed",
         "Native complete surface frames failed",
       );
+      report.native_layer_cache = await runNativeLayerCacheGate(
+        { ...context, output: join(context.output, "native-layer-cache") },
+        {
+          binary,
+          compiler,
+          frames: report.frames,
+          surfaceFrames: report.native_surface_frames.frames,
+        },
+        execute,
+      );
+      assert.equal(report.native_layer_cache.status, "passed", "Native layer cache changed pixels");
     }
     assert.equal(
       await hashFile(binary),

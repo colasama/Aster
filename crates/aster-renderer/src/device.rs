@@ -28,6 +28,8 @@ pub struct NativeOptions {
     /// Explicit DXC library supplied by the application host on Windows.
     pub dxcompiler: Option<std::path::PathBuf>,
     pub gpu_budget_bytes: u64,
+    /// Optional GPU-resident post-effect cache limit; zero disables result reuse.
+    pub layer_cache_bytes: u64,
     pub timeout: Duration,
 }
 
@@ -38,6 +40,7 @@ pub struct RenderedFrame {
     pub image_cache: crate::ImageCacheStatistics,
     pub lut_cache: crate::LutCacheStatistics,
     pub surface_cache: crate::SurfaceCacheStatistics,
+    pub layer_cache: crate::LayerCacheStatistics,
     _lease: Arc<()>,
 }
 
@@ -62,6 +65,7 @@ pub struct NativeRenderer {
     output_lease: Weak<()>,
     images: crate::image_cache::ImageCache,
     surfaces: crate::surface_cache::SurfaceCache,
+    layer_cache: crate::layer_cache::LayerCache,
 }
 
 impl FrameTargets {
@@ -192,6 +196,7 @@ impl NativeRenderer {
             output_lease: Weak::new(),
             images,
             surfaces: Default::default(),
+            layer_cache: Default::default(),
         })
     }
 
@@ -271,11 +276,29 @@ impl NativeRenderer {
                 .map_err(|error| RenderError::Gpu(error.to_string()))?;
             self.targets = None;
         }
+        let required_images = frame
+            .images
+            .values()
+            .map(|image| {
+                u64::from(image.width)
+                    * u64::from(image.height)
+                    * u64::from(image.format.bytes_per_pixel())
+            })
+            .sum::<u64>();
+        let cache_budget = (self.options.gpu_budget_bytes - bytes - surface_bytes - lut_bytes)
+            .saturating_sub(required_images)
+            .min(self.options.layer_cache_bytes);
+        let scenes = std::iter::once(&frame.scene)
+            .chain(frame.surfaces.targets.iter().map(|surface| &surface.scene))
+            .collect::<Vec<_>>();
+        let cache_reserved =
+            self.layer_cache
+                .prepare(&self.device, &scenes, cache_budget, self.options.timeout)?;
         self.images.prepare(
             (&self.device, &self.queue),
             &frame.images,
             registry,
-            self.options.gpu_budget_bytes - bytes - surface_bytes - lut_bytes,
+            self.options.gpu_budget_bytes - bytes - surface_bytes - lut_bytes - cache_reserved,
             self.options.timeout,
         )?;
         self.output.luts.prepare(
@@ -283,6 +306,7 @@ impl NativeRenderer {
             &frame.luts,
             registry,
             self.options.gpu_budget_bytes
+                - cache_reserved
                 - bytes
                 - surface_bytes
                 - self.images.statistics.resident_bytes,
@@ -293,11 +317,13 @@ impl NativeRenderer {
             &self.images.layout,
             &frame.surfaces,
             self.options.gpu_budget_bytes
+                - cache_reserved
                 - bytes
                 - self.images.statistics.resident_bytes
                 - self.output.luts.statistics.resident_bytes,
             self.options.timeout,
         )?;
+        self.layer_cache.allocate(&self.device);
         if resized {
             self.targets = Some(FrameTargets::new(&self.device, render_size, size));
         }
@@ -321,7 +347,12 @@ impl NativeRenderer {
                 &mut encoder,
                 &input.scene,
                 (&target.color, &target.depth),
-                (&self.images, &self.surfaces, &frame.surfaces),
+                (
+                    &self.images,
+                    &self.surfaces,
+                    &frame.surfaces,
+                    &mut self.layer_cache,
+                ),
                 &self.output,
             )?;
         }
@@ -330,7 +361,12 @@ impl NativeRenderer {
             &mut encoder,
             &frame.scene,
             (targets.scene.raw(), &depth),
-            (&self.images, &self.surfaces, &frame.surfaces),
+            (
+                &self.images,
+                &self.surfaces,
+                &frame.surfaces,
+                &mut self.layer_cache,
+            ),
             &self.output,
         )?;
         if frame.surface.is_some() {
@@ -375,11 +411,13 @@ impl NativeRenderer {
         let internal_error = pollster::block_on(internal.pop());
         let memory_error = pollster::block_on(memory.pop());
         if let Some(error) = validation_error.or(internal_error).or(memory_error) {
+            self.layer_cache.invalidate();
             self.images.invalidate();
             self.surfaces.invalidate();
             self.output.luts.invalidate();
             return Err(RenderError::Gpu(error.to_string()));
         }
+        self.layer_cache.commit();
         let lease = Arc::new(());
         self.output_lease = Arc::downgrade(&lease);
         Ok(RenderedFrame {
@@ -389,6 +427,7 @@ impl NativeRenderer {
             image_cache: self.images.statistics,
             lut_cache: self.output.luts.statistics,
             surface_cache: self.surfaces.statistics,
+            layer_cache: self.layer_cache.statistics,
             _lease: lease,
         })
     }
@@ -457,3 +496,7 @@ impl NativeRenderer {
 #[cfg(test)]
 #[path = "auxiliary_primary_tests.rs"]
 mod auxiliary_primary_tests;
+
+#[cfg(test)]
+#[path = "layer_cache_tests.rs"]
+mod layer_cache_tests;

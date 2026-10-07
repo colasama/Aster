@@ -124,6 +124,7 @@ fn native_image_cache_preserves_exr_hdr_through_shared_shader()
     let mut registry = ResourceRegistry::new(ResourceLimits::default())?;
     let input = fixture.input(&mut registry)?;
     let mut renderer = NativeRenderer::new(NativeOptions {
+        layer_cache_bytes: 67_108_864,
         dxcompiler: None,
         backend: if cfg!(target_os = "windows") {
             aster_render::NativeBackend::Dx12

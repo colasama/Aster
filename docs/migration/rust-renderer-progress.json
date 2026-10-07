@@ -20180,7 +20180,7 @@
         {
           "id": "M4-T5",
           "title": "Cache static layer outputs, narrow padded effect regions and evaluate low-frequency SSAA effects at output resolution where parity allows",
-          "status": "pending"
+          "status": "in_progress"
         },
         {
           "id": "M4-T6",
@@ -154925,5 +154925,25 @@
         "sha256": "2a52867f6da0c4ad4e8cd1ef9831d5eb9be11743fe6f26fa9f12fe8d5c83797a"
       }
     }
-  ]
+  ],
+  "active_cycle": {
+    "id": 91,
+    "started_at": "2026-10-07T07:24:24.755878+00:00",
+    "milestone": "M4",
+    "task": "M4-T5",
+    "base_commit": "ee794eacfd2a1466dc33eb1256c0fcc8353fe0d3",
+    "intent": "Cache supplied isolated layer post-effect outputs on the GPU with input-complete keys, optional bounded admission and exact cached/uncached verification. Keep recursive surface inputs uncached until dependency keys are proven.",
+    "cache_diagnostic": {
+      "path": "artifacts/migration/cycle91-cache-diagnostic/report.json",
+      "sha256": "0f9c62271be72d4f5d64c0dca37e3a906f54140700b3229abc1971043e08cd1e",
+      "status": "passed",
+      "frames": 1248,
+      "exact_outputs": 3744,
+      "cache_hits": 106
+    },
+    "bootstrap_fixes": [
+      "Corrected test media format spelling to the existing Rgba8UnormSrgb variant; no schema or dependency change."
+    ],
+    "scope": "Optional isolated geometry/media post-effect output reuse. Exact time retained except audited time-independent operations and zero grain. Recursive surfaces and adjustments remain uncached; region bounds and SSAA reductions remain open."
+  }
 }

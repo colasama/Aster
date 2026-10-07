@@ -53,7 +53,7 @@ impl LayerTargets {
             output: create(
                 "Linear layer output",
                 wgpu::TextureFormat::Rgba16Float,
-                usage | wgpu::TextureUsages::COPY_SRC,
+                usage | wgpu::TextureUsages::COPY_SRC | wgpu::TextureUsages::COPY_DST,
             ),
             depth: create(
                 "Isolated layer depth",
@@ -207,6 +207,19 @@ impl LayerPipelines {
                 targets.glow.as_ref().map_or(&source, |p| &p.view),
             ),
         )?;
+        self.composite(device, encoder, plan, targets, scene)
+    }
+
+    pub fn composite(
+        &self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        plan: &LayerPlan,
+        targets: &LayerTargets,
+        scene: &wgpu::Texture,
+    ) -> Result<(), RenderError> {
+        let source = targets.input.create_view(&Default::default());
+        let effected = targets.output.create_view(&Default::default());
         if plan.composite == aster_render_ir::EffectComposite::Replace {
             encoder.copy_texture_to_texture(
                 targets.output.raw().as_image_copy(),

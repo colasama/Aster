@@ -123,11 +123,13 @@ impl ScenePipelines {
             &crate::image_cache::ImageCache,
             &crate::surface_cache::SurfaceCache,
             &crate::surface_plan::SurfacePlan,
+            &mut crate::layer_cache::LayerCache,
         ),
         output: &crate::output::OutputPipelines,
     ) -> Result<(), RenderError> {
         let (scene, depth) = target;
-        let (images, surfaces, surface_plan) = resources;
+        let (images, surfaces, surface_plan, cache) = resources;
+        let layer_keys = crate::layer_key::LayerKey::collect(frame)?;
         let lighting = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Supplied lighting"),
             contents: &frame.lighting,
@@ -190,6 +192,25 @@ impl ScenePipelines {
         });
         let mut index = 0;
         while index < frame.root.commands.len() {
+            let cache_key = layer_keys.get(&index);
+            if let Some(key) = cache_key
+                && let Some(targets) = &layer_targets
+                && cache.restore(&key.hash, encoder, targets.output.raw())
+            {
+                let RootCommandRecord::BeginLayer { effect_blob_index } =
+                    &frame.root.commands[index]
+                else {
+                    return Err(RenderError::Invalid("cached layer boundary".into()));
+                };
+                let plan = frame
+                    .layers
+                    .get(effect_blob_index)
+                    .ok_or_else(|| RenderError::Invalid("cached layer program absent".into()))?;
+                self.layers
+                    .composite(device, encoder, plan, targets, scene)?;
+                index = key.end + 1;
+                continue;
+            }
             if let RootCommandRecord::Adjustment { effect_blob_index } = &frame.root.commands[index]
             {
                 let plan = frame
@@ -359,6 +380,9 @@ impl ScenePipelines {
                     .ok_or_else(|| RenderError::Invalid("layer allocation absent".into()))?;
                 self.layers
                     .finish(device, encoder, plan, targets, output, scene)?;
+                if let Some(key) = cache_key {
+                    cache.store(&key.hash, encoder, targets.output.raw());
+                }
             }
         }
         Ok(())

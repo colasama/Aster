@@ -48,6 +48,9 @@ pub struct RenderPlanArgs {
     dxcompiler: Option<PathBuf>,
     #[arg(long, default_value_t = 536_870_912)]
     gpu_budget_bytes: u64,
+    /// Optional isolated layer result cache; zero provides the uncached diagnostic path.
+    #[arg(long, default_value_t = 67_108_864)]
+    layer_cache_bytes: u64,
     #[arg(long, default_value_t = 67_108_864)]
     resource_byte_budget: u64,
     #[arg(long, default_value_t = 30_000)]
@@ -69,6 +72,7 @@ struct RenderReport {
     image_cache: aster_renderer::ImageCacheStatistics,
     lut_cache: aster_renderer::LutCacheStatistics,
     surface_cache: aster_renderer::SurfaceCacheStatistics,
+    layer_cache: aster_renderer::LayerCacheStatistics,
     adapter: AdapterDiagnostics,
     plan_sha256: String,
     rgba_sha256: String,
@@ -148,6 +152,7 @@ impl RenderPlanArgs {
                     adapter_name: self.adapter.clone(),
                     dxcompiler: self.dxcompiler.clone(),
                     gpu_budget_bytes: self.gpu_budget_bytes,
+                    layer_cache_bytes: self.layer_cache_bytes,
                     timeout: Duration::from_millis(self.timeout_ms),
                 })?);
             }
@@ -169,6 +174,7 @@ impl RenderPlanArgs {
                     image_cache: rendered.image_cache,
                     lut_cache: rendered.lut_cache,
                     surface_cache: rendered.surface_cache,
+                    layer_cache: rendered.layer_cache,
                     adapter: renderer.diagnostics.clone(),
                     plan_sha256: input.plan_sha256,
                     rgba_sha256,

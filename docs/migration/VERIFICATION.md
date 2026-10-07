@@ -414,7 +414,7 @@ The 271-case scope proves supplied fused-program parity at the captured paramete
 six-operation combined layer-style chain. The production layer and root plan builders supply neutral
 base parameters; user adjustments are compiled into effect operations. Native execution preserves
 those uniforms. Arbitrary non-default legacy base blur/glow controls are not accepted by this proof.
-Surface post effects and native optimizations still require separate evidence before M4 exit. The color-range and twister fixtures are transparent in both
+Native optimizations require separate evidence before M4 exit. The color-range and twister fixtures are transparent in both
 reference and candidate, so their acceptance does not prove nonempty behavior. Repeated frames
 within each LUT case must increase cache hits without another upload; this check is independent
 of the case position in the batch.
@@ -456,3 +456,15 @@ checks receipt identity, compares pixels and requires matching self-review recor
 follow ready frames to expose stale targets. Admission tests reject mismatched modes, frame headers,
 draw ranges and missing ready attachments before GPU recording; skipped plans without attachments
 remain valid. Existing whole-frame and supplemental references are unchanged.
+
+
+The native layer-cache gate replays all 1232 current corpus frames and sixteen complete surface
+frames with caching disabled, then with immediate repeated frames on retained devices. All 3744
+outputs must match the normal native receipt's RGBA hash exactly, and at least one retained output
+must be reused. Compiler selection matches each case's existing native path. Disabled runs must
+allocate no layer cache; enabled residency must stay within the explicit 64 MiB limit. This compares
+the optimization to uncached native execution in addition to G3's unchanged TS reference comparisons.
+GPU controls also check cross-time reuse, current-backdrop compositing, changed-effect invalidation,
+cache and total-budget pressure, and abandoned encoder copies. CPU tests check geometry, lighting,
+LUT, media generation and time dependencies. Region narrowing and reduced-resolution SSAA effects
+remain separate optimization tasks; recursive surfaces are not yet eligible for result reuse.

@@ -15,6 +15,7 @@ struct SurfaceFixture {
 impl SurfaceFixture {
     fn new(root: &std::path::Path) -> Result<Self, Box<dyn std::error::Error>> {
         let renderer = NativeRenderer::new(NativeOptions {
+            layer_cache_bytes: 67_108_864,
             dxcompiler: cfg!(target_os = "windows")
                 .then(|| root.join("node_modules/electron/dist/dxcompiler.dll")),
             backend: if cfg!(target_os = "windows") {
