@@ -287,6 +287,56 @@ fn native_layer_cache_reuses_invalidates_and_falls_back_without_pixel_changes()
     Ok(())
 }
 
+#[test]
+fn layer_keys_invalidate_for_material_controls_and_environment_generations()
+-> Result<(), Box<dyn std::error::Error>> {
+    let (mut frame, _) = LayerFixture::frame()?;
+    let before = LayerFixture::key(&frame)?;
+    frame
+        .scene
+        .root
+        .draws
+        .first_mut()
+        .ok_or("draw")?
+        .material_blob_index = Some(777);
+    frame.scene.materials.insert(
+        777,
+        crate::material_input::MaterialInput {
+            uniforms: [0; 16],
+            active: true,
+            environment: Some(crate::image_input::ImageInput {
+                frame: ResourceHash("a".repeat(64)),
+                pixels: ResourceHash("a".repeat(64)),
+                width: 1,
+                height: 1,
+                format: aster_render_ir::MediaTextureFormat::Rgba16Float,
+            }),
+        },
+    );
+    let material = LayerFixture::key(&frame)?;
+    assert_ne!(material, before);
+    frame
+        .scene
+        .materials
+        .get_mut(&777)
+        .ok_or("material")?
+        .uniforms[4..8]
+        .copy_from_slice(&0.75_f32.to_le_bytes());
+    let intensity = LayerFixture::key(&frame)?;
+    assert_ne!(intensity, material);
+    frame
+        .scene
+        .materials
+        .get_mut(&777)
+        .ok_or("material")?
+        .environment
+        .as_mut()
+        .ok_or("environment")?
+        .pixels = ResourceHash("b".repeat(64));
+    assert_ne!(LayerFixture::key(&frame)?, intensity);
+    Ok(())
+}
+
 #[path = "surface_generation_tests.rs"]
 mod surface_generation_tests;
 

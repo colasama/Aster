@@ -13,6 +13,7 @@ import {
   coreLayerCases,
   coreSurfaceCases,
 } from "./native-core-scope.mjs";
+import { runNativeMaterialGate } from "./native-material-gate.mjs";
 import { runNativeMediaFrameGate } from "./native-media-frame-gate.mjs";
 import { runNativeMotionFrameGate } from "./native-motion-frame-gate.mjs";
 import { nativeSceneCases, runNativeSceneBatch } from "./native-scene-batch.mjs";
@@ -307,6 +308,12 @@ export async function runNativeCoreGate(context, execute = runStep) {
         execute,
       );
       assert.equal(report.native_scene_output.status, "passed", "Native scene output gate failed");
+      report.native_material = await runNativeMaterialGate(
+        { ...context, output: join(context.output, "native-material") },
+        { binary, compiler, validateReceipt: validateNativeReceipt },
+        execute,
+      );
+      assert.equal(report.native_material.status, "passed", "Native material gate failed");
     }
     report.required_count = cases.reduce(
       (count, id) => count + corpus.cases.find((item) => item.id === id).frames.length,

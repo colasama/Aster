@@ -30,7 +30,7 @@ async function main() {
     });
     await window.loadURL(config.url);
     const frames = JSON.parse(await readFile(join(config.output, "inputs.json"), "utf8"));
-    assert.equal(frames.length, 64);
+    assert.equal(frames.length, config.expectedFrames);
     const render = () =>
       window.webContents.executeJavaScript(`window.renderSurfaceFrames(${JSON.stringify(frames)})`);
     const results = await render();
@@ -80,19 +80,16 @@ async function main() {
         resources: records,
       });
     }
-    for (const aa of ["off", "fxaa", "ssaa2x", "ssaa4x"]) {
-      for (const [a, b] of [
-        ["k0-still-ready", "k1-still-ready"],
-        ["k1-still-ready", "k2-still-ready"],
-        ["k0-still-ready", "k0-motion-ready"],
-        ["k0-still-ready", "k0-still-skipped"],
-      ]) {
-        const left = results.find((r) => r.id === `depthOfField-${aa}-${a}`),
-          right = results.find((r) => r.id === `depthOfField-${aa}-${b}`);
-        const changed = left.pixels.reduce((n, v, i) => n + Number(v !== right.pixels[i]), 0);
-        assert(changed > 16, `Output control has no observable effect: ${aa}/${a}/${b}`);
-        report.controls.push({ aa, a, b, changed_bytes: changed });
-      }
+    for (const control of config.controls) {
+      const left = results.find((r) => r.id === control.left),
+        right = results.find((r) => r.id === control.right);
+      assert(left && right);
+      const changed = left.pixels.reduce((n, v, i) => n + Number(v !== right.pixels[i]), 0);
+      assert(
+        changed > 16,
+        `Output control has no observable effect: ${control.left}/${control.right}`,
+      );
+      report.controls.push({ ...control, changed_bytes: changed });
     }
     report.gpu_info = await app.getGPUInfo("complete");
     report.status = "passed";

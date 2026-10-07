@@ -15,6 +15,7 @@ pub(crate) struct ScenePipelines {
     shadow_pipeline: crate::shadow::ShadowPipeline,
     shadow_sampler: wgpu::Sampler,
     layers: crate::layers::LayerPipelines,
+    materials: Option<crate::material::MaterialPipelines>,
 }
 
 impl ScenePipelines {
@@ -59,7 +60,7 @@ impl ScenePipelines {
             ],
         });
         let pipelines =
-            crate::geometry_pipelines::GeometryPipelines::create(device, &module, &layout);
+            crate::geometry_pipelines::GeometryPipelines::create(device, &module, &[Some(&layout)]);
         let image_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shared scene image"),
             source: wgpu::ShaderSource::Wgsl(catalog.program("scene-image")?.source.clone().into()),
@@ -67,7 +68,7 @@ impl ScenePipelines {
         let image_pipelines = crate::geometry_pipelines::GeometryPipelines::create(
             device,
             &image_module,
-            image_layout,
+            &[Some(image_layout)],
         );
         let surface_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shared premultiplied surface"),
@@ -82,7 +83,7 @@ impl ScenePipelines {
         let surface_pipelines = crate::geometry_pipelines::GeometryPipelines::create(
             device,
             &surface_module,
-            image_layout,
+            &[Some(image_layout)],
         );
         let shadow = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("Unoccluded shadow fallback"),
@@ -100,10 +101,13 @@ impl ScenePipelines {
         });
         let shadow_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             compare: Some(wgpu::CompareFunction::LessEqual),
+            min_filter: wgpu::FilterMode::Linear,
+            mag_filter: wgpu::FilterMode::Linear,
             ..Default::default()
         });
         let layers = crate::layers::LayerPipelines::new(device, catalog)?;
         Ok(Self {
+            materials: None,
             layers,
             layout,
             pipelines,
@@ -113,6 +117,22 @@ impl ScenePipelines {
             shadow_pipeline: crate::shadow::ShadowPipeline::new(device, catalog)?,
             shadow_sampler,
         })
+    }
+
+    pub(crate) fn prepare_materials(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+    ) -> Result<(), RenderError> {
+        if self.materials.is_none() {
+            self.materials = Some(crate::material::MaterialPipelines::new(
+                device,
+                queue,
+                &ShaderCatalog::embedded()?,
+                &self.layout,
+            )?);
+        }
+        Ok(())
     }
 
     pub(crate) fn record(
@@ -134,6 +154,10 @@ impl ScenePipelines {
         let (images, surfaces, surface_plan, cache, effects) = resources;
         let regions = effects.collect(frame)?;
         let layer_keys = crate::layer_key::LayerKey::collect(frame, &cache.generations)?;
+        let materials = match &self.materials {
+            Some(materials) => materials.bindings(device, frame, images)?,
+            None => BTreeMap::new(),
+        };
         let lighting = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Supplied lighting"),
             contents: &frame.lighting,
@@ -352,7 +376,22 @@ impl ScenePipelines {
                                     &self.surface_pipelines
                                 } else {
                                     pass.set_bind_group(0, &bindings, &[]);
-                                    &self.pipelines
+                                    if let Some(material) =
+                                        draw.material_blob_index.and_then(|i| materials.get(&i))
+                                    {
+                                        pass.set_bind_group(1, material, &[]);
+                                        &self
+                                            .materials
+                                            .as_ref()
+                                            .ok_or_else(|| {
+                                                RenderError::Invalid(
+                                                    "material pipeline absent".into(),
+                                                )
+                                            })?
+                                            .pipelines
+                                    } else {
+                                        &self.pipelines
+                                    }
                                 };
                             let pipeline = pipelines.get(&key).ok_or_else(|| {
                                 RenderError::Invalid("missing blend pipeline".into())

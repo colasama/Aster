@@ -615,3 +615,12 @@ must agree exactly, report expected depth and motion passes, and release inactiv
 output passes the GPU pixel profile and self-review; insufficient whole-frame memory rejects with
 no output. Floating auxiliary views use the supplied render extent for their range; integer ID views
 use real integer attachments rather than converting IDs to floats.
+
+Material coverage adds the twelve frozen directional/point/spot frames and sixty independently
+captured supplied mesh frames across all AA modes. Actual RGBA16F environments exercise intensity,
+rotation, content generation changes and inactive fallback. Forty-four paired reference controls
+require visible differences, including directional and spot shadow disable controls that change
+both the pass flag and the lighting sampler flag. Two independent TS devices must agree before
+references are pinned. Native batches require exact cache-on/cache-off output, two texture uploads
+with later reuse, bounded resident bytes, GPU-profile pixels and self-review. Point shadows remain
+the existing TS unsupported boundary; compressed normal-map decoding remains open M7 work.

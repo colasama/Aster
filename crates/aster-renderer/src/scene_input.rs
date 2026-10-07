@@ -16,6 +16,7 @@ pub(crate) struct SceneInput {
     pub clears: Vec<[f64; 5]>,
     pub layers: BTreeMap<u32, LayerPlan>,
     pub images: BTreeMap<ResourceHash, ImageInput>,
+    pub materials: BTreeMap<u32, crate::material_input::MaterialInput>,
 }
 impl SceneInput {
     pub fn new(
@@ -48,16 +49,19 @@ impl SceneInput {
         let Some(PlanSlice::RootSceneCommands(commands)) = root.metadata.slices.first() else {
             return Err(RenderError::Invalid("root commands required".into()));
         };
-        let images =
+        let mut images =
             crate::image_input::ImageInput::collect(pixels, scene_slice, commands, registry)?;
+        let materials = crate::material_input::MaterialInput::collect(root, registry)?;
+        for image in materials.values().filter_map(|m| m.environment.as_ref()) {
+            images.insert(image.frame.clone(), image.clone());
+        }
         for draw in &commands.draws {
             if !matches!(
                 draw.texture,
                 RootTextureReference::None
                     | RootTextureReference::Media { .. }
                     | RootTextureReference::Surface { .. }
-            ) || draw.material_blob_index.is_some()
-            {
+            ) {
                 return Err(RenderError::Unsupported("texture or material draw".into()));
             }
             if draw
@@ -114,6 +118,7 @@ impl SceneInput {
             clears,
             layers,
             images,
+            materials,
         })
     }
 
@@ -129,6 +134,7 @@ impl SceneInput {
         let levels = self.pyramid_levels();
         self.vertices.len() as u64
             + 8192
+            + self.materials.len() as u64 * 16
             + self
                 .layers
                 .values()

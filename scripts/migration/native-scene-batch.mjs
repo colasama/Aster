@@ -8,6 +8,9 @@ import { hashFile } from "./source.mjs";
 export const nativeSceneCases = [
   "scene-camera-orthographic",
   "scene-camera-perspective",
+  "scene-lighting-directional",
+  "scene-lighting-point",
+  "scene-lighting-spot",
   "scene-dof-15",
   "scene-dof-55",
   "scene-dof-95",
@@ -54,7 +57,9 @@ export async function runNativeSceneBatch(context, inputs, execute) {
       });
     }
   }
-  for (const [i, index] of [0, 8, 8].entries())
+  const depthStart = frames.findIndex((f) => f.case_id.startsWith("scene-dof-"));
+  assert(depthStart >= 0);
+  for (const [i, index] of [0, depthStart, depthStart].entries())
     jobs.push({ ...jobs[index], out: join(context.output, `depth-lifetime-${i}.png`) });
   const request = join(context.output, "scene-batch.json");
   await writeAtomicJson(request, jobs);
@@ -90,7 +95,7 @@ export async function runNativeSceneBatch(context, inputs, execute) {
     if (depth) {
       assert(receipt.depth_effects.resident_bytes > 0);
       assert.equal(receipt.depth_effects.allocations, 1);
-      assert.equal(receipt.depth_effects.reuses, index - 8);
+      assert.equal(receipt.depth_effects.reuses, index - depthStart);
     }
 
     assert.equal(receipt.output, jobs[index].out);
@@ -104,7 +109,7 @@ export async function runNativeSceneBatch(context, inputs, execute) {
     });
   }
   const controls = [];
-  for (const [i, index] of [0, 8, 8].entries()) {
+  for (const [i, index] of [0, depthStart, depthStart].entries()) {
     const receipt = receipts[frames.length + i];
     const pixels = await reader.image(local(jobs[frames.length + i].out));
     assert.equal(pixels.rgba_sha256, receipts[index].rgba_sha256);
@@ -129,9 +134,9 @@ export async function runNativeSceneBatch(context, inputs, execute) {
       args: [
         "render-plan",
         "--plan",
-        jobs[8].plan,
+        jobs[depthStart].plan,
         "--resources",
-        jobs[8].resources,
+        jobs[depthStart].resources,
         "--out",
         rejectedOutput,
         "--gpu-budget-bytes",

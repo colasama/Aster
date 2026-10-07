@@ -171,7 +171,8 @@ fn native_image_cache_preserves_exr_hdr_through_shared_shader()
             label: Some("HDR shared image"),
             source: wgpu::ShaderSource::Wgsl(source.into()),
         });
-    let pipelines = GeometryPipelines::create(&renderer.device, &module, &renderer.images.layout);
+    let pipelines =
+        GeometryPipelines::create(&renderer.device, &module, &[Some(&renderer.images.layout)]);
     let mut vertices = Vec::new();
     for (x, y) in [
         (-1.0_f32, -1.0_f32),

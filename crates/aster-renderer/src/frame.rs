@@ -160,8 +160,8 @@ impl SuppliedFrame {
         if let Some(motion) = &motion {
             motion.auxiliary.validate_resources(&scene, &surfaces)?;
         }
-        for surface in &surfaces.targets {
-            for (hash, image) in &surface.scene.images {
+        for input in std::iter::once(&scene).chain(surfaces.targets.iter().map(|s| &s.scene)) {
+            for (hash, image) in &input.images {
                 if images
                     .get(hash)
                     .is_some_and(|old| old.pixels != image.pixels)

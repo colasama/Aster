@@ -130,8 +130,22 @@ impl LayerKey {
             .draws
             .get(draw_index as usize)
             .ok_or_else(|| RenderError::Invalid("cached draw index".into()))?;
-        if draw.material_blob_index.is_some() {
-            return Ok(false);
+        if let Some(index) = draw.material_blob_index {
+            let material = frame
+                .materials
+                .get(&index)
+                .ok_or_else(|| RenderError::Invalid("cached material absent".into()))?;
+            bytes.push(1);
+            bytes.extend(material.uniforms);
+            bytes.push(u8::from(material.active));
+            if let Some(image) = &material.environment {
+                bytes.push(1);
+                bytes.extend(image.pixels.0.as_bytes());
+            } else {
+                bytes.push(0);
+            }
+        } else {
+            bytes.push(0);
         }
         bytes.push(crate::SuppliedFrame::blend_index(blend_mode)?);
         bytes.extend(draw.vertex_count.to_le_bytes());

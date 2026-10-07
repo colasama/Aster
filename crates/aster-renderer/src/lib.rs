@@ -22,6 +22,8 @@ mod layer_key;
 mod layer_plan;
 mod layers;
 mod lut_cache;
+mod material;
+mod material_input;
 mod motion_output;
 mod motion_reconstruction;
 mod output;

@@ -6,11 +6,11 @@ impl GeometryPipelines {
     pub(crate) fn create(
         device: &wgpu::Device,
         module: &wgpu::ShaderModule,
-        layout: &wgpu::BindGroupLayout,
+        layouts: &[Option<&wgpu::BindGroupLayout>],
     ) -> BTreeMap<u8, wgpu::RenderPipeline> {
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Scene pipeline layout"),
-            bind_group_layouts: &[Some(layout)],
+            bind_group_layouts: layouts,
             immediate_size: 0,
         });
         let attributes = [
