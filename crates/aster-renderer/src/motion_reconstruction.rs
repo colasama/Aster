@@ -19,7 +19,10 @@ impl MotionReconstruction {
             .collect::<Vec<_>>();
         let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Shared HDR motion reconstruction"),
-            source: wgpu::ShaderSource::Wgsl(program.source.clone().into()),
+            source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(
+                aster_shaders::GeneratorShader::parse(&program.source)
+                    .map_err(RenderError::Invalid)?,
+            )),
         });
         let pipelines = [
             "tile_max_fragment",

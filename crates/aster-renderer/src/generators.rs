@@ -79,7 +79,56 @@ impl GeneratorPipelines {
                 )?);
             }
         }
+        let auxiliary = [
+            frame.motion.as_ref().map(|v| &v.auxiliary),
+            frame.depth.as_ref().and_then(|v| v.auxiliary.as_ref()),
+            frame.surface.as_ref().and_then(|v| v.auxiliary.as_ref()),
+            frame.visualizer.as_ref().and_then(|v| v.auxiliary.as_ref()),
+        ];
+        for plan in auxiliary.into_iter().flatten() {
+            for id in &plan.generators {
+                let key = crate::surface_plan::SurfacePlan::key(id);
+                let input = frame.scene.generators.get(&key).ok_or_else(|| {
+                    RenderError::Invalid("auxiliary generator input absent".into())
+                })?;
+                self.programs
+                    .get_mut(&input.program_key)
+                    .ok_or_else(|| {
+                        RenderError::Invalid("auxiliary generator program absent".into())
+                    })?
+                    .prepare_auxiliary(device, input, &self.render_layout)?;
+            }
+        }
         Ok(())
+    }
+
+    pub fn auxiliary_draws(
+        &self,
+        inputs: &BTreeMap<Vec<u16>, GeneratorInput>,
+        bindings: &BTreeMap<Vec<u16>, GeneratorBindings>,
+    ) -> Result<BTreeMap<Vec<u16>, crate::AuxiliaryGeneratorDraw>, RenderError> {
+        let mut draws = BTreeMap::new();
+        for (key, input) in inputs {
+            let pipeline = self
+                .programs
+                .get(&input.program_key)
+                .and_then(|p| p.variants.get(input.invocation.variant_index as usize))
+                .and_then(|v| v.auxiliary.as_ref());
+            if let Some(pipeline) = pipeline {
+                let binding = bindings.get(key).ok_or_else(|| {
+                    RenderError::Invalid("auxiliary generator buffers absent".into())
+                })?;
+                draws.insert(
+                    key.clone(),
+                    crate::AuxiliaryGeneratorDraw {
+                        pipeline: pipeline.clone(),
+                        binding: binding.render.clone(),
+                        indirect: binding.indirect.clone(),
+                    },
+                );
+            }
+        }
+        Ok(draws)
     }
 
     pub fn compute(

@@ -48,13 +48,13 @@ impl Fixture {
 }
 
 #[test]
-fn embedded_shader_preserves_original_browser_bytes() -> Result<(), ShaderError> {
+fn embedded_shader_preserves_reviewed_browser_bytes() -> Result<(), ShaderError> {
     let catalog = ShaderCatalog::embedded()?;
     let program = catalog.program("output-anti-aliasing")?;
-    assert_eq!(program.source.len(), 2652);
+    assert_eq!(program.source.len(), 2902);
     assert_eq!(
         format!("{:x}", Sha256::digest(program.source.as_bytes())),
-        "7ae357bfe93db1c985380b3bc2c473517593a706cc9ef9aac0fc8fbd05e3e86c"
+        "115e982faeb62b663b6d704c1583c44720338a32d7e99154be0a138c549b14f4"
     );
     assert_eq!(program.definition.entry_points.len(), 3);
     assert_eq!(

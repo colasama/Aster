@@ -14,6 +14,7 @@ use crate::{
 
 #[derive(Debug, Default)]
 pub struct ComparisonOptions {
+    pub case_id: Option<String>,
     pub isolated: bool,
     pub background: Option<[u8; 4]>,
     pub sequence: Option<SequenceInput>,
@@ -59,7 +60,7 @@ impl Comparison {
                 "An isolated case requires an explicit background; background is only valid for an isolated case".into(),
             ));
         }
-        let profile = SelectedProfile::load(profile_name)?;
+        let profile = SelectedProfile::for_case(profile_name, options.case_id.as_deref())?;
         let limits = &profile.limits;
         let tolerance = if limits.exact {
             Some(0)

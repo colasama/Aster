@@ -159,14 +159,18 @@ impl DepthAuxiliaryPipelines {
         encoder: &mut wgpu::CommandEncoder,
         plan: &FrameDepth,
         targets: &DepthTargets,
-        media: &[Option<&wgpu::BindGroup>],
+        bindings: (
+            &[Option<&wgpu::BindGroup>],
+            &std::collections::BTreeMap<Vec<u16>, crate::AuxiliaryGeneratorDraw>,
+        ),
     ) -> Result<(), RenderError> {
+        let media = bindings.0;
         let auxiliary = plan
             .auxiliary
             .as_ref()
             .ok_or_else(|| RenderError::Invalid("depth geometry missing".into()))?;
         self.primary
-            .record(device, encoder, auxiliary, &targets.primary, media)?;
+            .record(device, encoder, auxiliary, &targets.primary, bindings)?;
         if plan.tier < 1 {
             return Ok(());
         }

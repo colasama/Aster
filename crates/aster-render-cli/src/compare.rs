@@ -206,6 +206,7 @@ impl CompareArgs {
             &candidate_image,
             &self.tolerance,
             &ComparisonOptions {
+                case_id: context.case_id.clone(),
                 isolated: context.isolated,
                 background: context.background,
                 sequence,

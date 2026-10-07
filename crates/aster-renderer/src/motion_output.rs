@@ -121,6 +121,7 @@ impl MotionOutput {
         caches: (
             &crate::image_cache::ImageCache,
             &crate::surface_cache::SurfaceCache,
+            &std::collections::BTreeMap<Vec<u16>, crate::AuxiliaryGeneratorDraw>,
         ),
     ) -> Result<wgpu::Texture, RenderError> {
         let plan = frame
@@ -131,14 +132,14 @@ impl MotionOutput {
             .targets
             .as_ref()
             .ok_or_else(|| RenderError::Invalid("motion targets missing".into()))?;
-        let bindings = plan.auxiliary.bindings(frame, caches)?;
+        let bindings = plan.auxiliary.bindings(frame, (caches.0, caches.1))?;
         let bindings = bindings.iter().map(Option::as_ref).collect::<Vec<_>>();
         self.auxiliary.record(
             device,
             encoder,
             &plan.auxiliary,
             &targets.auxiliary,
-            &bindings,
+            (&bindings, caches.2),
         )?;
         self.reconstruction.record(
             device,

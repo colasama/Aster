@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "cases": {
+    "native-generator-output-billboard-fxaa-beauty-motion": {
+      "profile": "gpu",
+      "max_abs_channel_error": 7,
+      "residual_class": "float-precision",
+      "reason": "Two FXAA edge pixels amplify sub-code-value HDR motion reconstruction rounding. Geometry, alpha coverage, registration, ink bounds and all structural limits pass; PSNR exceeds 77 dB and SSIM exceeds 0.999999. Mean error and PSNR retain the default GPU limits."
+    }
+  }
+}

@@ -7,13 +7,14 @@ use wgpu::util::DeviceExt;
 use crate::RenderError;
 
 /// Supplied geometry and attributes for the five primary surface attachments.
-/// Transparency aggregation, depth peeling and generators require separate executors.
+/// Generator draws reuse beauty instances; transparency and peeling use separate passes.
 pub struct AuxiliaryPrimaryPlan {
     pub(crate) size: Extent2d,
     pub(crate) vertices: Vec<u8>,
     pub(crate) ids: Vec<u8>,
     pub(crate) motion: Vec<u8>,
     pub(crate) draws: Vec<AuxiliaryDraw>,
+    pub(crate) generators: Vec<aster_render_ir::CompositionIdentity>,
 }
 
 impl AuxiliaryPrimaryPlan {
@@ -36,9 +37,9 @@ impl AuxiliaryPrimaryPlan {
                 "auxiliary scene slices missing".into(),
             ));
         };
-        if slice.status == AuxiliaryStatus::Unavailable || !slice.generators.is_empty() {
+        if slice.status == AuxiliaryStatus::Unavailable {
             return Err(RenderError::Unsupported(
-                "unavailable or generated auxiliary surface".into(),
+                "unavailable auxiliary surface".into(),
             ));
         }
         if slice.status == AuxiliaryStatus::Drawn && slice.vertex_count != geometry.vertex_count {
@@ -70,6 +71,7 @@ impl AuxiliaryPrimaryPlan {
                 vec![0; slice.vertex_count as usize * 8]
             },
             draws: slice.draws.clone(),
+            generators: slice.generators.clone(),
         })
     }
 
@@ -160,8 +162,23 @@ impl crate::auxiliary_pipelines::AuxiliaryPrimaryPipelines {
         encoder: &mut wgpu::CommandEncoder,
         plan: &AuxiliaryPrimaryPlan,
         targets: &AuxiliaryPrimaryTargets,
-        media: &[Option<&wgpu::BindGroup>],
+        bindings: (
+            &[Option<&wgpu::BindGroup>],
+            &std::collections::BTreeMap<Vec<u16>, crate::AuxiliaryGeneratorDraw>,
+        ),
     ) -> Result<(), RenderError> {
+        let (media, generators) = bindings;
+        let generated = plan
+            .generators
+            .iter()
+            .map(|id| {
+                generators
+                    .get(&crate::surface_plan::SurfacePlan::key(id))
+                    .ok_or_else(|| {
+                        RenderError::Invalid("auxiliary generator binding absent".into())
+                    })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
         if plan.required_bytes() > targets.budget
             || targets.depth.width() != plan.size.width
             || targets.depth.height() != plan.size.height
@@ -239,6 +256,11 @@ impl crate::auxiliary_pipelines::AuxiliaryPrimaryPipelines {
                     index as u32..index as u32 + 1,
                 );
             }
+        }
+        for draw in generated {
+            pass.set_pipeline(&draw.pipeline);
+            pass.set_bind_group(0, &draw.binding, &[]);
+            pass.draw_indirect(&draw.indirect, 0);
         }
         Ok(())
     }

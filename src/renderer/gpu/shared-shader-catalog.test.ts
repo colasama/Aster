@@ -11,9 +11,9 @@ const manifest = {
 };
 
 describe("shared shader catalog", () => {
-  it("preserves the pre-extraction production AA source and pipeline override values", () => {
+  it("preserves the reviewed production AA source and pipeline override values", () => {
     expect(createHash("sha256").update(antiAliasingShader).digest("hex")).toBe(
-      "7ae357bfe93db1c985380b3bc2c473517593a706cc9ef9aac0fc8fbd05e3e86c",
+      "115e982faeb62b663b6d704c1583c44720338a32d7e99154be0a138c549b14f4",
     );
     expect(sharedShaders.pipelineConstants("output-anti-aliasing")).toEqual({ scale: 1 });
     for (const scale of [2, 4])

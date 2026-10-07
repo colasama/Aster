@@ -38,6 +38,8 @@ pub struct SelectedProfile {
     pub name: String,
     pub catalog_sha256: String,
     pub limits: ToleranceProfile,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub case_override: Option<crate::case_profile::AppliedCaseOverride>,
 }
 
 impl SelectedProfile {
@@ -70,6 +72,7 @@ impl SelectedProfile {
             name: name.to_owned(),
             catalog_sha256: format!("{:x}", Sha256::digest(source)),
             limits,
+            case_override: None,
         })
     }
 }

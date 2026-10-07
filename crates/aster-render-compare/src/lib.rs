@@ -1,4 +1,5 @@
 pub mod artifacts;
+mod case_profile;
 pub mod comparison;
 pub mod error;
 pub mod image;

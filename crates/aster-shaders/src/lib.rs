@@ -18,6 +18,7 @@ mod constant_tests;
 #[cfg(test)]
 mod coverage_tests;
 mod generator;
+mod generator_arithmetic;
 #[cfg(test)]
 mod generator_tests;
 #[cfg(test)]

@@ -10,7 +10,12 @@ override scale: u32 = 1u;
 fn sample_color(uv: vec2f) -> vec4f {
   return textureSampleLevel(source, linear_sampler, uv, 0.0);
 }
-fn luma(color: vec4f) -> f32 { return dot(color.rgb, vec3f(0.299, 0.587, 0.114)); }
+fn luma(color: vec4f) -> f32 {
+  // The source is display UNORM. Bound each contribution before the ordered sum so
+  // contraction cannot change ties between luminance and alpha edge strengths.
+  let weighted = clamp(color.rgb * vec3f(0.299, 0.587, 0.114), vec3f(0.0), vec3f(1.0));
+  return (weighted.x + weighted.y) + weighted.z;
+}
 
 @fragment fn fxaa(@builtin(position) position: vec4f) -> @location(0) vec4f {
   let step = 1.0 / vec2f(textureDimensions(source));

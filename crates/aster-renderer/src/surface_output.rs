@@ -26,6 +26,7 @@ impl SurfaceOutput {
         caches: (
             &crate::image_cache::ImageCache,
             &crate::surface_cache::SurfaceCache,
+            &std::collections::BTreeMap<Vec<u16>, crate::AuxiliaryGeneratorDraw>,
         ),
     ) -> Result<(), RenderError> {
         let surface = frame
@@ -34,10 +35,10 @@ impl SurfaceOutput {
             .ok_or_else(|| RenderError::Invalid("surface output missing".into()))?;
         let targets = if let Some(plan) = &surface.auxiliary {
             let targets = AuxiliaryPrimaryTargets::new(device, plan, plan.required_bytes())?;
-            let bindings = plan.bindings(frame, caches)?;
+            let bindings = plan.bindings(frame, (caches.0, caches.1))?;
             let bindings = bindings.iter().map(Option::as_ref).collect::<Vec<_>>();
             self.auxiliary
-                .record(device, encoder, plan, &targets, &bindings)?;
+                .record(device, encoder, plan, &targets, (&bindings, caches.2))?;
             Some(targets)
         } else {
             None

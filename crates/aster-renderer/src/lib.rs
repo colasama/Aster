@@ -15,6 +15,7 @@ mod frame_surface;
 #[cfg(test)]
 mod frame_surface_tests;
 mod frame_visualizer;
+mod generator_auxiliary;
 mod generator_bindings;
 mod generator_input;
 #[cfg(test)]
@@ -59,6 +60,7 @@ pub use depth_output::DepthStatistics;
 pub use device::{NativeOptions, NativeRenderer, RenderedFrame};
 pub use effect_region::EffectRegionStatistics;
 pub use frame::SuppliedFrame;
+pub use generator_auxiliary::AuxiliaryGeneratorDraw;
 pub use image_cache::ImageCacheStatistics;
 pub use layer_cache::LayerCacheStatistics;
 pub use lut_cache::LutCacheStatistics;

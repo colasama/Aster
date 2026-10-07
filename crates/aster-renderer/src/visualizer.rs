@@ -58,6 +58,7 @@ impl Visualizer {
         caches: (
             &crate::image_cache::ImageCache,
             &crate::surface_cache::SurfaceCache,
+            &std::collections::BTreeMap<Vec<u16>, crate::AuxiliaryGeneratorDraw>,
         ),
     ) -> Result<(), RenderError> {
         let plan = frame
@@ -67,13 +68,16 @@ impl Visualizer {
         let targets = if let Some(auxiliary) = &plan.auxiliary {
             let targets =
                 AuxiliaryPrimaryTargets::new(device, auxiliary, auxiliary.required_bytes())?;
-            let bindings = auxiliary.bindings(frame, caches)?;
+            let bindings = auxiliary.bindings(frame, (caches.0, caches.1))?;
             self.auxiliary.record(
                 device,
                 encoder,
                 auxiliary,
                 &targets,
-                &bindings.iter().map(Option::as_ref).collect::<Vec<_>>(),
+                (
+                    &bindings.iter().map(Option::as_ref).collect::<Vec<_>>(),
+                    caches.2,
+                ),
             )?;
             Some(targets)
         } else {

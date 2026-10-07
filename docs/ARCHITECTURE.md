@@ -847,12 +847,22 @@ instance and indirect-draw buffers, followed by ordered beauty draws. Program pi
 by graph identity and retired when absent from the active frame; instance buffers are initialized
 from each time-addressed invocation, without CPU readback. Naga preserves invariant position
 outputs to prevent native arithmetic reassociation from changing thin-triangle raster coverage.
+Generator and motion shaders lower normalization to vector/length division and bound finite float
+products before later additions. This avoids backend reciprocal-square-root and contraction choices
+changing particle coverage or reconstruction. The shared FXAA luminance calculation bounds its
+display-UNORM contributions before summation so luminance/alpha ties retain the same edge direction.
 The buffer allocation budget includes generator context, parameters, instances, indirect arguments
-and audio analysis. Auxiliary generator output and recursive generator scenes retain separate gates.
+and audio analysis. Recursive generator scenes retain a separate integration gate.
 Root generators share one authenticated audio record and one GPU audio buffer per scene, including
 invocations that omit a redundant audio payload. Conflicting supplied records fail before drawing.
 Each scene recreates this binding from its own input or the defined silence record, preventing audio
 from a preceding render from leaking into the next frame.
+
+Supplied auxiliary generator identities select the same GPU instance and indirect buffers used by
+beauty. Requested variants compile a five-attachment MRT pipeline lazily, preserving graph cull and
+depth state and supplied draw order after geometry. Motion reconstruction, depth effects and buffer
+visualization consume these attachments without another compute dispatch or CPU readback. A plugin
+without an auxiliary descriptor remains beauty-only; referencing it as an auxiliary draw is an error.
 
 Browser video uses hardware media decode and a persistent staging canvas before `queue.writeTexture`.
 This deterministic compatibility path exists because Chromium implementations can silently
@@ -943,8 +953,8 @@ Native primary auxiliary execution consumes supplied scene vertices, unsigned in
 attributes through the shared five-target MRT shader. Target allocation is admitted against a byte
 budget before GPU writes. Geometry and alpha-tested media share the captured depth ordering, and
 cleared plans clear every attachment. This pass provides the GPU inputs for surface post effects;
-complete root surface-output routing is supported. Separate transparency, depth-peel and generator
-passes remain pending.
+complete root surface-output routing is supported. Transparency and depth-peel passes preserve the
+captured geometry fallback while generators contribute primary depth and residual beauty color.
 
 Native surface output validates the final mode against the supplied post-effect stage and binds
 auxiliary draws to the same root geometry and cached media/precomposition generations. Ready effects

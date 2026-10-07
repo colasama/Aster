@@ -11,6 +11,7 @@ pub(crate) struct GeneratorProgram {
 
 pub(crate) struct GeneratorVariant {
     pub mode: GeneratorBlend,
+    pub auxiliary: Option<wgpu::RenderPipeline>,
     pub pipelines: BTreeMap<u8, wgpu::RenderPipeline>,
 }
 
@@ -152,6 +153,7 @@ impl GeneratorProgram {
             }
             variants.push(GeneratorVariant {
                 mode: variant.blend,
+                auxiliary: None,
                 pipelines,
             });
         }

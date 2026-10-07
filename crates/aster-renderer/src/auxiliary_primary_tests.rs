@@ -133,8 +133,13 @@ impl AuxiliaryFixture {
                     .map(|(_, b)| b)
             })
             .collect::<Vec<_>>();
-        self.pipelines
-            .record(device, &mut encoder, plan, targets, &bindings)?;
+        self.pipelines.record(
+            device,
+            &mut encoder,
+            plan,
+            targets,
+            (&bindings, &Default::default()),
+        )?;
         let readback = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Primary auxiliary diagnostic readback"),
             size: 64 * 48 * 28,
@@ -277,7 +282,26 @@ fn auxiliary_primary_supplied_gpu_outputs_and_controls() -> Result<(), Box<dyn s
         slice
             .generators
             .push(scene.metadata.header.composition_id.clone());
-        assert!(AuxiliaryPrimaryPlan::new(&scene, &generated).is_err());
+        if id == "cleared" {
+            assert!(AuxiliaryPrimaryPlan::new(&scene, &generated).is_err());
+        } else {
+            let generated = AuxiliaryPrimaryPlan::new(&scene, &generated)?;
+            let mut encoder = fixture
+                .renderer
+                .device
+                .create_command_encoder(&Default::default());
+            assert!(matches!(
+                fixture.pipelines.record(
+                    &fixture.renderer.device,
+                    &mut encoder,
+                    &generated,
+                    &targets,
+                    (&[], &Default::default()),
+                ),
+                Err(crate::RenderError::Invalid(message))
+                    if message == "auxiliary generator binding absent"
+            ));
+        }
     }
     Ok(())
 }

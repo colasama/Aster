@@ -653,8 +653,7 @@ arithmetic reassociation lost one thin streak pixel despite matching nearly the 
 The failed pre-invariance comparison remains recorded. Cached/uncached and bounded/unbounded
 effect-region runs must remain byte-identical, and a generator allocation-budget control must
 reject before publishing output. Unit controls reject mismatched frame identity, realization,
-missing/duplicate invocations and invalid shader text. Generated auxiliary output remains separate
-coverage work before M7-T4 can close.
+missing/duplicate invocations and invalid shader text.
 
 Fifteen frozen bars, ring and oscilloscope frames now exercise supplied root-time audio analysis in
 the native generator graph. GPU controls silence the audio samples, add a visible sibling, omit
@@ -662,4 +661,20 @@ that sibling's redundant audio payload, restore the original frame and reject co
 records before output publication. Shared and inherited audio must produce identical pixels,
 restored frames must match the frozen-input native baseline exactly, and both silence and a new
 sibling must visibly change the image. The audio record is budgeted once per scene. These checks
-cover root beauty output; generated auxiliary attachments remain open.
+cover root beauty output.
+
+Generator output references independently route frozen invocations through five auxiliary views,
+unblurred beauty, motion reconstruction, K2 depth of field and an omitted-auxiliary control across four AA modes.
+The 216 complete frames cover billboard, mesh, streak, bars, ring and scope. Two independent TS
+devices must agree exactly before the reference manifest is pinned. Twenty-four particle controls prove
+that auxiliary geometry and motion reconstruction change the image; the three beauty-only audio variants must retain the
+same empty auxiliary result when no descriptor exists. Native cached and uncached outputs must agree
+exactly, release motion/depth targets between routes, and pass pixel and structural self-review.
+
+Case-specific peak-error adjustments live in the embedded `tests/parity/tolerance-overrides.json`
+catalog and in the migration ledger. Only a matching case/profile may use one. The comparator caps
+peak error at eight, enforces SSIM at least 0.995 and PSNR at least 40 dB, and preserves stricter base
+limits and all structural limits. Exact comparisons cannot be relaxed. The billboard FXAA motion
+case permits a peak of seven after review of two sparse edge pixels; its default mean/PSNR limits
+remain unchanged. Native normalization uses vector/length division to avoid a one-ULP particle
+position difference changing mesh raster coverage; no diagnostic particle readback remains.

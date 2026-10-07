@@ -35,6 +35,27 @@ impl AuxiliaryPrimaryPlan {
         scene: &crate::scene_input::SceneInput,
         surfaces: &crate::surface_plan::SurfacePlan,
     ) -> Result<(), RenderError> {
+        for id in &self.generators {
+            let input = scene
+                .generators
+                .get(&crate::surface_plan::SurfacePlan::key(id))
+                .ok_or_else(|| {
+                    RenderError::Invalid("auxiliary generator absent from scene".into())
+                })?;
+            if input
+                .invocation
+                .program
+                .graph
+                .render_variants
+                .get(input.invocation.variant_index as usize)
+                .and_then(|v| v.auxiliary.as_ref())
+                .is_none()
+            {
+                return Err(RenderError::Invalid(
+                    "generator auxiliary descriptor absent".into(),
+                ));
+            }
+        }
         for draw in &self.draws {
             if !scene.root.draws.iter().any(|root| {
                 root.instance_id == draw.instance_id

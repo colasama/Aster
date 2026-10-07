@@ -151,7 +151,7 @@ impl ScenePipelines {
             &mut crate::effect_region::EffectRegions,
         ),
         output: &crate::output::OutputPipelines,
-    ) -> Result<(), RenderError> {
+    ) -> Result<BTreeMap<Vec<u16>, crate::AuxiliaryGeneratorDraw>, RenderError> {
         let (scene, depth) = target;
         let (images, surfaces, surface_plan, cache, effects) = resources;
         let regions = effects.collect(frame)?;
@@ -448,6 +448,9 @@ impl ScenePipelines {
                 }
             }
         }
-        Ok(())
+        match &self.generators {
+            Some(pipelines) => pipelines.auxiliary_draws(&frame.generators, &generator_bindings),
+            None => Ok(BTreeMap::new()),
+        }
     }
 }

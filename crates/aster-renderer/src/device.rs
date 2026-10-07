@@ -465,7 +465,7 @@ impl NativeRenderer {
                 &self.output,
             )?;
         }
-        self.scene.record(
+        let generator_draws = self.scene.record(
             &self.device,
             &mut encoder,
             &frame.scene,
@@ -489,7 +489,7 @@ impl NativeRenderer {
                         &mut encoder,
                         frame,
                         targets.scene.raw(),
-                        (&self.images, &self.surfaces),
+                        (&self.images, &self.surfaces, &generator_draws),
                     )?,
             )
         } else {
@@ -512,7 +512,7 @@ impl NativeRenderer {
                     &mut encoder,
                     frame,
                     (targets.scene.raw(), destination),
-                    (&self.images, &self.surfaces),
+                    (&self.images, &self.surfaces, &generator_draws),
                 )?;
             self.output.record_aa(
                 &self.device,
@@ -535,7 +535,7 @@ impl NativeRenderer {
                     &mut encoder,
                     frame,
                     (targets.scene.raw(), motion.as_ref(), destination),
-                    (&self.images, &self.surfaces),
+                    (&self.images, &self.surfaces, &generator_draws),
                 )?;
             self.output.record_aa(
                 &self.device,
@@ -558,7 +558,7 @@ impl NativeRenderer {
                     &mut encoder,
                     frame,
                     (targets.scene.raw(), destination),
-                    (&self.images, &self.surfaces),
+                    (&self.images, &self.surfaces, &generator_draws),
                 )?;
             self.output.record_aa(
                 &self.device,

@@ -140,6 +140,7 @@ impl DepthOutput {
         caches: (
             &crate::image_cache::ImageCache,
             &crate::surface_cache::SurfaceCache,
+            &std::collections::BTreeMap<Vec<u16>, crate::AuxiliaryGeneratorDraw>,
         ),
     ) -> Result<(), RenderError> {
         let plan = frame
@@ -151,13 +152,16 @@ impl DepthOutput {
                 .targets
                 .as_ref()
                 .ok_or_else(|| RenderError::Invalid("depth targets missing".into()))?;
-            let bindings = auxiliary.bindings(frame, caches)?;
+            let bindings = auxiliary.bindings(frame, (caches.0, caches.1))?;
             self.auxiliary.record(
                 device,
                 encoder,
                 plan,
                 targets,
-                &bindings.iter().map(Option::as_ref).collect::<Vec<_>>(),
+                (
+                    &bindings.iter().map(Option::as_ref).collect::<Vec<_>>(),
+                    caches.2,
+                ),
             )?;
         }
         let bind = if plan.ready {
