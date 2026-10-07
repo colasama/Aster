@@ -30,6 +30,7 @@ pub struct NativeOptions {
     pub gpu_budget_bytes: u64,
     /// Optional GPU-resident post-effect cache limit; zero disables result reuse.
     pub layer_cache_bytes: u64,
+    pub effect_regions: bool,
     pub timeout: Duration,
 }
 
@@ -41,6 +42,7 @@ pub struct RenderedFrame {
     pub lut_cache: crate::LutCacheStatistics,
     pub surface_cache: crate::SurfaceCacheStatistics,
     pub layer_cache: crate::LayerCacheStatistics,
+    pub effect_regions: crate::EffectRegionStatistics,
     _lease: Arc<()>,
 }
 
@@ -344,6 +346,10 @@ impl NativeRenderer {
         let depth = targets.depth.create_view(&Default::default());
         let display = targets.display.create_view(&Default::default());
         let output = targets.output.create_view(&Default::default());
+        let mut effect_regions = crate::effect_region::EffectRegions {
+            enabled: self.options.effect_regions,
+            statistics: Default::default(),
+        };
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -361,6 +367,7 @@ impl NativeRenderer {
                     &self.surfaces,
                     &frame.surfaces,
                     &mut self.layer_cache,
+                    &mut effect_regions,
                 ),
                 &self.output,
             )?;
@@ -375,6 +382,7 @@ impl NativeRenderer {
                 &self.surfaces,
                 &frame.surfaces,
                 &mut self.layer_cache,
+                &mut effect_regions,
             ),
             &self.output,
         )?;
@@ -437,6 +445,7 @@ impl NativeRenderer {
             lut_cache: self.output.luts.statistics,
             surface_cache: self.surfaces.statistics,
             layer_cache: self.layer_cache.statistics,
+            effect_regions: effect_regions.statistics,
             _lease: lease,
         })
     }

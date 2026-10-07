@@ -302,10 +302,11 @@ impl OutputPipelines {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         plan: &crate::layer_plan::LayerPlan,
-        source: &wgpu::TextureView,
-        output: &wgpu::TextureView,
+        targets: (&wgpu::TextureView, &wgpu::TextureView),
         pyramids: (&wgpu::TextureView, &wgpu::TextureView),
+        region: Option<crate::effect_region::PixelRegion>,
     ) -> Result<(), RenderError> {
+        let (source, output) = targets;
         let operations = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Supplied layer operations"),
             contents: if plan.operations.is_empty() {
@@ -342,6 +343,12 @@ impl OutputPipelines {
             })],
             ..Default::default()
         });
+        if let Some(region) = region {
+            if region.width == 0 || region.height == 0 {
+                return Ok(());
+            }
+            pass.set_scissor_rect(region.x, region.y, region.width, region.height);
+        }
         pass.set_pipeline(pipeline);
         pass.set_bind_group(0, &bindings, &[]);
         pass.draw(0..3, 0..1);

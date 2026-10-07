@@ -887,3 +887,12 @@ inputs take priority; pressure retires old GPU entries before replacements are a
 valid only after successful GPU submission; abandoned encoders cannot publish a cache generation.
 `render-plan --layer-cache-bytes 0` disables reuse for diagnostic comparisons. Receipts expose
 allocation, hit, miss, store, eviction, active-entry and resident-byte counters.
+
+
+Native isolated effect passes can use conservative pixel scissors derived from the supplied clip-space
+triangles, with raster/filter guard pixels and shader-specific alpha padding. Admission currently
+covers neutral base controls, bounded posterize/tint/channel color operations, LUTs, outer glow and
+stroke; other programs and adjustments retain full-frame passes. Targets still clear in full and
+composition still uses the current backdrop. Empty regions clear without drawing. The diagnostic
+`--full-effect-regions` switch restores full-frame execution; receipts count actual isolated shader
+passes and full/drawn pixel areas separately from cache hits.

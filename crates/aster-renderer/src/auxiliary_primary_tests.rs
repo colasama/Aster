@@ -16,6 +16,7 @@ impl AuxiliaryFixture {
     fn new() -> Result<Self, Box<dyn std::error::Error>> {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
         let renderer = NativeRenderer::new(NativeOptions {
+            effect_regions: true,
             layer_cache_bytes: 67_108_864,
             dxcompiler: cfg!(target_os = "windows")
                 .then(|| root.join("node_modules/electron/dist/dxcompiler.dll")),

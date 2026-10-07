@@ -46,6 +46,7 @@ impl ImageFixture {
 fn native_image_cache_reuses_generations_and_admits_atomically()
 -> Result<(), Box<dyn std::error::Error>> {
     let mut renderer = NativeRenderer::new(NativeOptions {
+        effect_regions: true,
         layer_cache_bytes: 67_108_864,
         dxcompiler: None,
         backend: if cfg!(target_os = "windows") {

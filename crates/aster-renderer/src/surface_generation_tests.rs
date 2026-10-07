@@ -15,7 +15,7 @@ use crate::{
 pub(super) struct RecursiveFixture;
 
 impl RecursiveFixture {
-    fn frame()
+    pub(super) fn frame()
     -> Result<(SuppliedFrame, aster_render_ir::ResourceRegistry), Box<dyn std::error::Error>> {
         let (mut root, registry) = LayerFixture::frame()?;
         let (mut leaf, _) = LayerFixture::frame()?;

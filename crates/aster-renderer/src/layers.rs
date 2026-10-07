@@ -142,10 +142,11 @@ impl LayerPipelines {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         plan: &LayerPlan,
-        targets: &LayerTargets,
+        target: (&LayerTargets, Option<crate::effect_region::PixelRegion>),
         output: &OutputPipelines,
         scene: &wgpu::Texture,
     ) -> Result<(), RenderError> {
+        let (targets, region) = target;
         let source = targets.input.create_view(&Default::default());
         let effected = targets.output.create_view(&Default::default());
         if plan.composite == aster_render_ir::EffectComposite::Replace {
@@ -200,12 +201,12 @@ impl LayerPipelines {
             device,
             encoder,
             plan,
-            &source,
-            &effected,
+            (&source, &effected),
             (
                 targets.blur.as_ref().map_or(&source, |p| &p.view),
                 targets.glow.as_ref().map_or(&source, |p| &p.view),
             ),
+            region,
         )?;
         self.composite(device, encoder, plan, targets, scene)
     }

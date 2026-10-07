@@ -459,8 +459,8 @@ remain valid. Existing whole-frame and supplemental references are unchanged.
 
 
 The native layer-cache gate replays all 1232 current corpus frames and sixteen complete surface
-frames with caching disabled, then with immediate repeated frames on retained devices. All 3744
-outputs must match the normal native receipt's RGBA hash exactly, and at least one retained output
+frames with caching disabled, with immediate repeated frames on retained devices, and with both
+caching and effect-region scissors disabled. All 4992 outputs must match the normal native receipt's RGBA hash exactly, and at least one retained output
 must be reused. Compiler selection matches each case's existing native path. Disabled runs must
 allocate no layer cache; enabled residency must stay within the explicit 64 MiB limit. This compares
 the optimization to uncached native execution in addition to G3's unchanged TS reference comparisons.
@@ -469,6 +469,15 @@ cache and total-budget pressure, retained generations, and abandoned encoder cop
 GPU scenes prove descendant changes invalidate parent outputs and match uncached rendering. CPU
 tests check geometry, lighting, LUT, media generation, aliases, clear/load semantics and recursive
 time dependencies. A shared-WGSL consumer audit pins every opcode that reads or changes effect time;
-unknown revisions retain the clock. Tint, LUT and combined layer-style replays must actually admit and reuse their
-precomposition inputs. Region narrowing and reduced-resolution SSAA effects remain separate tasks;
-adjustments and dependencies with unknown history remain ineligible for result reuse.
+unknown revisions retain the clock. Tint, LUT and combined layer-style replays must actually admit and
+reuse their
+precomposition inputs. Reduced-resolution SSAA effects remain a separate task; adjustments and dependencies with unknown
+history remain ineligible for result reuse.
+
+Region comparisons must demonstrate a positive reduction in drawn pixel area with the cache disabled;
+full-region controls must report zero bounded passes and equal full/drawn areas. GPU fixtures compare
+padded outer glow and stroke against full-frame output at fractional geometry edges, then move the
+geometry offscreen to prove empty regions clear correctly. CPU controls cover conservative padding,
+unproved warps, non-neutral base settings and non-finite vertices. This admission intentionally keeps
+spatial programs with unproved footprints full-frame; a surface quad spanning the viewport remains
+full-frame even if its child texture contains transparent areas.

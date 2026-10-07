@@ -124,11 +124,13 @@ impl ScenePipelines {
             &crate::surface_cache::SurfaceCache,
             &crate::surface_plan::SurfacePlan,
             &mut crate::layer_cache::LayerCache,
+            &mut crate::effect_region::EffectRegions,
         ),
         output: &crate::output::OutputPipelines,
     ) -> Result<(), RenderError> {
         let (scene, depth) = target;
-        let (images, surfaces, surface_plan, cache) = resources;
+        let (images, surfaces, surface_plan, cache, effects) = resources;
+        let regions = effects.collect(frame)?;
         let layer_keys = crate::layer_key::LayerKey::collect(frame, &cache.generations)?;
         let lighting = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Supplied lighting"),
@@ -193,6 +195,7 @@ impl ScenePipelines {
         let mut index = 0;
         while index < frame.root.commands.len() {
             let cache_key = layer_keys.get(&index);
+            let region = regions.get(&index).copied();
             if let Some(key) = cache_key
                 && let Some(targets) = &layer_targets
                 && cache.restore(&key.hash, encoder, targets.output.raw())
@@ -221,7 +224,7 @@ impl ScenePipelines {
                     .as_ref()
                     .ok_or_else(|| RenderError::Invalid("adjustment targets absent".into()))?;
                 self.layers
-                    .finish(device, encoder, plan, targets, output, scene)?;
+                    .finish(device, encoder, plan, (targets, None), output, scene)?;
                 index += 1;
                 continue;
             }
@@ -379,7 +382,8 @@ impl ScenePipelines {
                     .as_ref()
                     .ok_or_else(|| RenderError::Invalid("layer allocation absent".into()))?;
                 self.layers
-                    .finish(device, encoder, plan, targets, output, scene)?;
+                    .finish(device, encoder, plan, (targets, region), output, scene)?;
+                effects.record(frame.header.render_target, region);
                 if let Some(key) = cache_key {
                     cache.store(&key.hash, encoder, targets.output.raw());
                 }

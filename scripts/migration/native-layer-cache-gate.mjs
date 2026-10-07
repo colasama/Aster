@@ -11,13 +11,21 @@ import {
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 
-/** Require byte-identical first, repeated and disabled cache output on every executable whole frame. */
+/** Require exact cached, uncached and unbounded output on every executable whole frame. */
 export async function runNativeLayerCacheGate(
   context,
   { binary, compiler, frames, surfaceFrames },
   execute = runStep,
 ) {
-  const report = { status: "failed", frames: [], batches: [], exact: 0, hits: 0 };
+  const report = {
+    status: "failed",
+    frames: [],
+    batches: [],
+    exact: 0,
+    hits: 0,
+    bounded_passes: 0,
+    saved_pixels: 0,
+  };
   const reader = new M0Evidence(context.root);
   const local = (path) => relative(context.root, path).replaceAll("\\", "/");
   try {
@@ -47,8 +55,12 @@ export async function runNativeLayerCacheGate(
     report.required_count = inputs.length;
     for (const dxc of [false, true]) {
       const selected = inputs.filter((input) => input.dxc === dxc);
-      for (const enabled of [false, true]) {
-        const label = `${dxc ? "dxc" : "default"}-${enabled ? "cached" : "uncached"}`;
+      for (const [enabled, fullRegions] of [
+        [false, false],
+        [true, false],
+        [false, true],
+      ]) {
+        const label = `${dxc ? "dxc" : "default"}-${fullRegions ? "unbounded" : enabled ? "cached" : "uncached"}`;
         const jobs = selected.flatMap((input) =>
           (enabled ? ["first", "repeated"] : ["disabled"]).map((phase) => ({
             plan: input.plan,
@@ -69,6 +81,7 @@ export async function runNativeLayerCacheGate(
               "--layer-cache-bytes",
               enabled ? "67108864" : "0",
               ...(dxc && compiler ? ["--dxcompiler", compiler] : []),
+              ...(fullRegions ? ["--full-effect-regions"] : []),
             ],
             timeout_ms: 600_000,
           },
@@ -98,6 +111,15 @@ export async function runNativeLayerCacheGate(
             `Cache changed pixels: ${input.id}/${label}/${index}`,
           );
           assert(receipt.layer_cache.resident_bytes <= 67108864);
+          assert(receipt.effect_regions.drawn_pixels <= receipt.effect_regions.full_pixels);
+          if (fullRegions) {
+            assert.equal(receipt.effect_regions.bounded_passes, 0);
+            assert.equal(receipt.effect_regions.drawn_pixels, receipt.effect_regions.full_pixels);
+          } else if (!enabled) {
+            report.bounded_passes += receipt.effect_regions.bounded_passes;
+            report.saved_pixels +=
+              receipt.effect_regions.full_pixels - receipt.effect_regions.drawn_pixels;
+          }
           if (!enabled) {
             assert.equal(receipt.layer_cache.allocations, 0);
             assert.equal(receipt.layer_cache.hits, 0);
@@ -131,13 +153,18 @@ export async function runNativeLayerCacheGate(
             mode: label,
             phase: enabled ? (index % 2 ? "repeated" : "first") : "disabled",
             cache: receipt.layer_cache,
+            regions: receipt.effect_regions,
           });
           report.exact += 1;
         }
         if (enabled) report.hits += receipts.at(-1).layer_cache.hits;
       }
     }
-    assert.equal(report.exact, inputs.length * 3);
+    assert.equal(report.exact, inputs.length * 4);
+    assert(
+      report.bounded_passes > 0 && report.saved_pixels > 0,
+      "No isolated effect area was narrowed",
+    );
     assert(report.hits > 0, "No retained post-effect output was reused");
     report.checked_files = await reader.stable();
     report.status = "passed";

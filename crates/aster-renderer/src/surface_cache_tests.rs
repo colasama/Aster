@@ -42,6 +42,7 @@ impl SurfaceFixture {
 fn native_surface_cache_admits_atomically_reuses_and_retires_targets()
 -> Result<(), Box<dyn std::error::Error>> {
     let mut renderer = NativeRenderer::new(NativeOptions {
+        effect_regions: true,
         layer_cache_bytes: 67_108_864,
         dxcompiler: None,
         adapter_name: None,

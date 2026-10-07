@@ -169,6 +169,7 @@ fn native_layer_cache_reuses_invalidates_and_falls_back_without_pixel_changes()
     .collect();
     plan.uniforms[64..68].copy_from_slice(&1_f32.to_le_bytes());
     let mut renderer = NativeRenderer::new(NativeOptions {
+        effect_regions: true,
         dxcompiler: cfg!(target_os = "windows").then(|| {
             std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .join("../../node_modules/electron/dist/dxcompiler.dll")
@@ -282,8 +283,12 @@ fn native_layer_cache_reuses_invalidates_and_falls_back_without_pixel_changes()
         changed_effect
     );
     surface_generation_tests::RecursiveFixture::verify_gpu(&mut renderer)?;
+    effect_region_tests::RegionFixture::verify_gpu(&mut renderer)?;
     Ok(())
 }
 
 #[path = "surface_generation_tests.rs"]
 mod surface_generation_tests;
+
+#[path = "effect_region_tests.rs"]
+mod effect_region_tests;
