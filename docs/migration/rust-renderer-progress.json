@@ -181,49 +181,67 @@
     }
   },
   "last_cycle": {
-    "id": 91,
-    "time": "2026-10-07T07:53:25.180652+00:00",
+    "id": 92,
+    "time": "2026-10-07T08:22:10.049383+00:00",
     "milestone": "M4",
     "task": "M4-T5",
     "outcome": "passed",
-    "commit": "c2055e315b7163d4457cdf54ae80bea76aef6e00",
-    "verification": "artifacts/migration/verify-2026-10-07T07-34-08-909Z-84046749.json",
-    "verification_sha256": "e032d05b54d693f62c3df555fb6975eaec126acefd870fbe8e6de062a2a18cf0",
+    "commit": "f149e6a1850490a3eb418f9ac33e378b92f913f1",
+    "verification": "artifacts/migration/verify-2026-10-07T08-08-39-051Z-2870e845.json",
+    "verification_sha256": "2f675f22e708bb61ac4c17527f7cf31fbe1be9792b4e3eee6f2e8e8979754cc6",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 121809
+        "duration_ms": 96090
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 982703
+        "duration_ms": 657277
       }
     ],
-    "verification_duration_ms": 1109667,
-    "cache_diagnostic": {
-      "path": "artifacts/migration/cycle91-cache-diagnostic/report.json",
-      "sha256": "0f9c62271be72d4f5d64c0dca37e3a906f54140700b3229abc1971043e08cd1e",
+    "verification_duration_ms": 755016,
+    "cache_diagnostics": [
+      {
+        "path": "artifacts/migration/cycle92-cache-diagnostic/report.json",
+        "sha256": "ad1a4b5fba192742939fcd8b3a80e8f1357165320f4a0ad26ef313d55bd23b6d",
+        "status": "passed",
+        "whole_frames": 1248,
+        "exact_outputs": 3744,
+        "cache_hits": 1222
+      },
+      {
+        "path": "artifacts/migration/cycle92-static-cache-diagnostic/report.json",
+        "sha256": "b658c546e781d412d59d2f8afc41931e2bd8c181e2f1740b6ed55ba77e0f3298",
+        "status": "passed",
+        "whole_frames": 1248,
+        "exact_outputs": 3744,
+        "cache_hits": 1240
+      }
+    ],
+    "gpu_controls": {
+      "path": "artifacts/migration/cycle92-cache-gpu.log",
+      "sha256": "64f18cc0bd1d7f743e7e6011358542b1d11d24c9650692c7780f4a74b521556e",
       "status": "passed",
-      "frames": 1248,
-      "exact_outputs": 3744,
-      "cache_hits": 106
+      "scope": "Recursive three-scene invalidation, retained generations, budgets, fused effects and abandoned copies"
     },
     "bootstrap_fixes": [
-      "Corrected test media format spelling to the existing Rgba8UnormSrgb variant; no schema or dependency change."
+      "Use slice coercions after extracting reusable fingerprint encoding.",
+      "Corrected synthetic full-screen triangle draw counts after the original geometry range was retained; CPU and GPU controls passed after correction."
     ],
+    "time_dependency_audit": "Shared post-process opcode and direct uniform-read audits prove the cache normalization policy; grain, unknown operations and clock consumers retain exact time.",
     "cache_acceptance": {
       "status": "passed",
       "required_count": 1248,
       "exact": 3744,
-      "hits": 106
+      "hits": 1240
     },
-    "next_step": "Add dependency-complete recursive surface fingerprints to layer caching; retain unused generations within the cache budget to avoid waits when there is no memory pressure. Then implement padded regions and evaluate reduced-resolution SSAA eligibility.",
+    "next_step": "Narrow isolated native effect passes to conservative transformed geometry bounds plus proven effect padding; compare enabled/disabled paths over the complete executable corpus. Then evaluate output-resolution SSAA eligibility.",
     "notes": [
-      "All 1248 executable whole frames produce exact pixels across disabled, first and repeated cache execution (3744 outputs, 106 cache hits). Existing TS pair self-reviews remain valid; no references or tolerances changed.",
-      "GPU controls cover a real fused effect, cross-time reuse, current-backdrop composition, effect invalidation, total/cache budget fallback, and abandoned-encoder generation rejection.",
-      "This increment caches isolated geometry/media results only. Recursive surface inputs, adjustments, region narrowing and SSAA reductions remain open; production preview/export remain TS."
+      "All 1248 executable whole frames pass exact disabled/first/repeated native cache comparisons (3744 outputs, 1240 hits). Tint, LUT and combined styles prove real precomposition cache admission and reuse.",
+      "GPU controls prove three-level descendant invalidation and uncached equality; retained valid generations avoid replacement while capacity permits. Shared shader time-consumer audits keep dynamic effects keyed by time.",
+      "Unknown history, unsupported materials/dependencies and adjustments stay uncached. Padded effect regions and reduced-resolution SSAA remain open; no tolerance or frozen reference changes."
     ]
   },
   "milestones": [
@@ -20179,13 +20197,13 @@
           "title": "Cache static layer outputs, narrow padded effect regions and evaluate low-frequency SSAA effects at output resolution where parity allows",
           "status": "in_progress",
           "last_increment": {
-            "cycle": 91,
-            "commit": "c2055e315b7163d4457cdf54ae80bea76aef6e00",
-            "verification": "artifacts/migration/verify-2026-10-07T07-34-08-909Z-84046749.json",
-            "verification_sha256": "e032d05b54d693f62c3df555fb6975eaec126acefd870fbe8e6de062a2a18cf0",
-            "scope": "Optional isolated geometry/media post-effect output reuse. Exact time retained except audited time-independent operations and zero grain. Recursive surfaces and adjustments remain uncached; region bounds and SSAA reductions remain open.",
+            "cycle": 92,
+            "commit": "f149e6a1850490a3eb418f9ac33e378b92f913f1",
+            "verification": "artifacts/migration/verify-2026-10-07T08-08-39-051Z-2870e845.json",
+            "verification_sha256": "2f675f22e708bb61ac4c17527f7cf31fbe1be9792b4e3eee6f2e8e8979754cc6",
+            "scope": "GPU-resident isolated layer outputs include recursive supplied surface generations, shader-audited time dependencies and bounded retained generations. Unknown histories and adjustments remain uncached.",
             "cache_exact_outputs": 3744,
-            "cache_hits": 106
+            "cache_hits": 1240
           }
         },
         {
@@ -154805,6 +154823,70 @@
         "GPU controls cover a real fused effect, cross-time reuse, current-backdrop composition, effect invalidation, total/cache budget fallback, and abandoned-encoder generation rejection.",
         "This increment caches isolated geometry/media results only. Recursive surface inputs, adjustments, region narrowing and SSAA reductions remain open; production preview/export remain TS."
       ]
+    },
+    {
+      "id": 92,
+      "time": "2026-10-07T08:22:10.049383+00:00",
+      "milestone": "M4",
+      "task": "M4-T5",
+      "outcome": "passed",
+      "commit": "f149e6a1850490a3eb418f9ac33e378b92f913f1",
+      "verification": "artifacts/migration/verify-2026-10-07T08-08-39-051Z-2870e845.json",
+      "verification_sha256": "2f675f22e708bb61ac4c17527f7cf31fbe1be9792b4e3eee6f2e8e8979754cc6",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 96090
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 657277
+        }
+      ],
+      "verification_duration_ms": 755016,
+      "cache_diagnostics": [
+        {
+          "path": "artifacts/migration/cycle92-cache-diagnostic/report.json",
+          "sha256": "ad1a4b5fba192742939fcd8b3a80e8f1357165320f4a0ad26ef313d55bd23b6d",
+          "status": "passed",
+          "whole_frames": 1248,
+          "exact_outputs": 3744,
+          "cache_hits": 1222
+        },
+        {
+          "path": "artifacts/migration/cycle92-static-cache-diagnostic/report.json",
+          "sha256": "b658c546e781d412d59d2f8afc41931e2bd8c181e2f1740b6ed55ba77e0f3298",
+          "status": "passed",
+          "whole_frames": 1248,
+          "exact_outputs": 3744,
+          "cache_hits": 1240
+        }
+      ],
+      "gpu_controls": {
+        "path": "artifacts/migration/cycle92-cache-gpu.log",
+        "sha256": "64f18cc0bd1d7f743e7e6011358542b1d11d24c9650692c7780f4a74b521556e",
+        "status": "passed",
+        "scope": "Recursive three-scene invalidation, retained generations, budgets, fused effects and abandoned copies"
+      },
+      "bootstrap_fixes": [
+        "Use slice coercions after extracting reusable fingerprint encoding.",
+        "Corrected synthetic full-screen triangle draw counts after the original geometry range was retained; CPU and GPU controls passed after correction."
+      ],
+      "time_dependency_audit": "Shared post-process opcode and direct uniform-read audits prove the cache normalization policy; grain, unknown operations and clock consumers retain exact time.",
+      "cache_acceptance": {
+        "status": "passed",
+        "required_count": 1248,
+        "exact": 3744,
+        "hits": 1240
+      },
+      "next_step": "Narrow isolated native effect passes to conservative transformed geometry bounds plus proven effect padding; compare enabled/disabled paths over the complete executable corpus. Then evaluate output-resolution SSAA eligibility.",
+      "notes": [
+        "All 1248 executable whole frames pass exact disabled/first/repeated native cache comparisons (3744 outputs, 1240 hits). Tint, LUT and combined styles prove real precomposition cache admission and reuse.",
+        "GPU controls prove three-level descendant invalidation and uncached equality; retained valid generations avoid replacement while capacity permits. Shared shader time-consumer audits keep dynamic effects keyed by time.",
+        "Unknown history, unsupported materials/dependencies and adjustments stay uncached. Padded effect regions and reduced-resolution SSAA remain open; no tolerance or frozen reference changes."
+      ]
     }
   ],
   "known_boundaries": [
@@ -154977,42 +155059,5 @@
         "sha256": "2a52867f6da0c4ad4e8cd1ef9831d5eb9be11743fe6f26fa9f12fe8d5c83797a"
       }
     }
-  ],
-  "active_cycle": {
-    "id": 92,
-    "started_at": "2026-10-07T07:54:43.669296+00:00",
-    "milestone": "M4",
-    "task": "M4-T5",
-    "base_commit": "bc871dcff9cc4e48006f914d18c2aa5c0e7d3825",
-    "intent": "Extend layer result reuse to recursively fingerprinted precomposition inputs and retain unused generations under the optional budget without pressure-free GPU waits.",
-    "cache_diagnostics": [
-      {
-        "path": "artifacts/migration/cycle92-cache-diagnostic/report.json",
-        "sha256": "ad1a4b5fba192742939fcd8b3a80e8f1357165320f4a0ad26ef313d55bd23b6d",
-        "status": "passed",
-        "whole_frames": 1248,
-        "exact_outputs": 3744,
-        "cache_hits": 1222
-      },
-      {
-        "path": "artifacts/migration/cycle92-static-cache-diagnostic/report.json",
-        "sha256": "b658c546e781d412d59d2f8afc41931e2bd8c181e2f1740b6ed55ba77e0f3298",
-        "status": "passed",
-        "whole_frames": 1248,
-        "exact_outputs": 3744,
-        "cache_hits": 1240
-      }
-    ],
-    "gpu_controls": {
-      "path": "artifacts/migration/cycle92-cache-gpu.log",
-      "sha256": "64f18cc0bd1d7f743e7e6011358542b1d11d24c9650692c7780f4a74b521556e",
-      "status": "passed",
-      "scope": "Recursive three-scene invalidation, retained generations, budgets, fused effects and abandoned copies"
-    },
-    "bootstrap_fixes": [
-      "Use slice coercions after extracting reusable fingerprint encoding.",
-      "Corrected synthetic full-screen triangle draw counts after the original geometry range was retained; CPU and GPU controls passed after correction."
-    ],
-    "time_dependency_audit": "Shared post-process opcode and direct uniform-read audits prove the cache normalization policy; grain, unknown operations and clock consumers retain exact time."
-  }
+  ]
 }
