@@ -244,87 +244,70 @@
     }
   },
   "last_cycle": {
-    "id": 110,
-    "time": "2026-10-07T19:10:23.185298+00:00",
+    "id": 111,
+    "time": "2026-10-07T20:05:40.636337+00:00",
     "milestone": "M7",
-    "task": "M7-T3",
+    "task": "M7-T4",
     "outcome": "passed",
-    "commit": "71c92f83e49760b96f5a6f8f36fb4cb3082028f7",
-    "verification": "artifacts/migration/verify-2026-10-07T18-50-51-998Z-9ef9dc2f.json",
-    "verification_sha256": "218cb0ca252e6034b7e67a2940ecb993b6ed570996427d07e0a8044d559a0737",
+    "commit": "74b13ced04e6f39cbbe0c1f6a0ea23b058cb1ec4",
+    "verification": "artifacts/migration/verify-2026-10-07T19-34-23-125Z-697d1551.json",
+    "verification_sha256": "8d7cb5b355cb0df7b9aa4c8113ae6cfd23898a0e0fbb24dca33417d4222a294a",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 120874
+        "duration_ms": 159512
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 974928
+        "duration_ms": 1522175
       }
     ],
-    "verification_duration_ms": 1097843,
+    "verification_duration_ms": 1697807,
     "milestone_exit_satisfied": false,
-    "animated_normal": {
-      "frames": 24,
-      "exact_frames": 23,
-      "nonexact_frames": 1,
+    "particles": {
+      "frames": 12,
+      "exact_frames": 3,
+      "nonexact_frames": 9,
       "nonexact_max_abs": 1,
-      "exact_cache_comparisons": 24,
-      "native_executions": 48,
-      "reference_controls": 12,
-      "independent_ts_captures": 2,
-      "self_reviews_accepted": 24,
-      "texture_decodes": 3,
-      "texture_resident_bytes": 360,
-      "gpu_image_uploads": 3,
-      "gpu_image_resident_bytes": 360,
-      "reference": {
-        "path": "artifacts/migration/cycle110-animated-material-capture/report.json",
-        "sha256": "fdc74b9073037887d0e604dc9c2e785973865e8c13834173d4e534c0192562bb",
-        "frames": 24,
-        "controls": 12,
-        "scope": "Independently repeated TS first-frame animated WebP normals, full and offset subframes, transparent canvas and blending controls across four AA modes"
-      }
+      "self_reviews_accepted": 12,
+      "variants": ["billboard", "mesh", "streak"],
+      "rational_frames": [3, 15, 30, 54],
+      "generator_budget_rejected": true
     },
     "regressions": {
-      "pixel_frames": 1288,
-      "cache_exact_comparisons": 5216,
+      "pixel_frames": 1300,
+      "cache_exact_comparisons": 5264,
       "scene_output_frames": 64,
       "hdr_material_frames": 60,
-      "normal_material_frames": 144
+      "normal_material_frames": 144,
+      "animated_normal_frames": 24
     },
     "diagnostics": [
-      "artifacts/migration/cycle110-header-tests.log",
-      "artifacts/migration/cycle110-webp-tests.log",
-      "artifacts/migration/cycle110-texture-tests.log",
-      "artifacts/migration/cycle110-clippy.log",
-      "artifacts/migration/cycle110-build.log",
-      "artifacts/migration/cycle110-animated-capture-v2/provided.json",
-      "artifacts/migration/cycle110-animated-native/report.json"
+      "artifacts/migration/cycle111-input-tests.log",
+      "artifacts/migration/cycle111-final-clippy.log",
+      "artifacts/migration/cycle111-final-build.log",
+      "artifacts/migration/cycle111-particles-final/report.json"
     ],
     "failed_attempts": [
       {
-        "report": "artifacts/migration/cycle110-animated-capture.log",
-        "reason": "Electron top-level await on app readiness deadlocked module initialization. Moved the capture into the established asynchronous main pattern; the independent retry passed."
+        "report": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-streak-3/report.json",
+        "reason": "Rejected unrestricted position arithmetic: one lost streak edge pixel (186,63), max error 223. Invariant position compilation fixes coverage without tolerance changes; original resource identities remain unchanged."
       },
       {
-        "report": "artifacts/migration/cycle110-animated-decode.log",
-        "reason": "The codec animated source-over operation reduced opaque channels by one. Decode the bounded first subframe as a still and copy it onto a transparent canvas, matching all captured bytes exactly."
-      },
-      {
-        "report": "artifacts/migration/cycle110-animated-native/report.json",
-        "reason": "All 24 pixel and cache comparisons passed before self-review records were appended; final full verification requires the recorded reviews."
+        "report": "artifacts/migration/cycle111-particles/render.log",
+        "reason": "The batch CLI correctly rejected relative output paths. Diagnostic retried with absolute contained paths."
       }
     ],
-    "next_step": "Start M7-T4: execute bundled scene generators through the shared WGSL ABI with supplied time and audio-analysis inputs.",
+    "next_step": "Continue M7-T4 with frozen audio-spectrum bars/ring/scope invocations and generated auxiliary output; retain recursive integration and full M7 coverage for T5/T6.",
     "notes": [
-      "The adapter validates RIFF lengths, canvas/subframe bounds, flags, every nested image extent, duplicate bitstreams and truncation before codec execution. Encoded resources retain their original identities.",
-      "The browser first-frame oracle ignores later frames and the opaque animation background hint. Full/offset frames and blend/replace variants agree on two independently created browser devices.",
-      "Inspected all 24 contact sheets and the SSAA2x heatmap directly. One one-code-value floating-point residual passes unchanged GPU and structural limits; no tolerance changes.",
-      "M7-T3 is complete on the owner-authorized Windows host. Non-Windows JPEG remains an explicit capability error; point-shadow behavior remains the retained TS unsupported boundary.",
-      "M7 remains in progress for generators, recursive scene integration and final coverage. Production preview/export routing is unchanged; no native delivery performance acceptance is claimed."
+      "Native supplied graph compute and ordered beauty drawing keep instance and indirect buffers GPU-resident. Context, parameters, capacity, program resources, device dispatch/storage limits and frame identity are validated.",
+      "Program pipelines are shared by structural graph identity and inactive programs are retired. Transient buffers are rebuilt from supplied time-addressed data.",
+      "Marked generator position outputs invariant in Naga IR; independent contact sheets and heatmaps pass unchanged GPU and structural limits. No shader source, ABI or tolerance change.",
+      "Only an existing locked serde_json dependency edge and wgpu naga-ir feature were added; no new package version or bundled native library.",
+      "All required full gates passed with source_unchanged=true. The initial commit hook lacked pnpm on PATH; rerunning with the established toolchain PATH passed every hook without bypassing checks.",
+      "M7-T4 remains in progress for audio and auxiliary coverage; production preview/export routing and native delivery performance acceptance remain unchanged."
     ]
   },
   "milestones": [
@@ -20659,7 +20642,22 @@
         {
           "id": "M7-T4",
           "title": "Execute bundled scene generators through shared WGSL ABI with time and audio inputs",
-          "status": "pending"
+          "status": "in_progress",
+          "last_increment": {
+            "cycle": 111,
+            "commit": "74b13ced04e6f39cbbe0c1f6a0ea23b058cb1ec4",
+            "verification": "artifacts/migration/verify-2026-10-07T19-34-23-125Z-697d1551.json",
+            "completed": [
+              "Root supplied generator compute and ordered beauty draw on GPU",
+              "Frozen billboard, mesh and streak frames with invariant position compilation",
+              "Resource identity, realization, shader text and allocation-budget rejection controls"
+            ],
+            "remaining": [
+              "Supplied audio-analysis generator coverage",
+              "Generated auxiliary output",
+              "Recursive integration in M7-T5 and complete coverage audit in M7-T6"
+            ]
+          }
         },
         {
           "id": "M7-T5",
@@ -20676,17 +20674,17 @@
         "status": "passed",
         "required_gates_passed": true,
         "milestone_exit_satisfied": false,
-        "report": "artifacts/migration/verify-2026-10-07T18-50-51-998Z-9ef9dc2f.json",
+        "report": "artifacts/migration/verify-2026-10-07T19-34-23-125Z-697d1551.json",
         "gates": [
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 120874
+            "duration_ms": 159512
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 974928
+            "duration_ms": 1522175
           }
         ]
       }
@@ -197492,6 +197490,2465 @@
         }
       },
       "sequence": null
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 6.944444444444444e-5,
+        "mean_squared_error": 6.944444444444444e-5,
+        "rgb_mean_squared_error": 6.944444444444444e-5,
+        "psnr": {
+          "kind": "finite",
+          "db": 89.71442852963159
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 89.71442852963159
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          0.9999999822032132, 0.9999999799416535, 0.9999999854990429, 0.9999999849317432
+        ],
+        "mean": 0.99999998254797,
+        "rgba_mean": 0.9999999831439133,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [1.736111111111111e-5, -1.736111111111111e-5, -3.472222222222222e-5, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.20962084886773816,
+          "candidate_rms": 0.2096205797231402,
+          "reference_axis_ratio": 0.3801431383775769,
+          "candidate_axis_ratio": 0.3801455755071155,
+          "reference_window_energy_fraction": 0.9886999767860406,
+          "candidate_window_energy_fraction": 0.9886999620028196,
+          "active_frequencies": 10526,
+          "spectral_bins": 524288,
+          "peak_ratio": 7.851528058023506,
+          "peak_to_sidelobe_ratio": 157.7469313700891,
+          "peak_coherence": 0.9999999988246345,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 15,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 6.944444444444444e-5,
+        "previous": {
+          "status": "compared",
+          "frame": 14,
+          "mean_squared_error": 127.2066970486111,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 16,
+          "mean_squared_error": 122.49509114583333,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "e6369594a4b90c36ee5b206d549ff9b925b7f2b5bef9c7ee36d250217c32e763",
+      "candidate_rgba_sha256": "5428664649e93851052e481cd095f3f0bdf842c999c51d8ef79d99b2b5d660d0",
+      "case_id": "scene-particles-billboard",
+      "frame": 15,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:32:12.660476+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-billboard-15/report.json",
+        "report_sha256": "00740d100d01320cbf190d622f9e478010a2ef151f37212a714033171def4c34",
+        "contact_sheet": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-billboard-15/contact-sheet.png",
+        "contact_sheet_sha256": "8b46b01f18dc86520d6304cd0cbd5eff2bf1ba55dfebd64b1fc2a6fe76e869b2",
+        "heatmap": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-billboard-15/heatmap.png",
+        "heatmap_sha256": "6ad2ce6f7e6108f2f39b5b4704342ddf19795b4de3232a375cbcaca9648fa4f2"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00010850694444444444,
+        "mean_squared_error": 0.00010850694444444444,
+        "rgb_mean_squared_error": 0.00010416666666666667,
+        "psnr": {
+          "kind": "finite",
+          "db": 87.95351593907478
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 87.77622826947047
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999999941779542, 0.999999991892928, 0.9999999860716371, 0.9999999898079787],
+        "mean": 0.9999999907141731,
+        "rgba_mean": 0.9999999904876244,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          6.944444444444444e-5, 5.208333333333334e-5, 8.680555555555556e-5, 8.680555555555556e-5
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.206369732511224,
+          "candidate_rms": 0.2063701130487652,
+          "reference_axis_ratio": 0.39661308140930723,
+          "candidate_axis_ratio": 0.3965995692539209,
+          "reference_window_energy_fraction": 0.989370933449496,
+          "candidate_window_energy_fraction": 0.9893708576356235,
+          "active_frequencies": 11626,
+          "spectral_bins": 524288,
+          "peak_ratio": 9.119426707527236,
+          "peak_to_sidelobe_ratio": 172.84259779759748,
+          "peak_coherence": 0.9999999975048885,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 3,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.00010850694444444444,
+        "previous": {
+          "status": "compared",
+          "frame": 2,
+          "mean_squared_error": 118.53226128472222,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 4,
+          "mean_squared_error": 132.78557725694444,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "5c8bfd4e6bf680ba97fa996d7abf7adf7b1189640c2f1ed97bb55b1dd6c85802",
+      "candidate_rgba_sha256": "16a9a95d8b3ad2ff0fcb8637caac4a3d5ba804dbe5a1fbfa073b494153a4e866",
+      "case_id": "scene-particles-billboard",
+      "frame": 3,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:32:12.662480+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-billboard-3/report.json",
+        "report_sha256": "904bc53c95cbdb0f793a7fda86223042ed5b6c2b7fa22c2da0d44bdd9fe93d6c",
+        "contact_sheet": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-billboard-3/contact-sheet.png",
+        "contact_sheet_sha256": "3ccec2444c10c28895fa873bc4135e25c86c4cfdf3e1edb9fa967382638d86cb",
+        "heatmap": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-billboard-3/heatmap.png",
+        "heatmap_sha256": "5af55a63d866ae44a997745e2fe2d404e8df73c1f3de890a8e46a80ba7907355"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 7.378472222222222e-5,
+        "mean_squared_error": 7.378472222222222e-5,
+        "rgb_mean_squared_error": 6.944444444444444e-5,
+        "psnr": {
+          "kind": "finite",
+          "db": 89.71442852963159
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 89.4511391424081
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999999818761931, 0.9999999949046724, 0.9999999855770195, 0.999999990707416],
+        "mean": 0.9999999874526283,
+        "rgba_mean": 0.9999999882663252,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 1.736111111111111e-5, -1.736111111111111e-5, -5.208333333333334e-5],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.20659589845798934,
+          "candidate_rms": 0.2065958123701242,
+          "reference_axis_ratio": 0.3869799658922838,
+          "candidate_axis_ratio": 0.3869786029444083,
+          "reference_window_energy_fraction": 0.9890105368054878,
+          "candidate_window_energy_fraction": 0.9890105488484554,
+          "active_frequencies": 12654,
+          "spectral_bins": 524288,
+          "peak_ratio": 9.167961581817273,
+          "peak_to_sidelobe_ratio": 182.66926169240767,
+          "peak_coherence": 0.9999999991371196,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 30,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 7.378472222222222e-5,
+        "previous": {
+          "status": "compared",
+          "frame": 29,
+          "mean_squared_error": 195.93976996527778,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 31,
+          "mean_squared_error": 156.17010850694444,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "611bd416d10fda12f413d6cab7218ffc9ab54a2de8646637569fdf5a04e1fc74",
+      "candidate_rgba_sha256": "1bd0f9f5e6c2f2192a6edea16c27398b611782684ca36c6a165a01ad49fc3150",
+      "case_id": "scene-particles-billboard",
+      "frame": 30,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:32:12.662480+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-billboard-30/report.json",
+        "report_sha256": "88049e1f76b2da4657d90c501412758fe270f6b4e880d9d0e0dd8be111fc930d",
+        "contact_sheet": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-billboard-30/contact-sheet.png",
+        "contact_sheet_sha256": "f811590a7db8e01fee671ea9ee845c4c1f260e6343a508b3f7a755cbc4aaf11b",
+        "heatmap": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-billboard-30/heatmap.png",
+        "heatmap_sha256": "2f558c2aa3c3bcf053341087636e5bc436030c7a777dcf270b8a6623c6ebcb22"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 2.170138888888889e-5,
+        "mean_squared_error": 2.170138888888889e-5,
+        "rgb_mean_squared_error": 2.8935185185185186e-5,
+        "psnr": {
+          "kind": "finite",
+          "db": 93.51654094674765
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 94.76592831283065
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999999953144931, 0.9999999913659935, 0.9999999977848387, 1.0],
+        "mean": 0.999999994821775,
+        "rgba_mean": 0.9999999961163313,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, -1.736111111111111e-5, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.20708813295132164,
+          "candidate_rms": 0.20708807355444148,
+          "reference_axis_ratio": 0.3964784338430418,
+          "candidate_axis_ratio": 0.3964759729123705,
+          "reference_window_energy_fraction": 0.9890681504541309,
+          "candidate_window_energy_fraction": 0.989068151154288,
+          "active_frequencies": 12098,
+          "spectral_bins": 524288,
+          "peak_ratio": 9.311618447619047,
+          "peak_to_sidelobe_ratio": 177.92973257634216,
+          "peak_coherence": 0.9999999998949293,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 54,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 2.170138888888889e-5,
+        "previous": {
+          "status": "compared",
+          "frame": 53,
+          "mean_squared_error": 149.363828125,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 55,
+          "mean_squared_error": 121.43518663194445,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "9538f0ccdad7bdcece76e78a65423b3487adac3c60341a9411cfa161df102b56",
+      "candidate_rgba_sha256": "4ce276e596df2ad5f7fd5d0bcd2ee6e1eba9881fb5ede2cae4a501e48a2fb487",
+      "case_id": "scene-particles-billboard",
+      "frame": 54,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:32:12.663483+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-billboard-54/report.json",
+        "report_sha256": "545202f0b35a23ab7cb0b1364127decd85711c6cafd4c69434ccc1c638bfd2f2",
+        "contact_sheet": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-billboard-54/contact-sheet.png",
+        "contact_sheet_sha256": "c13335b92e0b48986a78b421ed6e2acb5090f69174599349e89a3e91a6369d6c",
+        "heatmap": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-billboard-54/heatmap.png",
+        "heatmap_sha256": "5de6006686549ed500c46ea7b702790f35475b91acea81aa8bd14731a3ec3642"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 4.340277777777778e-6,
+        "mean_squared_error": 4.340277777777778e-6,
+        "rgb_mean_squared_error": 5.787037037037037e-6,
+        "psnr": {
+          "kind": "finite",
+          "db": 100.50624099010784
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 101.75562835619084
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999999912730048, 1.0, 1.0, 1.0],
+        "mean": 0.9999999970910016,
+        "rgba_mean": 0.9999999978182512,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [-1.736111111111111e-5, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.21617573308051913,
+          "candidate_rms": 0.2161757075139597,
+          "reference_axis_ratio": 0.3564952098658334,
+          "candidate_axis_ratio": 0.3564950949349691,
+          "reference_window_energy_fraction": 0.9856613780390986,
+          "candidate_window_energy_fraction": 0.9856613812598088,
+          "active_frequencies": 7412,
+          "spectral_bins": 524288,
+          "peak_ratio": 8.026979150218853,
+          "peak_to_sidelobe_ratio": 124.72117100447355,
+          "peak_coherence": 0.99999999999046,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 15,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 4.340277777777778e-6,
+        "previous": {
+          "status": "compared",
+          "frame": 14,
+          "mean_squared_error": 276.0388541666667,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 16,
+          "mean_squared_error": 243.62996527777779,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "5cbab5422ab00067d31b543d194aea9e63fffb2103331538ce550c542287d0d5",
+      "candidate_rgba_sha256": "8fc630d5af116edaa50a5e24d9971e48b6d5231a2222d77c5b04d2e16aa35552",
+      "case_id": "scene-particles-mesh",
+      "frame": 15,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:32:12.664486+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-mesh-15/report.json",
+        "report_sha256": "0e2eb307a762b865305acf79007973f80860f7ced695ad8908b06426d7241242",
+        "contact_sheet": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-mesh-15/contact-sheet.png",
+        "contact_sheet_sha256": "2b1b54db6fb1a91547fad3100e67bb04f4d047fab67029a7ea0d61562f2e0f7d",
+        "heatmap": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-mesh-15/heatmap.png",
+        "heatmap_sha256": "819985d0576849c8d6f163bda790f26af6a0f914eb79bf9f9ccd2c30b5cd75e9"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 4.340277777777778e-6,
+        "mean_squared_error": 4.340277777777778e-6,
+        "rgb_mean_squared_error": 5.787037037037037e-6,
+        "psnr": {
+          "kind": "finite",
+          "db": 100.50624099010784
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 101.75562835619084
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999999952960388, 1.0, 1.0, 1.0],
+        "mean": 0.9999999984320129,
+        "rgba_mean": 0.9999999988240097,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [-1.736111111111111e-5, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.21610189988486214,
+          "candidate_rms": 0.21610183562406743,
+          "reference_axis_ratio": 0.3480894234066809,
+          "candidate_axis_ratio": 0.34808941233872015,
+          "reference_window_energy_fraction": 0.9860425495748212,
+          "candidate_window_energy_fraction": 0.9860425477796695,
+          "active_frequencies": 7592,
+          "spectral_bins": 524288,
+          "peak_ratio": 9.04044858803491,
+          "peak_to_sidelobe_ratio": 128.0137753798298,
+          "peak_coherence": 0.9999999999916215,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 3,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 4.340277777777778e-6,
+        "previous": {
+          "status": "compared",
+          "frame": 2,
+          "mean_squared_error": 216.58866753472222,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 4,
+          "mean_squared_error": 235.850703125,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "ac72edaa1d02f1b4b4391fac9be464202198fa9330cd4f7e06f69e0aac5b7ba4",
+      "candidate_rgba_sha256": "3c2f18c6a04d430c4eeaadea934a5dde74883cb0231c3b4de6cf20c2df225216",
+      "case_id": "scene-particles-mesh",
+      "frame": 3,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:32:12.664486+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-mesh-3/report.json",
+        "report_sha256": "dfc9b4731a789a2bc90d1e6495dd116883defab48421f42d80c421b63c2199b1",
+        "contact_sheet": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-mesh-3/contact-sheet.png",
+        "contact_sheet_sha256": "2233556b6d54c6be0998d30ffbfa889ddbf577bcc11582a5d8f44c7ac809bb6e",
+        "heatmap": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-mesh-3/heatmap.png",
+        "heatmap_sha256": "389c14b20c5d886a93ce3f2fc337a9ed9ca92ff43dfca3a3008529eed0749aa4"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 30,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.0,
+        "previous": {
+          "status": "compared",
+          "frame": 29,
+          "mean_squared_error": 252.85171875,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 31,
+          "mean_squared_error": 214.39129774305556,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "5bb015a2c192a2dcf2147fa3ff7ea30c308a54f081032184ba88b5ac539599c2",
+      "candidate_rgba_sha256": "5bb015a2c192a2dcf2147fa3ff7ea30c308a54f081032184ba88b5ac539599c2",
+      "case_id": "scene-particles-mesh",
+      "frame": 30,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:32:12.665590+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-mesh-30/report.json",
+        "report_sha256": "8e8639d2b2eb2cfa2906b18ff88e1dcf456a77d836c55d537c52ee5ce741af02",
+        "contact_sheet": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-mesh-30/contact-sheet.png",
+        "contact_sheet_sha256": "ef3893c42217c32823ebeaf62acaba7c5b0720a548804833ea40d7408ef8c968",
+        "heatmap": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-mesh-30/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 54,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.0,
+        "previous": {
+          "status": "compared",
+          "frame": 53,
+          "mean_squared_error": 223.05352430555556,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 55,
+          "mean_squared_error": 237.73654947916665,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "7fc791e90a03a305d16bee29a9880298377e5be087ebab25c6f7f7d9e98ecf7c",
+      "candidate_rgba_sha256": "7fc791e90a03a305d16bee29a9880298377e5be087ebab25c6f7f7d9e98ecf7c",
+      "case_id": "scene-particles-mesh",
+      "frame": 54,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:32:12.665590+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-mesh-54/report.json",
+        "report_sha256": "8eabf48c7c00a5263c4a8c7af483a5d023d54fbb7df2ae20cd84e1c9c3749bca",
+        "contact_sheet": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-mesh-54/contact-sheet.png",
+        "contact_sheet_sha256": "3188c2ce67543724a981f2dab64baa2334a0e1cb5a4dd8c9c550f6f652af0c37",
+        "heatmap": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-mesh-54/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 4.340277777777778e-6,
+        "mean_squared_error": 4.340277777777778e-6,
+        "rgb_mean_squared_error": 5.787037037037037e-6,
+        "psnr": {
+          "kind": "finite",
+          "db": 100.50624099010784
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 101.75562835619084
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 0.9999999964987432, 1.0],
+        "mean": 0.9999999988329143,
+        "rgba_mean": 0.9999999991246857,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, -1.736111111111111e-5, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.07726052840105732,
+          "candidate_rms": 0.07726042885242725,
+          "reference_axis_ratio": 0.28297291010870584,
+          "candidate_axis_ratio": 0.2829728492778269,
+          "reference_window_energy_fraction": 0.9981441568858017,
+          "candidate_window_energy_fraction": 0.9981441601093226,
+          "active_frequencies": 244374,
+          "spectral_bins": 524288,
+          "peak_ratio": 35.17550248806475,
+          "peak_to_sidelobe_ratio": 839.0607179392179,
+          "peak_coherence": 0.999999999257442,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 15,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 4.340277777777778e-6,
+        "previous": {
+          "status": "compared",
+          "frame": 14,
+          "mean_squared_error": 670.1905815972223,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 16,
+          "mean_squared_error": 632.0482074652778,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "3fc07c3149524ed9bd49703aefb2f5aee871f8fe718e5a4ce93f088ba51b7552",
+      "candidate_rgba_sha256": "997dfcea9badcdce35c5e2074f1fa0d99f61951dee34458f173ab86fb3f649ae",
+      "case_id": "scene-particles-streak",
+      "frame": 15,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:32:12.666490+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-streak-15/report.json",
+        "report_sha256": "fbb7a6282d39c7b133013da121cda119573cc64e399e87ebfbdef8c81e0e4355",
+        "contact_sheet": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-streak-15/contact-sheet.png",
+        "contact_sheet_sha256": "c4ae320744eece5d881750f60b9f8d92ae9c0fce1e799452d3b09eed50945aeb",
+        "heatmap": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-streak-15/heatmap.png",
+        "heatmap_sha256": "55e30b9b502a3e470945211dc9631c0cd27cb0e43f65f05ba13d08fe92b74cf5"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 223,
+        "mean_abs_error": 0.003572048611111111,
+        "mean_squared_error": 0.7382161458333333,
+        "rgb_mean_squared_error": 0.6964988425925925,
+        "psnr": {
+          "kind": "finite",
+          "db": 49.70159961796468
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 49.4489682126858
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 1
+      },
+      "ssim": {
+        "channels": [
+          0.9999513851644929, 0.9999489544144106, 0.9999469519042988, 0.9999469501956608
+        ],
+        "mean": 0.9999490971610675,
+        "rgba_mean": 0.9999485604197158,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 1,
+        "error_component_count": 1,
+        "signed_bias": [
+          -0.0030381944444444445, -0.0034548611111111112, -0.003871527777777778,
+          -0.0038888888888888888
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 1,
+        "alpha_changed_fraction": 1.736111111111111e-5,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.0763600335975465,
+          "candidate_rms": 0.07628726460977617,
+          "reference_axis_ratio": 0.3043453836519741,
+          "candidate_axis_ratio": 0.3031403299255488,
+          "reference_window_energy_fraction": 0.9981774608073898,
+          "candidate_window_energy_fraction": 0.9981802175760176,
+          "active_frequencies": 266398,
+          "spectral_bins": 524288,
+          "peak_ratio": 37.968385810074395,
+          "peak_to_sidelobe_ratio": 898.9179653204296,
+          "peak_coherence": 0.999520379116264,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 3,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.7382161458333333,
+        "previous": {
+          "status": "compared",
+          "frame": 2,
+          "mean_squared_error": 673.9638671875,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 4,
+          "mean_squared_error": 668.7698567708334,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "4f80aeb90c02aaf91c35352ddb7ca26cb8435dbd74b4e5b1671f467b014bf8f9",
+      "candidate_rgba_sha256": "28fb71cd723218d7a4c365fccd1b23ff93365429ed1bf33191f2e7dfeaf680d3",
+      "case_id": "scene-particles-streak",
+      "frame": 3,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "rejected",
+      "reviewed_at": "2026-10-07T19:32:12.666490+00:00",
+      "cycle": 111,
+      "notes": "Rejected: streak edge pixel (186,63) loses coverage with unrestricted native position arithmetic; max error 223 violates the hard floor. Position invariance experiment resolves this coverage error without tolerance changes.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-streak-3/report.json",
+        "report_sha256": "beb1c5a893e75cf31a23391990c75e630b8b8402d1c80756cec694eb40d5bdeb",
+        "contact_sheet": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-streak-3/contact-sheet.png",
+        "contact_sheet_sha256": "218d3ebb105e080660bb2d44b2ee74ab1caf2dfa70f5a6119f06ec4602fda7c5",
+        "heatmap": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-streak-3/heatmap.png",
+        "heatmap_sha256": "95a56715b62f6257aa9de8b521cc6b1ebdbaa93d1d44cd91c5e13a248e0ff851"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 2.170138888888889e-5,
+        "mean_squared_error": 2.170138888888889e-5,
+        "rgb_mean_squared_error": 2.3148148148148147e-5,
+        "psnr": {
+          "kind": "finite",
+          "db": 94.48564107682822
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 94.76592831283065
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          0.9999999903788124, 0.9999999962101787, 0.9999999967594719, 0.9999999967636293
+        ],
+        "mean": 0.9999999944494876,
+        "rgba_mean": 0.9999999950280231,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -3.472222222222222e-5, 1.736111111111111e-5, 1.736111111111111e-5, 1.736111111111111e-5
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.07960731619244629,
+          "candidate_rms": 0.07960738026721458,
+          "reference_axis_ratio": 0.2870510936790408,
+          "candidate_axis_ratio": 0.2870512847317589,
+          "reference_window_energy_fraction": 0.9980146411707674,
+          "candidate_window_energy_fraction": 0.998014634139851,
+          "active_frequencies": 241804,
+          "spectral_bins": 524288,
+          "peak_ratio": 25.40972291623541,
+          "peak_to_sidelobe_ratio": 827.6388840893167,
+          "peak_coherence": 0.9999999931740223,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 30,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 2.170138888888889e-5,
+        "previous": {
+          "status": "compared",
+          "frame": 29,
+          "mean_squared_error": 681.2262630208334,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 31,
+          "mean_squared_error": 674.4099305555555,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "202a81674d9ec80aec3914b6c221b4e798405c68312773d0e826841de00ef033",
+      "candidate_rgba_sha256": "cf6e09e39d4848b76cdf2f031b9f606d9695c7d8df9ff62cd43d3620a7a89090",
+      "case_id": "scene-particles-streak",
+      "frame": 30,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:32:12.667494+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-streak-30/report.json",
+        "report_sha256": "b7fa06351c87ca07e985e394c1177d726589ce89a38ee213c89a6698f686e580",
+        "contact_sheet": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-streak-30/contact-sheet.png",
+        "contact_sheet_sha256": "56c1c096677d5ee2865735724a02e56c76c81c4c78fa06719cee59117a624910",
+        "heatmap": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-streak-30/heatmap.png",
+        "heatmap_sha256": "23bf66fdf496fc962618d277084c340a74a231f426aaad67bb1d7c411e603d29"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 54,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.0,
+        "previous": {
+          "status": "compared",
+          "frame": 53,
+          "mean_squared_error": 700.7074522569444,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 55,
+          "mean_squared_error": 661.7210590277778,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "fed33656d40d31651098f0fead2fbdcbbdaee2a732399df0872d6bc9708ff0a5",
+      "candidate_rgba_sha256": "fed33656d40d31651098f0fead2fbdcbbdaee2a732399df0872d6bc9708ff0a5",
+      "case_id": "scene-particles-streak",
+      "frame": 54,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:32:12.668496+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-streak-54/report.json",
+        "report_sha256": "bc3f1d6ca8e43379b190e7addae1739bba4bf0fc80746871490db9e3ea3525da",
+        "contact_sheet": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-streak-54/contact-sheet.png",
+        "contact_sheet_sha256": "1051ff6ec27e552e4a5f40d9103998b71b3f7237a22b4886fc76ada4001486c1",
+        "heatmap": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-streak-54/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 6.944444444444444e-5,
+        "mean_squared_error": 6.944444444444444e-5,
+        "rgb_mean_squared_error": 6.944444444444444e-5,
+        "psnr": {
+          "kind": "finite",
+          "db": 89.71442852963159
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 89.71442852963159
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          0.9999999822032132, 0.9999999799416535, 0.9999999854990429, 0.9999999849317432
+        ],
+        "mean": 0.99999998254797,
+        "rgba_mean": 0.9999999831439133,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [1.736111111111111e-5, -1.736111111111111e-5, -3.472222222222222e-5, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.20962084886773816,
+          "candidate_rms": 0.2096205797231402,
+          "reference_axis_ratio": 0.3801431383775769,
+          "candidate_axis_ratio": 0.3801455755071155,
+          "reference_window_energy_fraction": 0.9886999767860406,
+          "candidate_window_energy_fraction": 0.9886999620028196,
+          "active_frequencies": 10526,
+          "spectral_bins": 524288,
+          "peak_ratio": 7.851528058023506,
+          "peak_to_sidelobe_ratio": 157.7469313700891,
+          "peak_coherence": 0.9999999988246345,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 15,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 6.944444444444444e-5,
+        "previous": {
+          "status": "compared",
+          "frame": 14,
+          "mean_squared_error": 127.2066970486111,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 16,
+          "mean_squared_error": 122.49509114583333,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "e6369594a4b90c36ee5b206d549ff9b925b7f2b5bef9c7ee36d250217c32e763",
+      "candidate_rgba_sha256": "5428664649e93851052e481cd095f3f0bdf842c999c51d8ef79d99b2b5d660d0",
+      "case_id": "scene-particles-billboard",
+      "frame": 15,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:34:21.794037+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-billboard-15/report.json",
+        "report_sha256": "b3922c5d4d8304a557b6307703a7a5f5004b4e97835357e87350b25cbdafcd08",
+        "contact_sheet": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-billboard-15/contact-sheet.png",
+        "contact_sheet_sha256": "8b46b01f18dc86520d6304cd0cbd5eff2bf1ba55dfebd64b1fc2a6fe76e869b2",
+        "heatmap": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-billboard-15/heatmap.png",
+        "heatmap_sha256": "6ad2ce6f7e6108f2f39b5b4704342ddf19795b4de3232a375cbcaca9648fa4f2"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00010850694444444444,
+        "mean_squared_error": 0.00010850694444444444,
+        "rgb_mean_squared_error": 0.00010416666666666667,
+        "psnr": {
+          "kind": "finite",
+          "db": 87.95351593907478
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 87.77622826947047
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999999941779542, 0.999999991892928, 0.9999999860716371, 0.9999999898079787],
+        "mean": 0.9999999907141731,
+        "rgba_mean": 0.9999999904876244,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          6.944444444444444e-5, 5.208333333333334e-5, 8.680555555555556e-5, 8.680555555555556e-5
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.206369732511224,
+          "candidate_rms": 0.2063701130487652,
+          "reference_axis_ratio": 0.39661308140930723,
+          "candidate_axis_ratio": 0.3965995692539209,
+          "reference_window_energy_fraction": 0.989370933449496,
+          "candidate_window_energy_fraction": 0.9893708576356235,
+          "active_frequencies": 11626,
+          "spectral_bins": 524288,
+          "peak_ratio": 9.119426707527236,
+          "peak_to_sidelobe_ratio": 172.84259779759748,
+          "peak_coherence": 0.9999999975048885,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 3,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.00010850694444444444,
+        "previous": {
+          "status": "compared",
+          "frame": 2,
+          "mean_squared_error": 118.53226128472222,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 4,
+          "mean_squared_error": 132.78557725694444,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "5c8bfd4e6bf680ba97fa996d7abf7adf7b1189640c2f1ed97bb55b1dd6c85802",
+      "candidate_rgba_sha256": "16a9a95d8b3ad2ff0fcb8637caac4a3d5ba804dbe5a1fbfa073b494153a4e866",
+      "case_id": "scene-particles-billboard",
+      "frame": 3,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:34:21.794037+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-billboard-3/report.json",
+        "report_sha256": "b557d7f15c5e418c077e54bab0b9f3842a4d3a099a131fad0ed349b25d4fa44f",
+        "contact_sheet": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-billboard-3/contact-sheet.png",
+        "contact_sheet_sha256": "3ccec2444c10c28895fa873bc4135e25c86c4cfdf3e1edb9fa967382638d86cb",
+        "heatmap": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-billboard-3/heatmap.png",
+        "heatmap_sha256": "5af55a63d866ae44a997745e2fe2d404e8df73c1f3de890a8e46a80ba7907355"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 5.642361111111111e-5,
+        "mean_squared_error": 5.642361111111111e-5,
+        "rgb_mean_squared_error": 5.208333333333334e-5,
+        "psnr": {
+          "kind": "finite",
+          "db": 90.96381589571459
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 90.61619483312248
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          0.9999999881746916, 0.9999999949046724, 0.9999999874941813, 0.9999999926244229
+        ],
+        "mean": 0.9999999901911818,
+        "rgba_mean": 0.9999999907994921,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -3.472222222222222e-5, 1.736111111111111e-5, -3.472222222222222e-5, -6.944444444444444e-5
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.20659589845798934,
+          "candidate_rms": 0.20659577816182592,
+          "reference_axis_ratio": 0.3869799658922838,
+          "candidate_axis_ratio": 0.38697943367600457,
+          "reference_window_energy_fraction": 0.9890105368054878,
+          "candidate_window_energy_fraction": 0.9890105723667098,
+          "active_frequencies": 12652,
+          "spectral_bins": 524288,
+          "peak_ratio": 9.17975972303296,
+          "peak_to_sidelobe_ratio": 182.6351170685809,
+          "peak_coherence": 0.9999999993475828,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 30,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 5.642361111111111e-5,
+        "previous": {
+          "status": "compared",
+          "frame": 29,
+          "mean_squared_error": 195.93965711805555,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 31,
+          "mean_squared_error": 156.1716015625,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "611bd416d10fda12f413d6cab7218ffc9ab54a2de8646637569fdf5a04e1fc74",
+      "candidate_rgba_sha256": "e897c532abbb63ae088f09ab0bf50f0666919cc68d6cfa1aaf96abf11cba8547",
+      "case_id": "scene-particles-billboard",
+      "frame": 30,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:34:21.795040+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-billboard-30/report.json",
+        "report_sha256": "b6bbb823e23408e49921c86e779a60ccd4e77d7b3ea1a2e6f2855235170f65a3",
+        "contact_sheet": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-billboard-30/contact-sheet.png",
+        "contact_sheet_sha256": "bde514787cc9b550c89a729b24a15c02db67b52a5ba61abbf64b74b39aa4059c",
+        "heatmap": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-billboard-30/heatmap.png",
+        "heatmap_sha256": "a8968a505f4b30726950145a6de14996f990502fb869aefec35f7ad5440128fc"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 2.170138888888889e-5,
+        "mean_squared_error": 2.170138888888889e-5,
+        "rgb_mean_squared_error": 2.8935185185185186e-5,
+        "psnr": {
+          "kind": "finite",
+          "db": 93.51654094674765
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 94.76592831283065
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999999953144931, 0.9999999913659935, 0.9999999977848387, 1.0],
+        "mean": 0.999999994821775,
+        "rgba_mean": 0.9999999961163313,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, -1.736111111111111e-5, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.20708813295132164,
+          "candidate_rms": 0.20708807355444148,
+          "reference_axis_ratio": 0.3964784338430418,
+          "candidate_axis_ratio": 0.3964759729123705,
+          "reference_window_energy_fraction": 0.9890681504541309,
+          "candidate_window_energy_fraction": 0.989068151154288,
+          "active_frequencies": 12098,
+          "spectral_bins": 524288,
+          "peak_ratio": 9.311618447619047,
+          "peak_to_sidelobe_ratio": 177.92973257634216,
+          "peak_coherence": 0.9999999998949293,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 54,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 2.170138888888889e-5,
+        "previous": {
+          "status": "compared",
+          "frame": 53,
+          "mean_squared_error": 149.363828125,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 55,
+          "mean_squared_error": 121.43518663194445,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "9538f0ccdad7bdcece76e78a65423b3487adac3c60341a9411cfa161df102b56",
+      "candidate_rgba_sha256": "4ce276e596df2ad5f7fd5d0bcd2ee6e1eba9881fb5ede2cae4a501e48a2fb487",
+      "case_id": "scene-particles-billboard",
+      "frame": 54,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:34:21.795040+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-billboard-54/report.json",
+        "report_sha256": "1c89f2fae538efb78398cedca0f39891f71c8ecb24f82acb679fa0dbc1800ddf",
+        "contact_sheet": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-billboard-54/contact-sheet.png",
+        "contact_sheet_sha256": "c13335b92e0b48986a78b421ed6e2acb5090f69174599349e89a3e91a6369d6c",
+        "heatmap": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-billboard-54/heatmap.png",
+        "heatmap_sha256": "5de6006686549ed500c46ea7b702790f35475b91acea81aa8bd14731a3ec3642"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 4.340277777777778e-6,
+        "mean_squared_error": 4.340277777777778e-6,
+        "rgb_mean_squared_error": 5.787037037037037e-6,
+        "psnr": {
+          "kind": "finite",
+          "db": 100.50624099010784
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 101.75562835619084
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999999912730048, 1.0, 1.0, 1.0],
+        "mean": 0.9999999970910016,
+        "rgba_mean": 0.9999999978182512,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [-1.736111111111111e-5, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.21617573308051913,
+          "candidate_rms": 0.2161757075139597,
+          "reference_axis_ratio": 0.3564952098658334,
+          "candidate_axis_ratio": 0.3564950949349691,
+          "reference_window_energy_fraction": 0.9856613780390986,
+          "candidate_window_energy_fraction": 0.9856613812598088,
+          "active_frequencies": 7412,
+          "spectral_bins": 524288,
+          "peak_ratio": 8.026979150218853,
+          "peak_to_sidelobe_ratio": 124.72117100447355,
+          "peak_coherence": 0.99999999999046,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 15,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 4.340277777777778e-6,
+        "previous": {
+          "status": "compared",
+          "frame": 14,
+          "mean_squared_error": 276.0388541666667,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 16,
+          "mean_squared_error": 243.62996527777779,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "5cbab5422ab00067d31b543d194aea9e63fffb2103331538ce550c542287d0d5",
+      "candidate_rgba_sha256": "8fc630d5af116edaa50a5e24d9971e48b6d5231a2222d77c5b04d2e16aa35552",
+      "case_id": "scene-particles-mesh",
+      "frame": 15,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:34:21.796042+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-mesh-15/report.json",
+        "report_sha256": "590c5763fd2cb5086b838261d2b2ba5df135fd6c05daac52d906bb870492edac",
+        "contact_sheet": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-mesh-15/contact-sheet.png",
+        "contact_sheet_sha256": "2b1b54db6fb1a91547fad3100e67bb04f4d047fab67029a7ea0d61562f2e0f7d",
+        "heatmap": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-mesh-15/heatmap.png",
+        "heatmap_sha256": "819985d0576849c8d6f163bda790f26af6a0f914eb79bf9f9ccd2c30b5cd75e9"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 4.340277777777778e-6,
+        "mean_squared_error": 4.340277777777778e-6,
+        "rgb_mean_squared_error": 5.787037037037037e-6,
+        "psnr": {
+          "kind": "finite",
+          "db": 100.50624099010784
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 101.75562835619084
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999999952960388, 1.0, 1.0, 1.0],
+        "mean": 0.9999999984320129,
+        "rgba_mean": 0.9999999988240097,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [-1.736111111111111e-5, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.21610189988486214,
+          "candidate_rms": 0.21610183562406743,
+          "reference_axis_ratio": 0.3480894234066809,
+          "candidate_axis_ratio": 0.34808941233872015,
+          "reference_window_energy_fraction": 0.9860425495748212,
+          "candidate_window_energy_fraction": 0.9860425477796695,
+          "active_frequencies": 7592,
+          "spectral_bins": 524288,
+          "peak_ratio": 9.04044858803491,
+          "peak_to_sidelobe_ratio": 128.0137753798298,
+          "peak_coherence": 0.9999999999916215,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 3,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 4.340277777777778e-6,
+        "previous": {
+          "status": "compared",
+          "frame": 2,
+          "mean_squared_error": 216.58866753472222,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 4,
+          "mean_squared_error": 235.850703125,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "ac72edaa1d02f1b4b4391fac9be464202198fa9330cd4f7e06f69e0aac5b7ba4",
+      "candidate_rgba_sha256": "3c2f18c6a04d430c4eeaadea934a5dde74883cb0231c3b4de6cf20c2df225216",
+      "case_id": "scene-particles-mesh",
+      "frame": 3,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:34:21.796042+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-mesh-3/report.json",
+        "report_sha256": "4a285f4e5a36d6f6a67a2908dbd4ea1e0b3a3e04d1905050b88e3ef7b863f347",
+        "contact_sheet": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-mesh-3/contact-sheet.png",
+        "contact_sheet_sha256": "2233556b6d54c6be0998d30ffbfa889ddbf577bcc11582a5d8f44c7ac809bb6e",
+        "heatmap": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-mesh-3/heatmap.png",
+        "heatmap_sha256": "389c14b20c5d886a93ce3f2fc337a9ed9ca92ff43dfca3a3008529eed0749aa4"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 30,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.0,
+        "previous": {
+          "status": "compared",
+          "frame": 29,
+          "mean_squared_error": 252.85171875,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 31,
+          "mean_squared_error": 214.39129774305556,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "5bb015a2c192a2dcf2147fa3ff7ea30c308a54f081032184ba88b5ac539599c2",
+      "candidate_rgba_sha256": "5bb015a2c192a2dcf2147fa3ff7ea30c308a54f081032184ba88b5ac539599c2",
+      "case_id": "scene-particles-mesh",
+      "frame": 30,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:34:21.797045+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-mesh-30/report.json",
+        "report_sha256": "6854f261e7852b336649ee88b04dd1fe8501b2f633be1e3f9c6b90d8588fbd3e",
+        "contact_sheet": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-mesh-30/contact-sheet.png",
+        "contact_sheet_sha256": "ef3893c42217c32823ebeaf62acaba7c5b0720a548804833ea40d7408ef8c968",
+        "heatmap": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-mesh-30/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 54,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.0,
+        "previous": {
+          "status": "compared",
+          "frame": 53,
+          "mean_squared_error": 223.05352430555556,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 55,
+          "mean_squared_error": 237.73654947916665,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "7fc791e90a03a305d16bee29a9880298377e5be087ebab25c6f7f7d9e98ecf7c",
+      "candidate_rgba_sha256": "7fc791e90a03a305d16bee29a9880298377e5be087ebab25c6f7f7d9e98ecf7c",
+      "case_id": "scene-particles-mesh",
+      "frame": 54,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:34:21.797045+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-mesh-54/report.json",
+        "report_sha256": "9ac732246a34771d346898766e17b69cc6f4d95ee0f6d8d55cc6ad969ab8b3dc",
+        "contact_sheet": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-mesh-54/contact-sheet.png",
+        "contact_sheet_sha256": "3188c2ce67543724a981f2dab64baa2334a0e1cb5a4dd8c9c550f6f652af0c37",
+        "heatmap": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-mesh-54/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 4.340277777777778e-6,
+        "mean_squared_error": 4.340277777777778e-6,
+        "rgb_mean_squared_error": 5.787037037037037e-6,
+        "psnr": {
+          "kind": "finite",
+          "db": 100.50624099010784
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 101.75562835619084
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 0.9999999964987432, 1.0],
+        "mean": 0.9999999988329143,
+        "rgba_mean": 0.9999999991246857,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, -1.736111111111111e-5, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.07726052840105732,
+          "candidate_rms": 0.07726042885242725,
+          "reference_axis_ratio": 0.28297291010870584,
+          "candidate_axis_ratio": 0.2829728492778269,
+          "reference_window_energy_fraction": 0.9981441568858017,
+          "candidate_window_energy_fraction": 0.9981441601093226,
+          "active_frequencies": 244374,
+          "spectral_bins": 524288,
+          "peak_ratio": 35.17550248806475,
+          "peak_to_sidelobe_ratio": 839.0607179392179,
+          "peak_coherence": 0.999999999257442,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 15,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 4.340277777777778e-6,
+        "previous": {
+          "status": "compared",
+          "frame": 14,
+          "mean_squared_error": 670.1905815972223,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 16,
+          "mean_squared_error": 632.0482074652778,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "3fc07c3149524ed9bd49703aefb2f5aee871f8fe718e5a4ce93f088ba51b7552",
+      "candidate_rgba_sha256": "997dfcea9badcdce35c5e2074f1fa0d99f61951dee34458f173ab86fb3f649ae",
+      "case_id": "scene-particles-streak",
+      "frame": 15,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:34:21.798051+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-streak-15/report.json",
+        "report_sha256": "c13b3071b72454dd985073bf4c60818b820cbb7460a4d619624b32c430a9dff8",
+        "contact_sheet": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-streak-15/contact-sheet.png",
+        "contact_sheet_sha256": "c4ae320744eece5d881750f60b9f8d92ae9c0fce1e799452d3b09eed50945aeb",
+        "heatmap": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-streak-15/heatmap.png",
+        "heatmap_sha256": "55e30b9b502a3e470945211dc9631c0cd27cb0e43f65f05ba13d08fe92b74cf5"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 1.3020833333333334e-5,
+        "mean_squared_error": 1.3020833333333334e-5,
+        "rgb_mean_squared_error": 5.787037037037037e-6,
+        "psnr": {
+          "kind": "finite",
+          "db": 100.50624099010784
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 96.98441580899421
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999999852931291, 1.0, 1.0, 0.9999999615638838],
+        "mean": 0.9999999950977098,
+        "rgba_mean": 0.9999999867142533,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [-1.736111111111111e-5, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.0763600335975465,
+          "candidate_rms": 0.07635995873548343,
+          "reference_axis_ratio": 0.3043453836519741,
+          "candidate_axis_ratio": 0.3043454818002959,
+          "reference_window_energy_fraction": 0.9981774608073898,
+          "candidate_window_energy_fraction": 0.9981774639330859,
+          "active_frequencies": 266598,
+          "spectral_bins": 524288,
+          "peak_ratio": 39.397762209508564,
+          "peak_to_sidelobe_ratio": 900.8946223831379,
+          "peak_coherence": 0.9999999978901588,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 3,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 1.3020833333333334e-5,
+        "previous": {
+          "status": "compared",
+          "frame": 2,
+          "mean_squared_error": 674.7003862847222,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 4,
+          "mean_squared_error": 669.5063758680556,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "4f80aeb90c02aaf91c35352ddb7ca26cb8435dbd74b4e5b1671f467b014bf8f9",
+      "candidate_rgba_sha256": "c0506dff5e20fc8076d875fa781ed6b9c710e682d8e6e2bacb1cbf669d9bceb4",
+      "case_id": "scene-particles-streak",
+      "frame": 3,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:34:21.798564+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-streak-3/report.json",
+        "report_sha256": "ad32e02061d2e1648da22106762820ae3b14de48024052f748e612273e805098",
+        "contact_sheet": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-streak-3/contact-sheet.png",
+        "contact_sheet_sha256": "9be964b0040f242ebe55027add2aec1c3221137882969c9804df96d6337dd8d3",
+        "heatmap": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-streak-3/heatmap.png",
+        "heatmap_sha256": "ea21fb5799f66e36418c3c486335d7b4ac35854eaa5ce6533659fe4e48325460"
+      }
+    },
+    {
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 2.604166666666667e-5,
+        "mean_squared_error": 2.604166666666667e-5,
+        "rgb_mean_squared_error": 2.8935185185185186e-5,
+        "psnr": {
+          "kind": "finite",
+          "db": 93.51654094674765
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 93.9741158523544
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [0.9999999903788124, 0.9999999962101787, 0.999999989132731, 0.9999999967636293],
+        "mean": 0.9999999919072406,
+        "rgba_mean": 0.9999999931213378,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -3.472222222222222e-5, 1.736111111111111e-5, 3.472222222222222e-5, 1.736111111111111e-5
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.07960731619244629,
+          "candidate_rms": 0.07960748932634665,
+          "reference_axis_ratio": 0.2870510936790408,
+          "candidate_axis_ratio": 0.2870512130989671,
+          "reference_window_energy_fraction": 0.9980146411707674,
+          "candidate_window_energy_fraction": 0.9980146315187535,
+          "active_frequencies": 241802,
+          "spectral_bins": 524288,
+          "peak_ratio": 25.39547945169054,
+          "peak_to_sidelobe_ratio": 827.6219787787162,
+          "peak_coherence": 0.9999999924740303,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "sequence": {
+        "frame": 30,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 2.604166666666667e-5,
+        "previous": {
+          "status": "compared",
+          "frame": 29,
+          "mean_squared_error": 681.2274131944445,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 31,
+          "mean_squared_error": 674.4110807291667,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "202a81674d9ec80aec3914b6c221b4e798405c68312773d0e826841de00ef033",
+      "candidate_rgba_sha256": "13ca877f2d565ee2f45cdb2a239b760591df8438c18ca387e4bfd58c4a9c0754",
+      "case_id": "scene-particles-streak",
+      "frame": 30,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:34:21.798564+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-streak-30/report.json",
+        "report_sha256": "76bfd874df63f8257462e680c4ce1d1c664be1df053beba54641a7b25edc9247",
+        "contact_sheet": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-streak-30/contact-sheet.png",
+        "contact_sheet_sha256": "bf7a0c0a419802735a87dfceb814e08f7878a8138f79d6d091fa0c66a9092fd6",
+        "heatmap": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-streak-30/heatmap.png",
+        "heatmap_sha256": "ea81a361be731f1c2a9453591cdfb9535822956b6bbf97e32bdd2cf6c67396f6"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0.0,
+        "mean_squared_error": 0.0,
+        "rgb_mean_squared_error": 0.0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [1.0, 1.0, 1.0, 1.0],
+        "mean": 1.0,
+        "rgba_mean": 1.0,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [0.0, 0.0, 0.0, 0.0],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0.0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0.0,
+          "dy": 0.0,
+          "distance": 0.0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0.0,
+          "candidate_rms": 0.0,
+          "reference_axis_ratio": 0.0,
+          "candidate_axis_ratio": 0.0,
+          "reference_window_energy_fraction": 0.0,
+          "candidate_window_energy_fraction": 0.0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 54,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0.0,
+        "previous": {
+          "status": "compared",
+          "frame": 53,
+          "mean_squared_error": 700.7074522569444,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 55,
+          "mean_squared_error": 661.7210590277778,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "fed33656d40d31651098f0fead2fbdcbbdaee2a732399df0872d6bc9708ff0a5",
+      "candidate_rgba_sha256": "fed33656d40d31651098f0fead2fbdcbbdaee2a732399df0872d6bc9708ff0a5",
+      "case_id": "scene-particles-streak",
+      "frame": 54,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-07T19:34:21.799559+00:00",
+      "cycle": 111,
+      "notes": "Directly inspected complete reference/native color and alpha contact sheets and heatmaps. Sparse rounding only.",
+      "evidence": {
+        "report": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-streak-54/report.json",
+        "report_sha256": "ac038702aa6d8d66da145d1d6f0b325712329bf8f67318e200aa0710e996815d",
+        "contact_sheet": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-streak-54/contact-sheet.png",
+        "contact_sheet_sha256": "1051ff6ec27e552e4a5f40d9103998b71b3f7237a22b4886fc76ada4001486c1",
+        "heatmap": "artifacts/migration/cycle111-particles-final/pixels/frames/scene-particles-streak-54/heatmap.png",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916"
+      }
     }
   ],
   "history": [
@@ -199990,6 +202447,73 @@
         "M7-T3 is complete on the owner-authorized Windows host. Non-Windows JPEG remains an explicit capability error; point-shadow behavior remains the retained TS unsupported boundary.",
         "M7 remains in progress for generators, recursive scene integration and final coverage. Production preview/export routing is unchanged; no native delivery performance acceptance is claimed."
       ]
+    },
+    {
+      "id": 111,
+      "time": "2026-10-07T20:05:40.636337+00:00",
+      "milestone": "M7",
+      "task": "M7-T4",
+      "outcome": "passed",
+      "commit": "74b13ced04e6f39cbbe0c1f6a0ea23b058cb1ec4",
+      "verification": "artifacts/migration/verify-2026-10-07T19-34-23-125Z-697d1551.json",
+      "verification_sha256": "8d7cb5b355cb0df7b9aa4c8113ae6cfd23898a0e0fbb24dca33417d4222a294a",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 159512
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 1522175
+        }
+      ],
+      "verification_duration_ms": 1697807,
+      "milestone_exit_satisfied": false,
+      "particles": {
+        "frames": 12,
+        "exact_frames": 3,
+        "nonexact_frames": 9,
+        "nonexact_max_abs": 1,
+        "self_reviews_accepted": 12,
+        "variants": ["billboard", "mesh", "streak"],
+        "rational_frames": [3, 15, 30, 54],
+        "generator_budget_rejected": true
+      },
+      "regressions": {
+        "pixel_frames": 1300,
+        "cache_exact_comparisons": 5264,
+        "scene_output_frames": 64,
+        "hdr_material_frames": 60,
+        "normal_material_frames": 144,
+        "animated_normal_frames": 24
+      },
+      "diagnostics": [
+        "artifacts/migration/cycle111-input-tests.log",
+        "artifacts/migration/cycle111-final-clippy.log",
+        "artifacts/migration/cycle111-final-build.log",
+        "artifacts/migration/cycle111-particles-final/report.json"
+      ],
+      "failed_attempts": [
+        {
+          "report": "artifacts/migration/cycle111-particles/pixels/frames/scene-particles-streak-3/report.json",
+          "reason": "Rejected unrestricted position arithmetic: one lost streak edge pixel (186,63), max error 223. Invariant position compilation fixes coverage without tolerance changes; original resource identities remain unchanged."
+        },
+        {
+          "report": "artifacts/migration/cycle111-particles/render.log",
+          "reason": "The batch CLI correctly rejected relative output paths. Diagnostic retried with absolute contained paths."
+        }
+      ],
+      "next_step": "Continue M7-T4 with frozen audio-spectrum bars/ring/scope invocations and generated auxiliary output; retain recursive integration and full M7 coverage for T5/T6.",
+      "notes": [
+        "Native supplied graph compute and ordered beauty drawing keep instance and indirect buffers GPU-resident. Context, parameters, capacity, program resources, device dispatch/storage limits and frame identity are validated.",
+        "Program pipelines are shared by structural graph identity and inactive programs are retired. Transient buffers are rebuilt from supplied time-addressed data.",
+        "Marked generator position outputs invariant in Naga IR; independent contact sheets and heatmaps pass unchanged GPU and structural limits. No shader source, ABI or tolerance change.",
+        "Only an existing locked serde_json dependency edge and wgpu naga-ir feature were added; no new package version or bundled native library.",
+        "All required full gates passed with source_unchanged=true. The initial commit hook lacked pnpm on PATH; rerunning with the established toolchain PATH passed every hook without bypassing checks.",
+        "M7-T4 remains in progress for audio and auxiliary coverage; production preview/export routing and native delivery performance acceptance remain unchanged."
+      ]
     }
   ],
   "known_boundaries": [
@@ -200162,5 +202686,6 @@
         "sha256": "2a52867f6da0c4ad4e8cd1ef9831d5eb9be11743fe6f26fa9f12fe8d5c83797a"
       }
     }
-  ]
+  ],
+  "active_cycle": null
 }
