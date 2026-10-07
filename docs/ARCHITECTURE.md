@@ -877,10 +877,13 @@ includes primary MRT textures, depth and attribute buffers before any frame allo
 The native isolated-layer cache retains post-effect RGBA16Float outputs on the GPU. Keys contain
 ordered evaluated geometry, lighting, effect uniforms and operations, pyramid settings, LUT identity
 and media frame/pixel generations. Audited time-independent operations may omit the unused time
-lane when grain is zero; all other programs retain exact time. Recursive surface inputs and
-adjustments remain uncached. Cache hits skip layer geometry and effects but composite against the
-current backdrop. Optional admission reserves space within the total renderer budget, retires old
-entries before replacements, and falls back to rendering when no entry fits. Pending copies become
+lane when grain is zero; all other programs retain exact time. Recursive surface fingerprints include
+child generations, ordered draws, clear/load/store semantics and effect composition. Aliases resolve
+to the same generation; unknown dependencies or scenes without an initial clear remain uncached.
+Adjustments remain uncached. Cache hits skip layer geometry and effects but composite against the
+current backdrop. Optional admission reserves space within the total renderer budget, retains unused
+valid generations by recent use when space permits, and falls back when no entry fits. Required
+inputs take priority; pressure retires old GPU entries before replacements are allocated. Pending copies become
 valid only after successful GPU submission; abandoned encoders cannot publish a cache generation.
 `render-plan --layer-cache-bytes 0` disables reuse for diagnostic comparisons. Receipts expose
-allocation, hit, miss, store, eviction and resident-byte counters.
+allocation, hit, miss, store, eviction, active-entry and resident-byte counters.

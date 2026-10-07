@@ -465,6 +465,10 @@ must be reused. Compiler selection matches each case's existing native path. Dis
 allocate no layer cache; enabled residency must stay within the explicit 64 MiB limit. This compares
 the optimization to uncached native execution in addition to G3's unchanged TS reference comparisons.
 GPU controls also check cross-time reuse, current-backdrop compositing, changed-effect invalidation,
-cache and total-budget pressure, and abandoned encoder copies. CPU tests check geometry, lighting,
-LUT, media generation and time dependencies. Region narrowing and reduced-resolution SSAA effects
-remain separate optimization tasks; recursive surfaces are not yet eligible for result reuse.
+cache and total-budget pressure, retained generations, and abandoned encoder copies. Three nested
+GPU scenes prove descendant changes invalidate parent outputs and match uncached rendering. CPU
+tests check geometry, lighting, LUT, media generation, aliases, clear/load semantics and recursive
+time dependencies. A shared-WGSL consumer audit pins every opcode that reads or changes effect time;
+unknown revisions retain the clock. Tint, LUT and combined layer-style replays must actually admit and reuse their
+precomposition inputs. Region narrowing and reduced-resolution SSAA effects remain separate tasks;
+adjustments and dependencies with unknown history remain ineligible for result reuse.

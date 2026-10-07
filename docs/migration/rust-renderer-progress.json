@@ -154977,5 +154977,42 @@
         "sha256": "2a52867f6da0c4ad4e8cd1ef9831d5eb9be11743fe6f26fa9f12fe8d5c83797a"
       }
     }
-  ]
+  ],
+  "active_cycle": {
+    "id": 92,
+    "started_at": "2026-10-07T07:54:43.669296+00:00",
+    "milestone": "M4",
+    "task": "M4-T5",
+    "base_commit": "bc871dcff9cc4e48006f914d18c2aa5c0e7d3825",
+    "intent": "Extend layer result reuse to recursively fingerprinted precomposition inputs and retain unused generations under the optional budget without pressure-free GPU waits.",
+    "cache_diagnostics": [
+      {
+        "path": "artifacts/migration/cycle92-cache-diagnostic/report.json",
+        "sha256": "ad1a4b5fba192742939fcd8b3a80e8f1357165320f4a0ad26ef313d55bd23b6d",
+        "status": "passed",
+        "whole_frames": 1248,
+        "exact_outputs": 3744,
+        "cache_hits": 1222
+      },
+      {
+        "path": "artifacts/migration/cycle92-static-cache-diagnostic/report.json",
+        "sha256": "b658c546e781d412d59d2f8afc41931e2bd8c181e2f1740b6ed55ba77e0f3298",
+        "status": "passed",
+        "whole_frames": 1248,
+        "exact_outputs": 3744,
+        "cache_hits": 1240
+      }
+    ],
+    "gpu_controls": {
+      "path": "artifacts/migration/cycle92-cache-gpu.log",
+      "sha256": "64f18cc0bd1d7f743e7e6011358542b1d11d24c9650692c7780f4a74b521556e",
+      "status": "passed",
+      "scope": "Recursive three-scene invalidation, retained generations, budgets, fused effects and abandoned copies"
+    },
+    "bootstrap_fixes": [
+      "Use slice coercions after extracting reusable fingerprint encoding.",
+      "Corrected synthetic full-screen triangle draw counts after the original geometry range was retained; CPU and GPU controls passed after correction."
+    ],
+    "time_dependency_audit": "Shared post-process opcode and direct uniform-read audits prove the cache normalization policy; grain, unknown operations and clock consumers retain exact time."
+  }
 }

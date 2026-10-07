@@ -291,9 +291,18 @@ impl NativeRenderer {
         let scenes = std::iter::once(&frame.scene)
             .chain(frame.surfaces.targets.iter().map(|surface| &surface.scene))
             .collect::<Vec<_>>();
-        let cache_reserved =
-            self.layer_cache
-                .prepare(&self.device, &scenes, cache_budget, self.options.timeout)?;
+        let generations = if cache_budget > 0 {
+            crate::surface_generation::SurfaceGenerations::collect(&frame.surfaces)?
+        } else {
+            Default::default()
+        };
+        let cache_reserved = self.layer_cache.prepare(
+            &self.device,
+            &scenes,
+            generations,
+            cache_budget,
+            self.options.timeout,
+        )?;
         self.images.prepare(
             (&self.device, &self.queue),
             &frame.images,

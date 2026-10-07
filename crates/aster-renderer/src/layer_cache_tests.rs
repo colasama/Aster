@@ -82,7 +82,7 @@ impl LayerFixture {
     }
 
     fn key(frame: &SuppliedFrame) -> Result<ResourceHash, Box<dyn std::error::Error>> {
-        Ok(LayerKey::collect(&frame.scene)?
+        Ok(LayerKey::collect(&frame.scene, &BTreeMap::new())?
             .remove(&2)
             .ok_or("key absent")?
             .hash)
@@ -121,7 +121,7 @@ fn layer_keys_track_evaluated_inputs_and_conservative_time_dependencies()
         let before = LayerFixture::key(&frame)?;
         frame.scene.layers.get_mut(&999).ok_or("layer")?.uniforms[8..12]
             .copy_from_slice(&4_f32.to_le_bytes());
-        assert_eq!(LayerFixture::key(&frame)? == before, code == 4.0);
+        assert_eq!(LayerFixture::key(&frame)? == before, code != 7.0);
     }
     let before = LayerFixture::key(&frame)?;
     frame.scene.lighting[0] ^= 1;
@@ -151,7 +151,7 @@ fn layer_keys_track_evaluated_inputs_and_conservative_time_dependencies()
     frame.scene.root.draws.first_mut().ok_or("draw")?.texture = RootTextureReference::Surface {
         instance_id: frame.scene.header.composition_id.clone(),
     };
-    assert!(LayerKey::collect(&frame.scene)?.is_empty());
+    assert!(LayerKey::collect(&frame.scene, &BTreeMap::new())?.is_empty());
     Ok(())
 }
 
@@ -213,6 +213,24 @@ fn native_layer_cache_reuses_invalidates_and_falls_back_without_pixel_changes()
     let changed_effect = LayerFixture::pixels(&mut renderer, &frame, &registry)?;
     assert_ne!(changed_effect, changed_backdrop);
     assert_eq!(renderer.layer_cache.statistics.stores, stores + 1);
+    let retained = renderer.layer_cache.statistics;
+    frame.scene.layers.get_mut(&999).ok_or("layer")?.uniforms[12..16]
+        .copy_from_slice(&frame.post[12..16]);
+    assert_eq!(
+        LayerFixture::pixels(&mut renderer, &frame, &registry)?,
+        changed_backdrop
+    );
+    assert_eq!(
+        renderer.layer_cache.statistics.allocations,
+        retained.allocations
+    );
+    assert_eq!(
+        renderer.layer_cache.statistics.evictions,
+        retained.evictions
+    );
+    assert_eq!(renderer.layer_cache.statistics.stores, retained.stores);
+    frame.scene.layers.get_mut(&999).ok_or("layer")?.uniforms[12..16]
+        .copy_from_slice(&2_f32.to_le_bytes());
     renderer.options.layer_cache_bytes = 1;
     assert_eq!(
         LayerFixture::pixels(&mut renderer, &frame, &registry)?,
@@ -239,6 +257,7 @@ fn native_layer_cache_reuses_invalidates_and_falls_back_without_pixel_changes()
     renderer.layer_cache.prepare(
         &renderer.device,
         &[&frame.scene],
+        BTreeMap::new(),
         4 * 1024 * 1024,
         renderer.options.timeout,
     )?;
@@ -251,6 +270,7 @@ fn native_layer_cache_reuses_invalidates_and_falls_back_without_pixel_changes()
     renderer.layer_cache.prepare(
         &renderer.device,
         &[&frame.scene],
+        BTreeMap::new(),
         4 * 1024 * 1024,
         renderer.options.timeout,
     )?;
@@ -261,5 +281,9 @@ fn native_layer_cache_reuses_invalidates_and_falls_back_without_pixel_changes()
         LayerFixture::pixels(&mut renderer, &frame, &registry)?,
         changed_effect
     );
+    surface_generation_tests::RecursiveFixture::verify_gpu(&mut renderer)?;
     Ok(())
 }
+
+#[path = "surface_generation_tests.rs"]
+mod surface_generation_tests;

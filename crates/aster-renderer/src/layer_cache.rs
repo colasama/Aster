@@ -13,18 +13,22 @@ pub struct LayerCacheStatistics {
     pub stores: u64,
     pub evictions: u64,
     pub resident_bytes: u64,
+    pub active_entries: u64,
 }
 
 struct CachedLayer {
     texture: wgpu::Texture,
     valid: bool,
     pending: bool,
+    last_used: u64,
 }
 
 #[derive(Default)]
 pub(crate) struct LayerCache {
     entries: BTreeMap<ResourceHash, CachedLayer>,
     wanted: BTreeMap<ResourceHash, Extent2d>,
+    epoch: u64,
+    pub generations: BTreeMap<Vec<u16>, ResourceHash>,
     pub statistics: LayerCacheStatistics,
 }
 
@@ -35,21 +39,50 @@ impl LayerCache {
         &mut self,
         device: &wgpu::Device,
         scenes: &[&SceneInput],
+        generations: BTreeMap<Vec<u16>, ResourceHash>,
         budget: u64,
         timeout: Duration,
     ) -> Result<u64, RenderError> {
+        let epoch = self
+            .epoch
+            .checked_add(1)
+            .ok_or_else(|| RenderError::Invalid("layer cache epoch exhausted".into()))?;
         let mut wanted = BTreeMap::new();
         let mut reserved = 0;
         if budget > 0 {
             for scene in scenes {
                 let size = scene.header.render_target;
                 let bytes = u64::from(size.width) * u64::from(size.height) * 8;
-                for key in LayerKey::collect(scene)?.into_values() {
+                for key in LayerKey::collect(scene, &generations)?.into_values() {
                     if !wanted.contains_key(&key.hash) && bytes <= budget - reserved {
                         wanted.insert(key.hash, size);
                         reserved += bytes;
                     }
                 }
+            }
+        }
+        let active_entries = wanted.len() as u64;
+        let mut previous = self
+            .entries
+            .iter()
+            .filter(|(key, entry)| !wanted.contains_key(*key) && entry.valid)
+            .map(|(key, entry)| {
+                (
+                    std::cmp::Reverse(entry.last_used),
+                    key.clone(),
+                    Extent2d {
+                        width: entry.texture.width(),
+                        height: entry.texture.height(),
+                    },
+                )
+            })
+            .collect::<Vec<_>>();
+        previous.sort_by(|left, right| (&left.0, &left.1).cmp(&(&right.0, &right.1)));
+        for (_, key, size) in previous {
+            let bytes = u64::from(size.width) * u64::from(size.height) * 8;
+            if bytes <= budget - reserved {
+                wanted.insert(key, size);
+                reserved += bytes;
             }
         }
         if self.entries.keys().any(|key| !wanted.contains_key(key)) {
@@ -73,6 +106,9 @@ impl LayerCache {
             }
         });
         self.wanted = wanted;
+        self.epoch = epoch;
+        self.generations = generations;
+        self.statistics.active_entries = active_entries;
         Ok(reserved)
     }
 
@@ -101,6 +137,7 @@ impl LayerCache {
                     texture,
                     valid: false,
                     pending: false,
+                    last_used: self.epoch,
                 },
             );
             self.statistics.allocations += 1;
@@ -114,7 +151,7 @@ impl LayerCache {
         encoder: &mut wgpu::CommandEncoder,
         destination: &wgpu::Texture,
     ) -> bool {
-        if let Some(entry) = self.entries.get(key)
+        if let Some(entry) = self.entries.get_mut(key)
             && (entry.valid || entry.pending)
         {
             encoder.copy_texture_to_texture(
@@ -122,6 +159,7 @@ impl LayerCache {
                 destination.as_image_copy(),
                 destination.size(),
             );
+            entry.last_used = self.epoch;
             self.statistics.hits += 1;
             true
         } else {
@@ -143,6 +181,7 @@ impl LayerCache {
                 source.size(),
             );
             entry.pending = true;
+            entry.last_used = self.epoch;
             self.statistics.stores += 1;
         }
     }
@@ -157,6 +196,8 @@ impl LayerCache {
     pub fn invalidate(&mut self) {
         self.entries.clear();
         self.wanted.clear();
+        self.generations.clear();
         self.statistics.resident_bytes = 0;
+        self.statistics.active_entries = 0;
     }
 }

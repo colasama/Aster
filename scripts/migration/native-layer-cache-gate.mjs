@@ -103,7 +103,17 @@ export async function runNativeLayerCacheGate(
             assert.equal(receipt.layer_cache.hits, 0);
             assert.equal(receipt.layer_cache.resident_bytes, 0);
           }
-          if (enabled && index % 2 && receipt.layer_cache.resident_bytes > 0) {
+          if (
+            enabled &&
+            index % 2 &&
+            ["effect-tint-0", "effect-lut-0", "effects-layer-style-chain-0"].includes(input.id)
+          ) {
+            assert(
+              receipt.layer_cache.active_entries > 0,
+              `Recursive effect input was not cached: ${input.id}`,
+            );
+          }
+          if (enabled && index % 2 && receipt.layer_cache.active_entries > 0) {
             assert(
               receipt.layer_cache.hits > receipts[index - 1].layer_cache.hits,
               `Repeated frame did not reuse its admitted layer: ${input.id}`,

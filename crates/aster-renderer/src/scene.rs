@@ -129,7 +129,7 @@ impl ScenePipelines {
     ) -> Result<(), RenderError> {
         let (scene, depth) = target;
         let (images, surfaces, surface_plan, cache) = resources;
-        let layer_keys = crate::layer_key::LayerKey::collect(frame)?;
+        let layer_keys = crate::layer_key::LayerKey::collect(frame, &cache.generations)?;
         let lighting = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Supplied lighting"),
             contents: &frame.lighting,
