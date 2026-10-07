@@ -31,6 +31,7 @@ import { runNativeSsaaEffectGate } from "./native-ssaa-effect-gate.mjs";
 import { runNativeStillGate } from "./native-still-gate.mjs";
 import { runNativeSurfaceFrameGate } from "./native-surface-frame-gate.mjs";
 import { runNativeSurfacePostGate } from "./native-surface-post-gate.mjs";
+import { runNativeTemporalGate } from "./native-temporal-gate.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile } from "./source.mjs";
@@ -269,6 +270,18 @@ export async function runNativeCoreGate(context, execute = runStep) {
       context,
     );
     assert.equal(report.image_cache.status, "passed");
+    if (rasters) {
+      report.native_temporal_text = await runNativeTemporalGate(
+        { ...context, output: join(context.output, "native-temporal-text") },
+        binary,
+        execute,
+      );
+      assert.equal(
+        report.native_temporal_text.status,
+        "passed",
+        "Native temporal text gate failed",
+      );
+    }
     report.native_stills = await runNativeStillGate(
       { ...context, output: join(context.output, "native-stills") },
       { base, binary, validateReceipt: validateNativeReceipt },

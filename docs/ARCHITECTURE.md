@@ -114,7 +114,14 @@ Supplied text, SVG and PSD rasters use the same native GPU image cache. Admissio
 byte buffers or typed `RasterPixels` resources, validates the frame binding, extent and format, and
 keys allocations by both frame and pixel generation. Repeated static rasters reuse resident textures;
 changed pixels replace the old generation within the shared budget. Rasterization still belongs to
-the Phase A producer. Native temporal text accumulation remains a separate capability.
+the Phase A producer.
+
+Native temporal text passes consume supplied sample identities and exposure weights through shared
+WGSL. Retained `rgba16float` accumulation and `rgba8unorm-srgb` output targets stay GPU-resident;
+every execution clears previous exposure. Preparation validates sample identity, format, extent
+and the complete target/uniform budget before allocating. Partial exposure preserves its transparent
+weight instead of renormalizing visible samples. The standalone pass is verified; integration with
+whole-frame resource resolution and recursive surfaces remains pending.
 
 `aster-media-native` resolves PNG/JPEG sources from explicit job grants keyed by source hash and
 authorization scope. It checks file size, SHA-256 and the imported content identity, then feeds an

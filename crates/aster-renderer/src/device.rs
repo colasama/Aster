@@ -21,6 +21,9 @@ mod surface_cache_tests;
 #[cfg(test)]
 #[path = "surface_post_tests.rs"]
 mod surface_post_tests;
+#[cfg(test)]
+#[path = "temporal_text_tests.rs"]
+mod temporal_text_tests;
 
 pub struct NativeOptions {
     pub backend: NativeBackend,

@@ -329,6 +329,14 @@ typed `RasterPixels` frame identity, eviction, changed pixel generations and ato
 G1 retains resource transport and lifetime checks. Passing raster admission does not establish M5
 exit: native temporal text accumulation and complete motion-blur output still require coverage.
 
+The native temporal supplement executes four frozen M2 sample sets (full exposure, enters, exits and
+transparent), using their original pass bytes and sample pixels. The input manifest is pinned in the
+ledger and traced to the accepted M2 exit report; reference PNGs are unchanged. GPU controls require
+identical repeated output from retained targets, atomic budget rejection, rejection of wrong sample
+identities and transparent output after zeroing exposure. G3 compares the resolved raster directly
+to its frozen reference and requires section 6.6 self-review. This supplement does not yet establish
+whole-frame or recursive temporal execution.
+
 ## Native geometry, blend and supplied-image acceptance
 
 M3 G3 executes the current release `aster-render-cli render-plan` against complete captured FPLN
