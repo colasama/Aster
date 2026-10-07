@@ -75,7 +75,7 @@ export async function runNativeRejections(context, { reader, base, binary }, exe
     /GPU allocation budget/,
   );
   for (const id of [
-    "media-image-sequence",
+    "video-24000-1001",
     "scene-dof-15",
     "scene-particles-billboard",
     "scene-lighting-directional",

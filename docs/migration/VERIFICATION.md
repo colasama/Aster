@@ -546,3 +546,11 @@ frames, two standalone surface effects, thirty primary auxiliary attachments, al
 outputs and the four rejected SSAA experiments. Missing, duplicated, stale or substituted evidence
 prevents milestone completion. Coverage is scoped to M4; text rasters, native video, higher-tier 3D,
 export, native evaluation and production preview remain later milestones.
+
+Native media increments retain the M5 raster/effect/cache regressions. The image-sequence gate uses
+original plans without supplied pixels, explicit per-member authorizations and the packaged FFmpeg
+snapshot decoder. Twelve frozen hold-boundary and frame-identity outputs are compared through the
+corpus pixel gate; twelve reverse requests must reproduce them exactly without extra GPU uploads.
+Missing/scope/member/byte-identity and allocation failures must publish no PNG. Sequence coverage
+alone never establishes M6 completion: exact video timing, integration and the media exit audit remain
+required.

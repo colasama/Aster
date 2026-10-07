@@ -4,7 +4,11 @@ import { join } from "node:path";
 import { writeAtomicJson } from "./report.mjs";
 
 /** Authorization and allocation failures must never publish a rendered frame. */
-export async function runStillRejections(context, { binary, args, grant }, execute) {
+export async function runStillRejections(
+  context,
+  { binary, args, grant, extraRejections = [] },
+  execute,
+) {
   const results = [];
   for (const [id, grants, extra, pattern] of [
     ["missing-grant", [], [], /source or scope is not granted/],
@@ -22,6 +26,7 @@ export async function runStillRejections(context, { binary, args, grant }, execu
       ["--still-max-pixel-bytes", "16"],
       /decoded still exceeds extent or byte budget/,
     ],
+    ...extraRejections,
   ]) {
     const authorization = join(context.output, `reject-${id}.json`);
     await writeAtomicJson(authorization, grants);

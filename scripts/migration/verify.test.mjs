@@ -109,6 +109,36 @@ const deliveryPolicy = {
   native_milestones: ["M8", "M11", "M12"],
 };
 
+test("M6 sequence increments execute native media with no premature video completion", async (t) => {
+  const context = await fixture(t);
+  await writeAtomicJson(context.ledger, {
+    status: "running",
+    owner_overrides: { performance_delivery_policy: deliveryPolicy },
+    milestones: [
+      {
+        id: "M6",
+        status: "in_progress",
+        gates: ["G0", "G3"],
+        tasks: [{ id: "M6-T1", status: "in_progress" }],
+      },
+    ],
+  });
+  let called = false;
+  const result = await verifyMigration(context, {
+    provenance,
+    execute: fakeHook,
+    runNativeCoreGate: async (nativeContext) => {
+      assert.equal(nativeContext.milestone, "M6");
+      called = true;
+      return { id: "G3", status: "passed", full_coverage: false };
+    },
+  });
+  assert(called);
+  assert.equal(result.report.required_gates_passed, true);
+  assert.equal(result.report.milestone_exit_satisfied, false);
+  assert.match(result.report.milestone_exit_reason, /exact video timing/);
+});
+
 test("M4 effect increments execute native GPU gates without claiming complete effect coverage", async (t) => {
   const context = await fixture(t);
   await writeAtomicJson(context.ledger, {

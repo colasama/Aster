@@ -10,7 +10,7 @@ use std::path::PathBuf;
 
 #[derive(Debug, Args)]
 pub struct NativeStillArgs {
-    /// Explicit source-hash/path/scope/SHA-256 grants for native file decoding.
+    /// Explicit source/member/path/scope/SHA-256 grants for native file decoding.
     #[arg(long, requires = "ffmpeg")]
     media_authorizations: Option<PathBuf>,
     /// Existing packaged FFmpeg executable; no download or codec substitution occurs.

@@ -14,6 +14,9 @@ use crate::MediaError;
 #[serde(deny_unknown_fields)]
 pub struct StillAuthorization {
     pub source: ResourceHash,
+    /// Sequence grants authorize one member, never an inferred neighboring path.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sequence_frame: Option<i64>,
     pub scope: String,
     pub path: PathBuf,
     pub sha256: String,
@@ -51,7 +54,7 @@ pub struct DecodedStill {
 }
 
 pub struct NativeStillDecoder {
-    authorizations: BTreeMap<ResourceHash, StillAuthorization>,
+    authorizations: BTreeMap<(ResourceHash, Option<i64>), StillAuthorization>,
     backend: FfmpegBackend,
     limits: StillLimits,
 }
@@ -79,10 +82,12 @@ impl NativeStillDecoder {
             ResourceHash(grant.sha256.clone()).validate()?;
             if grant.scope.is_empty()
                 || !grant.path.is_absolute()
-                || grants.insert(grant.source.clone(), grant).is_some()
+                || grants
+                    .insert((grant.source.clone(), grant.sequence_frame), grant)
+                    .is_some()
             {
                 return Err(MediaError::Authorization(
-                    "unique sources, absolute paths and nonempty scopes required".into(),
+                    "unique source members, absolute paths and nonempty scopes required".into(),
                 ));
             }
         }
@@ -120,12 +125,20 @@ impl NativeStillDecoder {
                 "still source descriptor required".into(),
             ));
         };
-        if frame.sample != MediaSample::Image || source.media_kind != MediaKind::Image {
-            return Err(MediaError::Unsupported("non-still sample".into()));
-        }
+        let (member, identity) = match (&frame.sample, source.media_kind) {
+            (MediaSample::Image, MediaKind::Image) => (None, &source.content_identity),
+            (
+                MediaSample::Sequence {
+                    frame,
+                    file_identity,
+                },
+                MediaKind::Sequence,
+            ) => (Some(*frame), file_identity),
+            _ => return Err(MediaError::Unsupported("non-still sample".into())),
+        };
         let grant = self
             .authorizations
-            .get(&frame.source)
+            .get(&(frame.source.clone(), member))
             .filter(|grant| grant.scope == source.authorization_scope)
             .ok_or_else(|| MediaError::Authorization("source or scope is not granted".into()))?;
         if cancellation.is_cancelled() {
@@ -162,7 +175,7 @@ impl NativeStillDecoder {
             right = (right ^ u32::from(*byte)).wrapping_mul(0x85ebca6b);
         }
         if digest != grant.sha256
-            || source.content_identity != format!("fnv64:{left:08x}{right:08x}:{}", encoded.len())
+            || *identity != format!("fnv64:{left:08x}{right:08x}:{}", encoded.len())
         {
             return Err(MediaError::Identity);
         }
@@ -183,7 +196,14 @@ impl NativeStillDecoder {
                     cancellation,
                 )?;
                 Self::canvas_alpha_precision(&mut bytes);
-                (bytes, "ffmpeg-still-snapshot")
+                (
+                    bytes,
+                    if member.is_some() {
+                        "ffmpeg-sequence-snapshot"
+                    } else {
+                        "ffmpeg-still-snapshot"
+                    },
+                )
             }
         };
         Ok(DecodedStill {

@@ -14,6 +14,7 @@ import {
   coreSurfaceCases,
 } from "./native-core-scope.mjs";
 import { runNativeMotionFrameGate } from "./native-motion-frame-gate.mjs";
+import { runNativeSequenceGate } from "./native-sequence-gate.mjs";
 
 export {
   coreGeometryCases,
@@ -57,13 +58,20 @@ export function validateNativeReceipt(receipt, expected) {
 /** Native gate coverage is scoped to the current milestone; its exit audit checks provenance. */
 export async function runNativeCoreGate(context, execute = runStep) {
   const started = Date.now();
-  const rasters = context.milestone === "M5";
+  const media = context.milestone === "M6";
+  const rasters = media || context.milestone === "M5";
   const effects = rasters || context.milestone === "M4";
   const extraCases = [...(effects ? nativeEffectCases : []), ...(rasters ? nativeRasterCases : [])];
   const report = {
     id: "G3",
     status: "failed",
-    scope: rasters ? "native-rasters-v1" : effects ? "native-effects-fused-v4" : "native-core-v5",
+    scope: media
+      ? "native-media-sequences-v1"
+      : rasters
+        ? "native-rasters-v1"
+        : effects
+          ? "native-effects-fused-v4"
+          : "native-core-v5",
     native_image_decode: true,
     full_coverage: false,
     milestone_exit_eligible: false,
@@ -118,6 +126,15 @@ export async function runNativeCoreGate(context, execute = runStep) {
     if (compiler) {
       const pinned = await reader.bytes(local(compiler));
       report.dxcompiler = { path: local(compiler), sha256: pinned.sha256 };
+    }
+    if (media) {
+      assert.equal(ledger.milestones.find((m) => m.id === "M5").status, "done");
+      report.native_sequences = await runNativeSequenceGate(
+        { ...context, output: join(context.output, "native-sequences") },
+        { base, binary, compiler, validateReceipt: validateNativeReceipt },
+        execute,
+      );
+      assert.equal(report.native_sequences.status, "passed", "Native sequence decode failed");
     }
     for (const id of coreCases) {
       const item = corpus.cases.find((value) => value.id === id);
@@ -386,8 +403,8 @@ export async function runNativeCoreGate(context, execute = runStep) {
     );
     report.checked_files = await reader.stable();
     report.status = "passed";
-    report.full_coverage = true;
-    report.milestone_exit_eligible = true;
+    report.full_coverage = !media;
+    report.milestone_exit_eligible = !media;
   } catch (error) {
     report.error = error.stack ?? error.message;
   }

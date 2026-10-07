@@ -73,6 +73,7 @@ impl HdrFixture {
         let decoder = NativeStillDecoder::new(
             "unused-ffmpeg".into(),
             vec![StillAuthorization {
+                sequence_frame: None,
                 source,
                 scope: "test:hdr".into(),
                 path: self.path.clone(),

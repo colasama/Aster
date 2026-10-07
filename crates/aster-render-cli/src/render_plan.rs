@@ -23,7 +23,7 @@ pub struct RenderPlanArgs {
     #[arg(long, required_unless_present = "batch", conflicts_with = "batch")]
     plan: Option<PathBuf>,
     /// Bounded JSON list of supplied frame jobs, executed on one retained native device.
-    #[arg(long, conflicts_with_all = ["plan", "dump", "out", "resources", "resource_manifest", "media_authorizations"])]
+    #[arg(long, conflicts_with_all = ["plan", "dump", "out", "resources", "resource_manifest"])]
     batch: Option<PathBuf>,
     #[arg(long, default_value_t = 4096)]
     max_batch_frames: usize,

@@ -28,7 +28,10 @@ impl ImageInput {
                 "image frame descriptor missing".into(),
             ));
         };
-        if !matches!(frame.sample, MediaSample::Image | MediaSample::Raster(_)) {
+        if !matches!(
+            frame.sample,
+            MediaSample::Image | MediaSample::Raster(_) | MediaSample::Sequence { .. }
+        ) {
             return Err(RenderError::Unsupported("non-still media sample".into()));
         }
         match registry.descriptor(&record.pixels)? {

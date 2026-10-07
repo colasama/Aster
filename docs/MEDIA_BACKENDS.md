@@ -30,6 +30,13 @@ output, time and cancellation are bounded. The child reads immutable bytes throu
 media path. Native imports preserve the browser's eight-bit associated-alpha precision boundary
 before the renderer uploads straight sRGB samples into its content-addressed GPU cache.
 
+Image sequences use the same bounded snapshot decoder. Each grant binds a source hash, job scope
+and exact integer `sequence_frame` to an absolute path and SHA-256. The decoded bytes must also match
+the member file identity in the frame descriptor; a source-wide still grant cannot authorize a
+sequence member. No neighboring filename or floating-point frame clock is inferred. Batch rendering
+retains GPU images across forward, held and backward requests. This process-decode-plus-upload path
+does not claim GPU interop or zero-copy.
+
 EXR snapshots use the already-linked Rust `exr` library and produce straight linear `rgba16float`
 textures. Input files may contain one flat RGB layer with optional alpha, full-resolution floating
 channels, matching zero-origin data/display windows and BT.709/sRGB primaries. Associated RGB is

@@ -185,7 +185,7 @@ export async function verifyMigration(options, dependencies = {}) {
           output_replay: checked.report.output_replay,
           duration_ms: checked.report.duration_ms,
         });
-      } else if (id === "G3" && ["M3", "M4", "M5"].includes(milestone.id)) {
+      } else if (id === "G3" && ["M3", "M4", "M5", "M6"].includes(milestone.id)) {
         report.gates.push(
           quick
             ? { id, status: "skipped", reason: "Quick mode omits native core GPU execution" }
@@ -195,11 +195,13 @@ export async function verifyMigration(options, dependencies = {}) {
               ),
         );
         report.milestone_exit_reason =
-          milestone.id === "M5"
-            ? "Native raster increments require temporal text and the complete M5 exit audit"
-            : milestone.id === "M4"
-              ? "Native effect increments require the complete effect/style corpus and M4 exit audit"
-              : "Native core increments require the complete core corpus and M3 exit audit";
+          milestone.id === "M6"
+            ? "Native media increments require exact video timing, media integration and the complete M6 exit audit"
+            : milestone.id === "M5"
+              ? "Native raster increments require temporal text and the complete M5 exit audit"
+              : milestone.id === "M4"
+                ? "Native effect increments require the complete effect/style corpus and M4 exit audit"
+                : "Native core increments require the complete core corpus and M3 exit audit";
       } else if (id === "G3") {
         const pixelContext = { ...context, output: join(output, "G3") };
         const build = await execute(
