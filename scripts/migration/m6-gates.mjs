@@ -9,7 +9,15 @@ import { staticCommands } from "./static-checks.mjs";
 
 /** A media exit includes every earlier native pixel gate and the complete timed-media corpus. */
 export function validateM6Gates(report, corpus) {
-  assert.equal(report.milestone, "M6");
+  return validateNativeMediaGates(report, corpus, {
+    milestone: "M6",
+    scope: "native-media-mixed-v1",
+    additionalCases: [],
+  });
+}
+
+export function validateNativeMediaGates(report, corpus, { milestone, scope, additionalCases }) {
+  assert.equal(report.milestone, milestone);
   assert.equal(report.mode, "full");
   assert.deepEqual([...report.required_gates].sort(), ["G0", "G3"]);
   assert.deepEqual(report.gates.map((g) => g.id).sort(), ["G0", "G3"]);
@@ -23,11 +31,11 @@ export function validateM6Gates(report, corpus) {
   );
   for (const step of g0.steps) validateCurrentStep(step, report.started_at);
   const native = report.gates.find((g) => g.id === "G3");
-  assert.equal(native.scope, "native-media-mixed-v1");
+  assert.equal(native.scope, scope);
   for (const key of ["full_coverage", "milestone_exit_eligible", "native_gpu_execution"])
     assert.equal(native[key], true);
   validateNativeEffectScope(corpus);
-  const cases = [...coreCases, ...nativeEffectCases, ...nativeRasterCases];
+  const cases = [...coreCases, ...nativeEffectCases, ...nativeRasterCases, ...additionalCases];
   assert.deepEqual([...native.cases].sort(), [...cases].sort());
   const select = (ids) => ({
     cases: ids.map((id) => {

@@ -12,6 +12,7 @@ import { auditM3Exit } from "./m3-exit.mjs";
 import { auditM4Exit } from "./m4-exit.mjs";
 import { auditM5Exit } from "./m5-exit.mjs";
 import { auditM6Exit } from "./m6-exit.mjs";
+import { auditM7Exit } from "./m7-exit.mjs";
 import { runNativeCoreGate } from "./native-core-gate.mjs";
 import { runPerformanceGate } from "./performance-gate.mjs";
 import { selectRequiredGates } from "./performance-policy.mjs";
@@ -197,7 +198,7 @@ export async function verifyMigration(options, dependencies = {}) {
         );
         report.milestone_exit_reason =
           milestone.id === "M7"
-            ? "Native scenes require complete depth, lighting, generator and auxiliary coverage"
+            ? "Native scene completion requires the full M7 exit audit"
             : milestone.id === "M6"
               ? "Native media completion requires the full M6 exit audit"
               : milestone.id === "M5"
@@ -376,6 +377,23 @@ export async function verifyMigration(options, dependencies = {}) {
           throw new Error("M6 native media audit failed");
         report.milestone_exit_reason =
           "Exact sequence/video identities, mixed frames, authorization and bounded decode lifetimes audited";
+      } catch (error) {
+        report.milestone_exit = { status: "failed", error: error.message };
+        report.milestone_exit_reason = error.message;
+      }
+    }
+    const sceneExit = milestone.tasks.find((task) => task.id === "M7-T6");
+    if (
+      milestone.id === "M7" &&
+      !quick &&
+      (milestone.status === "done" || ["in_progress", "done"].includes(sceneExit?.status))
+    ) {
+      try {
+        report.milestone_exit = await (dependencies.auditM7Exit ?? auditM7Exit)(root, report);
+        if (report.milestone_exit.status !== "passed")
+          throw new Error("M7 native scene audit failed");
+        report.milestone_exit_reason =
+          "Complete scene/generator coverage, frozen pixels, self-reviews and resource lifetimes audited";
       } catch (error) {
         report.milestone_exit = { status: "failed", error: error.message };
         report.milestone_exit_reason = error.message;

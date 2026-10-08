@@ -689,3 +689,17 @@ scenes and silence. The pixel gate authenticates all inputs, resources and self-
 Post-fragment product boundaries preserve rounding before display conversion and FXAA. The native
 lowering is restricted to the fragment entry; shader helper functions remain unchanged. Existing
 corpus and output routes are rechecked against their frozen references after this lowering changes.
+
+The M7 exit audit runs when `M7-T6` is active or M7 is already done. It requires completed prior
+milestones and scene tasks, current full G0/G3, every camera/light/depth/generator corpus identity,
+and all cloner and motion-blur cases already covered by native execution. Six supplement matrices
+contain 616 complete frames: scene/depth output, HDR materials, encoded normals, animated normals,
+generator output and recursive generator surfaces. Their exact identities, independently frozen
+input/reference hashes, two cache modes, execution receipts and section 6.6 reviews are reread;
+summary counts alone cannot establish completion. Observable controls are recomputed from actual
+reference pixels, and every budget/audio rejection must leave its output absent. The audit also
+checks depth retirement/recreation, frame audio restoration and all earlier media, effect, raster
+and cache regressions. Case tolerance overrides must match the embedded catalog and the ledger;
+all remaining limits stay unchanged. This audit reuses the current run's evidence without extra
+GPU rendering. Native export routing, hardware encoding, evaluation and preview integration remain
+in M8-M12.
