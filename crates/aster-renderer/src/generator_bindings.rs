@@ -94,7 +94,7 @@ impl GeneratorBindings {
         })
     }
 
-    pub fn audio(device: &wgpu::Device, input: &GeneratorInput) -> wgpu::Buffer {
+    pub fn audio(device: &wgpu::Device, supplied: Option<&[u8]>) -> wgpu::Buffer {
         let mut silent = vec![0; 9280];
         for (lane, value) in silent[..16].chunks_exact_mut(4).zip([128_u32, 16, 256, 0]) {
             lane.copy_from_slice(&value.to_le_bytes());
@@ -108,7 +108,7 @@ impl GeneratorBindings {
         }
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Frame-shared generator audio analysis"),
-            contents: match &input.audio {
+            contents: match supplied {
                 Some(audio) => audio,
                 None => &silent,
             },

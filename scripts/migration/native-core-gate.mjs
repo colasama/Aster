@@ -15,6 +15,7 @@ import {
 } from "./native-core-scope.mjs";
 import { runNativeGeneratorAudioGate } from "./native-generator-audio-gate.mjs";
 import { runNativeGeneratorOutputGate } from "./native-generator-output-gate.mjs";
+import { runNativeGeneratorSurfaceGate } from "./native-generator-surface-gate.mjs";
 import { runNativeMaterialGate } from "./native-material-gate.mjs";
 import { runNativeMediaFrameGate } from "./native-media-frame-gate.mjs";
 import { runNativeMotionFrameGate } from "./native-motion-frame-gate.mjs";
@@ -323,6 +324,16 @@ export async function runNativeCoreGate(context, execute = runStep) {
         report.native_generator_output.status,
         "passed",
         "Native generator output failed",
+      );
+      report.native_generator_surfaces = await runNativeGeneratorSurfaceGate(
+        { ...context, output: join(context.output, "native-generator-surfaces") },
+        { binary, compiler, validateReceipt: validateNativeReceipt },
+        execute,
+      );
+      assert.equal(
+        report.native_generator_surfaces.status,
+        "passed",
+        "Recursive generators failed",
       );
       report.native_scene_output = await runNativeSceneOutputGate(
         { ...context, output: join(context.output, "native-scene-output") },

@@ -72,12 +72,9 @@ impl SurfacePlan {
         let mut offset = 4;
         let mut used_images = BTreeSet::new();
         for (index, (target, record)) in routing.targets.iter().zip(&records.scenes).enumerate() {
-            if target.id != record.target_id
-                || target.draw_count != record.draw_count
-                || !record.generators.is_empty()
-            {
-                return Err(RenderError::Unsupported(
-                    "surface identity, draw count or generator".into(),
+            if target.id != record.target_id || target.draw_count != record.draw_count {
+                return Err(RenderError::Invalid(
+                    "surface identity or draw count differs".into(),
                 ));
             }
             let scene = FplnCodec::decode(registry.resolve(&record.scene)?.to_vec(), limits)?;

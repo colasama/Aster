@@ -851,12 +851,17 @@ Generator and motion shaders lower normalization to vector/length division and b
 products before later additions. This avoids backend reciprocal-square-root and contraction choices
 changing particle coverage or reconstruction. The shared FXAA luminance calculation bounds its
 display-UNORM contributions before summation so luminance/alpha ties retain the same edge direction.
+Native post processing also bounds finite products in the fragment entry before color quantization.
+Shader helpers and the shared source remain unchanged; this preserves the TS rounding boundary
+whose one-code-value difference can otherwise change the subsequent FXAA edge selection.
 The buffer allocation budget includes generator context, parameters, instances, indirect arguments
-and audio analysis. Recursive generator scenes retain a separate integration gate.
-Root generators share one authenticated audio record and one GPU audio buffer per scene, including
-invocations that omit a redundant audio payload. Conflicting supplied records fail before drawing.
-Each scene recreates this binding from its own input or the defined silence record, preventing audio
-from a preceding render from leaking into the next frame.
+and audio analysis. Root and recursive child generators share one authenticated audio record and
+one GPU audio buffer per root frame, including invocations that omit a redundant audio payload.
+Conflicting supplied records fail before GPU execution. Every frame recreates this binding from
+its supplied record or defined silence, preventing analysis from leaking between frames. The audio
+allocation is budgeted once across all scenes. Child-first surface execution uses the same cached
+programs and GPU generator executor as the root. Captured unavailable child generators retain their
+validated identity and resources but must be absent from the executable command closure.
 
 Supplied auxiliary generator identities select the same GPU instance and indirect buffers used by
 beauty. Requested variants compile a five-attachment MRT pipeline lazily, preserving graph cull and

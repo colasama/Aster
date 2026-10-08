@@ -8,7 +8,7 @@ impl GeneratorShader {
         let normalized = Self::ordered_normalization(source, &module)?;
         let module = naga::front::wgsl::parse_str(&normalized)
             .map_err(|error| error.emit_to_string(&normalized))?;
-        let bounded = Self::bounded_products(&normalized, &module)?;
+        let bounded = Self::bounded_products(&normalized, &module, None)?;
         let mut module = naga::front::wgsl::parse_str(&bounded)
             .map_err(|error| error.emit_to_string(&bounded))?;
         let mut replacements = Vec::new();

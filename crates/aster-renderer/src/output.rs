@@ -75,7 +75,7 @@ impl OutputPipelines {
             "fragment_main",
             &constants,
             wgpu::TextureFormat::Bgra8Unorm,
-        );
+        )?;
         let linear_post = Self::pipeline(
             device,
             &post_program.source,
@@ -83,7 +83,7 @@ impl OutputPipelines {
             "fragment_main",
             &constants,
             wgpu::TextureFormat::Rgba16Float,
-        );
+        )?;
         let aa_program = catalog.program("output-anti-aliasing")?;
         let mut aa = BTreeMap::new();
         aa.insert(
@@ -95,7 +95,7 @@ impl OutputPipelines {
                 "fxaa",
                 &[],
                 wgpu::TextureFormat::Bgra8Unorm,
-            ),
+            )?,
         );
         for scale in [2, 4] {
             let constants = aa_program
@@ -113,7 +113,7 @@ impl OutputPipelines {
                     "supersample",
                     &constants,
                     wgpu::TextureFormat::Bgra8Unorm,
-                ),
+                )?,
             );
         }
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
@@ -190,7 +190,7 @@ impl OutputPipelines {
                 "fragment_main",
                 &[],
                 wgpu::TextureFormat::Rgba16Float,
-            );
+            )?;
             let validation_error = pollster::block_on(validation.pop());
             let internal_error = pollster::block_on(internal.pop());
             let memory_error = pollster::block_on(memory.pop());
@@ -209,39 +209,47 @@ impl OutputPipelines {
         entry: &str,
         constants: &[(&str, f64)],
         format: wgpu::TextureFormat,
-    ) -> wgpu::RenderPipeline {
+    ) -> Result<wgpu::RenderPipeline, RenderError> {
         let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some(entry),
-            source: wgpu::ShaderSource::Wgsl(source.into()),
-        });
-        device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some(entry),
-            layout,
-            vertex: wgpu::VertexState {
-                module: &module,
-                entry_point: Some("vertex_main"),
-                compilation_options: Default::default(),
-                buffers: &[],
+            source: if entry == "fragment_main" {
+                wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(
+                    aster_shaders::PostShader::parse(source).map_err(RenderError::Invalid)?,
+                ))
+            } else {
+                wgpu::ShaderSource::Wgsl(source.into())
             },
-            fragment: Some(wgpu::FragmentState {
-                module: &module,
-                entry_point: Some(entry),
-                compilation_options: wgpu::PipelineCompilationOptions {
-                    constants,
-                    ..Default::default()
+        });
+        Ok(
+            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some(entry),
+                layout,
+                vertex: wgpu::VertexState {
+                    module: &module,
+                    entry_point: Some("vertex_main"),
+                    compilation_options: Default::default(),
+                    buffers: &[],
                 },
-                targets: &[Some(wgpu::ColorTargetState {
-                    format,
-                    blend: None,
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
+                fragment: Some(wgpu::FragmentState {
+                    module: &module,
+                    entry_point: Some(entry),
+                    compilation_options: wgpu::PipelineCompilationOptions {
+                        constants,
+                        ..Default::default()
+                    },
+                    targets: &[Some(wgpu::ColorTargetState {
+                        format,
+                        blend: None,
+                        write_mask: wgpu::ColorWrites::ALL,
+                    })],
+                }),
+                primitive: Default::default(),
+                depth_stencil: None,
+                multisample: Default::default(),
+                multiview_mask: None,
+                cache: None,
             }),
-            primitive: Default::default(),
-            depth_stencil: None,
-            multisample: Default::default(),
-            multiview_mask: None,
-            cache: None,
-        })
+        )
     }
 
     fn post_bindings(

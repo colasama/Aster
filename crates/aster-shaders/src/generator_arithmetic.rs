@@ -76,7 +76,11 @@ impl GeneratorShader {
     }
 
     /// Keep finite scalar/vector products separate from following additions during lowering.
-    pub(crate) fn bounded_products(source: &str, module: &naga::Module) -> Result<String, String> {
+    pub(crate) fn bounded_products(
+        source: &str,
+        module: &naga::Module,
+        only: Option<&[&str]>,
+    ) -> Result<String, String> {
         let info = naga::valid::Validator::new(
             naga::valid::ValidationFlags::all(),
             naga::valid::Capabilities::all(),
@@ -100,6 +104,14 @@ impl GeneratorShader {
                         ..
                     }
                 ) {
+                    continue;
+                }
+                if only.is_some_and(|names| {
+                    !function
+                        .name
+                        .as_deref()
+                        .is_some_and(|name| names.contains(&name))
+                }) {
                     continue;
                 }
                 let ty = match info[handle].ty.inner_with(&module.types) {

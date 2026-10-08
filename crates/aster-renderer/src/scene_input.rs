@@ -158,7 +158,6 @@ impl SceneInput {
                 .values()
                 .map(crate::generator_input::GeneratorInput::required_bytes)
                 .sum::<u64>()
-            + u64::from(!self.generators.is_empty()) * 9280
             + 8192
             + self.materials.len() as u64 * 16
             + self

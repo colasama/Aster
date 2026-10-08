@@ -29,24 +29,45 @@ impl GeneratorInput {
         let mut result = BTreeMap::new();
         let mut sources = BTreeMap::<ResourceHash, Arc<str>>::new();
         let mut audio: Option<Arc<[u8]>> = None;
+        let mut identities = BTreeSet::new();
         for record in records {
             let plan = FplnCodec::decode(registry.resolve(&record.plan)?.to_vec(), limits)?;
             let Some(PlanSlice::SceneGenerator(invocation)) = plan.metadata.slices.first() else {
                 return Err(RenderError::Invalid("generator invocation absent".into()));
             };
+            let mut header = plan.metadata.header.clone();
+            if root.metadata.header.snapshot_scope == "precomposition-scenes"
+                && header.snapshot_scope == "precomposition-generators"
+            {
+                header.snapshot_scope = root.metadata.header.snapshot_scope.clone();
+            }
             if plan.metadata.contract_level != ContractLevel::SceneGeneratorSliceV1
-                || plan.metadata.header != root.metadata.header
+                || header != root.metadata.header
                 || invocation.instance_id != record.instance_id
-                || record.execution
-                    != (PrecompositionGeneratorExecution::Ready {
-                        capacity: invocation.capacity,
-                        effective_count: invocation.effective_count,
-                    })
             {
                 return Err(RenderError::Invalid(
                     "generator identity or realization differs".into(),
                 ));
             }
+            if !identities.insert(SurfacePlan::key(&record.instance_id)) {
+                return Err(RenderError::Invalid("duplicate generator instance".into()));
+            }
+            let ready = match record.execution {
+                PrecompositionGeneratorExecution::Unavailable
+                    if root.metadata.header.snapshot_scope == "precomposition-scenes" =>
+                {
+                    false
+                }
+                PrecompositionGeneratorExecution::Ready {
+                    capacity,
+                    effective_count,
+                } if capacity == invocation.capacity
+                    && effective_count == invocation.effective_count =>
+                {
+                    true
+                }
+                _ => return Err(RenderError::Invalid("generator realization differs".into())),
+            };
             let mut shaders = BTreeMap::new();
             let mut total = 0;
             for hash in &plan.metadata.resources {
@@ -76,6 +97,9 @@ impl GeneratorInput {
                     .get(hash)
                     .ok_or_else(|| RenderError::Invalid("generator shader cache absent".into()))?;
                 shaders.insert(hash.clone(), Arc::clone(source));
+            }
+            if !ready {
+                continue;
             }
             let program = serde_json::to_vec(&invocation.program)
                 .map_err(|error| RenderError::Invalid(error.to_string()))?;
@@ -139,5 +163,23 @@ impl GeneratorInput {
             + 208
             + 2048
             + 16
+    }
+
+    /// Child compositions share the root-time analysis, even when their local times differ.
+    pub fn shared_audio(
+        inputs: impl Iterator<Item = Option<Arc<[u8]>>>,
+    ) -> Result<Option<Arc<[u8]>>, RenderError> {
+        let mut shared: Option<Arc<[u8]>> = None;
+        for audio in inputs.flatten() {
+            if shared.as_deref().is_some_and(|old| old != audio.as_ref()) {
+                return Err(RenderError::Invalid(
+                    "generator audio differs within root frame".into(),
+                ));
+            }
+            if shared.is_none() {
+                shared = Some(audio);
+            }
+        }
+        Ok(shared)
     }
 }

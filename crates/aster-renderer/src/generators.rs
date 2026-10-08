@@ -11,6 +11,7 @@ pub(crate) struct GeneratorPipelines {
     compute_layout: wgpu::BindGroupLayout,
     render_layout: wgpu::BindGroupLayout,
     programs: BTreeMap<ResourceHash, GeneratorProgram>,
+    audio: Option<wgpu::Buffer>,
 }
 
 impl GeneratorPipelines {
@@ -50,6 +51,7 @@ impl GeneratorPipelines {
             compute_layout: layout(true),
             render_layout: layout(false),
             programs: BTreeMap::new(),
+            audio: None,
         }
     }
 
@@ -62,6 +64,8 @@ impl GeneratorPipelines {
             .chain(frame.surfaces.targets.iter().map(|s| &s.scene))
             .flat_map(|s| s.generators.values())
             .collect::<Vec<_>>();
+        self.audio = (!inputs.is_empty())
+            .then(|| GeneratorBindings::audio(device, frame.generator_audio.as_deref()));
         let active = inputs
             .iter()
             .map(|input| input.program_key.clone())
@@ -138,10 +142,13 @@ impl GeneratorPipelines {
         inputs: &BTreeMap<Vec<u16>, GeneratorInput>,
     ) -> Result<BTreeMap<Vec<u16>, GeneratorBindings>, RenderError> {
         let mut bindings = BTreeMap::new();
-        let Some(first) = inputs.values().next() else {
+        if inputs.is_empty() {
             return Ok(bindings);
-        };
-        let audio = GeneratorBindings::audio(device, first);
+        }
+        let audio = self
+            .audio
+            .as_ref()
+            .ok_or_else(|| RenderError::Invalid("frame generator audio binding absent".into()))?;
         for (key, input) in inputs {
             bindings.insert(
                 key.clone(),
@@ -149,7 +156,7 @@ impl GeneratorPipelines {
                     device,
                     input,
                     (&self.compute_layout, &self.render_layout),
-                    &audio,
+                    audio,
                 )?,
             );
         }

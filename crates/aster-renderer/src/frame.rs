@@ -7,6 +7,7 @@ use crate::RenderError;
 
 /// Validated, owned execution inputs. No project evaluation or filesystem access occurs here.
 pub struct SuppliedFrame {
+    pub(crate) generator_audio: Option<std::sync::Arc<[u8]>>,
     pub(crate) visualizer: Option<crate::frame_visualizer::FrameVisualizer>,
     pub(crate) depth: Option<crate::frame_depth::FrameDepth>,
     pub(crate) motion: Option<crate::frame_motion::FrameMotion>,
@@ -157,6 +158,11 @@ impl SuppliedFrame {
             pixels,
             &textures,
         )?;
+        let generator_audio = crate::generator_input::GeneratorInput::shared_audio(
+            std::iter::once(&scene)
+                .chain(surfaces.targets.iter().map(|s| &s.scene))
+                .flat_map(|s| s.generators.values().map(|g| g.audio.clone())),
+        )?;
         if let Some(surface) = &surface {
             surface.validate_resources(&scene, &surfaces)?;
         }
@@ -233,6 +239,7 @@ impl SuppliedFrame {
             ));
         }
         Ok(Self {
+            generator_audio,
             visualizer,
             depth,
             motion,

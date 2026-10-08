@@ -222,3 +222,83 @@ fn supplied_generators_require_matching_frame_identity_closure_and_shader_text()
     }
     Ok(())
 }
+
+#[test]
+fn captured_child_generator_scope_and_unavailability_preserve_closure()
+-> Result<(), Box<dyn std::error::Error>> {
+    let limits = DecodeLimits::default();
+    let mut fixture = GeneratorFixture::new(b"shader source".to_vec())?;
+    let mut plan = FplnCodec::decode(
+        fixture.registry.resolve(&fixture.records[0].plan)?.to_vec(),
+        &limits,
+    )?;
+    let payload = plan.blob(0)?.to_vec();
+    fixture.root.metadata.header.snapshot_scope = "precomposition-scenes".into();
+    plan.metadata.header.snapshot_scope = "precomposition-generators".into();
+    fixture.records[0].plan = GeneratorFixture::register(
+        &mut fixture.registry,
+        FplnCodec::encode(plan.metadata, &[&payload], &limits)?,
+    )?;
+    assert_eq!(
+        GeneratorInput::collect(&fixture.records, &fixture.root, &fixture.registry, &limits)?.len(),
+        1
+    );
+    fixture.records[0].execution = PrecompositionGeneratorExecution::Unavailable;
+    assert!(
+        GeneratorInput::collect(&fixture.records, &fixture.root, &fixture.registry, &limits)
+            .is_err()
+    );
+    let Some(PlanSlice::RootSceneCommands(root)) = fixture.root.metadata.slices.first_mut() else {
+        return Err("root absent".into());
+    };
+    root.commands.clear();
+    assert!(
+        GeneratorInput::collect(&fixture.records, &fixture.root, &fixture.registry, &limits)?
+            .is_empty()
+    );
+    fixture.records[0].execution = PrecompositionGeneratorExecution::Planned;
+    assert!(
+        GeneratorInput::collect(&fixture.records, &fixture.root, &fixture.registry, &limits)
+            .is_err()
+    );
+    fixture.records[0].execution = PrecompositionGeneratorExecution::Unavailable;
+    fixture.records.push(fixture.records[0].clone());
+    assert!(
+        GeneratorInput::collect(&fixture.records, &fixture.root, &fixture.registry, &limits)
+            .is_err()
+    );
+    Ok(())
+}
+
+#[test]
+fn root_frame_audio_unifies_independent_scene_records_and_rejects_conflicts()
+-> Result<(), Box<dyn std::error::Error>> {
+    let limits = DecodeLimits::default();
+    let mut parent = GeneratorFixture::new(b"shader source".to_vec())?;
+    let mut child = GeneratorFixture::new(b"shader source".to_vec())?;
+    child.append_audio("child-audio", 7)?;
+    let inputs = GeneratorInput::collect(&child.records, &child.root, &child.registry, &limits)?;
+    let silent = GeneratorInput::collect(&parent.records, &parent.root, &parent.registry, &limits)?;
+    let audio = GeneratorInput::shared_audio(
+        silent
+            .values()
+            .chain(inputs.values())
+            .map(|g| g.audio.clone()),
+    )?
+    .ok_or("shared audio absent")?;
+    assert_eq!(audio.as_ref(), vec![7; 9280]);
+    assert!(GeneratorInput::shared_audio(silent.values().map(|g| g.audio.clone()))?.is_none());
+    parent.append_audio("parent-audio", 9)?;
+    let conflicting =
+        GeneratorInput::collect(&parent.records, &parent.root, &parent.registry, &limits)?;
+    assert!(
+        GeneratorInput::shared_audio(
+            inputs
+                .values()
+                .chain(conflicting.values())
+                .map(|g| g.audio.clone())
+        )
+        .is_err()
+    );
+    Ok(())
+}

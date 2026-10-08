@@ -229,6 +229,9 @@ impl NativeRenderer {
         }
         let render_size = frame.scene.header.render_target;
         let size = frame.scene.header.target;
+        let has_generators = std::iter::once(&frame.scene)
+            .chain(frame.surfaces.targets.iter().map(|s| &s.scene))
+            .any(|s| !s.generators.is_empty());
         let lut_bytes = frame.luts.values().map(|input| input.bytes).sum::<u64>();
         let surface_bytes = frame
             .surfaces
@@ -252,6 +255,7 @@ impl NativeRenderer {
             + u64::from(render_size.width) * u64::from(render_size.height) * 16
             + u64::from(size.width) * u64::from(size.height) * 4
             + frame.scene.transient_bytes()
+            + u64::from(has_generators) * 9280
             + if frame.scene.shadow_draws.is_empty() {
                 0
             } else {
@@ -286,7 +290,7 @@ impl NativeRenderer {
         let memory = self.device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
         let internal = self.device.push_error_scope(wgpu::ErrorFilter::Internal);
         let validation = self.device.push_error_scope(wgpu::ErrorFilter::Validation);
-        if !frame.scene.generators.is_empty() && self.scene.generators.is_none() {
+        if has_generators && self.scene.generators.is_none() {
             self.scene.generators = Some(crate::generators::GeneratorPipelines::new(&self.device));
         }
         if let Some(generators) = &mut self.scene.generators {

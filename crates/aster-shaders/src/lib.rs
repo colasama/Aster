@@ -4,10 +4,12 @@ mod catalog;
 mod embedded;
 mod embedded_post_process;
 mod embedded_runtime;
+mod post;
 mod types;
 mod validation;
 
 pub use catalog::{ShaderCatalog, ShaderProgram};
+pub use post::PostShader;
 pub use types::{
     EntryPoint, OverrideDefinition, OverrideType, ProgramDefinition, ProgramFragment, ShaderError,
     ShaderManifest, ShaderStage,

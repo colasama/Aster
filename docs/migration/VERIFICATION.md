@@ -660,7 +660,7 @@ the native generator graph. GPU controls silence the audio samples, add a visibl
 that sibling's redundant audio payload, restore the original frame and reject contradictory audio
 records before output publication. Shared and inherited audio must produce identical pixels,
 restored frames must match the frozen-input native baseline exactly, and both silence and a new
-sibling must visibly change the image. The audio record is budgeted once per scene. These checks
+sibling must visibly change the image. The audio record is budgeted once per root frame. These checks
 cover root beauty output.
 
 Generator output references independently route frozen invocations through five auxiliary views,
@@ -678,3 +678,14 @@ limits and all structural limits. Exact comparisons cannot be relaxed. The billb
 case permits a peak of seven after review of two sparse edge pixels; its default mean/PSNR limits
 remain unchanged. Native normalization uses vector/length division to avoid a one-ULP particle
 position difference changing mesh raster coverage; no diagnostic particle readback remains.
+
+Recursive generator integration uses 108 independently captured complete frames across six bundled
+variants and four AA modes. Child-only, two-level child-first surfaces and captured unavailability
+exercise routing through the retained root effect. Audio variants additionally compare explicit
+shared input, inherited root input and silence. Thirty-six observable controls prove generator and
+audio contributions; twelve conflicting root/child records must fail without publishing pixels.
+Cached and uncached renders must match exactly, including three restored audio frames after other
+scenes and silence. The pixel gate authenticates all inputs, resources and self-review hashes.
+Post-fragment product boundaries preserve rounding before display conversion and FXAA. The native
+lowering is restricted to the fragment entry; shader helper functions remain unchanged. Existing
+corpus and output routes are rechecked against their frozen references after this lowering changes.
