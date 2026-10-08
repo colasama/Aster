@@ -256,87 +256,153 @@
     }
   },
   "last_cycle": {
-    "id": 114,
-    "time": "2026-10-08T00:17:53.794982+00:00",
+    "id": 115,
+    "time": "2026-10-08T00:44:34.754378+00:00",
     "milestone": "M7",
-    "task": "M7-T5",
+    "task": "M7-T6",
     "outcome": "passed",
-    "commit": "52ecdf96e75d625da9031e983e1041b2ab8cc700",
-    "verification": "artifacts/migration/verify-2026-10-07T23-41-43-137Z-11621397.json",
-    "verification_sha256": "52796a525cce6a7f6b358a3436c25253ffd81a6e3eb35affe0e287349f29abc9",
+    "commit": "47f4024f32b5cfefbf6f53b1efea664aeb1b06e9",
+    "verification": "artifacts/migration/verify-2026-10-08T00-19-56-267Z-87bd6531.json",
+    "verification_sha256": "f861dc6b2e5bcef99b0146bc0d1a8e51352c500115b40b8032c7b90e409a469c",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 140553
+        "duration_ms": 121023
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 1822103
+        "duration_ms": 1199684
       }
     ],
-    "verification_duration_ms": 1980085,
-    "milestone_exit_satisfied": false,
-    "generator_surfaces": {
-      "frames": 108,
-      "exact_frames": 18,
-      "nonexact_frames": 90,
-      "exact_cache_comparisons": 111,
-      "exact_restorations": 6,
-      "observable_controls": 36,
-      "conflicting_audio_rejections": 12,
-      "variants": ["billboard", "mesh", "streak", "bars", "ring", "scope"],
-      "aa": ["off", "fxaa", "ssaa2x", "ssaa4x"]
-    },
-    "regressions": {
-      "pixel_frames": 1315,
-      "cache_exact_comparisons": 5324,
-      "generator_output_frames": 216,
-      "scene_output_frames": 64,
-      "hdr_material_frames": 60,
-      "normal_material_frames": 144,
-      "animated_normal_frames": 24
-    },
-    "self_reviews_accepted": 730,
-    "tolerance_changes": 0,
-    "diagnostics": {
-      "surface_arithmetic": "artifacts/migration/cycle114-surface-arithmetic-pixels/summary.json",
-      "aa_arithmetic": "artifacts/migration/cycle114-aa-arithmetic-pixels/summary.json",
-      "notes": [
-        "Native surface multiplication boundaries and FXAA arithmetic boundaries did not change the five failing outputs. Both experiments removed before testing post arithmetic.",
-        "The five failed comparisons remain rejected. Mesh nested contact sheet and heatmap show sparse differences; off-AA comparison differs by one code value in fifteen pixels.",
-        "Bounding only post fragment_main products fixes all five failures to peak zero or one. Shared source and helper functions are unchanged. All 90 nonexact recursive outputs inspected in 58 unique pixel pairs across ten review pages.",
-        "All 1315 prior main frames rerendered: 620 candidate hashes changed and all pass frozen-reference comparisons. Inspected 479 unique nonexact pairs directly across eighty pages; refreshed all 620 reviews."
+    "verification_duration_ms": 1426031,
+    "milestone_exit_satisfied": true,
+    "exit_audit": {
+      "status": "passed",
+      "scope": "Native camera, depth, material, generator, cloner, motion and auxiliary execution",
+      "native_gpu_execution": true,
+      "scenes": {
+        "lifetime": {
+          "frames": 59,
+          "executions": 62,
+          "restored": 3,
+          "rejections": 1
+        },
+        "audio": {
+          "executions": 12,
+          "exact_replays": 6,
+          "observable_controls": 6,
+          "rejections": 3
+        },
+        "supplements": {
+          "native_scene_output": {
+            "frames": 64,
+            "executions": 128,
+            "cache_exact": 64,
+            "controls": 16,
+            "rejections": 1
+          },
+          "native_material": {
+            "frames": 60,
+            "executions": 120,
+            "cache_exact": 60,
+            "controls": 44,
+            "rejections": 1
+          },
+          "native_normal": {
+            "frames": 144,
+            "executions": 288,
+            "cache_exact": 144,
+            "controls": 108,
+            "rejections": 1
+          },
+          "native_animated_normal": {
+            "frames": 24,
+            "executions": 48,
+            "cache_exact": 24,
+            "controls": 12,
+            "rejections": 1
+          },
+          "native_generator_output": {
+            "frames": 216,
+            "executions": 432,
+            "cache_exact": 216,
+            "controls": 24,
+            "rejections": 0
+          },
+          "native_generator_surfaces": {
+            "frames": 108,
+            "executions": 222,
+            "cache_exact": 111,
+            "controls": 36,
+            "rejections": 12
+          }
+        }
+      },
+      "media": {
+        "sequences": {
+          "frames": 12,
+          "executions": 24,
+          "checked_files": 4338
+        },
+        "videos": {
+          "frames": 44,
+          "executions": 44,
+          "checked_files": 4603
+        },
+        "cache": {
+          "exact_comparisons": 148,
+          "modes": 4
+        },
+        "mixed": {
+          "frames": 6,
+          "supplied_file_pixel_rejections": 2
+        }
+      },
+      "pixels": {
+        "frames": 1315,
+        "checked_files": 12973
+      },
+      "effects": {
+        "surface_frames": 16,
+        "surface_post": 2,
+        "primary_attachments": 30,
+        "cache": {
+          "exact": 5324,
+          "hits": 1240,
+          "bounded_passes": 40,
+          "saved_pixels": 1080000
+        },
+        "ssaa_strategy": "rejected; production remains full resolution"
+      },
+      "rasters": {
+        "rasters": 4,
+        "recursive": {
+          "frames": 2,
+          "executions": 20,
+          "controls": 4
+        },
+        "motion": {
+          "frames": 6,
+          "executions": 24,
+          "controls": 5
+        }
+      },
+      "boundaries": [
+        "Supplied plans retain TS evaluation until Phase B",
+        "Production preview/export routing remains in its integration milestones",
+        "Pixel and lifetime evidence does not establish native export or preview performance"
       ],
-      "post_fragment_arithmetic": "artifacts/migration/cycle114-fragment-arithmetic-pixels/summary.json",
-      "main_preflight": "artifacts/migration/cycle114-main/report.json"
+      "checked_files": 23370
     },
-    "failed_attempts": [
-      {
-        "report": "artifacts/migration/cycle114-reference/report.json",
-        "reason": "Independent TS capture rejected mismatched root effect headers after AA fixture resizing. Resized layer-effect uniforms and authenticated all rebuilt stages before the successful v2 capture."
-      },
-      {
-        "report": "artifacts/migration/cycle114-native/report.json",
-        "reason": "Five sparse FXAA cases exceed default peak tolerance; one nested mesh case reaches eleven. All 111 cached comparisons and six restoration checks are exact. Investigating precision before acceptance."
-      },
-      {
-        "report": "artifacts/migration/verify-2026-10-07T23-18-01-957Z-fd083dda.json",
-        "reason": "All 1315 pixel metrics passed, but 620 main self-reviews failed schema validation: 70 exact GPU-profile records used an unsupported residual class, and 550 omitted sequence context. Added report-derived sequence context and contact-sheet/heatmap hashes to all 730 current accepted reviews, preserving every verdict and tolerance."
-      },
-      {
-        "report": "artifacts/migration/cycle114-native-final/report.json",
-        "reason": "Pixels passed; negative-control harness initially expected exit code 1 instead of typed invalid-input exit 2. Corrected the assertion and passed the complete recursive preflight."
-      }
-    ],
-    "next_step": "M7-T6: audit full scene, generator, cloner and auxiliary coverage with current evidence.",
+    "failed_attempts": [],
+    "next_step": "M8: implement native export sidecar, hardware H.264 encoding and Electron queue integration with native G4/G5/G6 evidence.",
     "notes": [
-      "Child-first surfaces execute supplied generators and preserve captured unavailable records without inventing draws. Root and child invocations share one authenticated, budgeted GPU audio record per root frame.",
-      "Conflicting root/child audio fails before GPU execution. Cached/uncached and restored outputs are exact.",
-      "Finite product boundaries limited to post fragment_main fix sparse FXAA failures without changing shared WGSL, helper functions or tolerances.",
-      "All 90 nonexact recursive frames and all changed regression pixel pairs were inspected directly. Accepted 108 recursive, 620 main-corpus and two generator-output hash-bound reviews; preserved five initial rejected comparisons.",
-      "Full G0/G3 passed with source_unchanged=true. M7-T5 is complete; the complete coverage audit remains in T6."
+      "Current complete G0/G3 and immutable source passed. M0-M7 are now done.",
+      "Audit authenticated 616 supplemental frames, 619 exact cache pairs and 240 observable controls alongside 1315 main pixels and all prior native media/effect/raster regressions.",
+      "No renderer, tolerance or pixel-review verdict changed in this cycle.",
+      "Independent preparatory hardware probe found the adapter-matched AMD H.264 MFT, encoded 60 NV12 frames and decoded all 60 with FFmpeg. This is capability reconnaissance only, not M8 quality or performance acceptance."
     ]
   },
   "milestones": [
@@ -20630,7 +20696,7 @@
     {
       "id": "M7",
       "title": "3D, camera, lights, motion blur, generators",
-      "status": "in_progress",
+      "status": "done",
       "gates": ["G0", "G3"],
       "tasks": [
         {
@@ -20709,26 +20775,151 @@
         {
           "id": "M7-T6",
           "title": "Audit full M7 scene, generator, cloner and auxiliary coverage with current pixel evidence",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-10-08T00:44:34.754378+00:00",
+          "commit": "47f4024f32b5cfefbf6f53b1efea664aeb1b06e9",
+          "verification": "artifacts/migration/verify-2026-10-08T00-19-56-267Z-87bd6531.json"
         }
       ],
       "last_verification": {
         "status": "passed",
         "required_gates_passed": true,
-        "milestone_exit_satisfied": false,
-        "report": "artifacts/migration/verify-2026-10-07T23-41-43-137Z-11621397.json",
+        "milestone_exit_satisfied": true,
+        "report": "artifacts/migration/verify-2026-10-08T00-19-56-267Z-87bd6531.json",
         "gates": [
           {
             "id": "G0",
             "status": "passed",
-            "duration_ms": 140553
+            "duration_ms": 121023
           },
           {
             "id": "G3",
             "status": "passed",
-            "duration_ms": 1822103
+            "duration_ms": 1199684
           }
         ]
+      },
+      "completed_at": "2026-10-08T00:44:34.754378+00:00",
+      "commit": "47f4024f32b5cfefbf6f53b1efea664aeb1b06e9",
+      "verification": "artifacts/migration/verify-2026-10-08T00-19-56-267Z-87bd6531.json",
+      "verification_sha256": "f861dc6b2e5bcef99b0146bc0d1a8e51352c500115b40b8032c7b90e409a469c",
+      "exit_audit": {
+        "status": "passed",
+        "scope": "Native camera, depth, material, generator, cloner, motion and auxiliary execution",
+        "native_gpu_execution": true,
+        "scenes": {
+          "lifetime": {
+            "frames": 59,
+            "executions": 62,
+            "restored": 3,
+            "rejections": 1
+          },
+          "audio": {
+            "executions": 12,
+            "exact_replays": 6,
+            "observable_controls": 6,
+            "rejections": 3
+          },
+          "supplements": {
+            "native_scene_output": {
+              "frames": 64,
+              "executions": 128,
+              "cache_exact": 64,
+              "controls": 16,
+              "rejections": 1
+            },
+            "native_material": {
+              "frames": 60,
+              "executions": 120,
+              "cache_exact": 60,
+              "controls": 44,
+              "rejections": 1
+            },
+            "native_normal": {
+              "frames": 144,
+              "executions": 288,
+              "cache_exact": 144,
+              "controls": 108,
+              "rejections": 1
+            },
+            "native_animated_normal": {
+              "frames": 24,
+              "executions": 48,
+              "cache_exact": 24,
+              "controls": 12,
+              "rejections": 1
+            },
+            "native_generator_output": {
+              "frames": 216,
+              "executions": 432,
+              "cache_exact": 216,
+              "controls": 24,
+              "rejections": 0
+            },
+            "native_generator_surfaces": {
+              "frames": 108,
+              "executions": 222,
+              "cache_exact": 111,
+              "controls": 36,
+              "rejections": 12
+            }
+          }
+        },
+        "media": {
+          "sequences": {
+            "frames": 12,
+            "executions": 24,
+            "checked_files": 4338
+          },
+          "videos": {
+            "frames": 44,
+            "executions": 44,
+            "checked_files": 4603
+          },
+          "cache": {
+            "exact_comparisons": 148,
+            "modes": 4
+          },
+          "mixed": {
+            "frames": 6,
+            "supplied_file_pixel_rejections": 2
+          }
+        },
+        "pixels": {
+          "frames": 1315,
+          "checked_files": 12973
+        },
+        "effects": {
+          "surface_frames": 16,
+          "surface_post": 2,
+          "primary_attachments": 30,
+          "cache": {
+            "exact": 5324,
+            "hits": 1240,
+            "bounded_passes": 40,
+            "saved_pixels": 1080000
+          },
+          "ssaa_strategy": "rejected; production remains full resolution"
+        },
+        "rasters": {
+          "rasters": 4,
+          "recursive": {
+            "frames": 2,
+            "executions": 20,
+            "controls": 4
+          },
+          "motion": {
+            "frames": 6,
+            "executions": 24,
+            "controls": 5
+          }
+        },
+        "boundaries": [
+          "Supplied plans retain TS evaluation until Phase B",
+          "Production preview/export routing remains in its integration milestones",
+          "Pixel and lifetime evidence does not establish native export or preview performance"
+        ],
+        "checked_files": 23370
       }
     },
     {
@@ -302151,6 +302342,156 @@
         "All 90 nonexact recursive frames and all changed regression pixel pairs were inspected directly. Accepted 108 recursive, 620 main-corpus and two generator-output hash-bound reviews; preserved five initial rejected comparisons.",
         "Full G0/G3 passed with source_unchanged=true. M7-T5 is complete; the complete coverage audit remains in T6."
       ]
+    },
+    {
+      "id": 115,
+      "time": "2026-10-08T00:44:34.754378+00:00",
+      "milestone": "M7",
+      "task": "M7-T6",
+      "outcome": "passed",
+      "commit": "47f4024f32b5cfefbf6f53b1efea664aeb1b06e9",
+      "verification": "artifacts/migration/verify-2026-10-08T00-19-56-267Z-87bd6531.json",
+      "verification_sha256": "f861dc6b2e5bcef99b0146bc0d1a8e51352c500115b40b8032c7b90e409a469c",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 121023
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 1199684
+        }
+      ],
+      "verification_duration_ms": 1426031,
+      "milestone_exit_satisfied": true,
+      "exit_audit": {
+        "status": "passed",
+        "scope": "Native camera, depth, material, generator, cloner, motion and auxiliary execution",
+        "native_gpu_execution": true,
+        "scenes": {
+          "lifetime": {
+            "frames": 59,
+            "executions": 62,
+            "restored": 3,
+            "rejections": 1
+          },
+          "audio": {
+            "executions": 12,
+            "exact_replays": 6,
+            "observable_controls": 6,
+            "rejections": 3
+          },
+          "supplements": {
+            "native_scene_output": {
+              "frames": 64,
+              "executions": 128,
+              "cache_exact": 64,
+              "controls": 16,
+              "rejections": 1
+            },
+            "native_material": {
+              "frames": 60,
+              "executions": 120,
+              "cache_exact": 60,
+              "controls": 44,
+              "rejections": 1
+            },
+            "native_normal": {
+              "frames": 144,
+              "executions": 288,
+              "cache_exact": 144,
+              "controls": 108,
+              "rejections": 1
+            },
+            "native_animated_normal": {
+              "frames": 24,
+              "executions": 48,
+              "cache_exact": 24,
+              "controls": 12,
+              "rejections": 1
+            },
+            "native_generator_output": {
+              "frames": 216,
+              "executions": 432,
+              "cache_exact": 216,
+              "controls": 24,
+              "rejections": 0
+            },
+            "native_generator_surfaces": {
+              "frames": 108,
+              "executions": 222,
+              "cache_exact": 111,
+              "controls": 36,
+              "rejections": 12
+            }
+          }
+        },
+        "media": {
+          "sequences": {
+            "frames": 12,
+            "executions": 24,
+            "checked_files": 4338
+          },
+          "videos": {
+            "frames": 44,
+            "executions": 44,
+            "checked_files": 4603
+          },
+          "cache": {
+            "exact_comparisons": 148,
+            "modes": 4
+          },
+          "mixed": {
+            "frames": 6,
+            "supplied_file_pixel_rejections": 2
+          }
+        },
+        "pixels": {
+          "frames": 1315,
+          "checked_files": 12973
+        },
+        "effects": {
+          "surface_frames": 16,
+          "surface_post": 2,
+          "primary_attachments": 30,
+          "cache": {
+            "exact": 5324,
+            "hits": 1240,
+            "bounded_passes": 40,
+            "saved_pixels": 1080000
+          },
+          "ssaa_strategy": "rejected; production remains full resolution"
+        },
+        "rasters": {
+          "rasters": 4,
+          "recursive": {
+            "frames": 2,
+            "executions": 20,
+            "controls": 4
+          },
+          "motion": {
+            "frames": 6,
+            "executions": 24,
+            "controls": 5
+          }
+        },
+        "boundaries": [
+          "Supplied plans retain TS evaluation until Phase B",
+          "Production preview/export routing remains in its integration milestones",
+          "Pixel and lifetime evidence does not establish native export or preview performance"
+        ],
+        "checked_files": 23370
+      },
+      "failed_attempts": [],
+      "next_step": "M8: implement native export sidecar, hardware H.264 encoding and Electron queue integration with native G4/G5/G6 evidence.",
+      "notes": [
+        "Current complete G0/G3 and immutable source passed. M0-M7 are now done.",
+        "Audit authenticated 616 supplemental frames, 619 exact cache pairs and 240 observable controls alongside 1315 main pixels and all prior native media/effect/raster regressions.",
+        "No renderer, tolerance or pixel-review verdict changed in this cycle.",
+        "Independent preparatory hardware probe found the adapter-matched AMD H.264 MFT, encoded 60 NV12 frames and decoded all 60 with FFmpeg. This is capability reconnaissance only, not M8 quality or performance acceptance."
+      ]
     }
   ],
   "known_boundaries": [
@@ -302212,7 +302553,9 @@
         "artifacts/parity/particle-order-fixed/repeatability.json"
       ],
       "follow_up": "Use the existing gpu-export-pipeline-check prepareComposition hook with fixed IDs and seeds, visible/offscreen billboard and mesh cases, warm-up plus three runs, and actual effective instance counts. Compare wall-frame distributions; do not treat unavailable GPU timestamps as zero.",
-      "native_milestone": "M7"
+      "native_milestone": "M7",
+      "follow_up_milestones": ["M8", "M11"],
+      "status_note": "M7 proves pixel correctness and GPU instance reuse. Under the approved rust-delivery-v1 policy, measure the retained culling cost in paired native export/preview performance acceptance; no M7 performance equivalence is claimed."
     }
   ],
   "reference_repairs": [
