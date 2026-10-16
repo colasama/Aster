@@ -19,6 +19,8 @@ pub struct ComparisonOptions {
     pub background: Option<[u8; 4]>,
     pub sequence: Option<SequenceInput>,
     pub registration: RegistrationOptions,
+    /// Only G5 encoded-video comparisons may use the approved constant-reference rule.
+    pub g5_uniform_reference: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -55,6 +57,11 @@ impl Comparison {
         profile_name: &str,
         options: &ComparisonOptions,
     ) -> Result<ComparisonReport, CompareError> {
+        if options.g5_uniform_reference && profile_name != "yuv" {
+            return Err(CompareError::InvalidArgument(
+                "uniform-reference equivalence is only valid for G5 yuv comparisons".into(),
+            ));
+        }
         if options.isolated != options.background.is_some() {
             return Err(CompareError::InvalidArgument(
                 "An isolated case requires an explicit background; background is only valid for an isolated case".into(),
@@ -105,8 +112,11 @@ impl Comparison {
         }
         let (structural, registration) = if let Some(limits) = &limits.structural {
             let structural = Structural::measure(reference, candidate, options.background)?;
-            let registration =
+            let mut registration =
                 PhaseCorrelation::measure(reference, candidate, &options.registration)?;
+            if options.g5_uniform_reference {
+                registration.apply_uniform_reference(reference, candidate);
+            }
             checks.extend([
                 CheckResult {
                     id: "error_clusters".into(),
@@ -125,10 +135,11 @@ impl Comparison {
                 },
                 CheckResult {
                     id: "registration".into(),
-                    passed: registration.status != RegistrationStatus::Indeterminate
-                        && registration
-                            .shift
-                            .is_some_and(|shift| shift.distance <= limits.registration_distance),
+                    passed: registration.status == RegistrationStatus::UniformReferenceEquivalence
+                        || (registration.status != RegistrationStatus::Indeterminate
+                            && registration.shift.is_some_and(|shift| {
+                                shift.distance <= limits.registration_distance
+                            })),
                 },
             ]);
             if let Some(ink) = &structural.ink_bounds {

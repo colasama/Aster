@@ -35,13 +35,7 @@ import {
   sequenceMemberIdentity,
 } from "./media-frame-identity";
 import { MediaGpuRegistry } from "./media-gpu-registry";
-import {
-  abortError,
-  asError,
-  hiddenMediaStyle,
-  remainingTimeout,
-  waitWithTimeout,
-} from "./media-loading";
+import { abortError, asError, remainingTimeout, waitWithTimeout } from "./media-loading";
 import {
   destroyMediaResource,
   type MediaResource,
@@ -49,11 +43,12 @@ import {
   sweepMediaResources,
 } from "./media-resource";
 import { MISSING_MEDIA_RGBA, MISSING_MEDIA_SOURCE } from "./missing-media";
+import { prepareNativeVideoMetadata } from "./native-video-metadata";
 import { captureRasterResources } from "./raster-resource-capture";
 import { uploadTextRaster } from "./text-raster-upload";
 import { TextureUploadBatch } from "./texture-upload-batch";
-import { VideoExternalUpload } from "./video-external-upload";
 import { type VideoFrameTarget, VideoFrameUploader } from "./video-frame-uploader";
+import { prepareBrowserVideo } from "./video-resource-preparation";
 
 const MAX_MEDIA_TEXTURE_DIMENSION = 8_192;
 
@@ -83,6 +78,7 @@ export class MediaTextureCache {
   #frameBindings?: MediaBindingLease;
   #frameScope = "local-preview";
   #captureTemporalDerivations = false;
+  #nativeFileMedia = false;
   readonly #gpuRegistry = new MediaGpuRegistry();
   #textMotionBlur?: TextMotionBlurRasterCache;
   readonly #sequenceFrames = new ImageSequenceFrameCache<RuntimeSequenceFile, ImageBitmap>({
@@ -130,6 +126,7 @@ export class MediaTextureCache {
     for (const [instanceId, resource] of this.#resources)
       if (
         resource.kind === "video" &&
+        !resource.nativeVideoPlan &&
         !this.#videoUploader.isExact(resource, this.#videoFrameTargets.get(instanceId))
       )
         return true;
@@ -211,6 +208,7 @@ export class MediaTextureCache {
     const resource = this.#resources.get(instanceId);
     if (!resource?.bindGroup) return resource === undefined;
     if (resource.kind !== "video") return true;
+    if (resource.nativeVideoPlan) return true;
     return (
       resource.lastUploadedTime !== undefined ||
       Boolean(resource.video?.error) ||
@@ -222,11 +220,13 @@ export class MediaTextureCache {
   videoFrameExact(instanceId: string): boolean {
     const resource = this.#resources.get(instanceId);
     if (resource?.kind !== "video" || !resource.video) return true;
+    if (resource.nativeVideoPlan) return Boolean(resource.bindGroup);
     return this.#videoUploader.isExact(resource, this.#videoFrameTargets.get(instanceId));
   }
 
-  beginFrame(captureTemporalDerivations = false): void {
+  beginFrame(captureTemporalDerivations = false, nativeFileMedia = false): void {
     this.#captureTemporalDerivations = captureTemporalDerivations;
+    this.#nativeFileMedia = nativeFileMedia;
     this.#textMotionBlur?.beginFrame();
   }
 
@@ -286,7 +286,7 @@ export class MediaTextureCache {
 
   async waitForVideoFrames(timeoutMs = 10_000): Promise<void> {
     const resources = [...this.#resources.values()].filter(
-      (resource) => resource.kind === "video" && resource.video,
+      (resource) => resource.kind === "video" && resource.video && !resource.nativeVideoPlan,
     );
     await Promise.all(resources.map((resource) => this.#waitForVideoFrame(resource, timeoutMs)));
   }
@@ -349,7 +349,11 @@ export class MediaTextureCache {
       return;
     }
     const existing = this.#resources.get(instanceId);
-    if (existing?.source === source && existing.kind === layer.kind) {
+    if (
+      existing?.source === source &&
+      existing.kind === layer.kind &&
+      (existing.kind !== "video" || Boolean(existing.nativeVideoPlan) === this.#nativeFileMedia)
+    ) {
       this.#frameResourceErrors.delete(instanceId);
       if (existing.kind === "video")
         this.#updateVideo(existing, layer, footage, time, playing, instanceId);
@@ -362,6 +366,7 @@ export class MediaTextureCache {
       source,
       kind: layer.kind === "video" ? "video" : "image",
       mediaIdentity: preparedMediaIdentity(footage, layer.kind === "video" ? "video" : "image"),
+      nativeVideoPlan: layer.kind === "video" && this.#nativeFileMedia,
     };
     this.#resources.set(instanceId, resource);
     if (resource.kind === "video") {
@@ -775,100 +780,32 @@ export class MediaTextureCache {
     playing: boolean,
     instanceId: string,
   ): void {
-    const video = document.createElement("video");
-    video.preload = "auto";
-    video.playsInline = true;
-    // The asset scheme is a separate origin from the packaged file document. CORS mode must be
-    // selected before assigning src so its decoded frames remain origin-clean for the bounded
-    // validation probe and the emergency Canvas2D fallback.
-    video.crossOrigin = "anonymous";
-    configurePreviewVideoAudio(video, layer);
-    video.dataset.asterLayerId = instanceId;
-    video.dataset.decoderState = "loading";
-    video.setAttribute("aria-hidden", "true");
-    Object.assign(video.style, hiddenMediaStyle(0));
-    video.src = resource.source;
-    resource.video = video;
-    this.#videoFrameTargets.set(
+    const options = {
+      resource,
+      layer,
+      footage,
       instanceId,
-      this.#videoUploader.resolveTarget(resource.source, video, layer, footage, time, playing),
-    );
-    document.body.append(video);
-    const prepareTexture = () => {
-      if (this.#resources.get(instanceId) !== resource || resource.texture) return;
-      video.dataset.decoderState = "ready";
-      const width = Math.max(1, video.videoWidth || ("width" in footage ? footage.width : 1));
-      const height = Math.max(1, video.videoHeight || ("height" in footage ? footage.height : 1));
-      if (!this.#validVideoSize(width, height)) {
-        video.dataset.decoderState = "error";
-        video.dataset.decoderError = "decoded video exceeds the GPU texture limits";
-        this.#frameResourceErrors.set(instanceId, {
-          source: resource.source,
-          error: new Error(video.dataset.decoderError),
-        });
+      device: this.#device,
+      uploader: this.#videoUploader,
+      isCurrent: () => this.#resources.get(instanceId) === resource,
+      validSize: (width: number, height: number) => this.#validVideoSize(width, height),
+      createBinding: (texture: GPUTexture, label: string) => this.#createBindGroup(texture, label),
+      updateTarget: () => this.#updateVideo(resource, layer, footage, time, playing, instanceId),
+      initializeTarget: () =>
+        this.#updateVideo(resource, layer, footage, time, playing, instanceId, false),
+      fail: (error: Error) => {
+        this.#frameResourceErrors.set(instanceId, { source: resource.source, error });
         destroyMediaResource(resource);
         this.#resources.delete(instanceId);
-        return;
-      }
-      resource.texture = this.#device.createTexture({
-        label: `Hardware-decoded video · ${footage.name}`,
-        size: [width, height],
-        format: "rgba8unorm-srgb",
-        usage:
-          GPUTextureUsage.TEXTURE_BINDING |
-          GPUTextureUsage.COPY_DST |
-          GPUTextureUsage.COPY_SRC |
-          GPUTextureUsage.RENDER_ATTACHMENT,
-      });
-      resource.textureBytes = width * height * 4;
-      resource.textureWidth = width;
-      resource.textureHeight = height;
-      this.#videoUploader.ensureFallbackSurface(resource);
-      resource.bindGroup = this.#createBindGroup(
-        resource.texture,
-        `Video texture resources · ${layer.id}`,
-      );
-      resource.videoExternalUpload = new VideoExternalUpload(
-        this.#device,
-        video,
-        resource.texture,
-        width,
-        height,
-        {
-          onStatus: (status) => {
-            if (this.#resources.get(instanceId) !== resource) return;
-            this.#videoUploader.reportStatus(resource, status);
-            if (status.mode === "direct") this.#videoUploader.releaseFallbackSurface(resource);
-            if (status.mode !== "validating") this.#videoUploader.copy(resource);
-            for (const notify of this.#videoUploadListeners) notify(resource);
-            this.#invalidate();
-          },
-        },
-      );
-      resource.videoExternalUpload.start();
-      this.#updateVideo(resource, layer, footage, time, playing, instanceId);
-      this.#invalidate();
+      },
+      uploadChanged: () => {
+        for (const notify of this.#videoUploadListeners) notify(resource);
+      },
+      invalidate: this.#invalidate,
     };
-    video.addEventListener("loadeddata", prepareTexture, { once: true });
-    video.addEventListener("seeked", () => {
-      video.dataset.decoderState = "seeked";
-      this.#videoUploader.copy(resource);
-      this.#invalidate();
-    });
-    video.addEventListener("error", () => {
-      video.dataset.decoderState = "error";
-      video.dataset.decoderError = video.error?.message ?? "decode failed";
-      if (this.#resources.get(instanceId) === resource) {
-        this.#frameResourceErrors.set(instanceId, {
-          source: resource.source,
-          error: new Error(video.dataset.decoderError),
-        });
-        destroyMediaResource(resource);
-        this.#resources.delete(instanceId);
-        this.#invalidate();
-      }
-    });
-    video.load();
+    if (resource.nativeVideoPlan)
+      this.#trackPending(instanceId, resource.source, prepareNativeVideoMetadata(options));
+    else prepareBrowserVideo(options);
   }
 
   #validVideoSize(width: number, height: number): boolean {
@@ -941,6 +878,7 @@ export class MediaTextureCache {
     time: number,
     playing: boolean,
     instanceId: string,
+    updatePixels = true,
   ): void {
     const video = resource.video;
     if (!video) return;
@@ -954,6 +892,18 @@ export class MediaTextureCache {
       playing,
     );
     this.#videoFrameTargets.set(instanceId, target);
+    if (!updatePixels) return;
+    if (resource.nativeVideoPlan) {
+      if (resource.bindGroup) {
+        const previous = resource.lastUploadedTime ?? 0;
+        // Match both Chromium's microsecond clock and the retained TS seek tolerance.
+        resource.lastUploadedTime =
+          Math.abs(previous - target.time) > target.tolerance
+            ? Math.trunc(target.time * 1_000_000) / 1_000_000
+            : previous;
+      }
+      return;
+    }
     if (Math.abs(video.currentTime - target.time) > target.tolerance)
       video.currentTime = target.time;
     if (playing && video.paused) void video.play().catch(() => undefined);

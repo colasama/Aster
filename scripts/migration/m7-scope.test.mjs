@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { sceneSupplementScope, validateM7Gates } from "./m7-scope.mjs";
+import { sceneSupplementScope, validateM7Gates, validateNativeSceneGates } from "./m7-scope.mjs";
 import { coreCases } from "./native-core-scope.mjs";
 import { nativeEffectCases } from "./native-effect-scope.mjs";
 import { nativeRasterCases } from "./native-raster-batch.mjs";
@@ -100,6 +100,21 @@ test("M7 rejects incomplete, duplicate, stale and falsely summarized scene evide
     ],
   };
   validateM7Gates(report, corpus);
+  const exportReport = structuredClone(report);
+  exportReport.milestone = "M8";
+  exportReport.required_gates.push("G4", "G5", "G6");
+  exportReport.gates.push(...["G4", "G5", "G6"].map((id) => ({ id, status: "passed" })));
+  validateNativeSceneGates(exportReport, corpus, "M8");
+  assert.throws(() => validateM7Gates(exportReport, corpus));
+  assert.throws(() => validateNativeSceneGates(report, corpus, "M8"));
+  for (const id of ["G4", "G5", "G6"]) {
+    const missing = structuredClone(exportReport);
+    missing.gates = missing.gates.filter((g) => g.id !== id);
+    assert.throws(() => validateNativeSceneGates(missing, corpus, "M8"));
+    const failed = structuredClone(exportReport);
+    failed.gates.find((g) => g.id === id).status = "failed";
+    assert.throws(() => validateNativeSceneGates(failed, corpus, "M8"));
+  }
   for (const change of [
     (r) => {
       r.mode = "quick";

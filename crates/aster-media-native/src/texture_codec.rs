@@ -8,7 +8,7 @@ impl TextureCodec {
     pub fn jpeg(bytes: &[u8], size: (u32, u32)) -> Result<Vec<u8>, MediaError> {
         #[cfg(windows)]
         {
-            crate::jpeg_windows::WindowsJpeg::decode(bytes, size)
+            crate::image_windows::WindowsImage::decode(bytes, size)
         }
         #[cfg(not(windows))]
         {

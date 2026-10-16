@@ -116,7 +116,14 @@ export async function auditTimedMedia(reader, group, selected, report, base, vid
     assert.equal(image.frame, media.hash);
     assert.equal(image.source, source.hash);
     assert.equal(image.source_sha256, asset.sha256);
-    assert.equal(image.backend, video ? "ffmpeg-video-snapshot" : "ffmpeg-sequence-snapshot");
+    assert.equal(
+      image.backend,
+      video
+        ? "ffmpeg-video-snapshot"
+        : process.platform === "win32"
+          ? "windows-wic-png-snapshot"
+          : "ffmpeg-sequence-snapshot",
+    );
     if (video) {
       assert.equal(frame.receipt.native_videos.length, 1);
       const v = frame.receipt.native_videos[0];

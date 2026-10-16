@@ -8,6 +8,7 @@ import type {
 } from "../src/core/rendering/render-queue.js";
 import type { AsterLogger } from "./logger.js";
 import { Mp4ExportManager } from "./mp4-export.js";
+import { NativeRenderHostExport, type NativeRenderRuntime } from "./native-render-host-export.js";
 import { prepareAuthorizedRenderHost } from "./render-host-launch-barrier.js";
 import { settleRenderHostTerminal } from "./render-host-terminal.js";
 import type { RenderMediaAuthorizationLease } from "./render-media-snapshot-store.js";
@@ -27,6 +28,7 @@ export interface ElectronRenderHostControllerOptions {
   logger: AsterLogger;
   authorizeMedia?: (manifest: RenderJobManifest) => Promise<RenderMediaAuthorizationLease>;
   packaged: boolean;
+  nativeRuntime?: NativeRenderRuntime;
 }
 
 export interface RenderHostAssignment {
@@ -113,6 +115,7 @@ export class ElectronRenderHostController implements RenderQueueHostFactory {
       report,
       ffmpegExecutable: this.#options.ffmpegExecutable,
       logger: this.#options.logger,
+      nativeRuntime: this.#options.nativeRuntime,
       remove: () => this.#workers.delete(senderId),
     });
     this.#workers.set(senderId, worker);
@@ -146,6 +149,7 @@ export class ElectronRenderHostController implements RenderQueueHostFactory {
 }
 
 interface WorkerOptions {
+  nativeRuntime?: NativeRenderRuntime;
   window: BrowserWindow;
   item: RenderQueueItem;
   leaseId: string;
@@ -158,6 +162,7 @@ interface WorkerOptions {
 }
 
 class ElectronRenderHostWorker implements RenderQueueHostHandle {
+  readonly #native: NativeRenderHostExport;
   readonly jobId: string;
   readonly leaseId: string;
   readonly #window: BrowserWindow;
@@ -187,6 +192,21 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
     this.#ffmpegExecutable = options.ffmpegExecutable;
     this.#logger = options.logger;
     this.#remove = options.remove;
+    this.#native = new NativeRenderHostExport({
+      manifest: options.item.manifest,
+      runtime: options.nativeRuntime,
+      ffmpeg: options.ffmpegExecutable,
+      authorizedPaths: () => this.#mediaAuthorization?.nativeMediaPaths ?? [],
+      outputPath: (id) => this.#publisher.mp4StagingPath(id),
+      report: (decision, transport) =>
+        this.#logger.info("render_host", "native_export_route", {
+          jobId: this.jobId,
+          leaseId: this.leaseId,
+          renderer: decision.accepted ? "rust" : "ts",
+          ...transport,
+          reason: decision.reason,
+        }),
+    });
   }
 
   startLoading(options: { appPath: string; developmentUrl: string; packaged: boolean }): void {
@@ -237,6 +257,10 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
     if (this.#terminal || this.#disposed) throw new Error("RenderHost output session is closed");
     const request = parseRenderHostOutputRequest(value);
     this.#assertCorrelation(request.jobId, request.leaseId);
+    if (request.type === "prepareNative" && this.#mp4.size > 0)
+      throw new Error("Cannot change renderer after output started");
+    const native = await this.#native.output(request);
+    if (native.handled) return native.value;
     if (request.type === "writePng") {
       await this.#publisher.writePng(request.outputId, request.frame, request.pixels);
       return undefined;
@@ -298,7 +322,8 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
     if (report.type === "completed") {
       this.#completing = true;
       try {
-        if (this.#mp4.size > 0) throw new Error("RenderHost completed with unfinished MP4 output");
+        if (this.#mp4.size > 0 || this.#native.unfinished)
+          throw new Error("RenderHost completed with unfinished MP4 output");
         await this.#publisher.publish(
           () => this.#control === "cancel" || this.#terminal || this.#disposed,
         );
@@ -346,6 +371,9 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
     if (this.#terminal || this.#disposed) return;
     if (command === "cancel") {
       this.#control = "cancel";
+      void this.#native
+        .dispose()
+        .catch((error) => this.#logger.error("render_host", "native_cancel_failed", error));
       // FFmpeg drains the auxiliary PCM input at mux pace, so a backpressured write can
       // outlive the cancel signal. Release it so the hidden host's audio pipeline settles
       // instead of deadlocking the lease teardown.
@@ -393,6 +421,7 @@ class ElectronRenderHostWorker implements RenderQueueHostHandle {
 
   async #cleanup(): Promise<void> {
     const managers = [...this.#mp4.values()].map(({ manager }) => manager.dispose());
+    managers.push(this.#native.dispose());
     this.#mp4.clear();
     const failures: unknown[] = [];
     for (const result of await Promise.allSettled(managers))

@@ -138,6 +138,48 @@ with both program identities, inputs and hardware conditions bound to the compar
 cannot supply its own reference. Native paired G4 support is still required; these TS benchmark
 commands do not yet prove native acceptance.
 
+`node scripts/migration/native-reference-export.mjs --out <fresh-artifact-directory>` executes
+one full-export observation per selected workload through the independently retained TS runtime.
+`--smoke` restricts observations to ten frames; repeatable `--case` selects diagnostic workloads.
+The browser bundle, compiled Electron modules and bridge binary come from the ledger-pinned
+historical series, rather than the candidate build. They are authenticated before launch and
+after completion. The common harness registers its asset protocol before asynchronous audits and
+checks that it matches the loaded runtime. Changes to the live candidate Electron/bridge do not
+replace this reference. Changed retained files fail the audit.
+
+Reference observations retain the original ten-frame per-run warm-up and prepared-to-completed
+timing, with actual MP4 encoding and composition audio when present. Inputs must match the frozen
+workload baseline; hardware/AC conditions, source, executed binary hashes and final output hashes
+are checked again afterward. This is a reference execution component, not native G4 acceptance.
+The native job now provides a preparation-only `warm` operation on the same retained device and
+selected NV12 transport. Ten wrapping frame addresses execute without advancing the encoder or
+input admission or compressed storage; completed GPU work is acknowledged with an authenticated plan proof.
+`node scripts/migration/native-benchmark-export.mjs --out <fresh-artifact-directory>` now executes
+the candidate through the production RenderHost frame loop and whole-job native export route.
+It builds the performance HTML entry explicitly, preserves and executes its web/Electron/bridge/
+native binaries, and rejects TS fallback. The browser captures production plans and immutable media
+identities; the main process grants only paths authorized by the assigned project. Ten same-device
+warm-ups precede timing. Source-bound PCM is decoded before timing as in the retained TS harness.
+The prepared-to-completed interval includes all measured planning, admission, render/encode,
+compressed storage, audio mixing and publication. Native mux creation remains inside this interval
+because it follows whole-job admission; no native work is subtracted. A main-process interval from
+first admission through finished MP4 rejects reports that omit observed work. Frame/PCM counts,
+encoder drain, FFprobe output, private-file cleanup and before/after artifact hashes are verified.
+
+Native export replies aggregate CPU wall intervals for plan decoding, input preparation, frame
+validation, render submission, output completion and encoder drain. Warm-up frames are excluded.
+Output completion includes waiting for earlier GPU submissions, so these intervals are not GPU
+pass timings. Resource release, serialization and transport are outside those internal intervals;
+the full end-to-end interval remains the throughput measurement.
+
+Both observation commands accept `--run` and full-length runs remain single observations, not a
+three-run baseline. `native-performance-gate.mjs` schedules four pairs in alternating order, reuses
+a single native runtime snapshot and authenticates the retained TS runtime. It recomputes raw timing
+statistics, matches native adapter identity to the active browser GPU, and requires higher native
+median FPS on all five workloads. Two-pair ten-frame smoke runs and partial coverage cannot pass G4.
+Independent G5 quality acceptance remains required. Queue enqueue-to-completion
+diagnostics have a different timing boundary and cannot be compared directly with these FPS values.
+
 The fixed-reference 5 percent limits and absolute 75/120 fps targets no longer block this migration.
 Baseline files and all previous failed evidence remain unchanged and are not reclassified. This
 override does not reduce pixel, quality or functional coverage, waive G0 or the full required gates

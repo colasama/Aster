@@ -31,6 +31,8 @@ try {
     root,
     output,
     source: await sourceProvenance(root),
+    jobCapture: process.env.ASTER_NATIVE_JOB_CAPTURE === "1",
+    videoOverride: process.env.ASTER_NATIVE_VIDEO_OVERRIDE,
     url: `http://127.0.0.1:${server.httpServer.address().port}/${entry}`,
   });
   const result = await runStep(

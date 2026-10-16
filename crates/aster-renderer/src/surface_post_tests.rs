@@ -17,6 +17,8 @@ impl SurfaceFixture {
         let renderer = NativeRenderer::new(NativeOptions {
             effect_regions: true,
             layer_cache_bytes: 67_108_864,
+            effect_pipeline_entries: 16,
+            gpu_timestamps: false,
             dxcompiler: cfg!(target_os = "windows")
                 .then(|| root.join("node_modules/electron/dist/dxcompiler.dll")),
             backend: if cfg!(target_os = "windows") {

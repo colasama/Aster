@@ -1,15 +1,13 @@
+import assert from "node:assert/strict";
 import { createWriteStream, mkdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { finished } from "node:stream/promises";
+import { pathToFileURL } from "node:url";
 import { app, BrowserWindow, ipcMain, protocol, session } from "electron";
-import * as assets from "../../dist-electron/electron/asset-protocol.js";
-import * as gpuMemory from "../../dist-electron/electron/gpu-memory.js";
-import * as files from "../../dist-electron/electron/local-file-response.js";
-import { Mp4ExportManager } from "../../dist-electron/electron/mp4-export.js";
-import * as preferences from "../../dist-electron/src/desktop/preferences.js";
 import { CaptureDesktopAccess, DesktopBridgeClient } from "../parity/desktop-bridge.mjs";
 import { captureLogIsFailure } from "../parity/electron-capture-session.mjs";
 import { captureHostInfo } from "../parity/electron-host-info.mjs";
+import { NativePerformanceOutputSession } from "./native-output-session.mjs";
 import {
   normalizePerformanceIdentity,
   PerformanceOutputSession,
@@ -17,6 +15,7 @@ import {
   validatePerformanceResult,
 } from "./output-session.mjs";
 import { PreviewOutputSession, validatePreviewResult } from "./preview.mjs";
+import { loadRetainedPerformanceRuntime } from "./retained-runtime.mjs";
 
 let config;
 let bridge;
@@ -31,6 +30,7 @@ let active;
 let identity;
 let published;
 let report;
+let retained;
 
 function deadline(message) {
   clearTimeout(timer);
@@ -85,6 +85,7 @@ async function stop(error) {
     if (error && report) await publish();
     if (error) await active?.output.cancel();
     await manager?.dispose();
+    await retained?.assertStable();
     if (report) await publish();
   } catch (failure) {
     process.stderr.write(`${failure.stack ?? failure}\n`);
@@ -119,6 +120,52 @@ async function main() {
       !config.runId
     )
       throw new Error("Invalid performance configuration");
+    // Scheme registration and Chromium switches must precede every asynchronous artifact audit.
+    const registration = {
+      scheme: "aster-asset",
+      privileges: {
+        standard: true,
+        secure: true,
+        supportFetchAPI: true,
+        corsEnabled: true,
+        stream: true,
+      },
+    };
+    const profile = join(config.runDirectory, "profile");
+    mkdirSync(profile, { recursive: true });
+    protocol.registerSchemesAsPrivileged([registration]);
+    app.setPath("userData", profile);
+    for (const flag of [
+      "force_high_performance_gpu",
+      "disable-background-timer-throttling",
+      "disable-renderer-backgrounding",
+      "disable-backgrounding-occluded-windows",
+    ])
+      app.commandLine.appendSwitch(flag);
+    if (config.retainedRuntime) retained = await loadRetainedPerformanceRuntime(config.root);
+    const runtimeDirectory =
+      retained?.runtimeDirectory ??
+      config.nativeRuntime?.runtimeDirectory ??
+      join(config.root, "dist-electron");
+    const load = (name) => import(pathToFileURL(join(runtimeDirectory, name)).href);
+    const assets = await load("electron/asset-protocol.js");
+    assert.deepEqual(assets.ASSET_SCHEME_REGISTRATION, registration);
+    if (retained) assert.deepEqual(config.source, retained.browser.rendererSource);
+    const gpuMemory = await load("electron/gpu-memory.js");
+    const files = await load("electron/local-file-response.js");
+    const { Mp4ExportManager } = await load("electron/mp4-export.js");
+    const preferences = await load("src/desktop/preferences.js");
+    assert(
+      !(config.retainedRuntime && config.nativeRuntime),
+      "Reference and candidate runtimes must be independent",
+    );
+    const nativeOptions = config.nativeRuntime
+      ? {
+          ...(await load("electron/native-render-host-export.js")),
+          ...(await load("electron/render-queue-host-protocol.js")),
+          runtime: config.nativeRuntime,
+        }
+      : undefined;
     report = {
       schema_version: 1,
       run_id: config.runId,
@@ -127,6 +174,7 @@ async function main() {
       source: config.source,
       hardware: config.hardware,
       host: null,
+      ...(retained ? { retained_runtime: retained.provenance } : {}),
       cases: [],
     };
     mkdirSync(config.runDirectory, { recursive: true });
@@ -138,17 +186,6 @@ async function main() {
     });
     const writeLog = (kind, value) =>
       log?.write(`${JSON.stringify({ at: new Date().toISOString(), kind, value })}\n`);
-    const profile = join(config.runDirectory, "profile");
-    mkdirSync(profile);
-    protocol.registerSchemesAsPrivileged([assets.ASSET_SCHEME_REGISTRATION]);
-    app.setPath("userData", profile);
-    for (const flag of [
-      "force_high_performance_gpu",
-      "disable-background-timer-throttling",
-      "disable-renderer-backgrounding",
-      "disable-backgrounding-occluded-windows",
-    ])
-      app.commandLine.appendSwitch(flag);
     deadline("Performance Electron startup timed out");
     await app.whenReady();
     if (stopping) return;
@@ -170,7 +207,9 @@ async function main() {
       throw new Error("Performance config must bind the actual FFmpeg and FFprobe executables");
     manager = new Mp4ExportManager(ffmpeg);
     bridge = new DesktopBridgeClient(
-      join(config.root, "target", "release", `aster-desktop-bridge${suffix}`),
+      retained?.bridgePath ??
+        config.nativeRuntime?.bridgePath ??
+        join(config.root, "target", "release", `aster-desktop-bridge${suffix}`),
       profile,
       {
         timeoutMs: config.timeoutMs,
@@ -222,8 +261,16 @@ async function main() {
       const current = {
         assignment,
         completing: false,
-        output:
-          assignment.benchmark.mode === "preview-present"
+        output: nativeOptions
+          ? new NativePerformanceOutputSession(assignment, {
+              ...nativeOptions,
+              allowedAssets,
+              ffmpeg,
+              ffprobe,
+              runDirectory: config.runDirectory,
+              index,
+            })
+          : assignment.benchmark.mode === "preview-present"
             ? new PreviewOutputSession()
             : new PerformanceOutputSession(assignment, {
                 manager,
@@ -247,18 +294,30 @@ async function main() {
       if (!active || active.completing) throw new Error("No benchmark is accepting output");
       return active.output.output(request);
     });
+    handle("native-prepare", (manifest) => {
+      if (!nativeOptions || !active || active.completing)
+        throw new Error("No native benchmark is preparing");
+      return active.output.prepare(manifest);
+    });
+    handle("native-warm", (frame, packet) => {
+      if (!nativeOptions || !active || active.completing)
+        throw new Error("No native benchmark is warming");
+      return active.output.warm(frame, packet);
+    });
     handle("complete", async (result) => {
       const current = active;
       if (!current || current.completing) throw new Error("No benchmark is awaiting completion");
       current.completing = true;
-      (current.assignment.benchmark.mode === "preview-present"
-        ? validatePreviewResult
-        : validatePerformanceResult)(
-        current.assignment,
-        result,
-        current.output.report,
-        identity.adapter,
-      );
+      if (nativeOptions) current.output.validate(result, identity.adapter);
+      else
+        (current.assignment.benchmark.mode === "preview-present"
+          ? validatePreviewResult
+          : validatePerformanceResult)(
+          current.assignment,
+          result,
+          current.output.report,
+          identity.adapter,
+        );
       const output = await current.output.verify();
       if (stopping || active !== current)
         throw new Error("Performance completion expired during verification");

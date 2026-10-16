@@ -48,6 +48,8 @@ mod resource_descriptor;
 mod root_scene;
 mod scene;
 mod schema;
+mod session;
+mod session_wire;
 mod temporal_pass;
 mod temporal_text;
 mod texture_pixels;
@@ -73,7 +75,7 @@ pub use metadata::{
 pub use raster::{RasterOrigin, RasterPixelsDescriptor, RasterSample};
 pub use resource::{
     BufferResourceDescriptor, PutOutcome, PutResource, ResourceHash, ResourceKind, ResourceLease,
-    ResourceLimits, ResourceMessage, ResourceRegistry, ResourceStatistics,
+    ResourceLimits, ResourceMessage, ResourceRegistry, ResourceStatistics, VerifiedResource,
 };
 pub use resource_descriptor::ResourceDescriptor;
 pub use root_scene::{
@@ -82,6 +84,8 @@ pub use root_scene::{
 };
 pub use scene::{MediaDrawBinding, SceneBuffersSlice, SceneDrawRecord, SceneMediaBinding};
 pub use schema::FramePlanSchema;
+pub use session::{AdapterLuid, ExportVideoConfig, SessionCommand, SessionRequest, SessionSchema};
+pub use session_wire::{SessionPacket, SessionReader, SessionWireLimits};
 pub use temporal_pass::TemporalTextPassesSlice;
 pub use temporal_text::{TemporalTextFormat, TemporalTextSamplesSlice};
 pub use texture_pixels::{TextureDimension, TexturePixelFormat, TexturePixelsDescriptor};

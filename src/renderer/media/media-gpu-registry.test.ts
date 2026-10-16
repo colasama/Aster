@@ -28,6 +28,50 @@ function admit(registry: MediaGpuRegistry, resource: MediaResource) {
 }
 
 describe("persistent GPU media registrations", () => {
+  it("owns admitted descriptors independently of later caller mutations", () => {
+    const registry = new MediaGpuRegistry();
+    const resource = owner();
+    if (!resource.mediaIdentity) throw Error("Expected identity");
+    resource.mediaIdentity.source.source_id = { utf16_units: [97, 0xd800] };
+    resource.mediaIdentity.source.content_identity = "identity".repeat(10000);
+    const { source, frame } = admit(registry, resource);
+    const original = structuredClone(source);
+    if (source.kind !== "media_source" || typeof source.descriptor.source_id === "string")
+      throw Error("Expected source units");
+    source.descriptor.source_id.utf16_units[0] = 98;
+    source.descriptor.content_identity = "changed";
+    expect(() => registry.apply(source)).toThrow(
+      expect.objectContaining({ code: "hash_mismatch" }),
+    );
+    registry.apply(original);
+    registry.apply(frame, resource, resource.bindGroup);
+    const lease = registry.pin([frame.hash]);
+    expect(lease.bindingForHash(frame.hash)).toBe(resource.bindGroup);
+    lease.release();
+    registry.destroy();
+  });
+
+  it("authenticates changed descriptors despite a known hash and never skips binding checks", () => {
+    const registry = new MediaGpuRegistry();
+    const resource = owner();
+    const { source, frame } = admit(registry, resource);
+    const forged = structuredClone(source);
+    if (forged.kind !== "media_source") throw Error("Expected source");
+    forged.descriptor.content_identity = "different bytes";
+    expect(() => registry.apply(forged)).toThrow(
+      expect.objectContaining({ code: "hash_mismatch" }),
+    );
+    const extra = { ...source, extra: true };
+    expect(() => registry.apply(extra)).toThrow();
+    registry.apply(structuredClone(source));
+    resource.bindGroup = {} as GPUBindGroup;
+    expect(() => registry.apply(frame, resource, resource.bindGroup)).toThrow(
+      expect.objectContaining({ code: "resource_generation_mismatch" }),
+    );
+    registry.destroy();
+    expect(() => registry.apply(source)).toThrow(/destroyed/);
+  });
+
   it("deduplicates puts, rejects mismatched handles and absent hashes, and protects dependencies", () => {
     const registry = new MediaGpuRegistry();
     const resource = owner();

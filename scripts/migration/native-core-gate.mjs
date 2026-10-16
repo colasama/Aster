@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { mkdir, readFile } from "node:fs/promises";
 import { join, posix, relative } from "node:path";
+import { nativeReleaseBuild } from "../native-build.mjs";
 import { validateFrameArtifacts } from "../parity/frame-artifacts.mjs";
 import { runPixelGate } from "../parity/pixel-gate.mjs";
 import { M0Evidence } from "./m0-evidence.mjs";
@@ -13,15 +14,22 @@ import {
   coreLayerCases,
   coreSurfaceCases,
 } from "./native-core-scope.mjs";
+import { runNativeRgbSupplement } from "./native-corpus-rgb.mjs";
+import { runNativeElectronSessionGate } from "./native-electron-session-gate.mjs";
+import { runNativeExportJobGate } from "./native-export-job-gate.mjs";
+import { runNativeExportStreamGate } from "./native-export-stream-gate.mjs";
 import { runNativeGeneratorAudioGate } from "./native-generator-audio-gate.mjs";
 import { runNativeGeneratorOutputGate } from "./native-generator-output-gate.mjs";
 import { runNativeGeneratorSurfaceGate } from "./native-generator-surface-gate.mjs";
 import { runNativeMaterialGate } from "./native-material-gate.mjs";
 import { runNativeMediaFrameGate } from "./native-media-frame-gate.mjs";
 import { runNativeMotionFrameGate } from "./native-motion-frame-gate.mjs";
+import { runNativeNv12Corpus } from "./native-nv12-corpus.mjs";
+import { runNativePreflightMediaGate } from "./native-preflight-media-gate.mjs";
 import { nativeSceneCases, runNativeSceneBatch } from "./native-scene-batch.mjs";
 import { runNativeSceneOutputGate } from "./native-scene-output-gate.mjs";
 import { runNativeSequenceGate } from "./native-sequence-gate.mjs";
+import { runNativeSessionGate } from "./native-session-gate.mjs";
 import { runNativeVideoGate } from "./native-video-gate.mjs";
 
 export {
@@ -66,7 +74,8 @@ export function validateNativeReceipt(receipt, expected) {
 /** Native gate coverage is scoped to the current milestone; its exit audit checks provenance. */
 export async function runNativeCoreGate(context, execute = runStep) {
   const started = Date.now();
-  const scenes = context.milestone === "M7";
+  const exportSession = context.milestone === "M8";
+  const scenes = exportSession || context.milestone === "M7";
   const media = scenes || context.milestone === "M6";
   const rasters = media || context.milestone === "M5";
   const effects = rasters || context.milestone === "M4";
@@ -114,14 +123,7 @@ export async function runNativeCoreGate(context, execute = runStep) {
       .find((item) => item.id === context.milestone)
       .tasks.filter((task) => task.status !== "done")
       .map((task) => task.id);
-    report.build = await execute(
-      {
-        id: "native-core-build",
-        file: "cargo",
-        args: ["build", "--release", "-p", "aster-desktop-bridge", "-p", "aster-render-cli"],
-      },
-      context,
-    );
+    report.build = await execute(nativeReleaseBuild("native-core-build"), context);
     assert.equal(report.build.status, "passed");
     const binary = join(
       context.root,
@@ -141,6 +143,143 @@ export async function runNativeCoreGate(context, execute = runStep) {
     if (compiler) {
       const pinned = await reader.bytes(local(compiler));
       report.dxcompiler = { path: local(compiler), sha256: pinned.sha256 };
+    }
+    if (exportSession) {
+      report.nv12_conversion_smoke = await execute(
+        {
+          id: "native-nv12-conversion",
+          file: "cargo",
+          args: ["test", "-p", "aster-renderer", "gpu_nv12_matches", "--", "--ignored"],
+        },
+        {
+          ...context,
+          env: { ...context.env, ASTER_NV12_EVIDENCE_DIR: join(context.output, "nv12-conversion") },
+        },
+      );
+      assert.equal(
+        report.nv12_conversion_smoke.status,
+        "passed",
+        "GPU NV12 conversion smoke failed",
+      );
+      report.nv12_sharing_smoke = await execute(
+        {
+          id: "native-nv12-sharing",
+          file: "cargo",
+          args: ["test", "-p", "aster-renderer", "shared_nv12_planes_are_exact", "--", "--ignored"],
+        },
+        context,
+      );
+      assert.equal(report.nv12_sharing_smoke.status, "passed", "GPU NV12 sharing smoke failed");
+      report.native_session = await runNativeSessionGate(
+        { ...context, output: join(context.output, "native-session") },
+        { binary, compiler },
+      );
+      assert.equal(report.native_session.status, "passed", "Native session admission failed");
+      report.native_export_stream = await runNativeExportStreamGate(
+        { ...context, output: join(context.output, "native-export-stream") },
+        { binary, compiler },
+        execute,
+      );
+      assert.equal(report.native_export_stream.status, "passed", "Native export stream failed");
+      report.native_shared_export_stream = await runNativeExportStreamGate(
+        { ...context, output: join(context.output, "native-shared-export-stream") },
+        { binary, compiler, transport: "auto" },
+        execute,
+      );
+      assert.equal(
+        report.native_shared_export_stream.status,
+        "passed",
+        "Native shared export stream failed",
+      );
+      assert.equal(
+        report.native_shared_export_stream.decoded_output.sha256,
+        report.native_export_stream.decoded_output.sha256,
+        "Shared/readback transport changed decoded diagnostic pixels",
+      );
+      report.native_electron_session = await runNativeElectronSessionGate(
+        { ...context, output: join(context.output, "native-electron-session") },
+        { binary, compiler },
+        execute,
+      );
+      assert.equal(
+        report.native_electron_session.status,
+        "passed",
+        "Native Electron session failed",
+      );
+      assert.equal(
+        report.native_electron_session.video_sha256,
+        report.native_export_stream.decoded_output.sha256,
+        "Electron mux changed native decoded diagnostic pixels",
+      );
+      report.native_preflight_media = await runNativePreflightMediaGate(
+        { ...context, output: join(context.output, "native-preflight-media") },
+        { binary, compiler },
+        execute,
+      );
+      assert.equal(
+        report.native_preflight_media.status,
+        "passed",
+        "Native media preflight/replay failed",
+      );
+      const planCapture = join(context.output, "native-plan-capture");
+      report.native_plan_capture = await execute(
+        {
+          id: "native-plan-capture",
+          file: "node",
+          args: ["scripts/migration/native-media-frame-capture.mjs", planCapture],
+          timeout_ms: 240000,
+        },
+        context,
+      );
+      assert.equal(report.native_plan_capture.status, "passed", "Native plan-only capture failed");
+      const capturedPlans = JSON.parse(await readFile(join(planCapture, "report.json"), "utf8"));
+      assert.equal(capturedPlans.status, "passed");
+      assert.equal(capturedPlans.frames.length, 6);
+      assert(
+        capturedPlans.frames.every(
+          (frame) =>
+            frame.plan_only_exact &&
+            frame.plan_only_final_output_accesses === 0 &&
+            frame.plan_only_file_pixel_captures === 0,
+        ),
+      );
+      const jobCapture = join(context.output, "native-job-capture");
+      report.native_job_capture = await execute(
+        {
+          id: "native-job-capture",
+          file: "node",
+          args: ["scripts/migration/native-media-frame-capture.mjs", jobCapture],
+          env: { ASTER_NATIVE_JOB_CAPTURE: "1" },
+          timeout_ms: 240000,
+        },
+        context,
+      );
+      assert.equal(report.native_job_capture.status, "passed", "Native job capture failed");
+      report.native_job = await runNativeExportJobGate(
+        { ...context, output: join(context.output, "native-job") },
+        { binary, compiler, capture: join(jobCapture, "report.json") },
+        execute,
+      );
+      assert.equal(report.native_job.status, "passed", "Native whole-job routing failed");
+      const untaggedOutput = join(context.output, "native-untagged-video");
+      report.native_untagged_video_step = await execute(
+        {
+          id: "native-untagged-video",
+          file: "node",
+          args: ["scripts/migration/native-untagged-video-gate.mjs", "--out", untaggedOutput],
+          timeout_ms: 300000,
+        },
+        context,
+      );
+      report.native_untagged_video = JSON.parse(
+        await readFile(join(untaggedOutput, "report.json"), "utf8"),
+      );
+      assert.equal(
+        report.native_untagged_video_step.status,
+        "passed",
+        report.native_untagged_video.error,
+      );
+      assert.equal(report.native_untagged_video.status, "passed");
     }
     if (media) {
       assert.equal(ledger.milestones.find((m) => m.id === "M5").status, "done");
@@ -499,6 +638,31 @@ export async function runNativeCoreGate(context, execute = runStep) {
         "passed",
         "SSAA effect safety control failed",
       );
+    }
+    if (exportSession) {
+      report.native_nv12 = await runNativeNv12Corpus(
+        { ...context, output: join(context.output, "native-nv12-corpus") },
+        { binary, resume: context.nv12Resume },
+        execute,
+      );
+      report.native_rgb_supplement = await runNativeRgbSupplement(
+        context,
+        corpus,
+        report.frames,
+        report.native_nv12,
+        execute,
+      );
+      assert.equal(
+        report.native_rgb_supplement.status,
+        "passed",
+        "Complete supplied RGB corpus comparison or self-review failed",
+      );
+      assert.equal(
+        report.native_nv12.status,
+        "passed",
+        "Complete NV12 corpus conversion or self-review failed",
+      );
+      assert.equal(report.native_nv12.full_coverage, true);
     }
     assert.equal(
       await hashFile(binary),

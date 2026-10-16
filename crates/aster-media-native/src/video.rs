@@ -1,4 +1,4 @@
-use std::{path::PathBuf, time::Duration};
+use std::{collections::BTreeMap, path::PathBuf, sync::Arc, time::Duration};
 
 use aster_render_ir::{
     FrameTime, MediaKind, MediaSample, MediaTextureFormat, ResourceDescriptor, ResourceHash,
@@ -6,14 +6,14 @@ use aster_render_ir::{
 };
 use aster_video::{
     CancellationToken, ColorMetadata, ColorPrimaries, DecodeLimits, FfmpegBackend, FfprobeBackend,
-    MatrixCoefficients, ProbeLimits, Timebase, TransferFunction,
+    MatrixCoefficients, ProbeLimits, Timebase, TransferFunction, VideoSnapshot,
 };
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 use crate::{
     DecodedStill, MediaError, NativeImageReceipt, StillAuthorization, authorization::MediaGrants,
-    video_time::VideoTime,
+    video_time::VideoTime, video_window::VideoDecodeWindow,
 };
 
 #[derive(Clone, Debug, clap::Args)]
@@ -28,6 +28,35 @@ pub struct VideoLimits {
     pub video_timeout_ms: u64,
     #[arg(long, default_value_t = 16_777_216)]
     pub video_max_index_bytes: usize,
+    /// Aggregate retained source snapshots and presentation indices; zero disables reuse.
+    #[arg(long, default_value_t = 268_435_456)]
+    pub video_snapshot_cache_bytes: u64,
+    #[arg(long, default_value_t = 8)]
+    pub video_snapshot_cache_entries: usize,
+    /// Aggregate bytes retained by a single presentation-order lookahead window.
+    #[arg(long, default_value_t = 16_777_216)]
+    pub video_decode_window_bytes: u64,
+    /// One disables lookahead and preserves single-frame process isolation.
+    #[arg(long, default_value_t = 128)]
+    pub video_decode_window_frames: usize,
+    /// Decode one next window within the existing aggregate byte and frame allowance.
+    #[arg(long, default_value_t = true, action = clap::ArgAction::Set)]
+    pub video_decode_prefetch: bool,
+}
+
+#[derive(Clone, Copy, Debug, Default, Serialize)]
+pub struct VideoSourceCacheStatistics {
+    pub resident_bytes: u64,
+    pub entries: usize,
+    pub hits: u64,
+    pub probes: u64,
+    pub evictions: u64,
+}
+
+struct CachedVideoSource {
+    snapshot: Arc<VideoSnapshot>,
+    bytes: u64,
+    age: u64,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -44,6 +73,7 @@ pub struct NativeVideoReceipt {
     pub source_chroma_location: Option<String>,
     pub chroma_reconstruction: &'static str,
     pub measured_interop: &'static str,
+    pub color_interpretation: &'static str,
 }
 
 pub struct DecodedVideo {
@@ -56,6 +86,10 @@ pub struct NativeVideoDecoder {
     probe: FfprobeBackend,
     decoder: FfmpegBackend,
     limits: VideoLimits,
+    sources: BTreeMap<ResourceHash, CachedVideoSource>,
+    source_stats: VideoSourceCacheStatistics,
+    clock: u64,
+    window: VideoDecodeWindow,
 }
 
 impl NativeVideoDecoder {
@@ -71,6 +105,10 @@ impl NativeVideoDecoder {
             || limits.video_max_dimension == 0
             || limits.video_timeout_ms == 0
             || limits.video_max_index_bytes < 1024
+            || limits.video_snapshot_cache_bytes > 32 * 1024_u64.pow(3)
+            || limits.video_snapshot_cache_entries > 1024
+            || limits.video_decode_window_bytes > 67_108_864
+            || !(1..=128).contains(&limits.video_decode_window_frames)
         {
             return Err(MediaError::Limit(
                 "positive bounded video limits required".into(),
@@ -106,12 +144,35 @@ impl NativeVideoDecoder {
             grants: MediaGrants::new(authorizations)?,
             probe,
             decoder,
+            window: VideoDecodeWindow::new(
+                limits
+                    .video_decode_window_bytes
+                    .min(limits.video_max_pixel_bytes),
+                limits.video_decode_window_frames,
+                limits.video_decode_prefetch,
+            ),
             limits,
+            sources: BTreeMap::new(),
+            source_stats: VideoSourceCacheStatistics::default(),
+            clock: 0,
         })
     }
 
     pub fn decode(
-        &self,
+        &mut self,
+        hash: &ResourceHash,
+        registry: &ResourceRegistry,
+        cancellation: &CancellationToken,
+    ) -> Result<DecodedVideo, MediaError> {
+        let result = self.decode_authorized(hash, registry, cancellation);
+        if result.is_err() {
+            self.window.clear();
+        }
+        result
+    }
+
+    fn decode_authorized(
+        &mut self,
         hash: &ResourceHash,
         registry: &ResourceRegistry,
         cancellation: &CancellationToken,
@@ -121,6 +182,7 @@ impl NativeVideoDecoder {
                 "video frame descriptor required".into(),
             ));
         };
+        self.window.discard_other_source(&frame.source);
         let ResourceDescriptor::MediaSource(source) = registry.descriptor(&frame.source)? else {
             return Err(MediaError::Unsupported(
                 "video source descriptor required".into(),
@@ -157,28 +219,28 @@ impl NativeVideoDecoder {
             self.limits.video_max_source_bytes,
             cancellation,
         )?;
-        let snapshot = self.probe.video_snapshot(
-            &source.bytes,
-            self.limits.video_max_pixel_bytes / 4,
-            cancellation,
-        )?;
+        let snapshot = self.snapshot(&frame.source, &source.bytes, cancellation)?;
         let stream = &snapshot.stream;
         if stream.width != frame.width || stream.height != frame.height {
             return Err(MediaError::Unsupported(
                 "encoded video dimensions differ from supplied frame".into(),
             ));
         }
-        if stream.codec != "h264"
-            || snapshot.pixel_format != "yuv420p"
-            || stream.color.primaries != ColorPrimaries::Bt709
-            || stream.color.matrix != MatrixCoefficients::Bt709
-            || !matches!(
+        // Chromium's SD fallback is SMPTE 170M limited. Keep explicit unsupported tags rejected,
+        // and leave HD untagged sources outside this measured compatibility class.
+        let untagged_sd = snapshot.untagged_sdr && stream.width <= 1024 && stream.height <= 576;
+        let tagged_sdr = stream.color.primaries == ColorPrimaries::Bt709
+            && stream.color.matrix == MatrixCoefficients::Bt709
+            && matches!(
                 stream.color.transfer,
                 TransferFunction::Bt709 | TransferFunction::Srgb
-            )
+            );
+        if stream.codec != "h264"
+            || snapshot.pixel_format != "yuv420p"
+            || !(tagged_sdr || untagged_sd)
         {
             return Err(MediaError::Unsupported(
-                "native video requires tagged SDR BT.709 H.264 4:2:0".into(),
+                "native video requires tagged SDR BT.709 or untagged limited SD H.264 4:2:0".into(),
             ));
         }
         let index = requested.select(&snapshot.frames, stream.timebase)?;
@@ -188,9 +250,18 @@ impl NativeVideoDecoder {
             ));
         }
         let point = &snapshot.frames[index];
-        let bytes = self
-            .decoder
-            .decode_snapshot_frame(&snapshot, index, cancellation)?;
+        let source_retained = self
+            .sources
+            .get(&frame.source)
+            .is_some_and(|cached| Arc::ptr_eq(&cached.snapshot, &snapshot));
+        let bytes = self.window.decode(
+            &frame.source,
+            &snapshot,
+            index,
+            &self.decoder,
+            cancellation,
+            source_retained,
+        )?;
         let image = DecodedStill {
             receipt: NativeImageReceipt {
                 frame: hash.clone(),
@@ -219,7 +290,76 @@ impl NativeVideoDecoder {
                 source_chroma_location: snapshot.chroma_location.clone(),
                 chroma_reconstruction: "browser-compatible centered bilinear via 4:4:4",
                 measured_interop: "cpu_copy",
+                color_interpretation: if untagged_sd {
+                    "untagged SD: SMPTE 170M limited"
+                } else {
+                    "explicit source SDR tags"
+                },
             },
         })
+    }
+
+    pub fn source_statistics(&self) -> VideoSourceCacheStatistics {
+        self.source_stats
+    }
+
+    pub fn window_statistics(&self) -> crate::VideoWindowStatistics {
+        self.window.statistics()
+    }
+
+    fn snapshot(
+        &mut self,
+        hash: &ResourceHash,
+        bytes: &[u8],
+        cancellation: &CancellationToken,
+    ) -> Result<Arc<VideoSnapshot>, MediaError> {
+        // The grant and complete source digest were checked before lookup. Only the private
+        // snapshot/index is retained; caller paths and decoded pixels remain independently bounded.
+        self.clock = self.clock.saturating_add(1);
+        if let Some(cached) = self.sources.get_mut(hash) {
+            cached.age = self.clock;
+            self.source_stats.hits = self.source_stats.hits.saturating_add(1);
+            return Ok(Arc::clone(&cached.snapshot));
+        }
+        let snapshot = Arc::new(self.probe.video_snapshot(
+            bytes,
+            self.limits.video_max_pixel_bytes / 4,
+            cancellation,
+        )?);
+        self.source_stats.probes = self.source_stats.probes.saturating_add(1);
+        let retained_bytes = bytes.len() as u64
+            + (snapshot.frames.capacity() * std::mem::size_of::<aster_video::PresentationFrame>())
+                as u64;
+        if self.limits.video_snapshot_cache_entries == 0
+            || retained_bytes > self.limits.video_snapshot_cache_bytes
+        {
+            return Ok(snapshot);
+        }
+        while self.sources.len() >= self.limits.video_snapshot_cache_entries
+            || self.source_stats.resident_bytes
+                > self.limits.video_snapshot_cache_bytes - retained_bytes
+        {
+            let oldest = self
+                .sources
+                .iter()
+                .min_by_key(|(_, value)| value.age)
+                .map(|(key, _)| key.clone());
+            let Some(oldest) = oldest else { break };
+            if let Some(removed) = self.sources.remove(&oldest) {
+                self.source_stats.resident_bytes -= removed.bytes;
+                self.source_stats.evictions = self.source_stats.evictions.saturating_add(1);
+            }
+        }
+        self.sources.insert(
+            hash.clone(),
+            CachedVideoSource {
+                snapshot: Arc::clone(&snapshot),
+                bytes: retained_bytes,
+                age: self.clock,
+            },
+        );
+        self.source_stats.resident_bytes += retained_bytes;
+        self.source_stats.entries = self.sources.len();
+        Ok(snapshot)
     }
 }

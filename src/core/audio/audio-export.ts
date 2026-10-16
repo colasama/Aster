@@ -46,20 +46,20 @@ export async function decodeAudibleSources(
       .filter((sourceId): sourceId is Id => sourceId !== undefined),
   );
   const decoded = new Map<Id, DecodedPcm>();
-  await Promise.all(
-    [...sourceIds].map(async (sourceId) => {
-      const source = sourceById.get(sourceId);
-      if (!source || (source.kind !== "audio" && source.kind !== "video"))
-        throw new Error(`Audible layer source ${sourceId} is unavailable`);
-      // Video without an audio stream contributes silence instead of failing the export.
-      if (source.kind === "video" && !source.audio) return;
-      try {
-        decoded.set(sourceId, await decode(source));
-      } catch (error) {
-        if (source.kind === "audio") throw error;
-      }
-    }),
-  );
+  // Export already retains the decoded PCM map. Decode one source at a time so codec
+  // intermediates cannot multiply with source count or outlive a failed preparation.
+  for (const sourceId of sourceIds) {
+    const source = sourceById.get(sourceId);
+    if (!source || (source.kind !== "audio" && source.kind !== "video"))
+      throw new Error(`Audible layer source ${sourceId} is unavailable`);
+    // Video without an audio stream contributes silence instead of failing the export.
+    if (source.kind === "video" && !source.audio) continue;
+    try {
+      decoded.set(sourceId, await decode(source));
+    } catch (error) {
+      if (source.kind === "audio") throw error;
+    }
+  }
   return decoded;
 }
 

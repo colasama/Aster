@@ -99,6 +99,112 @@ impl LayerFixture {
 }
 
 #[test]
+#[ignore = "requires GPU"]
+fn native_layer_cache_recycles_allocations_without_reusing_old_pixels()
+-> Result<(), Box<dyn std::error::Error>> {
+    let (mut frame, registry) = LayerFixture::frame()?;
+    let size = frame.scene.header.render_target;
+    let budget = u64::from(size.width) * u64::from(size.height) * 8;
+    let mut renderer = NativeRenderer::new(NativeOptions {
+        backend: if cfg!(target_os = "windows") {
+            aster_render::NativeBackend::Dx12
+        } else if cfg!(target_os = "macos") {
+            aster_render::NativeBackend::Metal
+        } else {
+            aster_render::NativeBackend::Vulkan
+        },
+        adapter_name: None,
+        dxcompiler: None,
+        gpu_budget_bytes: 16 * 1024 * 1024,
+        layer_cache_bytes: 0,
+        effect_pipeline_entries: 0,
+        gpu_timestamps: false,
+        effect_regions: true,
+        timeout: Duration::from_secs(30),
+    })?;
+    let exposures = [-2_f32, -1.0, 0.0, 1.0];
+    let mut expected = Vec::new();
+    for exposure in exposures {
+        frame.scene.layers.get_mut(&999).ok_or("layer")?.uniforms[12..16]
+            .copy_from_slice(&exposure.to_le_bytes());
+        expected.push(LayerFixture::pixels(&mut renderer, &frame, &registry)?);
+    }
+    assert_ne!(expected[0], expected[1]);
+    renderer.options.layer_cache_bytes = budget;
+    for (index, exposure) in exposures[..3].iter().enumerate() {
+        frame.scene.layers.get_mut(&999).ok_or("layer")?.uniforms[12..16]
+            .copy_from_slice(&exposure.to_le_bytes());
+        assert_eq!(
+            LayerFixture::pixels(&mut renderer, &frame, &registry)?,
+            expected[index]
+        );
+        assert_eq!(
+            LayerFixture::pixels(&mut renderer, &frame, &registry)?,
+            expected[index]
+        );
+        assert_eq!(renderer.layer_cache.statistics.allocations, 1);
+        assert_eq!(renderer.layer_cache.statistics.reuses, index as u64);
+        assert_eq!(renderer.layer_cache.statistics.resident_bytes, budget);
+    }
+    frame.scene.layers.get_mut(&999).ok_or("layer")?.uniforms[12..16]
+        .copy_from_slice(&exposures[3].to_le_bytes());
+    renderer.layer_cache.prepare(
+        &renderer.device,
+        &[&frame.scene],
+        BTreeMap::new(),
+        budget,
+        renderer.options.timeout,
+    )?;
+    let key = LayerFixture::key(&frame)?;
+    let source = renderer.targets.as_ref().ok_or("targets")?.scene.raw();
+    let mut abandoned = renderer.device.create_command_encoder(&Default::default());
+    assert!(!renderer.layer_cache.restore(&key, &mut abandoned, source));
+    renderer.layer_cache.store(&key, &mut abandoned, source);
+    drop(abandoned);
+    renderer.layer_cache.prepare(
+        &renderer.device,
+        &[&frame.scene],
+        BTreeMap::new(),
+        budget,
+        renderer.options.timeout,
+    )?;
+    let mut probe = renderer.device.create_command_encoder(&Default::default());
+    assert!(!renderer.layer_cache.restore(&key, &mut probe, source));
+    drop(probe);
+    assert_eq!(
+        LayerFixture::pixels(&mut renderer, &frame, &registry)?,
+        expected[3]
+    );
+    assert_eq!(renderer.layer_cache.statistics.allocations, 1);
+    assert_eq!(renderer.layer_cache.statistics.reuses, 3);
+    // Equal byte sizes are insufficient: incompatible extents must allocate a new texture.
+    frame.scene.header.render_target = aster_render_ir::Extent2d {
+        width: size.height,
+        height: size.width,
+    };
+    renderer.layer_cache.prepare(
+        &renderer.device,
+        &[&frame.scene],
+        BTreeMap::new(),
+        budget,
+        renderer.options.timeout,
+    )?;
+    renderer.layer_cache.allocate(&renderer.device);
+    assert_eq!(renderer.layer_cache.statistics.allocations, 2);
+    assert_eq!(renderer.layer_cache.statistics.reuses, 3);
+    assert_eq!(renderer.layer_cache.statistics.resident_bytes, budget);
+    renderer.layer_cache.prepare(
+        &renderer.device,
+        &[],
+        BTreeMap::new(),
+        0,
+        renderer.options.timeout,
+    )?;
+    assert_eq!(renderer.layer_cache.statistics.resident_bytes, 0);
+    Ok(())
+}
+
+#[test]
 fn layer_keys_track_evaluated_inputs_and_conservative_time_dependencies()
 -> Result<(), Box<dyn std::error::Error>> {
     let (mut frame, _) = LayerFixture::frame()?;
@@ -177,6 +283,8 @@ fn native_layer_cache_reuses_invalidates_and_falls_back_without_pixel_changes()
         adapter_name: None,
         gpu_budget_bytes: 16 * 1024 * 1024,
         layer_cache_bytes: 4 * 1024 * 1024,
+        effect_pipeline_entries: 16,
+        gpu_timestamps: false,
         timeout: Duration::from_secs(30),
         backend: if cfg!(target_os = "windows") {
             aster_render::NativeBackend::Dx12
@@ -187,6 +295,7 @@ fn native_layer_cache_reuses_invalidates_and_falls_back_without_pixel_changes()
         },
     })?;
     let first = LayerFixture::pixels(&mut renderer, &frame, &registry)?;
+    assert_eq!(renderer.scene.layer_targets.allocations, 1);
     assert_eq!(renderer.layer_cache.statistics.stores, 1);
     frame.scene.layers.get_mut(&999).ok_or("layer")?.uniforms[8..12]
         .copy_from_slice(&5_f32.to_le_bytes());
@@ -213,6 +322,7 @@ fn native_layer_cache_reuses_invalidates_and_falls_back_without_pixel_changes()
         .copy_from_slice(&2_f32.to_le_bytes());
     let changed_effect = LayerFixture::pixels(&mut renderer, &frame, &registry)?;
     assert_ne!(changed_effect, changed_backdrop);
+    assert_eq!(renderer.scene.layer_targets.allocations, 1);
     assert_eq!(renderer.layer_cache.statistics.stores, stores + 1);
     let retained = renderer.layer_cache.statistics;
     frame.scene.layers.get_mut(&999).ok_or("layer")?.uniforms[12..16]
@@ -254,6 +364,44 @@ fn native_layer_cache_reuses_invalidates_and_falls_back_without_pixel_changes()
     assert!(renderer.render(&frame, &registry).is_err());
     assert_eq!(renderer.layer_cache.statistics, before);
     renderer.options.gpu_budget_bytes = 16 * 1024 * 1024;
+    // Fresh scratch and reused scratch must produce identical pixels with result caching off.
+    renderer.options.layer_cache_bytes = 0;
+    renderer
+        .scene
+        .layer_targets
+        .retire(&renderer.device, &[], renderer.options.timeout)?;
+    assert!(renderer.scene.layer_targets.get(&frame.scene).is_err());
+    assert_eq!(
+        LayerFixture::pixels(&mut renderer, &frame, &registry)?,
+        changed_effect
+    );
+    assert_eq!(renderer.scene.layer_targets.allocations, 2);
+    // A changed pyramid extent retires the prior slot instead of growing a historical cache.
+    frame
+        .scene
+        .layers
+        .get_mut(&999)
+        .ok_or("layer")?
+        .pyramids
+        .blur = 2;
+    assert_eq!(
+        LayerFixture::pixels(&mut renderer, &frame, &registry)?,
+        changed_effect
+    );
+    assert_eq!(renderer.scene.layer_targets.allocations, 3);
+    frame
+        .scene
+        .layers
+        .get_mut(&999)
+        .ok_or("layer")?
+        .pyramids
+        .blur = 0;
+    assert_eq!(
+        LayerFixture::pixels(&mut renderer, &frame, &registry)?,
+        changed_effect
+    );
+    assert_eq!(renderer.scene.layer_targets.allocations, 4);
+    renderer.options.layer_cache_bytes = 4 * 1024 * 1024;
     // A recorded copy in an abandoned encoder is never a valid cache generation.
     renderer.layer_cache.prepare(
         &renderer.device,

@@ -160,10 +160,19 @@ Native SDR BT.709 H.264 video uses the same source authorization boundary and a 
 snapshot. FFprobe supplies presentation timestamps; exact rational interval selection and matching
 requested/uploaded frame identities precede FFmpeg decode by presentation-order index. Centered
 chroma reconstruction through 4:4:4 preserves the browser upload contract. Receipts retain source
-color metadata and identify the CPU decode/upload path. Batch jobs retain immutable grants and a
+color metadata and identify the CPU decode/upload path. Untagged limited-range SD H.264 4:2:0
+(at most 1024 by 576) additionally follows the measured Chromium SMPTE 170M interpretation:
+clip decoded RGB before converting primaries with the legacy sRGB transfer, retaining ten-bit
+precision through the intermediate YUV bridge. Raw probe tags distinguish missing metadata from
+unsupported explicit tags; untagged HD and explicit unsupported color spaces remain rejected.
+Batch jobs retain immutable grants and a
 bounded LRU of verified decoded frames, keyed by full frame content identity. Pixel-byte and entry
 budgets independently bound retention; cancellation is checked even for a cache hit. GPU image
-reuse remains independent of the CPU decode cache. Native files and supplied raster generations
+reuse remains independent of the CPU decode cache. Decoded frames retain an immutable in-process
+resource proof, so cache hits and temporary registry installation share the same pixel allocation
+and computed content hash. The proof cannot be deserialized or mutated. Every installation still
+checks registry budgets, dependencies and pins; external resource messages always authenticate
+their bytes. Native files and supplied raster generations
 share the same root and recursive scene resource closure, including temporal text samples and
 derived outputs. Streaming codec state and production routing remain separate capability work.
 
@@ -967,6 +976,12 @@ require valid attachments; captured skips still clear the final target before AA
 includes primary MRT textures, depth and attribute buffers before any frame allocation.
 
 
+Native layer scratch attachments persist across frames with identical dimensions and blur/glow
+mip counts. Sequential scenes may share these attachments because every layer clears or overwrites
+them before use. Only descriptors required by the current frame remain resident; retired slots wait
+for GPU completion before replacement. Their cost stays within the existing per-scene transient
+budget. This allocation reuse is independent of the optional rendered-result cache.
+
 The native isolated-layer cache retains post-effect RGBA16Float outputs on the GPU. Keys contain
 ordered evaluated geometry, lighting, effect uniforms and operations, pyramid settings, LUT identity
 and media frame/pixel generations. Audited time-independent operations may omit the unused time
@@ -995,3 +1010,130 @@ outer glow at output resolution, then reconstructing RGBA16Float before display 
 edge coverage and exceeded pixel acceptance limits. That strategy remains test-only as a rejection
 control. Any future reduced-frequency decomposition must preserve high-resolution coverage and prove
 parity before becoming an execution path.
+
+The native renderer CLI also provides a bounded long-lived `serve` session. Its control schema and
+binary framing live in `aster-render-ir`; a content-addressed registry retains supplied resources
+across plan checks. Frame admission releases temporary decoded normal textures after validation.
+`aster-encode` owns the Windows Media Foundation boundary: it enumerates hardware transforms for
+the renderer device's exact DX12 LUID, configures NV12/H.264 media types, and requires ordered
+Annex-B test frames with successful drain. COM objects and activations are scoped to the worker
+thread and shut down on failure. Peak-constrained VBR explicitly binds mean and peak bitrate to
+the job; codec property readback before and after media-type negotiation rejects driver overrides.
+This preparatory capability is separate from production export
+routing; complete Electron mux integration remains pending.
+
+`NativeRenderer::prepare_nv12` reserves a fixed-size conversion slot before export frames are
+rendered. The shared WGSL conversion reads display BGRA on the renderer device and packs BT.709
+limited-range NV12 into GPU storage. A retained staging buffer supports the in-process readback
+fallback without transporting final RGBA through Electron. Both buffers count against the GPU
+budget. The converter checks even dimensions, device limits and source format, and unmaps the
+staging buffer on success or failure. The packed rows use the GPU texture-copy alignment; the
+readback fallback removes row padding before encoding.
+
+`prepare_shared_nv12` additionally reserves a bounded pool of shared DX12 NV12 resources, including
+their actual device allocation sizes in the GPU budget. Each resource is imported as two copy-only
+wgpu plane aliases. Conversion and plane copies complete before a D3D11 consumer receives the
+handle; this path maps no pixel data. An owned lease retains the planes and handle, blocks slot
+reuse, and survives renderer shutdown. Failed copies retire their slots. An unused pool can be
+released after GPU completion when capability selection chooses the readback fallback.
+
+The hardware encoder creates a D3D11 device on that same LUID and binds its DXGI device manager
+only to D3D11-aware transforms. Shared handles become DXGI sample buffers without pixel mapping.
+Tracked-sample callbacks and matching encoded packets jointly retire frame leases, so early sample
+release cannot expose a texture still needed by an outstanding encoded frame. The pool reserves
+one preparation slot in addition to the configured in-flight bound. GPU probe samples stay alive
+until explicit transform shutdown and have a separate total byte limit. Both the transform's
+`IMFShutdown` and activation shutdown are invoked before releasing input/device ownership.
+
+The opt-in sidecar export stream connects supplied-plan rendering, packed NV12 and a retained
+hardware H.264 transform. `aster-encode` owns asynchronous input credits, bounded in-flight frames,
+bounded packet batches, ordered timestamps, drain and cancellation. Frame durations are differences
+of absolute rational timestamps, avoiding cumulative drift for fractional frame rates. Hardware
+activation, output format and a short encoded-frame proof must succeed before job frames are
+accepted. The qualified transform is retained and flushed across that stream boundary; stale probe
+events and packets cannot enter the job stream. Failure closes that stream, and encoder input never crosses an Electron pipe.
+Only metadata and compressed Annex-B packets leave Rust. Electron's `NativeRenderClient` uses
+one bounded request/reply transaction at a time; child failure, timeout or disposal releases
+blocked writes and terminates the worker. `NativeExportSession` checks packet order, rational
+timestamps and drain before the existing MP4 session stream-copies H.264 with the audio pipe.
+Clean sidecar shutdown precedes atomic publication. The render queue's native broker verifies the
+actual shared transport before selecting native; a startup failure allows one fresh-process
+hardware qualification with native NV12 readback and a recorded transport reason. The final video
+submission drains tail packets before waiting for PCM, breaking the video-EOF/audio-pipe wait cycle.
+The broker verifies the
+actual retained encoder before selecting native, then admits and seals every frame before opening
+the MP4 mux. Immutable scope, revision, composition, exact time, size, AA and color pipeline are
+checked against each native admission response. One H.264 MP4 output is currently supported;
+other output sets and failed admission use the complete retained TS path with a logged reason.
+Native selection never mixes final TS frames into a native stream. Full application, encoded
+quality and performance acceptance remain required before M8 closes.
+`planExportFrame` stops TS execution after bundle construction and media/raster preparation,
+without recording the final scene/output graph or reserving its readback. It shares the exact
+resource barrier and retained media ownership with diagnostic capture, but captures only raster
+pixels. File-media identities resolve through the sidecar's immutable native authorization grants.
+Native-only video planning reads container metadata once for extent and duration, evaluates the
+existing biased source clock, and supplies that target for native frame selection. It preserves
+Chromium's truncated microsecond upload timestamp and the TS seek-tolerance hold behavior,
+including its initial zero clock, in the plan descriptor. It does not seek,
+decode, validate browser upload compatibility or copy video pixels. Extent-matched planning handles
+cannot be read through the media registry. Switching to TS rendering recreates a decoded generation;
+Rust still validates source grants, stream metadata, exact frame identity and pixels before admission.
+The native capture adapter checks raster coverage, identity, hashes, layout and aggregate bounds,
+then serializes owned plans/resources. It does not repeatedly execute the TS bundle reader over the
+whole graph. Rust resource installation and whole-job frame admission remain the authoritative
+semantic validation boundary before native selection; diagnostic TS capture keeps its full reader.
+The host overlaps preparation of at most one owned next-frame packet with ordered native admission.
+Each packet retains the 64 MiB transport limit; no second admission or further capture starts until
+both operations settle. Pause, cancellation, capture failure and transport rejection drain the
+in-flight pair before changing routes or disposing the renderer. All frames still pass admission
+before native selection or mux creation.
+Retained raster capture packs texture regions into at most 16 MiB GPU readback batches, splitting
+large textures at row boundaries and stripping padding into the original tightly packed payloads.
+The frame retains its existing 64 MiB pixel budget; native digest concurrency is capped at 32.
+Every mapping is unmapped/destroyed on completion or failure, and capture leases remain pinned
+through all copies. This removes per-raster GPU submission/map waits without changing pixels.
+Native plan capture additionally retains up to 16 MiB / 256 captured raster inputs, keyed by both
+authenticated frame hash and exact GPU texture generation. Unchanged rasters avoid repeated GPU
+readback. Eviction bounds memory, callers receive owned byte copies, failed captures publish no new
+entries, and renderer disposal invalidates pending retention. TS diagnostic capture remains uncached.
+The native cache retains opaque verified snapshots with private pixel ownership. Attachment copies
+each genuine snapshot once and reuses its completed hash verification. Ordinary captures still pass
+independent hash checks in drained batches of at most 32. Layout, declared coverage and aggregate
+capture/transport bounds precede attachment on both paths; caller mutation or transfer cannot alter
+the cache or a pending frame.
+Route diagnostics report aggregate preparation, resource transfer, native render/encode and identity-check
+times without retaining per-frame timing arrays or changing output acceptance.
+`NativeFrameAdmission` retains bounded resource digests and frame counts after each owned frame
+passes native validation and compressed storage. Reused identities with changed contents fail
+before native side effects; sealing requires every declared frame. Production admission does not
+persist unused raw plans or pixels. The diagnostic `NativeExportSpool` retains authenticated raw
+replay with bounded, deduplicated storage. `NativeResourceWindow` retains only the current dependency closure and transfers
+up to 64 ordered operations per bounded transaction; each acknowledgement keeps its own request
+identity. Video decoding retains private source snapshots and presentation indices under separate
+byte and entry limits, while rechecking source grants and content digests before reuse.
+Queue admission renders and encodes once, then binds the encoded reply's typed plan hash/header
+proof to the immutable job. Cumulative admitted input is bounded to 31 GiB, with at most 262144
+distinct resource identities and 64 MiB per owned frame. Private compressed packets are bounded to
+1 GiB. Whole-job sealing requires every frame, valid rational packet
+timing, complete hardware drain and clean sidecar shutdown. Only then does the mux replay hashed
+compressed records with the existing audio stream and atomic publication. It does not decode media,
+install resources or render the plans a second time. Late admission failures clear input identities
+and remove compressed storage before complete TS fallback; cancellation drains pending work before cleanup.
+One native video decode window retains at most 16 MiB and eight presentation-order frames by
+default. Sequential requests reuse those bytes after grant validation; source switches and seeks
+outside the window replace it. Single-frame and zero-byte settings disable lookahead. Each process
+keeps the same chroma/color conversion, cancellation, timeout and output bounds; incomplete windows
+are never retained, and private readers/processes finish before a replacement is published.
+Native file/texture decoding
+releases temporary CPU registry entries after admission or rendering while the native GPU caches
+retain their own generations.
+
+Native decoder grants are constructed in the main process from verified job-owned file leases and
+authenticated embedded media. Renderer frame packets cannot authorize file paths. Inline content
+has an aggregate materialization budget; sequence grants retain member frame identities. The native
+broker owns these files, bounded spool, sidecar and mux through finish or cancellation. Pause stops
+preflight/replay at frame boundaries, and cancel interrupts pending native calls out of band.
+The packaged build includes `aster-render-cli`; Windows uses Electron's adjacent DXC compiler.
+Production bundling keeps the shared shader manifest and raw WGSL fragments in the GPU chunk.
+Its eager catalog must not read shader inputs from an application chunk that imports the catalog
+through a cycle; both editor and hidden RenderHost startup depend on this initialization order.

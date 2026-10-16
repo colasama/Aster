@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
+import { nativeReleaseBuild } from "../native-build.mjs";
 import { auditAuxiliary, auxiliaryNegativeFixtures } from "./ir-gate-auxiliary.mjs";
 import { auditFinalOutput } from "./ir-gate-final-output.mjs";
 import { auditFrameBundle } from "./ir-gate-frame-bundle.mjs";
@@ -94,14 +95,8 @@ export async function runIrGate(context, execute = runStep, dependencies = {}) {
     const expectedSchema = await reader.bytes("schemas/frame-plan.v1.json");
     runtime = await (dependencies.loadRuntime ?? loadIrRuntime)(context.root);
     report.limits = runtime.defaultFramePlanLimits();
-    await command("ir-build", "cargo", [
-      "build",
-      "--release",
-      "-p",
-      "aster-desktop-bridge",
-      "-p",
-      "aster-render-cli",
-    ]);
+    const nativeBuild = nativeReleaseBuild("ir-build");
+    await command(nativeBuild.id, nativeBuild.file, nativeBuild.args);
     const libraryTests = await command("ir-library-tests", "cargo", [
       "test",
       "-p",

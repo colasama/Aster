@@ -146,7 +146,10 @@ export async function runNativeSequenceGate(
       assert.equal(decoded.source, input.source.hash);
       assert.equal(decoded.frame, input.media.hash);
       assert.equal(decoded.source_sha256, input.asset.sha256);
-      assert.equal(decoded.backend, "ffmpeg-sequence-snapshot");
+      assert.equal(
+        decoded.backend,
+        process.platform === "win32" ? "windows-wic-png-snapshot" : "ffmpeg-sequence-snapshot",
+      );
       assert.equal(decoded.width, input.asset.width);
       assert.equal(decoded.height, input.asset.height);
       assert.equal(decoded.format, "rgba8unorm-srgb");

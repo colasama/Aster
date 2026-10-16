@@ -113,6 +113,7 @@ impl FfmpegBackend {
             StillEncoding::Jpeg => "mjpeg",
             StillEncoding::Webp => "webp",
         };
+        let threads = limits.worker_threads.to_string();
         let command = FfmpegCommand::new(
             self.executable().to_owned(),
             [
@@ -124,8 +125,14 @@ impl FfmpegBackend {
                 "image2pipe",
                 "-c:v",
                 codec,
+                "-threads",
+                &threads,
+                "-filter_threads",
+                &threads,
                 "-i",
                 "pipe:0",
+                "-threads",
+                &threads,
                 "-map",
                 "0:v:0",
                 "-frames:v",

@@ -48,6 +48,8 @@ fn native_surface_cache_admits_atomically_reuses_and_retires_targets()
     let mut renderer = NativeRenderer::new(NativeOptions {
         effect_regions: true,
         layer_cache_bytes: 67_108_864,
+        effect_pipeline_entries: 16,
+        gpu_timestamps: false,
         dxcompiler: None,
         adapter_name: None,
         gpu_budget_bytes: 1_048_576,

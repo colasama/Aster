@@ -1,3 +1,4 @@
+import { lstat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { runStep } from "./process.mjs";
@@ -14,13 +15,19 @@ export function staticCommands() {
     { id: "cargo-test", file: "cargo", args: ["test", "--workspace", "--all-features"] },
     { id: "biome", file: "pnpm", args: ["exec", "biome", "check", "."], quick: true },
     { id: "typecheck", file: "pnpm", args: ["typecheck"], quick: true },
-    { id: "vitest", file: "pnpm", args: ["vitest", "run"] },
+    { id: "vitest", file: "pnpm", args: ["vitest", "run", "--maxWorkers=4"] },
     { id: "packaging-tests", file: "pnpm", args: ["test:packaging"] },
     { id: "migration-tests", file: "pnpm", args: ["test:migration"], quick: true },
   ];
 }
 
 export async function runStaticChecks(context, quick, execute = runStep) {
+  const reportPath = resolve(context.output, "static-results.json");
+  const existing = await lstat(reportPath).catch((error) => {
+    if (error.code !== "ENOENT") throw error;
+    return null;
+  });
+  if (existing) throw new Error("Static evidence already exists; use a fresh output directory");
   const steps = [];
   for (const command of staticCommands()) {
     steps.push(
@@ -28,7 +35,7 @@ export async function runStaticChecks(context, quick, execute = runStep) {
         ? { id: command.id, status: "skipped", reason: "Quick mode omits this required full check" }
         : await execute(command, context),
     );
-    await writeAtomicJson(resolve(context.output, "static-results.json"), { quick, steps });
+    await writeAtomicJson(reportPath, { quick, steps });
   }
   return steps;
 }

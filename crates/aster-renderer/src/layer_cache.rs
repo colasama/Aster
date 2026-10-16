@@ -8,6 +8,7 @@ use crate::{RenderError, layer_key::LayerKey, scene_input::SceneInput};
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct LayerCacheStatistics {
     pub allocations: u64,
+    pub reuses: u64,
     pub hits: u64,
     pub misses: u64,
     pub stores: u64,
@@ -92,6 +93,35 @@ impl LayerCache {
                     timeout: Some(timeout),
                 })
                 .map_err(|error| RenderError::Gpu(error.to_string()))?;
+        }
+        let mut reusable = BTreeMap::<(u32, u32), Vec<ResourceHash>>::new();
+        for (key, entry) in &self.entries {
+            if !wanted.contains_key(key) {
+                reusable
+                    .entry((entry.texture.width(), entry.texture.height()))
+                    .or_default()
+                    .push(key.clone());
+            }
+        }
+        for (key, size) in &wanted {
+            if self.entries.contains_key(key) {
+                continue;
+            }
+            let previous = reusable
+                .get_mut(&(size.width, size.height))
+                .and_then(Vec::pop);
+            if let Some(previous) = previous
+                && let Some(mut entry) = self.entries.remove(&previous)
+            {
+                // The allocation survives eviction, but its old pixel generation never does.
+                // A complete copy and submission are required before the new key becomes valid.
+                entry.valid = false;
+                entry.pending = false;
+                entry.last_used = epoch;
+                self.entries.insert(key.clone(), entry);
+                self.statistics.evictions += 1;
+                self.statistics.reuses += 1;
+            }
         }
         self.entries.retain(|key, entry| {
             // A discarded command encoder must never publish its pending cache copies.

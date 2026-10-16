@@ -107,7 +107,12 @@ export async function runNativeStillGate(
         assert.equal(decoded.width, asset.width);
         assert.equal(decoded.height, asset.height);
         assert.match(decoded.rgba_sha256, /^[a-f0-9]{64}$/);
-        assert.equal(decoded.backend, "ffmpeg-still-snapshot");
+        assert.equal(
+          decoded.backend,
+          process.platform === "win32" && name === "pattern.png"
+            ? "windows-wic-png-snapshot"
+            : "ffmpeg-still-snapshot",
+        );
         assert(receipt.image_cache.uploads > 0);
         candidate.frames.push({
           case_id: id,

@@ -5,6 +5,7 @@ mod native_stills;
 mod native_textures;
 mod render_input;
 mod render_plan;
+mod serve;
 
 use std::process::ExitCode;
 
@@ -28,6 +29,8 @@ enum Command {
     Ir(ir::IrArgs),
     /// Execute a complete supplied frame on a native GPU, with optional diagnostic PNG output.
     RenderPlan(Box<render_plan::RenderPlanArgs>),
+    /// Exchange bounded controls and binary supplied-frame resources with the application host.
+    Serve(Box<serve::ServeArgs>),
 }
 
 #[derive(Serialize)]
@@ -42,6 +45,7 @@ impl Cli {
             Command::Compare(arguments) => arguments.run(),
             Command::Ir(arguments) => Ok(arguments.run()),
             Command::RenderPlan(arguments) => arguments.run(),
+            Command::Serve(arguments) => arguments.run(),
         }
     }
 }

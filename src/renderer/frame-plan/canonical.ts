@@ -1,22 +1,98 @@
 import { FramePlanError } from "./types";
 
+export { copyWireValue } from "../../core/rendering/wire-copy";
+
 export function requirePlan(condition: unknown, code: string, message: string): asserts condition {
   if (!condition) throw new FramePlanError(code, message);
 }
 
 export function validUnicode(value: string): boolean {
-  for (let index = 0; index < value.length; index += 1) {
-    const code = value.charCodeAt(index);
-    if (code >= 0xd800 && code <= 0xdbff) {
-      const next = value.charCodeAt(++index);
-      if (!(next >= 0xdc00 && next <= 0xdfff)) return false;
-    } else if (code >= 0xdc00 && code <= 0xdfff) return false;
+  // Prefer the native scalar scan; retain identical validation on older web runtimes.
+  const text = value as string & { isWellFormed?: () => boolean };
+  return text.isWellFormed?.() ?? !/[\uD800-\uDFFF]/u.test(value);
+}
+
+/** Compare a candidate with owned, already validated JSON without serializing large strings. */
+export function sameCanonicalValue(candidate: unknown, verified: unknown): boolean {
+  if (Object.is(candidate, verified)) return true;
+  if (!candidate || !verified || typeof candidate !== "object" || typeof verified !== "object")
+    return false;
+  if (Array.isArray(candidate) || Array.isArray(verified))
+    return (
+      Array.isArray(candidate) &&
+      Array.isArray(verified) &&
+      candidate.length === verified.length &&
+      Array.from(candidate).every((value, index) => sameCanonicalValue(value, verified[index]))
+    );
+  if (![Object.prototype, null].includes(Object.getPrototypeOf(candidate))) return false;
+  const keys = Object.keys(candidate);
+  const expectedKeys = Object.keys(verified);
+  return (
+    keys.length === expectedKeys.length &&
+    keys.every(
+      (key) =>
+        expectedKeys.includes(key) &&
+        sameCanonicalValue(
+          (candidate as Record<string, unknown>)[key],
+          (verified as Record<string, unknown>)[key],
+        ),
+    )
+  );
+}
+
+/** Validate and order an owned tree before native JSON serialization. */
+export function canonicalJson(value: unknown): string {
+  if (typeof value !== "object" || value === null) return canonicalJsonTokens(value);
+  const state = { tokens: false };
+  const prepared = prepareCanonical(value, state);
+  // Native JSON orders integer keys numerically and fills sparse arrays with null. Keep
+  // lexicographic keys and the existing sparse-array behavior on these uncommon inputs.
+  return state.tokens ? canonicalJsonTokens(prepared) : JSON.stringify(prepared);
+}
+
+function prepareCanonical(value: unknown, state: { tokens: boolean }): unknown {
+  if (typeof value === "string") {
+    requirePlan(validUnicode(value), "invalid_utf8", "Unpaired UTF-16 surrogate");
+    return value;
   }
-  return true;
+  if (typeof value === "number") {
+    requirePlan(
+      Number.isSafeInteger(value) && !Object.is(value, -0),
+      "invalid_safe_integer",
+      "Metadata numbers must be safe integers without negative zero",
+    );
+    return value;
+  }
+  if (typeof value === "boolean" || value === null) return value;
+  if (Array.isArray(value)) {
+    let count = 0;
+    const result = value.map((entry) => {
+      count++;
+      return prepareCanonical(entry, state);
+    });
+    state.tokens ||= count !== value.length;
+    return result;
+  }
+  requirePlan(
+    value !== null &&
+      typeof value === "object" &&
+      [Object.prototype, null].includes(Object.getPrototypeOf(value)),
+    "invalid_json",
+    "Metadata must contain only plain JSON values",
+  );
+  const result: Record<string, unknown> = {};
+  for (const key of Object.keys(value).sort()) {
+    requirePlan(/^[\x20-\x7e]+$/.test(key), "unknown_field", "Wire keys must be ASCII");
+    state.tokens ||= /^[0-9]/.test(key);
+    const entry = prepareCanonical((value as Record<string, unknown>)[key], state);
+    if (key === "__proto__") Object.defineProperty(result, key, { value: entry, enumerable: true });
+    else result[key] = entry;
+  }
+  return result;
 }
 
 /** Closed wire objects have ASCII keys; numeric GPU values are carried as binary bytes. */
-export function canonicalJson(value: unknown): string {
+function canonicalJsonTokens(value: unknown): string {
   if (typeof value === "string") {
     requirePlan(validUnicode(value), "invalid_utf8", "Unpaired UTF-16 surrogate");
     return JSON.stringify(value);
@@ -30,7 +106,7 @@ export function canonicalJson(value: unknown): string {
     return String(value);
   }
   if (typeof value === "boolean" || value === null) return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (Array.isArray(value)) return `[${value.map(canonicalJsonTokens).join(",")}]`;
   requirePlan(
     value !== null &&
       typeof value === "object" &&
@@ -42,7 +118,7 @@ export function canonicalJson(value: unknown): string {
     .sort()
     .map((key) => {
       requirePlan(/^[\x20-\x7e]+$/.test(key), "unknown_field", "Wire keys must be ASCII");
-      return `${JSON.stringify(key)}:${canonicalJson((value as Record<string, unknown>)[key])}`;
+      return `${JSON.stringify(key)}:${canonicalJsonTokens((value as Record<string, unknown>)[key])}`;
     })
     .join(",")}}`;
 }

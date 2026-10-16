@@ -50,6 +50,7 @@ import { fetchLocalAsset } from "./local-file-response.js";
 import { AsterLogger, isRendererLogPayload, type LogLevel, parseLogLevel } from "./logger.js";
 import { discoverDesktopImageSequence } from "./media-import.js";
 import { Mp4ExportManager } from "./mp4-export.js";
+import { nativeRenderRuntime } from "./native-render-runtime.js";
 import { developmentProfileDirectory } from "./profile-paths.js";
 import { authorizeProjectMediaExternalPaths } from "./project-media-authorization.js";
 import { RenderMediaSnapshotStore } from "./render-media-snapshot-store.js";
@@ -1356,6 +1357,14 @@ if (hasSingleInstanceLock)
         appPath: app.getAppPath(),
         developmentUrl: DEVELOPMENT_URL,
         ffmpegExecutable: ffmpegExecutable(),
+        nativeRuntime: nativeRenderRuntime({
+          appPath: app.getAppPath(),
+          resourcesPath: process.resourcesPath,
+          packaged: app.isPackaged,
+          executable: process.execPath,
+          temporaryDirectory: app.getPath("temp"),
+          ffmpeg: ffmpegExecutable(),
+        }),
         logger,
         // Background automation editors load bundled assets, so their RenderHosts must too.
         packaged: app.isPackaged || backgroundAutomation,

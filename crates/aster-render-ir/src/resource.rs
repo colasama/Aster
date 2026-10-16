@@ -111,6 +111,40 @@ pub struct PutResource {
     pub descriptor: ResourceDescriptor,
 }
 
+/// In-process immutable content proof. No deserializer or mutable access can forge the
+/// association between its descriptor, bytes and computed hash.
+#[derive(Clone)]
+pub struct VerifiedResource {
+    request: PutResource,
+    bytes: Arc<Vec<u8>>,
+}
+
+impl VerifiedResource {
+    pub fn new(
+        kind: ResourceKind,
+        descriptor: ResourceDescriptor,
+        bytes: Vec<u8>,
+    ) -> Result<Self, IrError> {
+        let hash = ResourceHash::for_resource(kind, &descriptor, &bytes)?;
+        Ok(Self {
+            request: PutResource {
+                hash,
+                kind,
+                descriptor,
+            },
+            bytes: Arc::new(bytes),
+        })
+    }
+
+    pub fn request(&self) -> &PutResource {
+        &self.request
+    }
+
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum ResourceMessage {
@@ -157,7 +191,7 @@ pub struct ResourceStatistics {
 
 struct ResourceEntry {
     descriptor: ResourceDescriptor,
-    bytes: Vec<u8>,
+    bytes: Arc<Vec<u8>>,
     pins: usize,
     accounted_bytes: u64,
 }
@@ -197,10 +231,17 @@ impl ResourceRegistry {
 
     pub fn put(&mut self, request: PutResource, bytes: Vec<u8>) -> Result<PutOutcome, IrError> {
         request.hash.validate()?;
-        request.descriptor.validate(request.kind, &bytes)?;
-        if ResourceHash::for_resource(request.kind, &request.descriptor, &bytes)? != request.hash {
+        let verified = VerifiedResource::new(request.kind, request.descriptor, bytes)?;
+        if verified.request.hash != request.hash {
             return Err(IrError::HashMismatch);
         }
+        self.put_verified(verified)
+    }
+
+    /// Content was authenticated once, but every admission still enforces this registry's
+    /// budgets, dependencies and pins. Eviction never invalidates a retained immutable proof.
+    pub fn put_verified(&mut self, verified: VerifiedResource) -> Result<PutOutcome, IrError> {
+        let VerifiedResource { request, bytes } = verified;
         if let Some(existing) = self.entries.get(&request.hash) {
             if existing.descriptor != request.descriptor || existing.bytes != bytes {
                 return Err(IrError::ResourceConflict);

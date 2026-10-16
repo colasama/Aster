@@ -4,6 +4,7 @@ import { join, relative } from "node:path";
 import { validateFrameArtifacts } from "../parity/frame-artifacts.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile } from "./source.mjs";
+import { suppliedFrameRecord } from "./supplied-frame-inputs.mjs";
 
 export const nativeSceneCases = [
   "scene-camera-orthographic",
@@ -38,21 +39,20 @@ export async function runNativeSceneBatch(context, inputs, execute) {
     assert.deepEqual(captured.inputs.case, item);
     const cache = new Map();
     for (const frame of item.frames) {
-      const capturedFrame = captured.frames.find((f) => f.frame === frame);
-      assert(capturedFrame);
-      const meta = await reader.json(`${base}/${id}/${frame}/meta.json`, capturedFrame.meta_sha256);
+      const selected = await suppliedFrameRecord(reader, item, frame, base, manifest);
+      const { meta } = selected;
       await validateFrameArtifacts(
-        async (path) => (await reader.bytes(`${base}/${id}/${path}`)).bytes,
+        async (path) => (await reader.bytes(`${selected.base}/${id}/${path}`)).bytes,
         meta,
         item,
-        manifest.source,
+        selected.manifest.source,
         cache,
       );
-      const path = `${base}/${id}/${frame}/replay.fpln`;
+      const path = `${selected.base}/${id}/${frame}/replay.fpln`;
       const plan = await reader.bytes(path);
       jobs.push({
         plan: path,
-        resources: `${base}/${id}/frame-resources`,
+        resources: `${selected.base}/${id}/frame-resources`,
         out: join(context.output, "native", id, `${frame}.png`),
       });
       frames.push({

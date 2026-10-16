@@ -145,20 +145,14 @@ impl NativeStillDecoder {
                 "rust-exr-snapshot",
             ),
             MediaTextureFormat::Rgba8UnormSrgb => {
-                let mut bytes = self.backend.decode_still_rgba(
-                    Arc::from(encoded),
+                let (mut bytes, backend) = self.decode_rgba(
+                    encoded,
                     (frame.width, frame.height),
+                    member.is_some(),
                     cancellation,
                 )?;
                 Self::canvas_alpha_precision(&mut bytes);
-                (
-                    bytes,
-                    if member.is_some() {
-                        "ffmpeg-sequence-snapshot"
-                    } else {
-                        "ffmpeg-still-snapshot"
-                    },
-                )
+                (bytes, backend)
             }
         };
         Ok(DecodedStill {
@@ -176,9 +170,58 @@ impl NativeStillDecoder {
         })
     }
 
+    fn decode_rgba(
+        &self,
+        encoded: Vec<u8>,
+        size: (u32, u32),
+        sequence: bool,
+        cancellation: &CancellationToken,
+    ) -> Result<(Vec<u8>, &'static str), MediaError> {
+        #[cfg(windows)]
+        if encoded.len() >= 29
+            && &encoded[..8] == b"\x89PNG\r\n\x1a\n"
+            && &encoded[12..16] == b"IHDR"
+            && encoded[24] == 8
+            && matches!(encoded[25], 2 | 6)
+            && encoded[26..29] == [0, 0, 0]
+        {
+            // Decode the already authenticated memory snapshot without color management or
+            // premultiplication. Other PNG layouts retain the established FFmpeg conversion.
+            let started = std::time::Instant::now();
+            let bytes = crate::image_windows::WindowsImage::decode(&encoded, size)?;
+            if cancellation.is_cancelled() {
+                return Err(aster_video::FfmpegError::Cancelled.into());
+            }
+            if started.elapsed() > Duration::from_millis(self.limits.still_timeout_ms) {
+                return Err(MediaError::Limit("still decode deadline exceeded".into()));
+            }
+            return Ok((bytes, "windows-wic-png-snapshot"));
+        }
+        let bytes = self
+            .backend
+            .decode_still_rgba(Arc::from(encoded), size, cancellation)?;
+        Ok((
+            bytes,
+            if sequence {
+                "ffmpeg-sequence-snapshot"
+            } else {
+                "ffmpeg-still-snapshot"
+            },
+        ))
+    }
+
     pub(crate) fn canvas_alpha_precision(bytes: &mut [u8]) {
         for pixel in bytes.chunks_exact_mut(4) {
             let alpha = u32::from(pixel[3]);
+            // Opaque channels round-trip unchanged; hidden RGB always rounds to zero.
+            // Keep the original integer rounding for every partially transparent sample.
+            if alpha == 255 {
+                continue;
+            }
+            if alpha == 0 {
+                pixel[..3].fill(0);
+                continue;
+            }
             for channel in &mut pixel[..3] {
                 let associated = (u32::from(*channel) * alpha + 127) / 255;
                 *channel = (associated * 255 + alpha / 2)

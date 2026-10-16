@@ -1,4 +1,4 @@
-import { requirePlan } from "../frame-plan/canonical";
+import { copyWireValue, requirePlan } from "../frame-plan/canonical";
 import type { PutResource } from "../frame-plan/types";
 import { mediaFrameMessages } from "./media-frame-identity";
 import { type MediaGpuLease, MediaGpuRegistry } from "./media-gpu-registry";
@@ -53,7 +53,7 @@ export class MediaBindingLease {
     return this.#messages.size > 0;
   }
   get resourceMessages(): PutResource[] {
-    return structuredClone([...this.#messages.values()]);
+    return [...this.#messages.values()].map(copyWireValue);
   }
 
   hashFor(instanceId: string): string | null {

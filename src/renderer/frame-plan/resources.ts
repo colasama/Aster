@@ -1,11 +1,21 @@
 import { sha256 } from "@noble/hashes/sha2.js";
-import { canonicalJson, hash, integer, object, requirePlan } from "./canonical";
+import { canonicalJson, hash, integer, object, requirePlan, sameCanonicalValue } from "./canonical";
 import { encodedTextureEncoding, validateEncodedTexture } from "./encoded-texture";
 import { validateMediaFrame, validateMediaSource } from "./media-descriptors";
 import { validateRasterPixels } from "./raster-pixels";
 import { validateTexturePixels } from "./texture-pixels";
 import type { BufferResourceDescriptor, ResourceContent, ResourceMessage } from "./types";
 import { validateBufferDescriptor } from "./validation";
+
+// Own snapshots parsed from the exact validated text that was hashed. A claimed hash is only a
+// lookup hint: every field must still equal that private snapshot. Bound text and snapshot storage.
+interface MediaDescriptorHash {
+  hash: string;
+  content: ResourceContent;
+}
+const mediaDescriptorHashes = new Map<string, MediaDescriptorHash>();
+const mediaDescriptorsByHash = new Map<string, MediaDescriptorHash>();
+let mediaDescriptorHashBytes = 0;
 
 export async function resourceHash(
   descriptor: BufferResourceDescriptor,
@@ -76,27 +86,69 @@ export function contentResourceHashSync(
   content: ResourceContent,
   bytes: Uint8Array = new Uint8Array(),
 ): string {
-  return Array.from(sha256(resourceHashInput(content, bytes)), (value) =>
-    value.toString(16).padStart(2, "0"),
-  ).join("");
+  const media = content.kind === "media_source" || content.kind === "media_frame";
+  const hint = (content as ResourceContent & { hash?: unknown }).hash;
+  const verified =
+    media && bytes.byteLength === 0 && typeof hint === "string"
+      ? mediaDescriptorsByHash.get(hint)
+      : undefined;
+  if (
+    verified?.content.kind === content.kind &&
+    sameCanonicalValue(content.descriptor, verified.content.descriptor)
+  )
+    return verified.hash;
+  const descriptor = resourceHashDescriptor(content, bytes);
+  const cached = media ? mediaDescriptorHashes.get(descriptor) : undefined;
+  if (cached) return cached.hash;
+  const digest = sha256.create().update(resourceHashHeader(descriptor)).update(bytes).digest();
+  const hash = Array.from(digest, (value) => value.toString(16).padStart(2, "0")).join("");
+  const keyBytes = descriptor.length * 4;
+  if (media && keyBytes <= 4 * 1024 * 1024) {
+    while (
+      mediaDescriptorHashes.size >= 4096 ||
+      mediaDescriptorHashBytes + keyBytes > 4 * 1024 * 1024
+    ) {
+      const oldest = mediaDescriptorHashes.keys().next().value;
+      if (oldest === undefined) break;
+      const entry = mediaDescriptorHashes.get(oldest);
+      if (entry) mediaDescriptorsByHash.delete(entry.hash);
+      mediaDescriptorHashes.delete(oldest);
+      mediaDescriptorHashBytes -= oldest.length * 4;
+    }
+    const entry = { hash, content: JSON.parse(descriptor) as ResourceContent };
+    mediaDescriptorHashes.set(descriptor, entry);
+    mediaDescriptorsByHash.set(hash, entry);
+    mediaDescriptorHashBytes += keyBytes;
+  }
+  return hash;
 }
 
 function resourceHashInput(content: ResourceContent, bytes: Uint8Array): Uint8Array<ArrayBuffer> {
+  const header = resourceHashHeader(resourceHashDescriptor(content, bytes));
+  const input = new Uint8Array(header.length + bytes.length);
+  input.set(header);
+  input.set(bytes, header.length);
+  return input;
+}
+
+/** Domain header is small; synchronous hashing can consume payload views without concatenation. */
+function resourceHashDescriptor(content: ResourceContent, bytes: Uint8Array): string {
   validateResourceContent(content, bytes);
+  return canonicalJson({ kind: content.kind, descriptor: content.descriptor });
+}
+
+function resourceHashHeader(descriptor: string): Uint8Array<ArrayBuffer> {
   const prefix = new TextEncoder().encode("ASTER_RESOURCE_V1\0");
-  const json = new TextEncoder().encode(
-    canonicalJson({ kind: content.kind, descriptor: content.descriptor }),
-  );
+  const json = new TextEncoder().encode(descriptor);
   requirePlan(
     json.length <= 0xffff_ffff,
     "limit_exceeded",
     "Resource descriptor exceeds wire length",
   );
-  const input = new Uint8Array(prefix.length + 4 + json.length + bytes.length);
+  const input = new Uint8Array(prefix.length + 4 + json.length);
   input.set(prefix);
   new DataView(input.buffer).setUint32(prefix.length, json.length, true);
   input.set(json, prefix.length + 4);
-  input.set(bytes, prefix.length + 4 + json.length);
   return input;
 }
 

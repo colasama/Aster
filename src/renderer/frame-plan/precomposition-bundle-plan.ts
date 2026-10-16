@@ -21,7 +21,7 @@ export function buildPrecompositionBundle(
   const bundle: PrecompositionBundleSlice = {
     kind: "precomposition_bundle",
     blob_index: 0,
-    graph: resources.addPlan(graph),
+    graph: resources.addRequiredPlan(graph, "precomposition_graph_slice_v1"),
     scenes: [],
     media_pixels: [],
   };
@@ -53,35 +53,21 @@ export function buildPrecompositionBundle(
     bundle.scenes.push({
       target_id: identity(scene.target.id),
       label_utf16: utf16Text(scene.label),
-      scene: resources.addPlan(scene.scene),
-      commands: resources.addPlan(commands),
+      scene: resources.addRequiredPlan(scene.scene, "scene_buffers_slice_v1"),
+      commands: resources.addRequiredPlan(commands, "root_scene_commands_slice_v1"),
       draw_count: scene.draws.length,
       effects,
       generators: scene.generators.map((generator) => {
         for (const shader of generator.shaders) resources.add(shader);
         return {
           instance_id: identity(generator.instanceId),
-          plan: resources.addPlan(generator.plan),
+          plan: resources.addRequiredPlan(generator.plan, "scene_generator_slice_v1"),
           layer_name_utf16: utf16Text(generator.origin.layerName),
           plugin_id_utf16: utf16Text(generator.origin.pluginId),
           execution: structuredClone(generator.execution ?? { status: "planned" }),
         };
       }),
     });
-  }
-  resources.plan(bundle.graph, "precomposition_graph_slice_v1");
-  for (const scene of bundle.scenes) {
-    resources.plan(scene.scene, "scene_buffers_slice_v1");
-    resources.plan(scene.commands, "root_scene_commands_slice_v1");
-    for (const effect of scene.effects) {
-      resources.plan(effect.execution, "effect_execution_slice_v1");
-      if (effect.status === "ready") {
-        resources.plan(effect.plan, "layer_effects_slice_v1");
-        resources.resolve(effect.lut);
-      }
-    }
-    for (const generator of scene.generators)
-      resources.plan(generator.plan, "scene_generator_slice_v1");
   }
   for (const capture of pixels) {
     validateMediaPixelPayload(capture);

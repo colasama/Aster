@@ -75,6 +75,9 @@ impl Default for ProbeLimits {
 
 #[derive(Debug, Clone, clap::Args)]
 pub struct DecodeLimits {
+    /// Bound codec and filter workers instead of scaling memory with host CPU count.
+    #[arg(long = "decode-worker-threads", default_value_t = Self::default().worker_threads)]
+    pub worker_threads: std::num::NonZeroUsize,
     #[command(flatten)]
     pub audio: crate::audio::AudioLimits,
     #[command(flatten)]
@@ -96,6 +99,7 @@ pub struct DecodeLimits {
 impl Default for DecodeLimits {
     fn default() -> Self {
         Self {
+            worker_threads: std::num::NonZeroUsize::MIN,
             audio: crate::audio::AudioLimits::default(),
             metadata: crate::MetadataLimits::default(),
             max_path_units: 32_767,

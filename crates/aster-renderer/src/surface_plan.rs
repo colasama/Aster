@@ -1,7 +1,7 @@
 use crate::{RenderError, scene_input::SceneInput};
 use aster_render_ir::{
-    CompositionIdentity, ContractLevel, DecodeLimits, Extent2d, FplnCodec, PlanSlice, ResourceHash,
-    ResourceRegistry, RootTextureReference,
+    CompositionIdentity, ContractLevel, Extent2d, PlanSlice, ResourceHash, ResourceRegistry,
+    RootTextureReference,
 };
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -29,7 +29,7 @@ impl SurfacePlan {
         hash: Option<&ResourceHash>,
         root: &SceneInput,
         registry: &ResourceRegistry,
-        limits: &DecodeLimits,
+        plans: &crate::frame_plans::FramePlans,
         frame_pixels: &[aster_render_ir::PrecompositionMediaPixels],
         decoded_textures: &BTreeMap<ResourceHash, crate::image_input::ImageInput>,
     ) -> Result<Self, RenderError> {
@@ -38,7 +38,7 @@ impl SurfacePlan {
             result.validate_references(root, 0)?;
             return Ok(result);
         };
-        let bundle = FplnCodec::decode(registry.resolve(hash)?.to_vec(), limits)?;
+        let bundle = plans.resolve(hash, registry)?;
         let Some(PlanSlice::PrecompositionBundle(records)) = bundle.metadata.slices.first() else {
             return Err(RenderError::Invalid("surface bundle required".into()));
         };
@@ -47,7 +47,7 @@ impl SurfacePlan {
                 "surface bundle identity differs".into(),
             ));
         }
-        let graph = FplnCodec::decode(registry.resolve(&records.graph)?.to_vec(), limits)?;
+        let graph = plans.resolve(&records.graph, registry)?;
         let Some(PlanSlice::PrecompositionGraph(routing)) = graph.metadata.slices.first() else {
             return Err(RenderError::Invalid("surface graph required".into()));
         };
@@ -77,13 +77,13 @@ impl SurfacePlan {
                     "surface identity or draw count differs".into(),
                 ));
             }
-            let scene = FplnCodec::decode(registry.resolve(&record.scene)?.to_vec(), limits)?;
+            let scene = plans.resolve(&record.scene, registry)?;
             if index == 0 && scene.metadata.header != bundle.metadata.header {
                 return Err(RenderError::Invalid(
                     "surface graph origin differs from first scene".into(),
                 ));
             }
-            let commands = FplnCodec::decode(registry.resolve(&record.commands)?.to_vec(), limits)?;
+            let commands = plans.resolve(&record.commands, registry)?;
             let Some(PlanSlice::SceneBuffers(geometry)) = scene.metadata.slices.first() else {
                 return Err(RenderError::Invalid("surface geometry missing".into()));
             };
@@ -115,7 +115,7 @@ impl SurfacePlan {
                 (&record.effects, &record.generators),
                 &pixels,
                 (registry, decoded_textures),
-                limits,
+                plans,
                 true,
             )?;
             if input.header.render_target

@@ -4,6 +4,7 @@ import { createBlankComposition } from "../../core/project/project";
 import { runCpuTask } from "../../core/scheduling/cpu-scheduler";
 import { buildFrameHeader } from "../frame-plan/root-post-plan";
 import type { GeometryBatch } from "../geometry/geometry";
+import { ExactFrameCaptureQueue } from "../gpu/exact-frame-resource-barrier";
 import { MaterialTextureRenderer } from "./material-textures";
 
 vi.mock("../../core/scheduling/cpu-scheduler", () => ({ runCpuTask: vi.fn() }));
@@ -191,3 +192,170 @@ it("destroys a normal upload retired while GPU validation is pending", async () 
   expect(f.renderer.hasPendingResources).toBe(false);
   f.renderer.destroy();
 });
+
+function pendingEnvironment() {
+  const f = fixture();
+  f.composition.environment = {
+    enabled: true,
+    intensity: 0.45,
+    rotation: 20,
+    source: { name: "pending.hdr", mimeType: "image/vnd.radiance", dataUrl: "hdr:pending" },
+  };
+  let complete: (response: { ok: boolean; arrayBuffer(): Promise<ArrayBuffer> }) => void = () => {};
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        }),
+    ),
+  );
+  const pixels = new Uint16Array(128);
+  pixels.set([0x4000, 0x3c00, 0x3800, 0x3c00]);
+  vi.mocked(runCpuTask).mockResolvedValue({ width: 1, height: 1, bytesPerRow: 256, pixels });
+  return {
+    ...f,
+    complete: () => complete({ ok: true, arrayBuffer: async () => new ArrayBuffer(1) }),
+  };
+}
+
+it("holds the first exact capture until its environment is uploaded, then uses one cached capture", async () => {
+  const f = pendingEnvironment();
+  const capture = vi.fn(async () => {
+    f.renderer.prepare(f.composition, [f.batch], f.header);
+    return f.batch.materialTexturePlan?.environmentHash;
+  });
+  const resources = {
+    get hasPendingFrameResources() {
+      return f.renderer.hasPendingResources;
+    },
+    waitForFrameResources: () => f.renderer.waitForFrameResources(),
+  };
+  const queue = new ExactFrameCaptureQueue<string | null | undefined>();
+  const result = queue.capture(capture, resources);
+  let settled = false;
+  void result.then(() => {
+    settled = true;
+  });
+  await vi.waitFor(() => expect(capture).toHaveBeenCalledOnce());
+  expect(settled).toBe(false);
+  expect(f.batch.materialTexturePlan?.environmentHash).toBeNull();
+  f.complete();
+  const hash = await result;
+  expect(hash).toMatch(/^[0-9a-f]{64}$/);
+  expect(capture).toHaveBeenCalledTimes(2);
+  expect(f.batch.materialTexturePlan?.environmentIntensity).toBe(0.45);
+  capture.mockClear();
+  await expect(queue.capture(capture, resources)).resolves.toBe(hash);
+  expect(capture).toHaveBeenCalledOnce();
+  f.renderer.destroy();
+});
+
+it("rejects exact captures when HDR decoding fails instead of publishing a fallback", async () => {
+  const f = pendingEnvironment();
+  vi.mocked(runCpuTask).mockRejectedValue(new Error("HDR decode failed"));
+  f.renderer.prepare(f.composition, [f.batch], f.header);
+  const waiting = f.renderer.waitForFrameResources();
+  const rejected = expect(waiting).rejects.toThrow("HDR decode failed");
+  f.complete();
+  await rejected;
+  expect(f.renderer.hasPendingResources).toBe(false);
+  await expect(f.renderer.waitForFrameResources()).rejects.toThrow("HDR decode failed");
+  f.renderer.destroy();
+});
+
+it("aborts material capture waits on destruction even if the source ignores cancellation", async () => {
+  const f = pendingEnvironment();
+  f.renderer.prepare(f.composition, [f.batch], f.header);
+  const waiting = f.renderer.waitForFrameResources();
+  const rejected = expect(waiting).rejects.toMatchObject({ name: "AbortError" });
+  f.renderer.destroy();
+  await rejected;
+  await expect(f.renderer.waitForFrameResources()).rejects.toMatchObject({ name: "AbortError" });
+});
+
+it("bounds exact material waits without accepting a still-loading fallback", async () => {
+  const f = pendingEnvironment();
+  f.renderer.prepare(f.composition, [f.batch], f.header);
+  await expect(f.renderer.waitForFrameResources(5)).rejects.toThrow(
+    "Timed out waiting for exact material textures",
+  );
+  expect(f.renderer.hasPendingResources).toBe(true);
+  f.renderer.destroy();
+});
+
+it("stops waiting for a retired environment generation whose request ignores abort", async () => {
+  const f = pendingEnvironment();
+  f.renderer.prepare(f.composition, [f.batch], f.header);
+  const waiting = f.renderer.waitForFrameResources(100);
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => ({
+      ok: true,
+      arrayBuffer: async () => new ArrayBuffer(1),
+    })),
+  );
+  if (!f.composition.environment) throw new Error("Missing fixture environment");
+  f.composition.environment.source.dataUrl = "hdr:replacement";
+  f.renderer.prepare(f.composition, [f.batch], f.header);
+  await expect(waiting).resolves.toBeUndefined();
+  f.renderer.prepare(f.composition, [f.batch], f.header);
+  expect(f.batch.materialTexturePlan?.environmentHash).toMatch(/^[0-9a-f]{64}$/);
+  expect(f.renderer.hasPendingResources).toBe(false);
+  f.renderer.destroy();
+});
+
+it.each(["ready", "invalid"] as const)(
+  "waits for normal-map GPU validation: %s",
+  async (outcome) => {
+    const f = fixture();
+    f.layer.mesh = {
+      name: "mesh",
+      positions: [],
+      indices: [],
+      normals: [],
+      uvs: [],
+      materialTextures: {
+        normal: { dataUrl: "normal:deferred", mimeType: "image/png", texCoord: 0, scale: 1 },
+      },
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        blob: async () => new Blob([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])]),
+      })),
+    );
+    vi.stubGlobal(
+      "createImageBitmap",
+      vi.fn(async () => ({ width: 1, height: 1, close: vi.fn() })),
+    );
+    let complete: (value: GPUError | null) => void = () => {};
+    f.device.popErrorScope.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          complete = resolve;
+        }),
+    );
+    f.renderer.prepare(f.composition, [f.batch], f.header);
+    let settled = false;
+    const waiting = f.renderer.waitForFrameResources().finally(() => {
+      settled = true;
+    });
+    const checked =
+      outcome === "ready"
+        ? expect(waiting).resolves.toBeUndefined()
+        : expect(waiting).rejects.toThrow("normal upload rejected");
+    await vi.waitFor(() => expect(f.device.popErrorScope).toHaveBeenCalledOnce());
+    expect(settled).toBe(false);
+    expect(f.batch.materialTexturePlan?.normalHash).toBeNull();
+    complete(outcome === "ready" ? null : ({ message: "normal upload rejected" } as GPUError));
+    await checked;
+    f.renderer.prepare(f.composition, [f.batch], f.header);
+    if (outcome === "ready")
+      expect(f.batch.materialTexturePlan?.normalHash).toMatch(/^[0-9a-f]{64}$/);
+    else expect(f.batch.materialTexturePlan?.normalHash).toBeNull();
+    f.renderer.destroy();
+  },
+);

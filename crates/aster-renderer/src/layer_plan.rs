@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use aster_render_ir::{
-    ContractLevel, DecodeLimits, EffectBlendMode, EffectComposite, EffectExecutionRoute,
-    EffectRoute, FplnCodec, OwnedFpln, PlanSlice, PrecompositionEffectRecord, ResourceRegistry,
+    ContractLevel, EffectBlendMode, EffectComposite, EffectExecutionRoute, EffectRoute, OwnedFpln,
+    PlanSlice, PrecompositionEffectRecord, ResourceRegistry,
 };
 
 use crate::RenderError;
@@ -22,7 +22,7 @@ impl LayerPlan {
         effects: &[PrecompositionEffectRecord],
         root: &OwnedFpln,
         registry: &ResourceRegistry,
-        limits: &DecodeLimits,
+        plans: &crate::frame_plans::FramePlans,
         nested: bool,
     ) -> Result<BTreeMap<u32, Self>, RenderError> {
         let mut layers = BTreeMap::new();
@@ -42,8 +42,8 @@ impl LayerPlan {
                     ));
                 }
             };
-            let plan = FplnCodec::decode(registry.resolve(plan_hash)?.to_vec(), limits)?;
-            let execution = FplnCodec::decode(registry.resolve(execution_hash)?.to_vec(), limits)?;
+            let plan = plans.resolve(plan_hash, registry)?;
+            let execution = plans.resolve(execution_hash, registry)?;
             let mut effect_header = root.metadata.header.clone();
             if nested {
                 effect_header.snapshot_scope = "precomposition-effects".into();

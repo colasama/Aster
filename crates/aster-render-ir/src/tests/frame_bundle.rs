@@ -1,8 +1,107 @@
 use super::Fixture;
 use crate::{
-    ContractLevel, DecodeLimits, ElementType, FplnCodec, FrameBundleSlice, IrError, PlanSlice,
-    PrecompositionMediaPixels, ResourceHash,
+    BufferResourceDescriptor, BundleDependencies, ContractLevel, DecodeLimits, ElementType,
+    FplnCodec, FrameBundleSlice, IrError, PlanSlice, PrecompositionMediaPixels, ResourceDescriptor,
+    ResourceHash, ResourceKind, ResourceLimits, ResourceRegistry, VerifiedResource,
 };
+
+#[test]
+fn dependency_modes_preserve_canonical_and_closure_rejections() -> Result<(), IrError> {
+    let fixture = Fixture::new()?;
+    let canonical = fixture.encode()?;
+    let mut flags = canonical.clone();
+    flags[24] = 1;
+    let mut padding = canonical.clone();
+    let header = crate::wire::WireHeader::read(&padding)?;
+    padding[32 + header.metadata_bytes as usize] = 1;
+    let mut json = vec![b' '];
+    json.extend(crate::canonical::CanonicalJson::encode(&fixture.metadata)?);
+    let noncanonical = Fixture::unchecked_json(&json, &fixture.blobs)?;
+    let limits = DecodeLimits::default();
+    for (index, bytes) in [canonical, flags, padding, noncanonical]
+        .into_iter()
+        .enumerate()
+    {
+        let length = u32::try_from(bytes.len()).map_err(|_| IrError::ArithmeticOverflow)?;
+        let resource = VerifiedResource::new(
+            ResourceKind::Buffer,
+            ResourceDescriptor::Buffer(BufferResourceDescriptor {
+                element_type: ElementType::U8,
+                element_count: length,
+                byte_length: length,
+            }),
+            bytes,
+        )?;
+        let hash = resource.request().hash.clone();
+        let mut registry = ResourceRegistry::new(ResourceLimits::default())?;
+        registry.put_verified(resource)?;
+        let mut root = fixture.metadata.clone();
+        root.contract_level = ContractLevel::FrameBundleSliceV1;
+        root.renderer_plan_complete = true;
+        root.resources.push(hash.clone());
+        root.resources.sort();
+        root.blobs.truncate(1);
+        root.blobs[0].element_type = ElementType::U32Le;
+        root.blobs[0].byte_length = 24;
+        root.blobs[0].element_count = 6;
+        root.slices = vec![PlanSlice::FrameBundle(FrameBundleSlice {
+            blob_index: 0,
+            scene: hash.clone(),
+            root: hash.clone(),
+            post: hash.clone(),
+            motion: hash.clone(),
+            output: hash,
+            auxiliary: None,
+            effect: None,
+            precompositions: None,
+            shadow_map_size: 1024,
+            effects: Vec::new(),
+            generators: Vec::new(),
+            media_pixels: Vec::new(),
+            temporal: Vec::new(),
+        })];
+        root.validate(&limits)?;
+        for audit in [false, true] {
+            let dependencies = if audit {
+                BundleDependencies::default().with_roundtrip()
+            } else {
+                BundleDependencies::default()
+            };
+            let result = dependencies.validate(&root, &registry, &limits);
+            if index == 0 {
+                assert_eq!(result?, 1);
+            } else {
+                assert!(result.is_err());
+            }
+        }
+        let mut visited = Vec::new();
+        let result = BundleDependencies::default().validate_with(
+            &root,
+            &registry,
+            &limits,
+            |hash, plan, bytes| visited.push((hash, plan, bytes)),
+        );
+        if index == 0 {
+            assert_eq!(result?, 1);
+            assert_eq!(visited.len(), 1);
+            let (hash, plan, length) = &visited[0];
+            assert_eq!(plan.reencode(&limits)?, registry.resolve(hash)?);
+            assert_eq!(*length, registry.resolve(hash)?.len());
+        } else {
+            assert!(result.is_err());
+            assert!(visited.is_empty());
+        }
+        root.resources
+            .retain(|hash| !fixture.metadata.resources.contains(hash));
+        for dependencies in [
+            BundleDependencies::default(),
+            BundleDependencies::default().with_roundtrip(),
+        ] {
+            assert!(dependencies.validate(&root, &registry, &limits).is_err());
+        }
+    }
+    Ok(())
+}
 
 #[test]
 fn root_bundle_uses_typed_count_payload_and_requires_declared_stages() -> Result<(), IrError> {

@@ -228,6 +228,16 @@ approved references are frozen under `tests/parity/frozen/` (PNG, no Git text co
 Every profile other than `exact` also requires the structural checks in 6.6 to pass. Tolerance
 changes follow 6.6; loosening `exact` is never allowed.
 
+On 2026-10-13 (Asia/Tokyo), the owner approved `layered-nv12-and-uniform-reference-v1`.
+For G5 decoded-video comparisons, derive an independent reference from the frozen RGB image
+through one uncompressed BT.709 limited-range NV12 conversion and the same accurate RGB decode
+conversion used for the candidate. Bind the original, opaque RGB, NV12 and decoded reference
+hashes, conversion commands and tool hashes. Convert adjacent frame references identically.
+G3 still checks the original frozen RGB and independent NV12 conversion. Matched-bitrate
+comparative VMAF (or SSIM/PSNR fallback) still uses the original lossless RGB reference conversion.
+All existing numerical, structural, sequence, audio, stream, lifecycle and self-review requirements
+remain; preserve previous failures and original RGB diagnostics without reclassifying them.
+
 ### 6.5 Gates
 
 `pnpm migrate:verify [--milestone <id>] [--quick]` runs the gates required by the milestone, writes
@@ -274,6 +284,33 @@ or a color-matrix bias, so every non-`exact` comparison also runs these structur
 | Registration: sub-pixel translation estimated by phase correlation | ≤ 0.25 px | ≤ 0.5 px |
 | Ink bounds: bounding box of non-background pixels per layer-isolated case | ±1 px | ±1 px |
 | Frame identity (sequences): candidate frame N matches reference N better than N−1 and N+1 | required | required |
+
+The owner's 2026-10-13 approval permits one G5-only registration alternative: an exhaustive
+scan must establish an exactly uniform opaque RGBA reference, identical candidate alpha, and
+an error of at most one code value in every candidate RGB channel. Report
+`uniform_reference_equivalence` with `shift: null` and an explicit unobservable-translation
+diagnostic, never a measured zero shift. All other checks and agent self-review remain required.
+Nonuniform references, larger errors, alpha differences and non-G5 profiles retain the ordinary
+registration rule. Exact identity and measured registration remain unchanged.
+
+On 2026-10-15 (Asia/Tokyo), the owner approved two narrowly scoped additions recorded in
+`owner_overrides.material_reference_policy` and `owner_overrides.layered_structural_policy`:
+
+- Correct only frame 0 of `scene-lighting-directional`, `scene-lighting-point`, and
+  `scene-lighting-spot` after the material-readiness fix. An independently published cold TS
+  capture must match the reviewed corrected pixels exactly; all nine later declared frames must
+  remain identical to the original references. Preserve original files and rejected comparisons.
+- G5 may use authenticated, same-source, same-case, same-frame native RGB, NV12, and pre-encode
+  structural evidence for encoded ink-bound failures or unobservable registration. A measured
+  shift beyond 0.25 px still fails. Encoded PSNR, error clusters, signed bias, alpha coverage,
+  frame identity, relative quality, timing, audio and lifecycle limits remain unchanged.
+  Publish the layered verdict separately from the original failed comparison and self-review it.
+  The independent root and recursive export diagnostics use this same rule. Their witnesses bind
+  directly to the diagnostic production capture's plans, resources, media authorization and adapter;
+  corpus replay plans cannot substitute for those inputs. Diagnostic success never supplies missing
+  corpus, owner-project or application-lifecycle coverage.
+
+These authorizations do not relax other profiles or authorize general structural reference repairs.
 
 Review procedure for each non-`exact` case:
 
@@ -385,7 +422,10 @@ required gates; `G0` is always required.
 - Encoding quality is accepted automatically: export the corpus and the owner project's main segment
   at the same bitrate through the native path and the current FFmpeg NVENC path, decode both, and
   score each against the lossless reference frames. Use VMAF when the bundled FFmpeg has libvmaf;
-  otherwise FFmpeg `ssim` and `psnr` filters. Pass when native VMAF ≥ current − 1.0, or when SSIM
+  otherwise FFmpeg `ssim` and `psnr` filters. Both encoders use the fixed bundled
+  `vmaf_v0.6.1neg` model, designed for codec comparison without image-enhancement gain. Record
+  the model, authenticated FFmpeg binary and exact command for both arms; an unavailable model
+  fails instead of selecting another model or metric. Pass when native VMAF ≥ current − 1.0, or when SSIM
   ≥ current − 0.002 and PSNR ≥ current − 0.5 dB. On failure tune Media Foundation rate control
   (rate-control mode, quality-versus-speed, GOP, B-frames off) and re-measure; record every attempt.
 - Gates: G0, G3, G4, G5, G6.
@@ -460,6 +500,13 @@ starts from a fresh session. In every cycle the agent must:
 10. Rebase on the owner's base branch only when the ledger's `sync.requested` flag is set; resolve
     conflicts by preserving owner changes. After rebase, re-run the full gates of all `done`
     milestones affected by changed files.
+
+Checkpoint reuse after the diagnostic-verifier repair requires complete before/after file inventories
+whose digests reproduce the original and current execution identities. Only the explicitly enumerated
+verification files may differ; any runtime, shader, fixture, dependency or tolerance-catalog change
+invalidates reuse. Keep original source identities and failed reports intact. Re-audit every checkpoint's
+inputs, binary, artifact hashes, numeric results and self-reviews under the current verifier; compatibility
+alone grants no gate. The full current-source G0, G3, G4, G5, G6 and milestone-exit checks remain required.
 
 ### Moving-target rule
 

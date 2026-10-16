@@ -8,16 +8,22 @@ import { writeAtomicJson } from "./report.mjs";
 import { hashFile } from "./source.mjs";
 
 /** Native file pixels and supplied text samples must meet in the same recursive GPU frame. */
-export async function runNativeMediaFrameGate(context, { binary, compiler }, execute = runStep) {
+export async function runNativeMediaFrameGate(
+  context,
+  { binary, compiler, reference, mediaCatalog, casePrefix = "native-media-frame" },
+  execute = runStep,
+) {
   const report = { status: "failed", frames: [], controls: [], self_reviews: [] };
   const reader = new M0Evidence(context.root);
   const local = (p) => relative(context.root, p).replaceAll("\\", "/");
   try {
     await mkdir(context.output, { recursive: true });
     const ledger = await reader.json("docs/migration/rust-renderer-progress.json");
-    const frozen = ledger.reference_baseline.native_media_frame;
+    const frozen = reference ?? ledger.reference_baseline.native_media_frame;
     const manifest = await reader.json(frozen.path, frozen.sha256);
-    const capture = await reader.json(manifest.capture.path, manifest.capture.sha256);
+    const capture = reference
+      ? manifest
+      : await reader.json(manifest.capture.path, manifest.capture.sha256);
     assert.equal(capture.status, "passed");
     assert.deepEqual(manifest.gpu_info, capture.gpu_info);
     assert.deepEqual(
@@ -27,7 +33,7 @@ export async function runNativeMediaFrameGate(context, { binary, compiler }, exe
     const device = manifest.gpu_info.gpuDevice.find((d) => d.active);
     assert(device && device.vendorId !== 5140);
     const base = dirname(frozen.path);
-    const catalog = await reader.json("tests/parity/assets/media-assets.json");
+    const catalog = mediaCatalog ?? (await reader.json("tests/parity/assets/media-assets.json"));
     const tolerance = await reader.bytes("tests/parity/tolerances.json");
     const grants = new Map(),
       jobs = [];
@@ -146,7 +152,7 @@ export async function runNativeMediaFrameGate(context, { binary, compiler }, exe
       const sample = Number(frame.id.at(-1));
       const expectedVideo = sample === 1 ? 23 : 11;
       assert.equal(receipt.native_videos[0].frame_index, expectedVideo);
-      const caseId = `native-media-frame-${frame.mode}`;
+      const caseId = `${casePrefix}-${frame.mode}`;
       const siblings = manifest.frames.filter((f) => f.mode === frame.mode);
       const ctx = join(context.output, `${frame.id}.context.json`);
       await writeAtomicJson(ctx, {

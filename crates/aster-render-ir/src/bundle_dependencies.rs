@@ -1,17 +1,24 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::{
-    DecodeLimits, FplnCodec, FramePlanSliceV1, IrError, PlanSlice, PrecompositionEffectRecord,
-    PrecompositionGeneratorRecord, ResourceHash, ResourceRegistry,
+    DecodeLimits, FplnCodec, FramePlanSliceV1, IrError, OwnedFpln, PlanSlice,
+    PrecompositionEffectRecord, PrecompositionGeneratorRecord, ResourceHash, ResourceRegistry,
 };
 
 #[derive(Default)]
 pub struct BundleDependencies {
     pending: Vec<ResourceHash>,
     checked: BTreeMap<ResourceHash, ()>,
+    roundtrip: bool,
 }
 
 impl BundleDependencies {
+    /// Diagnostic audits additionally reconstruct every nested container byte for byte.
+    pub fn with_roundtrip(mut self) -> Self {
+        self.roundtrip = true;
+        self
+    }
+
     fn programs(
         &mut self,
         effects: &[PrecompositionEffectRecord],
@@ -73,11 +80,23 @@ impl BundleDependencies {
 
     /// Only typed plan references are decoded; shader or pixel bytes may start with any magic.
     pub fn validate(
-        mut self,
+        self,
         root: &FramePlanSliceV1,
         registry: &ResourceRegistry,
         limits: &DecodeLimits,
     ) -> Result<usize, IrError> {
+        self.validate_with(root, registry, limits, |_, _, _| {})
+    }
+
+    /// Visitors receive individually validated plans; discard results if the closure fails.
+    pub fn validate_with(
+        mut self,
+        root: &FramePlanSliceV1,
+        registry: &ResourceRegistry,
+        limits: &DecodeLimits,
+        mut visit: impl FnMut(ResourceHash, OwnedFpln, usize),
+    ) -> Result<usize, IrError> {
+        let resources = root.resources.iter().collect::<BTreeSet<_>>();
         self.extend(root);
         while let Some(hash) = self.pending.pop() {
             if self.checked.insert(hash.clone(), ()).is_some() {
@@ -85,18 +104,21 @@ impl BundleDependencies {
             }
             let bytes = registry.resolve(&hash)?;
             let nested = FplnCodec::decode(bytes.to_vec(), limits)?;
-            if nested.reencode(limits)? != bytes
+            // Decode already enforces canonical JSON, contiguous ranges, zero padding and
+            // every typed blob invariant. Reconstruction is only needed by explicit audits.
+            if (self.roundtrip && nested.reencode(limits)? != bytes)
                 || nested
                     .metadata
                     .resources
                     .iter()
-                    .any(|reference| !root.resources.contains(reference))
+                    .any(|reference| !resources.contains(reference))
             {
                 return Err(IrError::InvalidResource(
                     "nested plan differs or lacks resources".to_owned(),
                 ));
             }
             self.extend(&nested.metadata);
+            visit(hash, nested, bytes.len());
         }
         Ok(self.checked.len())
     }

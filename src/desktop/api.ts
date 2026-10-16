@@ -8,6 +8,7 @@ import type {
 } from "../ai/agent-protocol";
 import type { AutomationDesktopApi } from "../ai/automation-protocol";
 import type { GpuMemoryDevice } from "../core/rendering/gpu-memory-policy";
+import type { NativeRenderHostRequest } from "../core/rendering/native-export-protocol";
 import type {
   EnqueueRenderJobInput,
   RenderJobManifest,
@@ -67,7 +68,7 @@ export interface Mp4ExportStartOptions {
 
 export interface Mp4ExportStarted {
   jobId: string;
-  encoder: "h264_nvenc" | "libx264";
+  encoder: "h264_nvenc" | "libx264" | "h264_mf";
 }
 
 export interface Mp4ExportReport extends Mp4ExportStarted {
@@ -147,6 +148,7 @@ export type DesktopRenderHostReport =
     };
 
 export type DesktopRenderHostOutputRequest =
+  | NativeRenderHostRequest
   | {
       type: "startMp4";
       jobId: string;

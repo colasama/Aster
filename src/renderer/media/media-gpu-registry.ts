@@ -1,5 +1,11 @@
 import { FALLBACK_GPU_MEMORY_MB } from "../../core/rendering/gpu-memory-policy";
-import { canonicalJson, integer, requirePlan } from "../frame-plan/canonical";
+import {
+  canonicalJson,
+  copyWireValue,
+  integer,
+  requirePlan,
+  sameCanonicalValue,
+} from "../frame-plan/canonical";
 import { contentResourceHashSync, validateResourceMessage } from "../frame-plan/resources";
 import { frameTimeToNumber } from "../frame-plan/time";
 import type { PutResource, ResourceMessage } from "../frame-plan/types";
@@ -70,7 +76,9 @@ export class MediaGpuRegistry {
   }
 
   apply(input: ResourceMessage, owner?: MediaResource, binding?: GPUBindGroup): void {
-    const message = validateResourceMessage(input);
+    const previous = input?.type === "put_resource" ? this.#entries.get(input.hash) : undefined;
+    const unchanged = previous && sameCanonicalValue(input, previous.message);
+    const message = unchanged ? previous.message : validateResourceMessage(input);
     if (message.type === "evict_resource") {
       requirePlan(
         owner === undefined && binding === undefined,
@@ -87,12 +95,15 @@ export class MediaGpuRegistry {
       "GPU media registry accepts media descriptors only",
     );
     requirePlan(
-      contentResourceHashSync(message) === message.hash,
+      unchanged || contentResourceHashSync(message) === message.hash,
       "hash_mismatch",
       "GPU resource descriptor hash mismatch",
     );
     const existing = this.#entries.get(message.hash);
-    const bytes = new TextEncoder().encode(canonicalJson(message.descriptor)).length;
+    requirePlan(!existing || unchanged, "resource_conflict", "GPU descriptor identity conflict");
+    const bytes =
+      existing?.descriptorBytes ??
+      new TextEncoder().encode(canonicalJson(message.descriptor)).length;
     requirePlan(
       existing ||
         (this.#entries.size < this.#countLimit &&
@@ -159,7 +170,7 @@ export class MediaGpuRegistry {
         "Source descriptors carry no GPU binding",
       );
     const entry = existing ?? {
-      message: structuredClone(message),
+      message: copyWireValue(message),
       descriptorBytes: bytes,
       dependencies: 0,
       pins: 0,
@@ -224,7 +235,13 @@ export class MediaGpuRegistry {
     return {
       bindingForHash: (hash) => selectedVersion(hash).binding,
       textureForHash: (hash) => {
-        const texture = selectedVersion(hash).owner.texture;
+        const owner = selectedVersion(hash).owner;
+        requirePlan(
+          !owner.nativeVideoPlan,
+          "missing_resource",
+          "Native video plans contain no browser pixels",
+        );
+        const texture = owner.texture;
         requirePlan(texture, "missing_resource", "Pinned media texture is absent");
         return texture;
       },

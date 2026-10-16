@@ -5,9 +5,8 @@ use aster_media_native::{
     VideoLimits,
 };
 use aster_render_ir::{
-    BufferResourceDescriptor, DecodeLimits, ElementType, FplnCodec, MediaSample, OwnedFpln,
-    PlanSlice, PrecompositionMediaPixels, PutResource, ResourceDescriptor, ResourceHash,
-    ResourceKind, ResourceRegistry,
+    DecodeLimits, FplnCodec, MediaSample, OwnedFpln, PlanSlice, PrecompositionMediaPixels,
+    ResourceDescriptor, ResourceHash, ResourceRegistry,
 };
 use clap::Args;
 use std::path::PathBuf;
@@ -37,6 +36,9 @@ pub struct NativeStillResources {
     pub receipts: Vec<NativeImageReceipt>,
     pub video_receipts: Vec<NativeVideoReceipt>,
     pub decode_cache: MediaCacheStatistics,
+    pub video_source_cache: aster_media_native::VideoSourceCacheStatistics,
+    pub video_decode_window: aster_media_native::VideoWindowStatistics,
+    installed: Vec<ResourceHash>,
 }
 
 impl NativeStillArgs {
@@ -121,37 +123,44 @@ impl NativeStillResources {
         }
         let cancellation = aster_video::CancellationToken::default();
         let mut staged = Vec::new();
-        for frame in frames {
-            let decoded = session.decode(&frame, registry, &cancellation)?;
+        let decoded = session.decode_batch(&frames, registry, &cancellation)?;
+        for (frame, decoded) in frames.into_iter().zip(decoded) {
             if let Some(receipt) = decoded.video {
                 result.video_receipts.push(receipt);
             }
-            let decoded = decoded.image;
-            let length = u32::try_from(decoded.bytes.len())?;
-            let descriptor = BufferResourceDescriptor {
-                element_type: ElementType::U8,
-                element_count: length,
-                byte_length: length,
-            };
-            let pixels = ResourceHash::for_buffer(&descriptor, &decoded.bytes)?;
-            staged.push((
-                PutResource {
-                    hash: pixels.clone(),
-                    kind: ResourceKind::Buffer,
-                    descriptor: ResourceDescriptor::Buffer(descriptor),
-                },
-                decoded.bytes,
-            ));
+            let pixels = decoded.pixels.request().hash.clone();
+            staged.push(decoded.pixels);
             result
                 .pixels
                 .push(PrecompositionMediaPixels { frame, pixels });
             result.receipts.push(decoded.receipt);
         }
-        for (request, bytes) in staged {
-            registry.put(request, bytes)?;
+        for pixels in staged {
+            let hash = pixels.request().hash.clone();
+            let added = registry.descriptor(&hash).is_err();
+            if let Err(error) = registry.put_verified(pixels) {
+                result.release(registry)?;
+                return Err(error.into());
+            }
+            if added {
+                result.installed.push(hash);
+            }
         }
         result.decode_cache = session.statistics();
+        result.video_source_cache = session.video_source_statistics();
+        result.video_decode_window = session.video_window_statistics();
         Ok(result)
+    }
+
+    /// Retire temporary decoded bytes without evicting an identical caller-owned buffer.
+    pub fn release(
+        &mut self,
+        registry: &mut ResourceRegistry,
+    ) -> Result<(), aster_render_ir::IrError> {
+        for hash in self.installed.drain(..) {
+            registry.evict(&hash)?;
+        }
+        Ok(())
     }
 
     fn validate_rasters(

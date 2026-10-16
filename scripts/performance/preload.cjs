@@ -17,6 +17,9 @@ contextBridge.exposeInMainWorld(
     ready: (identity) => ipcRenderer.invoke("aster:performance-ready", identity),
     take: () => ipcRenderer.invoke("aster:performance-take"),
     output: (request) => ipcRenderer.invoke("aster:performance-output", request),
+    nativePrepare: (manifest) => ipcRenderer.invoke("aster:performance-native-prepare", manifest),
+    nativeWarm: (frame, packet) =>
+      ipcRenderer.invoke("aster:performance-native-warm", frame, packet),
     complete: (result) => ipcRenderer.invoke("aster:performance-complete", result),
     fail: (failure) => ipcRenderer.invoke("aster:performance-fail", failure),
     done: () => ipcRenderer.invoke("aster:performance-done"),

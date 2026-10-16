@@ -107,10 +107,16 @@ export function sceneSupplementScope() {
 }
 
 export function validateM7Gates(report, corpus) {
+  return validateNativeSceneGates(report, corpus, "M7");
+}
+
+export function validateNativeSceneGates(report, corpus, milestone) {
+  assert(["M7", "M8"].includes(milestone));
   const result = validateNativeMediaGates(report, corpus, {
-    milestone: "M7",
+    milestone,
     scope: "native-scene-depth-v1",
     additionalCases: nativeSceneCases,
+    requiredGates: milestone === "M8" ? ["G0", "G3", "G4", "G5", "G6"] : ["G0", "G3"],
   });
   const { native } = result;
   const requiredFeatures = [

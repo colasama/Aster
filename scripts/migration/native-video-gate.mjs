@@ -6,6 +6,8 @@ import { M0Evidence } from "./m0-evidence.mjs";
 import { runNativeMediaCacheGate } from "./native-media-cache-gate.mjs";
 import { runStillRejections } from "./native-still-rejections.mjs";
 import { runNativeVideoControls } from "./native-video-controls.mjs";
+import { runNativeVideoSourceCacheGate } from "./native-video-source-cache-gate.mjs";
+import { runNativeVideoWindowGate } from "./native-video-window-gate.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile } from "./source.mjs";
@@ -193,6 +195,16 @@ export async function runNativeVideoGate(
     }
     report.batch = { step, frames: receipts.length, device_reuses: receipts.length - 1 };
     report.decode_cache = await runNativeMediaCacheGate(
+      execution,
+      { inputs, receipts, binary, common, reader },
+      execute,
+    );
+    report.source_cache = await runNativeVideoSourceCacheGate(
+      execution,
+      { inputs, receipts, binary, common, reader },
+      execute,
+    );
+    report.decode_window = await runNativeVideoWindowGate(
       execution,
       { inputs, receipts, binary, common, reader },
       execute,

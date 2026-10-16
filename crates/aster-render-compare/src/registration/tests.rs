@@ -5,6 +5,51 @@ use rustfft::num_complex::Complex;
 struct AnalyticImage;
 
 impl AnalyticImage {
+    fn sparse(dx: f64, dy: f64) -> RgbaImage {
+        let (width, height) = (512, 512);
+        let mut pixels = Vec::with_capacity(width * height * 4);
+        for y in 0..height {
+            for x in 0..width {
+                let mut signal = 0.0;
+                for (cx, cy, amplitude, radius) in [
+                    (173.3, 209.7, 22.0, 1.6),
+                    (329.1, 427.2, -18.0, 2.1),
+                    (413.8, 341.1, 25.0, 1.4),
+                ] {
+                    signal += amplitude
+                        * (-((x as f64 - dx - cx).powi(2) + (y as f64 - dy - cy).powi(2))
+                            / (2.0 * radius * radius))
+                            .exp();
+                }
+                pixels.extend([(67.0 + signal).round() as u8, 221, 179, 255]);
+            }
+        }
+        RgbaImage {
+            width: width as u32,
+            height: height as u32,
+            pixels,
+        }
+    }
+
+    fn near_edge(dx: f64) -> RgbaImage {
+        let (width, height) = (256, 128);
+        let mut pixels = Vec::with_capacity(width * height * 4);
+        for y in 0..height {
+            for x in 0..width {
+                let signal = (-((x as f64 - 4.0 - dx).powi(2) / 8.0
+                    + (y as f64 - 53.7).powi(2) / 98.0))
+                    .exp();
+                let value = (64.0 + 160.0 * signal).round() as u8;
+                pixels.extend([value, value, value, 255]);
+            }
+        }
+        RgbaImage {
+            width: width as u32,
+            height: height as u32,
+            pixels,
+        }
+    }
+
     fn shifted(dx: f64, dy: f64, channel: &str) -> RgbaImage {
         let (width, height) = if channel == "odd" {
             (127, 95)
@@ -95,6 +140,71 @@ impl AnalyticImage {
             pixels,
         }
     }
+}
+
+#[test]
+fn sparse_local_contrast_recovers_real_measurements_on_both_sides_of_the_limit()
+-> Result<(), CompareError> {
+    let reference = AnalyticImage::sparse(0.0, 0.0);
+    for (dx, dy, accepted) in [
+        (0.0, 0.0, true),
+        (0.24, 0.0, true),
+        (0.26, 0.0, false),
+        (-0.26, 0.0, false),
+        (1.0, 0.0, false),
+        (0.18, 0.18, false),
+    ] {
+        let mut candidate = AnalyticImage::sparse(dx, dy);
+        candidate.pixels[(210 * 512 + 173) * 4] += 1;
+        let report =
+            PhaseCorrelation::measure(&reference, &candidate, &RegistrationOptions::default())?;
+        assert_eq!(report.status, RegistrationStatus::Measured, "{report:?}");
+        assert!(report.quality.sparse_support.is_some(), "{report:?}");
+        assert_eq!(
+            report.shift.is_some_and(|shift| shift.distance <= 0.25),
+            accepted,
+            "({dx},{dy}): {report:?}"
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn sparse_recovery_cannot_invent_signal_in_a_uniform_reference() -> Result<(), CompareError> {
+    let mut reference = AnalyticImage::sparse(0.0, 0.0);
+    for pixel in reference.pixels.chunks_exact_mut(4) {
+        pixel.copy_from_slice(&[67, 221, 179, 255]);
+    }
+    let candidate = AnalyticImage::sparse(0.0, 0.0);
+    let report =
+        PhaseCorrelation::measure(&reference, &candidate, &RegistrationOptions::default())?;
+    assert_eq!(report.status, RegistrationStatus::Indeterminate);
+    assert!(report.shift.is_none());
+    assert!(report.quality.sparse_support.is_none());
+    Ok(())
+}
+
+#[test]
+fn near_edge_signal_is_recovered_without_accepting_a_real_subpixel_shift()
+-> Result<(), CompareError> {
+    let reference = AnalyticImage::near_edge(0.0);
+    for dx in [0.0, 0.26, -0.26, 1.0] {
+        let mut candidate = AnalyticImage::near_edge(dx);
+        candidate.pixels[(54 * 256 + 4) * 4] += 1;
+        let report =
+            PhaseCorrelation::measure(&reference, &candidate, &RegistrationOptions::default())?;
+        if dx == 0.0 {
+            assert_eq!(report.status, RegistrationStatus::Measured, "{report:?}");
+            assert!(report.shift.is_some_and(|shift| shift.distance < 0.02));
+        } else {
+            assert!(
+                report.status == RegistrationStatus::Indeterminate
+                    || report.shift.is_some_and(|shift| shift.distance > 0.25),
+                "shift {dx}: {report:?}"
+            );
+        }
+    }
+    Ok(())
 }
 
 #[test]

@@ -1,3 +1,5 @@
+import type { NativeFramePacket } from "../../src/core/rendering/native-export-protocol";
+import type { RenderJobManifest } from "../../src/core/rendering/render-queue";
 import type { GpuDiagnostics } from "../../src/core/types";
 import type { DesktopRenderHostOutputRequest, Mp4PixelFormat } from "../../src/desktop/api";
 import type { ParityAdapterIdentity, ParityCaptureAssignment } from "../parity/capture-protocol";
@@ -15,6 +17,7 @@ export interface PerformanceAssignment extends ParityCaptureAssignment {
     endFrameExclusive: number;
     frameRate: { numerator: number; denominator: number };
     requireAudio?: boolean;
+    renderer?: "rust";
   };
 }
 
@@ -50,9 +53,19 @@ export interface PerformanceApi {
   ready(adapter: ParityAdapterIdentity): Promise<void>;
   take(): Promise<PerformanceAssignment | null>;
   output(request: DesktopRenderHostOutputRequest): Promise<unknown>;
-  complete(result: PerformanceResult | PreviewPerformanceResult): Promise<void>;
+  nativePrepare?(manifest: RenderJobManifest): Promise<void>;
+  nativeWarm?(frame: number, packet: NativeFramePacket): Promise<void>;
+  complete(
+    result: PerformanceResult | PreviewPerformanceResult | NativePerformanceResult,
+  ): Promise<void>;
   fail(failure: { error: string }): Promise<void>;
   done(): Promise<void>;
+}
+
+export interface NativePerformanceResult
+  extends Omit<PerformanceResult, "readbackWallLatenciesMs"> {
+  renderer: "rust";
+  planWallLatenciesMs: number[];
 }
 
 export interface PreviewPerformanceResult {

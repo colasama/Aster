@@ -53,6 +53,45 @@ export class PixelInputs {
       profileOverride === null || profiles.includes(profileOverride),
       "Unknown tolerance profile override",
     );
+    await this.loadReferenceCatalog();
+    const manifest = await this.json(manifestPath);
+    assert.equal(manifest.schema_version, 1, "Unknown candidate manifest schema");
+    assert(
+      Array.isArray(manifest.frames) && manifest.frames.length > 0,
+      "Candidate manifest has no frames",
+    );
+    const seen = new Set();
+    const entries = manifest.frames.map((entry) => {
+      const item = this.#cases.get(entry.case_id);
+      assert(item?.frames.includes(entry.frame), "Candidate contains an unknown case or frame");
+      const key = `${entry.case_id}/${entry.frame}`;
+      assert(!seen.has(key), "Candidate manifest contains a duplicate frame");
+      seen.add(key);
+      assert(/^[a-f0-9]{64}$/.test(entry.png_sha256), "Candidate PNG SHA-256 is required");
+      assert(
+        typeof entry.path === "string" && !isAbsolute(entry.path),
+        "Candidate paths must be manifest-relative",
+      );
+      const path = containedPath(dirname(resolve(manifestPath)), entry.path);
+      const profile = profileOverride ?? item.tolerance;
+      assert(
+        scope !== "full" || profile === "exact" || profile === item.tolerance,
+        "A full gate cannot override a case with a different non-exact profile",
+      );
+      return { ...entry, path, item, profile };
+    });
+    if (scope === "full")
+      assert.equal(
+        seen.size,
+        this.requiredCount,
+        "Full candidate manifest is missing required frames",
+      );
+    this.repairs = new ReferenceRepairs(this, manifest);
+    return entries;
+  }
+
+  /** Load authenticated frozen references without requiring a pixel candidate manifest. */
+  async loadReferenceCatalog() {
     this.corpus = await this.json(join(this.context.root, "tests", "parity", "corpus.json"));
     this.ledger = await this.json(
       join(this.context.root, "docs", "migration", "rust-renderer-progress.json"),
@@ -91,37 +130,7 @@ export class PixelInputs {
       required += item.frames.length;
     }
     this.requiredCount = required;
-    const manifest = await this.json(manifestPath);
-    assert.equal(manifest.schema_version, 1, "Unknown candidate manifest schema");
-    assert(
-      Array.isArray(manifest.frames) && manifest.frames.length > 0,
-      "Candidate manifest has no frames",
-    );
-    const seen = new Set();
-    const entries = manifest.frames.map((entry) => {
-      const item = this.#cases.get(entry.case_id);
-      assert(item?.frames.includes(entry.frame), "Candidate contains an unknown case or frame");
-      const key = `${entry.case_id}/${entry.frame}`;
-      assert(!seen.has(key), "Candidate manifest contains a duplicate frame");
-      seen.add(key);
-      assert(/^[a-f0-9]{64}$/.test(entry.png_sha256), "Candidate PNG SHA-256 is required");
-      assert(
-        typeof entry.path === "string" && !isAbsolute(entry.path),
-        "Candidate paths must be manifest-relative",
-      );
-      const path = containedPath(dirname(resolve(manifestPath)), entry.path);
-      const profile = profileOverride ?? item.tolerance;
-      assert(
-        scope !== "full" || profile === "exact" || profile === item.tolerance,
-        "A full gate cannot override a case with a different non-exact profile",
-      );
-      return { ...entry, path, item, profile };
-    });
-    if (scope === "full")
-      assert.equal(seen.size, required, "Full candidate manifest is missing required frames");
-    this.repairs = new ReferenceRepairs(this, manifest);
-    this.requiredCount = required;
-    return entries;
+    this.repairs = new ReferenceRepairs(this, { kind: "native-export" });
   }
 
   async projectComposition(item, reference) {

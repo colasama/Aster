@@ -1,11 +1,58 @@
 use crate::{
     BufferResourceDescriptor, ElementType, IrError, PutOutcome, PutResource, ResourceHash,
-    ResourceKind, ResourceLimits, ResourceMessage, ResourceRegistry,
+    ResourceKind, ResourceLimits, ResourceMessage, ResourceRegistry, VerifiedResource,
 };
 
 use super::Fixture;
 
 struct ResourceFixture;
+
+#[test]
+fn verified_content_shares_storage_but_keeps_registry_limits_and_untrusted_checks()
+-> Result<(), IrError> {
+    let bytes = vec![1, 2, 3, 4];
+    let pointer = bytes.as_ptr();
+    let request = ResourceFixture::request(&bytes)?;
+    let proof = VerifiedResource::new(request.kind, request.descriptor.clone(), bytes)?;
+    assert_eq!(proof.request(), &request);
+    assert_eq!(proof.bytes().as_ptr(), pointer);
+    let mut registry = ResourceRegistry::new(ResourceLimits {
+        budget_bytes: 4,
+        ..Default::default()
+    })?;
+    registry.put_verified(proof.clone())?;
+    assert_eq!(registry.resolve(&request.hash)?.as_ptr(), pointer);
+    assert_eq!(
+        registry.put_verified(proof.clone())?,
+        PutOutcome::AlreadyPresent
+    );
+    let lease = registry.pin(std::slice::from_ref(&request.hash))?;
+    assert!(matches!(
+        registry.evict(&request.hash),
+        Err(IrError::ResourceInUse(_))
+    ));
+    registry.release(&lease)?;
+    registry.evict(&request.hash)?;
+    assert_eq!(registry.statistics().used_bytes, 0);
+    assert_eq!(proof.bytes(), &[1, 2, 3, 4]);
+    registry.put_verified(proof.clone())?;
+    assert_eq!(registry.resolve(&request.hash)?.as_ptr(), pointer);
+    let mut tiny = ResourceRegistry::new(ResourceLimits {
+        budget_bytes: 3,
+        ..Default::default()
+    })?;
+    assert!(matches!(
+        tiny.put_verified(proof),
+        Err(IrError::ResourceBudgetExceeded { .. })
+    ));
+    assert_eq!(tiny.statistics().used_bytes, 0);
+    assert!(matches!(
+        registry.put(request, vec![1, 2, 3, 5]),
+        Err(IrError::HashMismatch)
+    ));
+    assert_eq!(registry.statistics().used_bytes, 4);
+    Ok(())
+}
 
 impl ResourceFixture {
     fn request(bytes: &[u8]) -> Result<PutResource, IrError> {

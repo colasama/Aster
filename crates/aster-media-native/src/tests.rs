@@ -148,10 +148,66 @@ fn changed_file_identity_and_duplicate_grants_are_rejected() -> Result<(), Media
 }
 
 #[test]
+fn sha_and_legacy_identities_require_fresh_granted_bytes() -> Result<(), MediaError> {
+    use crate::authorization::MediaGrants;
+    use sha2::{Digest, Sha256};
+
+    let fixture = Fixture::new(MediaSample::Image)?;
+    let bytes = b"identity-fixture";
+    std::fs::write(&fixture.grant.path, bytes)?;
+    let mut grant = fixture.grant.clone();
+    grant.sha256 = format!("{:x}", Sha256::digest(bytes));
+    let identity = format!("sha256:{}", grant.sha256);
+    let grants = MediaGrants::new(vec![grant.clone()])?;
+    let token = CancellationToken::default();
+    let read =
+        |identity: &str| grants.read(&grant.source, &grant.scope, None, identity, 1024, &token);
+    let modern = read(&identity);
+    let legacy = read("fnv64:5ec517ef189ba6b3:16");
+    let invalid = read("sha256:0000000000000000000000000000000000000000000000000000000000000000");
+    let ungranted = MediaGrants::new(vec![fixture.grant.clone()])?.read(
+        &grant.source,
+        &grant.scope,
+        None,
+        &identity,
+        1024,
+        &token,
+    );
+    std::fs::write(&fixture.grant.path, b"modified-fixture")?;
+    let changed_modern = read(&identity);
+    let changed_legacy = read("fnv64:5ec517ef189ba6b3:16");
+    std::fs::remove_file(&fixture.grant.path)?;
+    assert_eq!(modern?.bytes, bytes);
+    assert_eq!(legacy?.bytes, bytes);
+    for rejected in [invalid, ungranted, changed_modern, changed_legacy] {
+        assert!(matches!(rejected, Err(MediaError::Identity)));
+    }
+    Ok(())
+}
+
+#[test]
 fn canvas_precision_clears_hidden_rgb_and_preserves_opaque_samples() {
     let mut pixels = [255, 0, 128, 0, 12, 34, 56, 255, 120, 12, 250, 3];
     NativeStillDecoder::canvas_alpha_precision(&mut pixels);
     assert_eq!(pixels, [0, 0, 0, 0, 12, 34, 56, 255, 85, 0, 255, 3]);
+}
+
+#[test]
+fn canvas_precision_matches_integer_roundtrip_for_every_channel_and_alpha() {
+    let mut pixels = Vec::new();
+    let mut expected = Vec::new();
+    for alpha in 0_u32..=255 {
+        for channel in 0_u32..=255 {
+            pixels.extend_from_slice(&[channel as u8, channel as u8, channel as u8, alpha as u8]);
+            let associated = (channel * alpha + 127) / 255;
+            let restored = (associated * 255 + alpha / 2)
+                .checked_div(alpha)
+                .map_or(0, |value| value as u8);
+            expected.extend_from_slice(&[restored, restored, restored, alpha as u8]);
+        }
+    }
+    NativeStillDecoder::canvas_alpha_precision(&mut pixels);
+    assert_eq!(pixels, expected);
 }
 
 #[test]

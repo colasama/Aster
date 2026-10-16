@@ -15,6 +15,7 @@ pub(crate) struct ScenePipelines {
     shadow_pipeline: crate::shadow::ShadowPipeline,
     shadow_sampler: wgpu::Sampler,
     layers: crate::layers::LayerPipelines,
+    pub(crate) layer_targets: crate::layer_targets::LayerTargetPool,
     materials: Option<crate::material::MaterialPipelines>,
     pub(crate) generators: Option<crate::generators::GeneratorPipelines>,
 }
@@ -111,6 +112,7 @@ impl ScenePipelines {
             generators: None,
             materials: None,
             layers,
+            layer_targets: Default::default(),
             layout,
             pipelines,
             image_pipelines,
@@ -149,11 +151,12 @@ impl ScenePipelines {
             &crate::surface_plan::SurfacePlan,
             &mut crate::layer_cache::LayerCache,
             &mut crate::effect_region::EffectRegions,
+            Option<&crate::gpu_profile::GpuProfiler>,
         ),
         output: &crate::output::OutputPipelines,
     ) -> Result<BTreeMap<Vec<u16>, crate::AuxiliaryGeneratorDraw>, RenderError> {
         let (scene, depth) = target;
-        let (images, surfaces, surface_plan, cache, effects) = resources;
+        let (images, surfaces, surface_plan, cache, effects, profile) = resources;
         let regions = effects.collect(frame)?;
         let generator_bindings = match &self.generators {
             Some(pipelines) => pipelines.compute(device, encoder, &frame.generators)?,
@@ -205,13 +208,7 @@ impl ScenePipelines {
             ],
         });
         let scene_view = scene.create_view(&Default::default());
-        let layer_targets = (!frame.layers.is_empty()).then(|| {
-            crate::layers::LayerTargets::new(
-                device,
-                frame.header.render_target,
-                frame.pyramid_levels(),
-            )
-        });
+        let layer_targets = self.layer_targets.get(frame)?;
         let layer_views = layer_targets.as_ref().map(|targets| {
             (
                 targets.input.create_view(&Default::default()),
@@ -220,6 +217,9 @@ impl ScenePipelines {
         });
         let mut index = 0;
         while index < frame.root.commands.len() {
+            let timing_slot = profile.and_then(|profile| {
+                profile.begin_scene_pass(encoder, index, &frame.root.commands[index])
+            });
             let cache_key = layer_keys.get(&index);
             let region = regions.get(&index).copied();
             if let Some(key) = cache_key
@@ -238,6 +238,9 @@ impl ScenePipelines {
                 self.layers
                     .composite(device, encoder, plan, targets, scene)?;
                 index = key.end + 1;
+                if let Some(profile) = profile {
+                    profile.end_scene_pass(encoder, timing_slot);
+                }
                 continue;
             }
             if let RootCommandRecord::Adjustment { effect_blob_index } = &frame.root.commands[index]
@@ -252,6 +255,9 @@ impl ScenePipelines {
                 self.layers
                     .finish(device, encoder, plan, (targets, None), output, scene)?;
                 index += 1;
+                if let Some(profile) = profile {
+                    profile.end_scene_pass(encoder, timing_slot);
+                }
                 continue;
             }
             let (
@@ -446,6 +452,9 @@ impl ScenePipelines {
                 if let Some(key) = cache_key {
                     cache.store(&key.hash, encoder, targets.output.raw());
                 }
+            }
+            if let Some(profile) = profile {
+                profile.end_scene_pass(encoder, timing_slot);
             }
         }
         match &self.generators {

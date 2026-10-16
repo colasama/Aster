@@ -3,9 +3,51 @@ import { decodeFramePlan, encodeFramePlan } from "./codec";
 import { frameBundleFixtures } from "./frame-bundle-fixture";
 import { withFrameBundleMedia } from "./frame-bundle-media";
 import { readFrameBundle, readFrameBundleAsync } from "./frame-bundle-read";
+import { PrecompositionBundleResources } from "./precomposition-bundle-resources";
 import { contentResourceHashSync } from "./resources";
 
 describe("owned root frame bundles", () => {
+  it("registers validated producer dependencies without weakening the resource boundary", () => {
+    const fixture = frameBundleFixtures()[0].frameBundle;
+    const resources = new PrecompositionBundleResources();
+    for (const packet of fixture.resources) resources.add(packet);
+    const plan = structuredClone(fixture.plan);
+    const expected = encodeFramePlan(plan.metadata, plan.blobs);
+    const hash = resources.addRequiredPlan(plan, "frame_bundle_slice_v1");
+    expect([...resources.used].sort()).toEqual([...plan.metadata.resources, hash].sort());
+    plan.metadata.header.project_revision++;
+    for (const blob of plan.blobs) blob.fill(0);
+    expect(resources.resolve(hash).bytes).toEqual(expected);
+    expect(() => resources.plan(hash, "frame_bundle_slice_v1")).not.toThrow();
+    expect(() => resources.addRequiredPlan(fixture.plan, "post_uniforms_slice_v1")).toThrow(
+      /contract differs/,
+    );
+    expect(() =>
+      resources.addRequiredPlan({ ...fixture.plan, blobs: [] }, "frame_bundle_slice_v1"),
+    ).toThrow(/Missing blob bytes/);
+    expect(() =>
+      new PrecompositionBundleResources().addRequiredPlan(fixture.plan, "frame_bundle_slice_v1"),
+    ).toThrow(/dependency is absent/);
+  });
+
+  it("owns directly encoded plan resources and still authenticates external packets", () => {
+    const plan = structuredClone(readFrameBundle(frameBundleFixtures()[1].frameBundle).plans.post);
+    const expected = encodeFramePlan(plan.metadata, plan.blobs);
+    const resources = new PrecompositionBundleResources();
+    const hash = resources.addPlan(plan);
+    for (const blob of plan.blobs) blob.fill(0);
+    plan.metadata.header.project_revision++;
+    const packet = resources.resolve(hash);
+    expect(packet.bytes).toEqual(expected);
+    expect(contentResourceHashSync(packet.message, packet.bytes)).toBe(hash);
+    const corrupted = structuredClone(packet);
+    corrupted.bytes[0] ^= 1;
+    expect(() => resources.add(corrupted)).toThrow(/hash mismatch/);
+    const unknown = structuredClone(packet);
+    Object.assign(unknown.message, { untrusted: true });
+    expect(() => resources.add(unknown)).toThrow(/exactly these fields/);
+  });
+
   it("requires the complete marker on executable root bundles", () => {
     const packet = structuredClone(frameBundleFixtures()[1].frameBundle);
     expect(packet.plan.metadata.renderer_plan_complete).toBe(true);

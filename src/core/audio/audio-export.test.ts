@@ -51,6 +51,33 @@ describe("audio export", () => {
     expect(result.size).toBe(1);
   });
 
+  it("bounds codec work to one source and leaves no later decode running after failure", async () => {
+    const { project, composition, source } = audioProject();
+    project.sources = ["first", "broken", "later"].map((id) => ({ ...source, id }));
+    composition.layers = project.sources.map((item) => ({
+      ...composition.layers[0],
+      id: `layer-${item.id}`,
+      sourceId: item.id,
+    }));
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const started: string[] = [];
+    const result = decodeAudibleSources(project, composition, async (item) => {
+      started.push(item.id);
+      if (item.id === "broken") throw new Error("invalid audio");
+      await pending;
+      return { sampleRate: 8_000, channels: [new Float32Array(4_000)] };
+    });
+    const failure = expect(result).rejects.toThrow("invalid audio");
+    await Promise.resolve();
+    expect(started).toEqual(["first"]);
+    release();
+    await failure;
+    expect(started).toEqual(["first", "broken"]);
+  });
+
   it("treats video without a decodable audio stream as silence instead of failing export", async () => {
     const { project, composition } = audioProject();
     const video = {

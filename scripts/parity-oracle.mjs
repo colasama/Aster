@@ -5,6 +5,7 @@ import { join, relative, resolve } from "node:path";
 import { runStep } from "./migration/process.mjs";
 import { writeAtomicJson } from "./migration/report.mjs";
 import { hashFile, sourceProvenance } from "./migration/source.mjs";
+import { nativeReleaseBuild } from "./native-build.mjs";
 import { runPixelGate } from "./parity/pixel-gate.mjs";
 import { decodeRgbaPng, encodeRgbaPng } from "./parity/png.mjs";
 
@@ -16,10 +17,7 @@ await mkdir(output, { recursive: true });
 const context = { root, output, env: process.env, print: console.log };
 const report = { schema_version: 1, id, status: "failed", started_at: new Date().toISOString() };
 try {
-  const build = await runStep(
-    { id: "compare-build", file: "cargo", args: ["build", "--release", "-p", "aster-render-cli"] },
-    context,
-  );
+  const build = await runStep(nativeReleaseBuild("compare-build"), context);
   assert.equal(build.status, "passed", "Comparison CLI build failed");
   report.source = await sourceProvenance(root);
   const reference = join(root, "artifacts/parity/reference/shape-ellipse/0/frame.png");

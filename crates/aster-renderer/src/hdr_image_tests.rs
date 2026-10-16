@@ -127,6 +127,8 @@ fn native_image_cache_preserves_exr_hdr_through_shared_shader()
     let mut renderer = NativeRenderer::new(NativeOptions {
         effect_regions: true,
         layer_cache_bytes: 67_108_864,
+        effect_pipeline_entries: 16,
+        gpu_timestamps: false,
         dxcompiler: None,
         backend: if cfg!(target_os = "windows") {
             aster_render::NativeBackend::Dx12

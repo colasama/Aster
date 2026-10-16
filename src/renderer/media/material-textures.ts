@@ -12,6 +12,7 @@ import { prepareEncodedTexture, uploadEncodedTexture } from "./encoded-texture-u
 import { prepareHdrTexture } from "./hdr-texture-resource";
 import { MaterialGpuBindings, type MaterialTextureBinding } from "./material-gpu-bindings";
 import { type MaterialBindingPlan, planMaterialTextures } from "./material-texture-plan";
+import { abortError, remainingTimeout, waitWithTimeout } from "./media-loading";
 import { uploadTexturePixels } from "./texture-pixel-upload";
 
 export { type MaterialTexturePlan, planMaterialTextures } from "./material-texture-plan";
@@ -25,6 +26,7 @@ interface NormalResource {
   state: "loading" | "ready" | "failed";
   abort: AbortController;
   diagnosticReported?: boolean;
+  pending?: Promise<void>;
 }
 
 interface EnvironmentResource {
@@ -36,6 +38,7 @@ interface EnvironmentResource {
   state: "loading" | "ready" | "failed";
   abort: AbortController;
   diagnosticReported?: boolean;
+  pending?: Promise<void>;
 }
 
 export {
@@ -53,6 +56,7 @@ export class MaterialTextureRenderer {
   readonly #normals = new Map<string, NormalResource>();
   readonly #failures = new Map<string, string>();
   #environment?: EnvironmentResource;
+  readonly #lifetime = new AbortController();
 
   constructor(
     device: GPUDevice,
@@ -68,6 +72,7 @@ export class MaterialTextureRenderer {
   }
 
   destroy(): void {
+    this.#lifetime.abort(new Error("Material textures were destroyed during frame capture"));
     for (const resource of this.#normals.values()) {
       this.#retire(resource);
     }
@@ -83,6 +88,38 @@ export class MaterialTextureRenderer {
     if (this.#environment?.state === "loading") return true;
     for (const resource of this.#normals.values()) if (resource.state === "loading") return true;
     return false;
+  }
+
+  /** Exact captures wait for active material generations; preview can still use fallbacks. */
+  async waitForFrameResources(timeoutMs = 10_000): Promise<void> {
+    const started = performance.now();
+    while (true) {
+      if (this.#lifetime.signal.aborted) throw abortError(this.#lifetime.signal.reason);
+      const pending = [...this.#normals.values(), this.#environment].filter(
+        (resource) => resource?.state === "loading",
+      );
+      if (pending.length === 0) {
+        const failure = this.#failures.values().next().value;
+        if (failure) throw new Error(failure);
+        return;
+      }
+      await Promise.all(
+        pending.map(async (resource) => {
+          if (!resource) return;
+          try {
+            await waitWithTimeout(
+              resource.pending ?? Promise.resolve(),
+              remainingTimeout(started, timeoutMs),
+              resource.abort.signal,
+              "Timed out waiting for exact material textures",
+            );
+          } catch (error) {
+            // Retired generations no longer belong to the requested frame.
+            if (!resource.abort.signal.aborted) throw error;
+          }
+        }),
+      );
+    }
   }
 
   get estimatedBytes(): number {
@@ -183,7 +220,7 @@ export class MaterialTextureRenderer {
     this.#normals.set(instanceId, resource);
     this.#clearFailure(`normal:${instanceId}`);
     this.#gpu.invalidate(instanceId);
-    void fetch(source, { signal: abort.signal })
+    resource.pending = fetch(source, { signal: abort.signal })
       .then((response) => {
         if (!response.ok) throw new Error(`Normal map request failed with HTTP ${response.status}`);
         return response.blob();
@@ -251,7 +288,7 @@ export class MaterialTextureRenderer {
       );
       return;
     }
-    void fetch(source, { signal: abort.signal })
+    resource.pending = fetch(source, { signal: abort.signal })
       .then((response) => {
         if (!response.ok)
           throw new Error(`HDR environment request failed with HTTP ${response.status}`);

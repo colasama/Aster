@@ -91,6 +91,7 @@ export function RenderHost() {
           : undefined;
         audioAbort = audioRuntime?.abort;
         const activeAudioRuntime = audioRuntime;
+        const activeRenderer = renderer;
         const renderFrame = (_frame: number, time: number, destination?: ArrayBuffer) =>
           pipeline.readback(
             createBeautyFrameRequest({
@@ -123,6 +124,21 @@ export function RenderHost() {
           requestedControl: () => requestedControl,
           waitForControlChange: () => controlSignal.promise,
           renderFrame,
+          planFrame: async (_frame, time, retained) => {
+            activeRenderer.configureBeautyTarget(
+              validated.manifest.width,
+              validated.manifest.height,
+              validated.manifest.antiAliasing ?? "off",
+            );
+            return activeRenderer.planExportPacket(
+              retained ?? new Set(),
+              validated.composition,
+              time,
+              validated.snapshot,
+              validated.project,
+              validated.synchronizeVideo,
+            );
+          },
           renderFrameInto: renderFrame,
           encodePng: async (frame) =>
             (
@@ -141,6 +157,10 @@ export function RenderHost() {
     })().catch(async (error: unknown) => {
       logger.error("render_host", "session_failed", error, correlation);
       if (!correlation) return;
+      if (requestedControl === "cancel") {
+        await host.report({ type: "cancelled", ...correlation }).catch(() => window.close());
+        return;
+      }
       const failure = renderHostFailure(error);
       try {
         await host.report({

@@ -19,6 +19,33 @@ function resource(): MediaResource {
 }
 
 describe("frame-owned media bindings", () => {
+  it("returns independent descriptor trees without changing long source identities or clocks", () => {
+    const owner = resource();
+    if (!owner.mediaIdentity) throw Error("Expected identity");
+    owner.mediaIdentity.source.source_id = { utf16_units: [0xd800] };
+    owner.mediaIdentity.source.content_identity = "large immutable identity".repeat(10000);
+    const lease = new MediaBindingLease([
+      { instanceId: "video", resource: owner, binding: owner.bindGroup, requestedTime: 1 },
+    ]);
+    const expected = lease.resourceMessages;
+    const changed = lease.resourceMessages;
+    const source = changed.find((m) => m.kind === "media_source");
+    const frame = changed.find((m) => m.kind === "media_frame");
+    if (
+      !source ||
+      !frame ||
+      typeof source.descriptor.source_id === "string" ||
+      frame.descriptor.sample.kind !== "video"
+    )
+      throw Error("Expected video descriptors");
+    source.descriptor.source_id.utf16_units[0] = 65;
+    source.descriptor.content_identity = "changed";
+    frame.descriptor.sample.requested_time = { kind: "rational", value: 2, scale: 1 };
+    expect(lease.resourceMessages).toEqual(expected);
+    expect(lease.bindingFor("video")).toBe(owner.bindGroup);
+    lease.release();
+  });
+
   it("defers retirement until all submitted owners release and destroys exactly once", () => {
     const owner = resource();
     const first = new MediaBindingLease([

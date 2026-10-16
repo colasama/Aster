@@ -1,5 +1,6 @@
 import { sha256 } from "@noble/hashes/sha2.js";
 import type { FootageSource } from "../../core/types";
+import { copyWireValue, sameCanonicalValue } from "../frame-plan/canonical";
 import { compositionIdentityFromString } from "../frame-plan/composition-identity";
 import type {
   MediaFrameDescriptor,
@@ -9,13 +10,16 @@ import type {
 import { type RasterBounds, type RasterSample, rasterSample } from "../frame-plan/raster-sample";
 import { contentResourceHashSync } from "../frame-plan/resources";
 import { frameTimeFromNumber } from "../frame-plan/time";
-import { FramePlanError, type PutResource } from "../frame-plan/types";
+import { FramePlanError, type PutResource, type ResourceContent } from "../frame-plan/types";
 import type { MediaResource } from "./media-resource";
 
 export interface PreparedMediaIdentity {
   source: Omit<MediaSourceDescriptor, "authorization_scope">;
   sample: Exclude<MediaSample, { kind: "video" }>;
 }
+
+// One source/frame pair per live owner; returned messages never expose this verified snapshot.
+const identities = new WeakMap<MediaResource, [PutResource, PutResource]>();
 
 export function preparedMediaIdentity(
   footage: FootageSource,
@@ -63,7 +67,7 @@ export function mediaFrameMessages(
   scope: string,
   requestedTime?: number,
 ): [PutResource, PutResource] {
-  const identity = resource.mediaIdentity && structuredClone(resource.mediaIdentity);
+  const identity = resource.mediaIdentity;
   if (!identity || !resource.textureWidth || !resource.textureHeight)
     throw new FramePlanError(
       "missing_resource",
@@ -72,7 +76,19 @@ export function mediaFrameMessages(
   let source: MediaSourceDescriptor = { ...identity.source, authorization_scope: scope };
   let sample: MediaSample = identity.sample;
   if (resource.kind === "video") {
-    if (resource.lastUploadedTime === undefined) {
+    if (resource.nativeVideoPlan) {
+      if (
+        requestedTime === undefined ||
+        !Number.isFinite(requestedTime) ||
+        resource.lastUploadedTime === undefined
+      )
+        throw new FramePlanError("missing_resource", "Native video target time is missing");
+      sample = {
+        kind: "video",
+        requested_time: frameTimeFromNumber(requestedTime),
+        uploaded_time: frameTimeFromNumber(resource.lastUploadedTime),
+      };
+    } else if (resource.lastUploadedTime === undefined) {
       // WebGPU initializes a newly allocated texture to transparent black before the first upload.
       source = {
         source_id: "aster:builtin-transparent",
@@ -92,11 +108,11 @@ export function mediaFrameMessages(
     }
   }
   const sourceContent = { kind: "media_source" as const, descriptor: source };
-  const sourceMessage: PutResource = {
-    type: "put_resource",
-    ...sourceContent,
-    hash: contentResourceHashSync(sourceContent),
-  };
+  const previous = identities.get(resource);
+  const sourceMessage: PutResource =
+    previous?.[0].kind === "media_source" && sameCanonicalValue(source, previous[0].descriptor)
+      ? previous[0]
+      : ownedMediaMessage(sourceContent);
   const descriptor: MediaFrameDescriptor = {
     source: sourceMessage.hash,
     sample,
@@ -105,8 +121,18 @@ export function mediaFrameMessages(
     format: "rgba8unorm-srgb",
   };
   const frameContent = { kind: "media_frame" as const, descriptor };
-  return [
+  const messages: [PutResource, PutResource] = [
     sourceMessage,
-    { type: "put_resource", ...frameContent, hash: contentResourceHashSync(frameContent) },
+    previous?.[1].kind === "media_frame" && sameCanonicalValue(descriptor, previous[1].descriptor)
+      ? previous[1]
+      : ownedMediaMessage(frameContent),
   ];
+  identities.set(resource, messages);
+  return copyWireValue(messages);
+}
+
+/** Snapshot only cache misses; nested source identities and sample arrays remain privately owned. */
+function ownedMediaMessage(content: ResourceContent): PutResource {
+  const owned = structuredClone(content);
+  return { type: "put_resource", ...owned, hash: contentResourceHashSync(owned) };
 }

@@ -6,11 +6,15 @@ use wgpu::util::DeviceExt;
 
 use crate::{RenderError, SuppliedFrame};
 
+#[path = "effect_variants.rs"]
+mod effect_variants;
+
 pub(crate) struct OutputPipelines {
     pub(crate) luts: crate::lut_cache::LutCache,
     post: wgpu::RenderPipeline,
     linear_post: wgpu::RenderPipeline,
     effects: Option<wgpu::RenderPipeline>,
+    variants: BTreeMap<Vec<u32>, wgpu::RenderPipeline>,
     post_layout: wgpu::BindGroupLayout,
     aa: BTreeMap<u8, wgpu::RenderPipeline>,
     sampler: wgpu::Sampler,
@@ -164,6 +168,7 @@ impl OutputPipelines {
             post,
             linear_post,
             effects: None,
+            variants: BTreeMap::new(),
             post_layout,
             aa,
             sampler,
@@ -220,36 +225,47 @@ impl OutputPipelines {
                 wgpu::ShaderSource::Wgsl(source.into())
             },
         });
-        Ok(
-            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some(entry),
-                layout,
-                vertex: wgpu::VertexState {
-                    module: &module,
-                    entry_point: Some("vertex_main"),
-                    compilation_options: Default::default(),
-                    buffers: &[],
+        Ok(Self::shader_pipeline(
+            device, &module, layout, entry, constants, format,
+        ))
+    }
+
+    fn shader_pipeline(
+        device: &wgpu::Device,
+        module: &wgpu::ShaderModule,
+        layout: Option<&wgpu::PipelineLayout>,
+        entry: &str,
+        constants: &[(&str, f64)],
+        format: wgpu::TextureFormat,
+    ) -> wgpu::RenderPipeline {
+        device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some(entry),
+            layout,
+            vertex: wgpu::VertexState {
+                module,
+                entry_point: Some("vertex_main"),
+                compilation_options: Default::default(),
+                buffers: &[],
+            },
+            fragment: Some(wgpu::FragmentState {
+                module,
+                entry_point: Some(entry),
+                compilation_options: wgpu::PipelineCompilationOptions {
+                    constants,
+                    ..Default::default()
                 },
-                fragment: Some(wgpu::FragmentState {
-                    module: &module,
-                    entry_point: Some(entry),
-                    compilation_options: wgpu::PipelineCompilationOptions {
-                        constants,
-                        ..Default::default()
-                    },
-                    targets: &[Some(wgpu::ColorTargetState {
-                        format,
-                        blend: None,
-                        write_mask: wgpu::ColorWrites::ALL,
-                    })],
-                }),
-                primitive: Default::default(),
-                depth_stencil: None,
-                multisample: Default::default(),
-                multiview_mask: None,
-                cache: None,
+                targets: &[Some(wgpu::ColorTargetState {
+                    format,
+                    blend: None,
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
             }),
-        )
+            primitive: Default::default(),
+            depth_stencil: None,
+            multisample: Default::default(),
+            multiview_mask: None,
+            cache: None,
+        })
     }
 
     fn post_bindings(
@@ -327,8 +343,9 @@ impl OutputPipelines {
         let pipeline = if plan.operations.is_empty() {
             &self.linear_post
         } else {
-            self.effects
-                .as_ref()
+            effect_variants::EffectProgram::codes(&plan.operations)
+                .and_then(|codes| self.variants.get(&codes))
+                .or(self.effects.as_ref())
                 .ok_or_else(|| RenderError::Invalid("effect pipeline absent".into()))?
         };
         let identity = self.lut.create_view(&Default::default());

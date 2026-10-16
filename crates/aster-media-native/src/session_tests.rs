@@ -27,6 +27,23 @@ impl Drop for Fixture {
 }
 
 impl Fixture {
+    fn install(&self, registry: &mut ResourceRegistry) -> Result<(), Box<dyn std::error::Error>> {
+        for (hash, kind) in [
+            (&self.grant.source, ResourceKind::MediaSource),
+            (&self.frame, ResourceKind::MediaFrame),
+        ] {
+            registry.put(
+                PutResource {
+                    hash: hash.clone(),
+                    kind,
+                    descriptor: self.registry.descriptor(hash)?.clone(),
+                },
+                self.registry.resolve(hash)?.to_vec(),
+            )?;
+        }
+        Ok(())
+    }
+
     fn new(value: f32, sha_identity: bool) -> Result<Self, Box<dyn std::error::Error>> {
         let mut encoded = Cursor::new(Vec::new());
         Image::from_channels(
@@ -132,7 +149,11 @@ fn retained_verified_bytes_survive_source_removal_but_not_eviction_or_job_bounda
         let original = session.decode(&a.frame, &a.registry, &token)?;
         std::fs::remove_file(&a.grant.path)?;
         let cached = session.decode(&a.frame, &a.registry, &token)?;
-        assert_eq!(original.image.bytes, cached.image.bytes);
+        assert_eq!(original.pixels.bytes(), cached.pixels.bytes());
+        assert_eq!(
+            original.pixels.bytes().as_ptr(),
+            cached.pixels.bytes().as_ptr()
+        );
         let cancelled = CancellationToken::default();
         cancelled.cancel();
         assert!(matches!(
@@ -146,7 +167,7 @@ fn retained_verified_bytes_survive_source_removal_but_not_eviction_or_job_bounda
             Err(MediaError::Authorization(_))
         ));
         let different = session.decode(&b.frame, &b.registry, &token)?;
-        assert_ne!(different.image.bytes, original.image.bytes);
+        assert_ne!(different.pixels.bytes(), original.pixels.bytes());
         assert!(matches!(
             session.decode(&a.frame, &a.registry, &token),
             Err(MediaError::Io(_))
@@ -174,7 +195,7 @@ fn disabled_or_undersized_cache_never_retains_decoded_pixels()
         let token = CancellationToken::default();
         let first = session.decode(&a.frame, &a.registry, &token)?;
         let second = session.decode(&a.frame, &a.registry, &token)?;
-        assert_eq!(first.image.bytes, second.image.bytes);
+        assert_eq!(first.pixels.bytes(), second.pixels.bytes());
         let stats = session.statistics();
         assert_eq!(
             (
@@ -194,8 +215,71 @@ fn production_sha256_identity_decodes_verified_source() -> Result<(), Box<dyn st
     let a = Fixture::new(0.5, true)?;
     let mut session = Fixture::session(vec![a.grant.clone()], 32, 2)?;
     let decoded = session.decode(&a.frame, &a.registry, &CancellationToken::default())?;
-    assert_eq!(decoded.image.receipt.source_sha256, a.grant.sha256);
-    assert_eq!(decoded.image.bytes.len(), 16);
+    assert_eq!(decoded.receipt.source_sha256, a.grant.sha256);
+    assert_eq!(decoded.pixels.bytes().len(), 16);
     assert_eq!(session.statistics().decodes, 1);
+    Ok(())
+}
+
+#[test]
+fn oversized_batch_keeps_requested_hits_without_leaking_protection()
+-> Result<(), Box<dyn std::error::Error>> {
+    for (bytes, entries) in [(32, 256), (1024, 2)] {
+        let a = Fixture::new(0.25, true)?;
+        let b = Fixture::new(0.5, true)?;
+        let c = Fixture::new(0.75, true)?;
+        let d = Fixture::new(1.0, true)?;
+        let mut registry = ResourceRegistry::new(ResourceLimits::default())?;
+        for fixture in [&a, &b, &c, &d] {
+            fixture.install(&mut registry)?;
+        }
+        let mut session = Fixture::session(
+            vec![
+                a.grant.clone(),
+                b.grant.clone(),
+                c.grant.clone(),
+                d.grant.clone(),
+            ],
+            bytes,
+            entries,
+        )?;
+        let token = CancellationToken::default();
+        let original =
+            session.decode_batch(&[a.frame.clone(), b.frame.clone()], &registry, &token)?;
+        std::fs::remove_file(&a.grant.path)?;
+        std::fs::remove_file(&b.grant.path)?;
+        let hashes = [c.frame.clone(), a.frame.clone(), b.frame.clone()];
+        for _ in 0..2 {
+            let batch = session.decode_batch(&hashes, &registry, &token)?;
+            assert_eq!(batch.len(), 3);
+            for i in 0..2 {
+                assert_eq!(batch[i + 1].pixels.bytes(), original[i].pixels.bytes());
+                assert_eq!(
+                    batch[i + 1].pixels.bytes().as_ptr(),
+                    original[i].pixels.bytes().as_ptr()
+                );
+            }
+        }
+        let stats = session.statistics();
+        assert_eq!((stats.decodes, stats.hits, stats.evictions), (4, 4, 0));
+        assert_eq!((stats.resident_bytes, stats.entries), (32, 2));
+        let cancelled = CancellationToken::default();
+        cancelled.cancel();
+        assert!(matches!(
+            session.decode_batch(&hashes, &registry, &cancelled),
+            Err(MediaError::Decode(FfmpegError::Cancelled))
+        ));
+        std::fs::remove_file(&c.grant.path)?;
+        assert!(matches!(
+            session.decode_batch(&hashes, &registry, &token),
+            Err(MediaError::Io(_))
+        ));
+        session.decode(&d.frame, &registry, &token)?;
+        assert_eq!(session.statistics().evictions, 1);
+        assert!(matches!(
+            session.decode(&a.frame, &registry, &token),
+            Err(MediaError::Io(_))
+        ));
+    }
     Ok(())
 }

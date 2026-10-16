@@ -26,10 +26,10 @@ export function combineFrameResourceBarriers(
 export class ExactFrameCaptureQueue<Frame> {
   #submitted: Promise<void> = Promise.resolve();
 
-  capture(
-    capture: (discovery: boolean) => Promise<Frame>,
+  capture<Result extends Frame>(
+    capture: (discovery: boolean) => Promise<Result>,
     resources: ExactFrameResourceBarrier,
-  ): Promise<Frame> {
+  ): Promise<Result> {
     const submitted = this.#submitted.then(() =>
       submitAfterExactFrameResources(capture, resources),
     );

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
+import { nativeReleaseBuild } from "../native-build.mjs";
 import { runEffectShotSmoke } from "../parity/effect-shots.mjs";
 import { runPixelGate } from "../parity/pixel-gate.mjs";
 import { runAppChecks } from "./app-checks.mjs";
@@ -13,12 +14,16 @@ import { auditM4Exit } from "./m4-exit.mjs";
 import { auditM5Exit } from "./m5-exit.mjs";
 import { auditM6Exit } from "./m6-exit.mjs";
 import { auditM7Exit } from "./m7-exit.mjs";
+import { auditM8Exit } from "./m8-exit.mjs";
+import { runNativeAppGate } from "./native-app-gate.mjs";
 import { runNativeCoreGate } from "./native-core-gate.mjs";
+import { runNativeExportGate } from "./native-export-gate.mjs";
+import { runNativePerformanceGate } from "./native-performance-gate.mjs";
 import { runPerformanceGate } from "./performance-gate.mjs";
 import { selectRequiredGates } from "./performance-policy.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
-import { ownerProject, sourceProvenance } from "./source.mjs";
+import { hashFile, ownerProject, sourceProvenance } from "./source.mjs";
 import { staticCommands } from "./static-checks.mjs";
 import { verifyTsPixels } from "./ts-pixels.mjs";
 
@@ -28,6 +33,12 @@ export function parseArguments(args) {
     if (args[index] === "--quick") options.quick = true;
     else if (args[index] === "--milestone" && /^M\d+$/.test(args[index + 1] ?? "")) {
       options.milestone = args[++index];
+    } else if (args[index] === "--nv12-resume" && args[index + 1]) {
+      options.nv12Resume = args[++index];
+    } else if (args[index] === "--export-resume" && args[index + 1]) {
+      options.exportResume = args[++index];
+    } else if (args[index] === "--diagnostic-resume" && args[index + 1]) {
+      options.diagnosticResume = args[++index];
     } else if (args[index] === "--candidates" && args[index + 1]) {
       options.candidates = args[++index];
     } else throw new Error(`Unknown or incomplete argument: ${args[index]}`);
@@ -118,8 +129,16 @@ export async function verifyMigration(options, dependencies = {}) {
       },
       print: options.print,
       milestone: milestone.id,
+      exportResume: options.exportResume,
+      diagnosticResume: options.diagnosticResume,
     };
-    for (const id of report.required_gates) {
+    const gateOrder = [...report.required_gates];
+    if (milestone.id === "M8" && gateOrder.includes("G5") && gateOrder.includes("G6")) {
+      gateOrder.splice(gateOrder.indexOf("G6"), 1);
+      gateOrder.splice(gateOrder.indexOf("G5"), 0, "G6");
+    }
+    let appEvidence;
+    for (const id of gateOrder) {
       if (id === "G0") report.gates.push(await runStaticGate(context, quick, execute));
       else if (id === "G1" && ["M2", "M3", "M5"].includes(milestone.id)) {
         report.gates.push(
@@ -141,6 +160,19 @@ export async function verifyMigration(options, dependencies = {}) {
                   source: report.source,
                   milestone: milestone.id,
                 },
+                execute,
+              ),
+        );
+      } else if (id === "G4" && milestone.id === "M8") {
+        report.gates.push(
+          quick
+            ? {
+                id,
+                status: "skipped",
+                reason: "Quick mode omits full native paired export measurements",
+              }
+            : await (dependencies.runNativePerformanceGate ?? runNativePerformanceGate)(
+                { ...context, output: join(output, "G4"), source: report.source },
                 execute,
               ),
         );
@@ -187,35 +219,30 @@ export async function verifyMigration(options, dependencies = {}) {
           output_replay: checked.report.output_replay,
           duration_ms: checked.report.duration_ms,
         });
-      } else if (id === "G3" && ["M3", "M4", "M5", "M6", "M7"].includes(milestone.id)) {
+      } else if (id === "G3" && ["M3", "M4", "M5", "M6", "M7", "M8"].includes(milestone.id)) {
         report.gates.push(
           quick
             ? { id, status: "skipped", reason: "Quick mode omits native core GPU execution" }
             : await (dependencies.runNativeCoreGate ?? runNativeCoreGate)(
-                { ...context, output: join(output, "G3") },
+                { ...context, output: join(output, "G3"), nv12Resume: options.nv12Resume },
                 execute,
               ),
         );
         report.milestone_exit_reason =
-          milestone.id === "M7"
-            ? "Native scene completion requires the full M7 exit audit"
-            : milestone.id === "M6"
-              ? "Native media completion requires the full M6 exit audit"
-              : milestone.id === "M5"
-                ? "Native raster increments require temporal text and the complete M5 exit audit"
-                : milestone.id === "M4"
-                  ? "Native effect increments require the complete effect/style corpus and M4 exit audit"
-                  : "Native core increments require the complete core corpus and M3 exit audit";
+          milestone.id === "M8"
+            ? "Native export requires NV12 pixels, encoded quality, paired performance and application delivery"
+            : milestone.id === "M7"
+              ? "Native scene completion requires the full M7 exit audit"
+              : milestone.id === "M6"
+                ? "Native media completion requires the full M6 exit audit"
+                : milestone.id === "M5"
+                  ? "Native raster increments require temporal text and the complete M5 exit audit"
+                  : milestone.id === "M4"
+                    ? "Native effect increments require the complete effect/style corpus and M4 exit audit"
+                    : "Native core increments require the complete core corpus and M3 exit audit";
       } else if (id === "G3") {
         const pixelContext = { ...context, output: join(output, "G3") };
-        const build = await execute(
-          {
-            id: "compare-cli-build",
-            file: "cargo",
-            args: ["build", "--release", "-p", "aster-render-cli"],
-          },
-          pixelContext,
-        );
+        const build = await execute(nativeReleaseBuild("compare-cli-build"), pixelContext);
         if (build.status !== "passed") {
           report.gates.push({
             id,
@@ -238,6 +265,33 @@ export async function verifyMigration(options, dependencies = {}) {
             build,
           });
         }
+      } else if (id === "G5" && milestone.id === "M8") {
+        report.gates.push(
+          quick
+            ? {
+                id,
+                status: "skipped",
+                reason: "Quick mode omits native export quality and coverage checks",
+                native_export_acceptance: false,
+              }
+            : await (dependencies.runNativeExportGate ?? runNativeExportGate)(
+                { ...context, output: join(output, "G5"), source: report.source, appEvidence },
+                execute,
+              ),
+        );
+      } else if (id === "G6" && milestone.id === "M8") {
+        report.gates.push(
+          quick
+            ? {
+                id,
+                status: "skipped",
+                reason: "Quick mode omits packaged native application checks",
+              }
+            : await (dependencies.runNativeAppGate ?? runNativeAppGate)(
+                { ...context, output: join(output, "G6") },
+                execute,
+              ),
+        );
       } else if (id === "G6" && milestone.id === "M0") {
         report.gates.push(
           quick
@@ -245,7 +299,14 @@ export async function verifyMigration(options, dependencies = {}) {
             : await (dependencies.runAppChecks ?? runAppChecks)(context, execute),
         );
       } else report.gates.push({ id, status: "failed", error: "Required gate is not implemented" });
+      if (id === "G6" && milestone.id === "M8" && !quick) {
+        const path = join(output, "G6/report.json");
+        appEvidence = { path, sha256: await hashFile(path) };
+      }
     }
+    report.gates.sort(
+      (a, b) => report.required_gates.indexOf(a.id) - report.required_gates.indexOf(b.id),
+    );
     if (
       report.gates.length !== report.required_gates.length ||
       report.required_gates.some((id) => report.gates.filter((gate) => gate.id === id).length !== 1)
@@ -394,6 +455,25 @@ export async function verifyMigration(options, dependencies = {}) {
           throw new Error("M7 native scene audit failed");
         report.milestone_exit_reason =
           "Complete scene/generator coverage, frozen pixels, self-reviews and resource lifetimes audited";
+      } catch (error) {
+        report.milestone_exit = { status: "failed", error: error.message };
+        report.milestone_exit_reason = error.message;
+      }
+    }
+    const exportExit = milestone.tasks.find((task) => task.id === "M8-T8");
+    if (
+      milestone.id === "M8" &&
+      !quick &&
+      (milestone.status === "done" || ["in_progress", "done"].includes(exportExit?.status))
+    ) {
+      try {
+        if (report.gates.some((gate) => gate.status !== "passed"))
+          throw new Error("M8 exit requires every current full gate");
+        report.milestone_exit = await (dependencies.auditM8Exit ?? auditM8Exit)(root, report);
+        if (report.milestone_exit.status !== "passed")
+          throw new Error("M8 native export audit failed");
+        report.milestone_exit_reason =
+          "Native RGB/NV12, hardware delivery, reviewed encoded quality and paired export performance audited";
       } catch (error) {
         report.milestone_exit = { status: "failed", error: error.message };
         report.milestone_exit_reason = error.message;

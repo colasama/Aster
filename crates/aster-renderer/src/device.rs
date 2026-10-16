@@ -9,6 +9,13 @@ use aster_shaders::ShaderCatalog;
 
 use crate::{RenderError, SuppliedFrame, output::OutputPipelines, scene::ScenePipelines};
 
+#[cfg(windows)]
+#[path = "shared_nv12_output.rs"]
+mod shared_nv12_output;
+#[cfg(all(test, windows))]
+#[path = "shared_nv12_tests.rs"]
+mod shared_nv12_tests;
+
 #[cfg(test)]
 #[path = "hdr_image_tests.rs"]
 mod hdr_image_tests;
@@ -34,6 +41,10 @@ pub struct NativeOptions {
     /// Optional GPU-resident post-effect cache limit; zero disables result reuse.
     pub layer_cache_bytes: u64,
     pub effect_regions: bool,
+    /// Maximum specialized opcode pipelines; zero uses the complete shared shader.
+    pub effect_pipeline_entries: usize,
+    /// Opt-in timestamp queries and tiny readbacks; never enable for throughput acceptance.
+    pub gpu_timestamps: bool,
     pub timeout: Duration,
 }
 
@@ -78,6 +89,13 @@ pub struct NativeRenderer {
     layer_cache: crate::layer_cache::LayerCache,
     temporal: crate::temporal_cache::TemporalCache,
     motion_output: Option<crate::motion_output::MotionOutput>,
+    nv12: Option<crate::nv12::Nv12Converter>,
+    gpu_profiler: Option<crate::gpu_profile::GpuProfiler>,
+    gpu_timings: Option<crate::GpuTimings>,
+    #[cfg(windows)]
+    shared_nv12: Vec<Arc<crate::shared_nv12::SharedNv12Target>>,
+    #[cfg(windows)]
+    shared_nv12_reserved_bytes: u64,
 }
 
 impl FrameTargets {
@@ -127,7 +145,32 @@ impl FrameTargets {
 }
 
 impl NativeRenderer {
+    /// Identifies the actual DX12 device used for rendering, not a friendly-name approximation.
+    pub fn adapter_luid(&self) -> Option<aster_render_ir::AdapterLuid> {
+        #[cfg(windows)]
+        {
+            // Only read identity while the HAL guard retains the underlying device.
+            let device = unsafe { self.device.as_hal::<wgpu::hal::api::Dx12>() }?;
+            let luid = unsafe { device.raw_device().GetAdapterLuid() };
+            Some(aster_render_ir::AdapterLuid {
+                low: luid.LowPart,
+                high: luid.HighPart,
+            })
+        }
+        #[cfg(not(windows))]
+        {
+            None
+        }
+    }
+
     pub fn new(options: NativeOptions) -> Result<Self, RenderError> {
+        Self::new_for_adapter(options, None)
+    }
+
+    pub fn new_for_adapter(
+        mut options: NativeOptions,
+        adapter_luid: Option<aster_render_ir::AdapterLuid>,
+    ) -> Result<Self, RenderError> {
         if options.gpu_budget_bytes == 0 || options.timeout.is_zero() {
             return Err(RenderError::Invalid(
                 "GPU budget and timeout must be positive".into(),
@@ -162,6 +205,7 @@ impl NativeRenderer {
             .filter(|adapter| {
                 let info = adapter.get_info();
                 info.device_type != wgpu::DeviceType::Cpu
+                    && crate::adapter_identity::AdapterSelection::matches(adapter, adapter_luid)
                     && options
                         .adapter_name
                         .as_ref()
@@ -174,8 +218,26 @@ impl NativeRenderer {
             })
             .ok_or_else(|| RenderError::Gpu("no matching hardware adapter".into()))?;
         let diagnostics = AdapterDiagnostics::from_adapter(&adapter);
+        let required_features = if options.gpu_timestamps {
+            options.gpu_budget_bytes = options
+                .gpu_budget_bytes
+                .checked_sub(2176)
+                .filter(|remaining| *remaining > 0)
+                .ok_or_else(|| {
+                    RenderError::Invalid("GPU timestamp buffers exceed budget".into())
+                })?;
+            wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS
+        } else {
+            wgpu::Features::empty()
+        };
+        if !adapter.features().contains(required_features) {
+            return Err(RenderError::Unsupported(
+                "diagnostic GPU timestamp queries".into(),
+            ));
+        }
         let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
             label: Some("Aster native renderer"),
+            required_features,
             required_limits: wgpu::Limits {
                 max_texture_dimension_2d: adapter.limits().max_texture_dimension_2d,
                 ..Default::default()
@@ -190,6 +252,9 @@ impl NativeRenderer {
         let images = crate::image_cache::ImageCache::new(&device);
         let scene = ScenePipelines::new(&device, &catalog, &images.layout)?;
         let output = OutputPipelines::new(&device, &queue, &catalog)?;
+        let gpu_profiler = options
+            .gpu_timestamps
+            .then(|| crate::gpu_profile::GpuProfiler::new(&device, &queue));
         let validation_error = pollster::block_on(scope.pop());
         let internal_error = pollster::block_on(internal_scope.pop());
         let memory_error = pollster::block_on(memory_scope.pop());
@@ -213,7 +278,92 @@ impl NativeRenderer {
             layer_cache: Default::default(),
             temporal: Default::default(),
             motion_output: None,
+            nv12: None,
+            gpu_profiler,
+            gpu_timings: None,
+            #[cfg(windows)]
+            shared_nv12: Vec::new(),
+            #[cfg(windows)]
+            shared_nv12_reserved_bytes: 0,
         })
+    }
+
+    /// Reserve a fixed-size, reusable output slot before rendering an export session.
+    pub fn prepare_nv12(&mut self, size: Extent2d) -> Result<(), RenderError> {
+        if let Some(converter) = &self.nv12 {
+            return if converter.size == size {
+                Ok(())
+            } else {
+                Err(RenderError::Invalid(
+                    "NV12 export dimensions cannot change".into(),
+                ))
+            };
+        }
+        if self.targets.is_some() {
+            return Err(RenderError::Invalid(
+                "prepare NV12 before rendering frames".into(),
+            ));
+        }
+        let bytes = crate::nv12::Nv12Converter::required_bytes(size)?;
+        let remaining = self
+            .options
+            .gpu_budget_bytes
+            .checked_sub(bytes)
+            .filter(|remaining| *remaining > 0)
+            .ok_or_else(|| RenderError::Invalid("NV12 conversion exceeds GPU budget".into()))?;
+        let memory = self.device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
+        let internal = self.device.push_error_scope(wgpu::ErrorFilter::Internal);
+        let validation = self.device.push_error_scope(wgpu::ErrorFilter::Validation);
+        let converter = crate::nv12::Nv12Converter::new(&self.device, size);
+        let errors = [
+            pollster::block_on(validation.pop()),
+            pollster::block_on(internal.pop()),
+            pollster::block_on(memory.pop()),
+        ];
+        if let Some(error) = errors.into_iter().flatten().next() {
+            return Err(RenderError::Gpu(error.to_string()));
+        }
+        self.nv12 = Some(converter?);
+        self.options.gpu_budget_bytes = remaining;
+        Ok(())
+    }
+
+    /// Native readback fallback; final RGBA never traverses the sidecar pipe.
+    pub fn read_nv12(&mut self, frame: &RenderedFrame) -> Result<Vec<u8>, RenderError> {
+        let converter = self
+            .nv12
+            .as_ref()
+            .ok_or_else(|| RenderError::Invalid("NV12 output is not prepared".into()))?;
+        let memory = self.device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
+        let internal = self.device.push_error_scope(wgpu::ErrorFilter::Internal);
+        let validation = self.device.push_error_scope(wgpu::ErrorFilter::Validation);
+        let pixels = converter.read(
+            &self.device,
+            &self.queue,
+            &frame.texture,
+            self.options.timeout,
+            self.gpu_profiler.as_ref(),
+        );
+        let errors = [
+            pollster::block_on(validation.pop()),
+            pollster::block_on(internal.pop()),
+            pollster::block_on(memory.pop()),
+        ];
+        if let Some(error) = errors.into_iter().flatten().next() {
+            return Err(RenderError::Gpu(error.to_string()));
+        }
+        let pixels = pixels?;
+        if let Some(profile) = &self.gpu_profiler {
+            let times = profile.read(&self.device, self.options.timeout, 3)?;
+            let timing = self.gpu_timings.get_or_insert_with(Default::default);
+            timing.nv12_conversion_ms = times[0];
+            timing.nv12_copy_ms = times[1];
+        }
+        Ok(pixels)
+    }
+
+    pub fn gpu_timings(&self) -> Option<crate::GpuTimings> {
+        self.gpu_timings.clone()
     }
 
     /// Executes only supplied inputs; the returned frame remains on the GPU.
@@ -324,7 +474,11 @@ impl NativeRenderer {
             .chain(frame.surfaces.targets.iter().map(|s| &s.scene))
             .any(|s| s.layers.values().any(|l| !l.operations.is_empty()))
         {
-            self.output.prepare_effects(&self.device)?;
+            self.output.prepare_variants(
+                &self.device,
+                frame,
+                self.options.effect_pipeline_entries,
+            )?;
         }
         let resized = self.targets.as_ref().is_none_or(|targets| {
             targets.render_size != render_size || targets.output_size != size
@@ -377,6 +531,9 @@ impl NativeRenderer {
         let scenes = std::iter::once(&frame.scene)
             .chain(frame.surfaces.targets.iter().map(|surface| &surface.scene))
             .collect::<Vec<_>>();
+        self.scene
+            .layer_targets
+            .retire(&self.device, &scenes, self.options.timeout)?;
         let generations = if cache_budget > 0 {
             crate::surface_generation::SurfaceGenerations::collect(&frame.surfaces)?
         } else {
@@ -425,6 +582,7 @@ impl NativeRenderer {
             self.options.timeout,
         )?;
         self.layer_cache.allocate(&self.device);
+        self.scene.layer_targets.allocate(&self.device);
         if let Some(motion) = &mut self.motion_output {
             motion.allocate(&self.device, frame.motion.as_ref())?;
         }
@@ -451,7 +609,15 @@ impl NativeRenderer {
             .create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("Supplied native frame"),
             });
+        self.gpu_timings = None;
+        if let Some(profile) = &self.gpu_profiler {
+            profile.reset_frame();
+            profile.mark(&mut encoder, 0);
+        }
         self.temporal.record(&mut encoder, &frame.temporal)?;
+        if let Some(profile) = &self.gpu_profiler {
+            profile.mark(&mut encoder, 1);
+        }
         for input in &frame.surfaces.targets {
             let target = self.surfaces.target(&input.key)?;
             self.scene.record(
@@ -465,9 +631,13 @@ impl NativeRenderer {
                     &frame.surfaces,
                     &mut self.layer_cache,
                     &mut effect_regions,
+                    None,
                 ),
                 &self.output,
             )?;
+        }
+        if let Some(profile) = &self.gpu_profiler {
+            profile.mark(&mut encoder, 2);
         }
         let generator_draws = self.scene.record(
             &self.device,
@@ -480,9 +650,13 @@ impl NativeRenderer {
                 &frame.surfaces,
                 &mut self.layer_cache,
                 &mut effect_regions,
+                self.gpu_profiler.as_ref(),
             ),
             &self.output,
         )?;
+        if let Some(profile) = &self.gpu_profiler {
+            profile.mark(&mut encoder, 3);
+        }
         let motion = if frame.motion.is_some() {
             Some(
                 self.motion_output
@@ -585,6 +759,10 @@ impl NativeRenderer {
                 &output,
             )?;
         }
+        if let Some(profile) = &self.gpu_profiler {
+            profile.mark(&mut encoder, 4);
+            profile.resolve_frame(&mut encoder);
+        }
         let submission = self.queue.submit([encoder.finish()]);
         let validation_error = pollster::block_on(validation.pop());
         let internal_error = pollster::block_on(internal.pop());
@@ -600,6 +778,9 @@ impl NativeRenderer {
             return Err(RenderError::Gpu(error.to_string()));
         }
         self.layer_cache.commit();
+        if let Some(profile) = &self.gpu_profiler {
+            self.gpu_timings = Some(profile.read_frame(&self.device, self.options.timeout)?);
+        }
         let lease = Arc::new(());
         self.output_lease = Arc::downgrade(&lease);
         Ok(RenderedFrame {
@@ -692,3 +873,7 @@ mod auxiliary_primary_tests;
 #[cfg(test)]
 #[path = "layer_cache_tests.rs"]
 mod layer_cache_tests;
+
+#[cfg(test)]
+#[path = "nv12_tests.rs"]
+mod nv12_tests;

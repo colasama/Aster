@@ -131,11 +131,9 @@ impl BundleArgs {
             }
             registry.put(request, bytes)?;
         }
-        let nested_plans = aster_render_ir::BundleDependencies::default().validate(
-            &plan.metadata,
-            &registry,
-            &limits,
-        )?;
+        let nested_plans = aster_render_ir::BundleDependencies::default()
+            .with_roundtrip()
+            .validate(&plan.metadata, &registry, &limits)?;
         let output = plan.reencode(&limits)?;
         if output != input || live.reencode(&limits)? != submitted {
             return Err(IrError::InvalidHeader("noncanonical frame plan".to_owned()));

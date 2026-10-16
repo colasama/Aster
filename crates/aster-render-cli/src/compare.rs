@@ -54,6 +54,8 @@ pub struct CompareArgs {
 #[serde(deny_unknown_fields)]
 struct CaseContext {
     case_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    g5_uniform_reference: Option<bool>,
     #[serde(default)]
     isolated: bool,
     background: Option<[u8; 4]>,
@@ -207,6 +209,7 @@ impl CompareArgs {
             &self.tolerance,
             &ComparisonOptions {
                 case_id: context.case_id.clone(),
+                g5_uniform_reference: context.g5_uniform_reference == Some(true),
                 isolated: context.isolated,
                 background: context.background,
                 sequence,

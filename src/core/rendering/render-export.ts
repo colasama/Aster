@@ -66,7 +66,7 @@ export interface RenderMp4Result {
   outputPath: string;
   frames: number;
   cancelled: boolean;
-  encoder?: "h264_nvenc" | "libx264";
+  encoder?: "h264_nvenc" | "libx264" | "h264_mf";
   bytesWritten?: number;
   elapsedMs?: number;
 }

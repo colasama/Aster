@@ -84,16 +84,20 @@ impl MediaGrants {
             ));
         }
         let sha256 = format!("{:x}", Sha256::digest(&bytes));
-        let (mut left, mut right) = (0x811c9dc5_u32, 0x9e3779b9_u32);
-        for byte in &bytes {
-            left = (left ^ u32::from(*byte)).wrapping_mul(0x01000193);
-            right = (right ^ u32::from(*byte)).wrapping_mul(0x85ebca6b);
-        }
-        if sha256 != grant.sha256
-            || (identity != format!("sha256:{sha256}")
-                && identity != format!("fnv64:{left:08x}{right:08x}:{}", bytes.len()))
-        {
+        if sha256 != grant.sha256 {
             return Err(MediaError::Identity);
+        }
+        // The grant always authenticates freshly read bytes. Legacy identity compatibility
+        // needs another scan only when the descriptor does not already identify that digest.
+        if identity != format!("sha256:{sha256}") {
+            let (mut left, mut right) = (0x811c9dc5_u32, 0x9e3779b9_u32);
+            for byte in &bytes {
+                left = (left ^ u32::from(*byte)).wrapping_mul(0x01000193);
+                right = (right ^ u32::from(*byte)).wrapping_mul(0x85ebca6b);
+            }
+            if identity != format!("fnv64:{left:08x}{right:08x}:{}", bytes.len()) {
+                return Err(MediaError::Identity);
+            }
         }
         Ok(SourceSnapshot { bytes, sha256 })
     }

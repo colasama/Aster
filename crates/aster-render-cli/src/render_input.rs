@@ -15,6 +15,8 @@ pub(crate) struct RenderJob {
     pub resources: PathBuf,
     pub resource_manifest: Option<PathBuf>,
     pub out: PathBuf,
+    #[serde(default)]
+    pub nv12_out: Option<PathBuf>,
 }
 
 pub(crate) struct RenderInput {
@@ -23,7 +25,9 @@ pub(crate) struct RenderInput {
     pub native: NativeStillResources,
     pub textures: crate::native_textures::NativeTextureResources,
     pub plan_sha256: String,
+    pub output_size: aster_render_ir::Extent2d,
     pub output: PathBuf,
+    pub nv12_output: Option<PathBuf>,
 }
 
 impl RenderInput {
@@ -40,6 +44,7 @@ impl RenderInput {
         let bytes = IrArgs::read_bounded(&job.plan, limits)?;
         let plan_sha256 = format!("{:x}", Sha256::digest(&bytes));
         let plan = FplnCodec::decode(bytes, limits)?;
+        let output_size = plan.metadata.header.target;
         let resources = job.resources;
         let manifest = job
             .resource_manifest
@@ -103,7 +108,9 @@ impl RenderInput {
             native,
             textures,
             plan_sha256,
+            output_size,
             output: job.out,
+            nv12_output: job.nv12_out,
         })
     }
 }

@@ -1,8 +1,8 @@
 import { requirePlan } from "../frame-plan/canonical";
 import type { PutResource } from "../frame-plan/types";
-import { GpuFrameReadbackPool } from "../gpu/frame-readback";
 import type { MediaGpuLease } from "./media-gpu-registry";
 import { type CapturedMediaPixels, createMediaPixelPayloadAsync } from "./media-pixel-payload";
+import { readRetainedMediaPixels } from "./media-pixel-readback";
 
 /** The caller holds the frame lease until capture completes; preview never invokes readback. */
 export async function captureMediaPixels(
@@ -36,31 +36,24 @@ export async function captureMediaPixels(
     "resource_budget_exceeded",
     "Media capture exceeds frame budget",
   );
-  const pool = new GpuFrameReadbackPool(device, "rgba8unorm-srgb", 1);
-  const result: CapturedMediaPixels[] = [];
-  try {
-    for (const frame of selected) {
-      if (frame.kind !== "media_frame") throw Error("Invalid media capture frame");
-      const texture = lease.textureForHash(frame.hash);
-      const ticket = pool.reserve(frame.descriptor.width, frame.descriptor.height);
-      try {
-        const encoder = device.createCommandEncoder({ label: "Retained media pixel capture" });
-        ticket.encode(encoder, texture);
-        device.queue.submit([encoder.finish()]);
-        const captured = await ticket.read();
-        requirePlan(
-          lease.textureForHash(frame.hash) === texture,
-          "resource_generation_mismatch",
-          "Media changed during capture",
-        );
-        result.push(await createMediaPixelPayloadAsync(frame, new Uint8Array(captured.pixels)));
-      } catch (error) {
-        ticket.abort();
-        throw error;
-      }
-    }
-    return result;
-  } finally {
-    pool.destroy();
+  const textures = selected.map((frame) => lease.textureForHash(frame.hash));
+  const pixels = await readRetainedMediaPixels(device, textures);
+  for (const [index, frame] of selected.entries()) {
+    requirePlan(
+      lease.textureForHash(frame.hash) === textures[index],
+      "resource_generation_mismatch",
+      "Media changed during capture",
+    );
   }
+  const result: CapturedMediaPixels[] = [];
+  // Bound native digest concurrency without serializing every small raster's thread handoff.
+  for (let first = 0; first < selected.length; first += 32)
+    result.push(
+      ...(await Promise.all(
+        selected
+          .slice(first, first + 32)
+          .map((frame, index) => createMediaPixelPayloadAsync(frame, pixels[first + index])),
+      )),
+    );
+  return result;
 }

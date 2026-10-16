@@ -34,12 +34,22 @@ export function withFrameBundleMedia(
 export async function withFrameBundleMediaAsync(
   input: FrameBundle,
   captures: readonly CapturedMediaPixels[],
+  coverage: "all" | "raster" = "all",
 ): Promise<FrameBundle> {
   const owned = structuredClone({ input, captures });
   const decoded = await readFrameBundleAsync(owned.input);
   requirePlan(
     canonicalJson(owned.captures.map((c) => c.frame.hash).sort()) ===
-      canonicalJson(decoded.mediaFrames.map((f) => f.hash).sort()),
+      canonicalJson(
+        decoded.mediaFrames
+          .filter(
+            (f) =>
+              coverage === "all" ||
+              (f.kind === "media_frame" && f.descriptor.sample.kind === "raster"),
+          )
+          .map((f) => f.hash)
+          .sort(),
+      ),
     "missing_resource",
     "Frame media pixel coverage differs from submitted dependencies",
   );
@@ -55,10 +65,13 @@ export async function withFrameBundleMediaAsync(
   return result;
 }
 
-function attachFrameMedia(
+export function attachFrameMedia(
   input: FrameBundle,
-  captures: readonly CapturedMediaPixels[],
-  resources: PrecompositionBundleResources,
+  captures: readonly {
+    frame: CapturedMediaPixels["frame"];
+    pixels: Pick<CapturedMediaPixels["pixels"], "message">;
+  }[],
+  resources: Pick<PrecompositionBundleResources, "resolve">,
 ): FrameBundle {
   const plan = structuredClone(input.plan);
   const bundle = plan.metadata.slices[0];

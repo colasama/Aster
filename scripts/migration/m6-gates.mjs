@@ -16,11 +16,15 @@ export function validateM6Gates(report, corpus) {
   });
 }
 
-export function validateNativeMediaGates(report, corpus, { milestone, scope, additionalCases }) {
+export function validateNativeMediaGates(
+  report,
+  corpus,
+  { milestone, scope, additionalCases, requiredGates = ["G0", "G3"] },
+) {
   assert.equal(report.milestone, milestone);
   assert.equal(report.mode, "full");
-  assert.deepEqual([...report.required_gates].sort(), ["G0", "G3"]);
-  assert.deepEqual(report.gates.map((g) => g.id).sort(), ["G0", "G3"]);
+  assert.deepEqual([...report.required_gates].sort(), [...requiredGates].sort());
+  assert.deepEqual(report.gates.map((g) => g.id).sort(), [...requiredGates].sort());
   assert(report.gates.every((g) => g.status === "passed"));
   const g0 = report.gates.find((g) => g.id === "G0");
   assert.deepEqual(

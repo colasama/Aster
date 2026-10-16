@@ -6,6 +6,29 @@ use crate::{
 use super::Fixture;
 
 #[test]
+fn accepted_byte_mutations_still_have_exact_canonical_roundtrips() -> Result<(), IrError> {
+    let bytes = Fixture::new()?.encode()?;
+    let limits = DecodeLimits::default();
+    let mut accepted = 0;
+    let mut rejected = 0;
+    for offset in 0..bytes.len() {
+        for mask in [1, 128, 255] {
+            let mut candidate = bytes.clone();
+            candidate[offset] ^= mask;
+            match FplnCodec::decode(candidate.clone(), &limits) {
+                Ok(decoded) => {
+                    assert_eq!(decoded.reencode(&limits)?, candidate, "offset {offset}");
+                    accepted += 1;
+                }
+                Err(_) => rejected += 1,
+            }
+        }
+    }
+    assert!(accepted > 0 && rejected > 0);
+    Ok(())
+}
+
+#[test]
 fn typed_roundtrip_rebuilds_metadata_and_borrows_original_blob_ranges() -> Result<(), IrError> {
     let fixture = Fixture::new()?;
     let original = fixture.encode()?;

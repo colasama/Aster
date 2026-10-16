@@ -7,9 +7,14 @@ import {
 } from "../../src/core/media/project-font-runtime";
 import { setProjectPluginRuntimes } from "../../src/core/plugins/plugin-runtime";
 import { loadProjectFromPath } from "../../src/core/project/project-file";
+import type { NativeFramePacket } from "../../src/core/rendering/native-export-protocol";
 import type { GpuDiagnostics, RendererMetrics } from "../../src/core/types";
 import type { Mp4PixelFormat } from "../../src/desktop/api";
 import { mediaImportRuntime } from "../../src/importers/media-import-runtime";
+import {
+  captureRenderMediaManifest,
+  serializeRenderMediaManifest,
+} from "../../src/render-queue/render-media-manifest";
 import {
   createBeautyFrameRequest,
   createViewportBeautyFrameBackend,
@@ -35,6 +40,7 @@ export interface PerformanceSession {
   initializeMs: number;
   audioDecoder?: AudioSourceDecoder;
   readback(time: number): Promise<RawVideoFrame>;
+  planFrame?(time: number, retained?: ReadonlySet<string>): Promise<NativeFramePacket>;
   readbackInto?(time: number, destination: ArrayBuffer): Promise<RawVideoFrame>;
   present?(time: number): RendererMetrics;
   complete?(): Promise<void>;
@@ -103,6 +109,10 @@ export const productionPerformanceRuntime: PerformanceRuntime = {
       verifyResources = () => assertCaptureMedia(validated.project, validated.composition);
       const plugins = await prepareCapturePlugins(validated.project);
       verifyResources();
+      if (assignment.benchmark.renderer === "rust")
+        validated.manifest.renderMediaSnapshot = await serializeRenderMediaManifest(
+          captureRenderMediaManifest(validated.project, validated.composition.id),
+        );
       if (
         assignment.case.features.includes("feature:audio-analysis") ||
         plugins?.report.plugins.some((plugin) => plugin.capabilities.includes("audio_analysis"))
@@ -147,11 +157,13 @@ export const productionPerformanceRuntime: PerformanceRuntime = {
         ...(audioContext
           ? {
               audioDecoder: async (source) => {
-                const buffer = await sharedAudioDecodeCache.decode(
-                  audioContext,
-                  source,
-                  abort.signal,
-                );
+                const buffer = await sharedAudioDecodeCache
+                  .decode(audioContext, source, abort.signal)
+                  .catch((error: unknown) => {
+                    throw new Error(
+                      `Benchmark audio decode failed for ${source.id} (${source.name}): ${error instanceof Error ? error.message : String(error)}`,
+                    );
+                  });
                 return {
                   sampleRate: buffer.sampleRate,
                   channels: Array.from({ length: buffer.numberOfChannels }, (_, channel) =>
@@ -162,6 +174,25 @@ export const productionPerformanceRuntime: PerformanceRuntime = {
             }
           : {}),
         readback,
+        ...(assignment.benchmark.renderer === "rust"
+          ? {
+              planFrame: async (time: number, retained?: ReadonlySet<string>) => {
+                active.configureBeautyTarget(
+                  validated.manifest.width,
+                  validated.manifest.height,
+                  validated.manifest.antiAliasing ?? "off",
+                );
+                return active.planExportPacket(
+                  retained ?? new Set(),
+                  validated.composition,
+                  time,
+                  validated.snapshot,
+                  validated.project,
+                  validated.synchronizeVideo,
+                );
+              },
+            }
+          : {}),
         readbackInto: readback,
         present: (time) =>
           pipeline.present(

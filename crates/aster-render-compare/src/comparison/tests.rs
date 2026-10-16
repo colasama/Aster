@@ -1,6 +1,78 @@
 use super::*;
 
 #[test]
+fn g5_uniform_reference_is_narrow_and_keeps_other_checks() -> Result<(), CompareError> {
+    let reference = RgbaImage::new(32, 32, [0, 0, 0, 255].repeat(32 * 32))?;
+    let mut candidate = reference.clone();
+    candidate.pixels[0] = 1;
+    let options = ComparisonOptions {
+        g5_uniform_reference: true,
+        ..ComparisonOptions::default()
+    };
+    let accepted = Comparison::measure(&reference, &candidate, "yuv", &options)?;
+    assert!(accepted.passed);
+    assert!(accepted.self_review_required);
+    assert!(accepted.registration.as_ref().is_some_and(|r| {
+        r.status == RegistrationStatus::UniformReferenceEquivalence && r.shift.is_none()
+    }));
+    let ordinary =
+        Comparison::measure(&reference, &candidate, "yuv", &ComparisonOptions::default())?;
+    assert!(!ordinary.passed);
+    for profile in ["gpu", "decode", "exact", "perceptual"] {
+        assert!(Comparison::measure(&reference, &candidate, profile, &options).is_err());
+    }
+    for (offset, value) in [(0, 2), (3, 254)] {
+        let mut invalid = candidate.clone();
+        invalid.pixels[offset] = value;
+        let rejected = Comparison::measure(&reference, &invalid, "yuv", &options)?;
+        assert!(!rejected.passed);
+        assert_ne!(
+            rejected.registration.map(|r| r.status),
+            Some(RegistrationStatus::UniformReferenceEquivalence)
+        );
+    }
+    let mut nonuniform = reference.clone();
+    nonuniform.pixels[4] = 1;
+    let rejected = Comparison::measure(&nonuniform, &candidate, "yuv", &options)?;
+    assert_ne!(
+        rejected.registration.map(|r| r.status),
+        Some(RegistrationStatus::UniformReferenceEquivalence)
+    );
+    let transparent = RgbaImage::new(32, 32, [0, 0, 0, 254].repeat(32 * 32))?;
+    let mut transparent_candidate = transparent.clone();
+    transparent_candidate.pixels[0] = 1;
+    assert!(!Comparison::measure(&transparent, &transparent_candidate, "yuv", &options)?.passed);
+    let biased = RgbaImage::new(32, 32, [1, 1, 1, 255].repeat(32 * 32))?;
+    let rejected = Comparison::measure(&reference, &biased, "yuv", &options)?;
+    assert!(!rejected.passed);
+    assert!(
+        rejected
+            .checks
+            .iter()
+            .any(|c| c.id == "signed_bias" && !c.passed)
+    );
+    let sequence_options = ComparisonOptions {
+        sequence: Some(SequenceInput {
+            frame: 0,
+            first_frame: 0,
+            last_frame: 1,
+            previous: None,
+            next: Some(reference.clone()),
+        }),
+        ..options
+    };
+    let rejected = Comparison::measure(&reference, &candidate, "yuv", &sequence_options)?;
+    assert!(!rejected.passed);
+    assert!(
+        rejected
+            .checks
+            .iter()
+            .any(|c| c.id == "frame_identity" && !c.passed)
+    );
+    Ok(())
+}
+
+#[test]
 fn exact_compares_hidden_rgb_and_nonexact_never_skips_structure() -> Result<(), CompareError> {
     let reference = RgbaImage::new(1, 1, vec![0, 0, 0, 0])?;
     let candidate = RgbaImage::new(1, 1, vec![1, 0, 0, 0])?;

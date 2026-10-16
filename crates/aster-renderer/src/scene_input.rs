@@ -1,8 +1,8 @@
 use crate::{RenderError, image_input::ImageInput, layer_plan::LayerPlan};
 use aster_render_ir::{
-    ContractLevel, DecodeLimits, FrameHeaderSlice, OwnedFpln, PlanSlice,
-    PrecompositionEffectRecord, PrecompositionMediaPixels, ResourceHash, ResourceRegistry,
-    RootCommandRecord, RootSceneCommandsSlice, RootTextureReference,
+    ContractLevel, FrameHeaderSlice, OwnedFpln, PlanSlice, PrecompositionEffectRecord,
+    PrecompositionMediaPixels, ResourceHash, ResourceRegistry, RootCommandRecord,
+    RootSceneCommandsSlice, RootTextureReference,
 };
 use std::collections::BTreeMap;
 
@@ -29,7 +29,7 @@ impl SceneInput {
         ),
         pixels: &[PrecompositionMediaPixels],
         resources: (&ResourceRegistry, &BTreeMap<ResourceHash, ImageInput>),
-        limits: &DecodeLimits,
+        plans: &crate::frame_plans::FramePlans,
         nested: bool,
     ) -> Result<Self, RenderError> {
         let (registry, decoded_textures) = resources;
@@ -42,12 +42,12 @@ impl SceneInput {
                 "scene identity or contract differs".into(),
             ));
         }
-        let layers = LayerPlan::collect(effects, root, registry, limits, nested)?;
+        let layers = LayerPlan::collect(effects, root, registry, plans, nested)?;
         let generators = crate::generator_input::GeneratorInput::collect(
             generator_records,
             root,
             registry,
-            limits,
+            plans,
         )?;
         let Some(PlanSlice::SceneBuffers(scene_slice)) = scene.metadata.slices.first() else {
             return Err(RenderError::Invalid("scene buffers required".into()));

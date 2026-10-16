@@ -21,6 +21,7 @@ aster-render = { path = "crates/aster-render", version = "0.3.5" }
 aster-render-ir = { path = "crates/aster-render-ir", version = "0.3.5" }
 aster-renderer = { path = "crates/aster-renderer", version = "0.3.5" }
 aster-media-native = { path = "crates/aster-media-native", version = "0.3.5" }
+aster-encode = { path = "crates/aster-encode", version = "0.3.5" }
 aster-render-compare = { path = "crates/aster-render-compare", version = "0.3.5" }
 aster-shaders = { path = "crates/aster-shaders", version = "0.3.5" }
 aster-scene = { path = "crates/aster-scene", version = "0.3.5" }

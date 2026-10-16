@@ -4,9 +4,9 @@ use std::{
 };
 
 use aster_render_ir::{
-    ContractLevel, DecodeLimits, ElementType, FplnCodec, OwnedFpln, PlanSlice,
-    PrecompositionGeneratorExecution, PrecompositionGeneratorRecord, ResourceDescriptor,
-    ResourceHash, ResourceRegistry, RootCommandRecord, SceneGeneratorSlice,
+    ContractLevel, ElementType, OwnedFpln, PlanSlice, PrecompositionGeneratorExecution,
+    PrecompositionGeneratorRecord, ResourceDescriptor, ResourceHash, ResourceRegistry,
+    RootCommandRecord, SceneGeneratorSlice,
 };
 
 use crate::{RenderError, layer_key::LayerKey, surface_plan::SurfacePlan};
@@ -24,14 +24,14 @@ impl GeneratorInput {
         records: &[PrecompositionGeneratorRecord],
         root: &OwnedFpln,
         registry: &ResourceRegistry,
-        limits: &DecodeLimits,
+        plans: &crate::frame_plans::FramePlans,
     ) -> Result<BTreeMap<Vec<u16>, Self>, RenderError> {
         let mut result = BTreeMap::new();
         let mut sources = BTreeMap::<ResourceHash, Arc<str>>::new();
         let mut audio: Option<Arc<[u8]>> = None;
         let mut identities = BTreeSet::new();
         for record in records {
-            let plan = FplnCodec::decode(registry.resolve(&record.plan)?.to_vec(), limits)?;
+            let plan = plans.resolve(&record.plan, registry)?;
             let Some(PlanSlice::SceneGenerator(invocation)) = plan.metadata.slices.first() else {
                 return Err(RenderError::Invalid("generator invocation absent".into()));
             };

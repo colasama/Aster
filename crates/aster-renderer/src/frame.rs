@@ -1,6 +1,5 @@
 use aster_render_ir::{
-    BundleDependencies, ContractLevel, DecodeLimits, EffectBlendMode, FplnCodec, OwnedFpln,
-    PlanSlice, ResourceRegistry,
+    ContractLevel, DecodeLimits, EffectBlendMode, OwnedFpln, PlanSlice, ResourceRegistry,
 };
 
 use crate::RenderError;
@@ -47,19 +46,20 @@ impl SuppliedFrame {
         for hash in &plan.metadata.resources {
             registry.resolve(hash)?;
         }
-        BundleDependencies::default().validate(&plan.metadata, registry, limits)?;
-        let stage =
-            |hash: &aster_render_ir::ResourceHash, contract| -> Result<OwnedFpln, RenderError> {
-                let decoded = FplnCodec::decode(registry.resolve(hash)?.to_vec(), limits)?;
-                if decoded.metadata.contract_level != contract
-                    || decoded.metadata.header != plan.metadata.header
-                {
-                    return Err(RenderError::Invalid(
-                        "stage contract or frame identity mismatch".into(),
-                    ));
-                }
-                Ok(decoded)
-            };
+        let plans = crate::frame_plans::FramePlans::new(&plan.metadata, registry, limits)?;
+        let stage = |hash: &aster_render_ir::ResourceHash,
+                     contract|
+         -> Result<std::sync::Arc<OwnedFpln>, RenderError> {
+            let decoded = plans.resolve(hash, registry)?;
+            if decoded.metadata.contract_level != contract
+                || decoded.metadata.header != plan.metadata.header
+            {
+                return Err(RenderError::Invalid(
+                    "stage contract or frame identity mismatch".into(),
+                ));
+            }
+            Ok(decoded)
+        };
         let scene = stage(&bundle.scene, ContractLevel::SceneBuffersSliceV1)?;
         let root = stage(&bundle.root, ContractLevel::RootSceneCommandsSliceV1)?;
         let post = stage(&bundle.post, ContractLevel::PostUniformsSliceV1)?;
@@ -83,19 +83,19 @@ impl SuppliedFrame {
             .as_ref()
             .map(|hash| stage(hash, ContractLevel::PostEffectSliceV1))
             .transpose()?;
-        let motion = crate::frame_motion::FrameMotion::new(&scene, &motion, auxiliary.as_ref())?;
+        let motion = crate::frame_motion::FrameMotion::new(&scene, &motion, auxiliary.as_deref())?;
         let depth = crate::frame_depth::FrameDepth::new(
             &scene,
             &output,
-            auxiliary.as_ref(),
-            effect.as_ref(),
+            auxiliary.as_deref(),
+            effect.as_deref(),
             motion.is_some(),
         )?;
         let visualizer = crate::frame_visualizer::FrameVisualizer::new(
             &scene,
             &output,
-            auxiliary.as_ref(),
-            effect.as_ref(),
+            auxiliary.as_deref(),
+            effect.as_deref(),
         )?;
         let surface = if depth.is_some() || visualizer.is_some() {
             None
@@ -103,8 +103,8 @@ impl SuppliedFrame {
             crate::frame_surface::FrameSurface::new(
                 &scene,
                 &output,
-                auxiliary.as_ref(),
-                effect.as_ref(),
+                auxiliary.as_deref(),
+                effect.as_deref(),
                 motion.is_some(),
             )?
         };
@@ -146,7 +146,7 @@ impl SuppliedFrame {
             (&bundle.effects, &bundle.generators),
             &root_pixels,
             (registry, &textures),
-            limits,
+            &plans,
             false,
         )?;
         scene.shadow_size = bundle.shadow_map_size;
@@ -154,7 +154,7 @@ impl SuppliedFrame {
             bundle.precompositions.as_ref(),
             &scene,
             registry,
-            limits,
+            &plans,
             pixels,
             &textures,
         )?;
@@ -193,7 +193,7 @@ impl SuppliedFrame {
             &plan.metadata.header,
             &images,
             registry,
-            limits,
+            &plans,
         )?;
         let required = scene
             .images

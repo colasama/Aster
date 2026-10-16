@@ -1,5 +1,142 @@
 # Production Render Contract
 
+## Native session admission
+
+`aster-render-cli serve` accepts versioned JSON control lines followed immediately by each
+declared binary payload. Request IDs increase within a session. Control length, payload length,
+registry bytes and resource counts are bounded before admission. A framing error terminates the
+session; a rejected resource or plan returns a correlated error without discarding other resources.
+The request schema is `schemas/render-session.v1.json`.
+
+`put_resource`, `evict_resource` and `check_frame` use the same content-addressed registry. Frame
+checks use full native capability validation and release only temporary decoded textures they
+inserted. `probe` matches the renderer's DX12 device LUID to hardware-only Media Foundation
+encoder enumeration and checks bounded, ordered Annex-B test frames through drain. This proof
+does not establish complete native export availability. Queue selection also qualifies the retained
+encoder transport and admits the entire immutable job; quality, performance and application gates
+remain required for migration acceptance.
+
+Hardware encoding defaults to peak-constrained VBR. The mean and peak codec bitrates are set to
+the job's requested bitrate, rather than relying on driver defaults or media-type metadata alone.
+Codec settings must survive readback both before and after media-type negotiation; a mismatch
+rejects that hardware candidate. Quality/speed and GOP controls remain optional diagnostic overrides.
+The maximum quantizer defaults to 18 to bound coarse startup frames before the rate controller has
+estimated scene complexity. This static codec limit applies to the whole stream, preserves the
+requested mean/peak bitrate settings, and is verified through the same readback checks. An explicit
+`--encoder-max-qp` overrides it. Candidate qualification rejects hardware that cannot retain the
+limit; whole-corpus and owner quality, bitrate and throughput acceptance remain required.
+
+The opt-in `--native-export` route adds `begin_export`, `render_frame`, `finish_export`
+and `cancel_export`. A successful adapter probe precedes begin; each supplied frame is admitted
+before GPU execution. Fixed-size NV12 remains inside the native process. Responses carry packet
+metadata followed by the declared Annex-B bytes, with frame indices and rational 100 ns timing.
+The encoder limits queued frames and bytes, rejects reordered output, and requires all requested
+frames before successful drain. A request failure aborts the active export. Cancellation flushes
+and shuts down the transform; subsequent frame/finish requests reject until another begin succeeds.
+The host must discard a partial stream and may only publish after successful finish and mux.
+`begin_export` first tries shared GPU NV12 surfaces with a D3D11-aware hardware encoder. If that
+capability fails, it releases the unused shared pool and tries bounded in-process NV12 readback
+with the same hardware-only encoder policy. `export_started` reports `transport` and an optional
+`transport_reason`; no software encoder is selected. The diagnostic `--native-shared-export` and
+`--native-readback-export` options force one route and are mutually exclusive with automatic
+selection. Completed shared exports report all GPU input leases retired. These routes remain
+experimental pending complete Electron integration and M8 acceptance.
+
+`warm_frame` optionally executes a validated plan on the already prepared renderer before the
+first encoded frame. It completes the selected shared-NV12 or NV12-readback conversion, releases
+the result, and returns a `frame_warmed` identity proof with an unchanged encoder clock and no
+binary payload. Warm-up never submits a frame to the encoder; it cannot change H.264 references
+or consume measured frame indices. Requests after encoding starts fail and abort the export.
+`NativeExportJob.warm` permits ten ordered, wrapping job frame addresses, authenticates each
+proof against the immutable manifest and releases preparation resource leases before fresh
+admission. Its duration and count are reported separately. Normal queue exports do not call it.
+
+The Electron `NativeRenderClient` allows one outstanding request, owns outgoing binary data until
+pipe completion, and bounds each reply before allocating its payload. Broken framing, rejected
+requests, process exit and timeouts fail the client closed. Out-of-band disposal terminates a
+worker blocked in native code. `NativeExportSession` checks ordered rational packet timing and
+complete encoder drain, then waits for clean worker shutdown before the existing MP4 session may
+publish. Its `native-h264` input mode uses FFmpeg stream copy, exact rational timestamps, the
+existing Float32 audio pipe and atomic publication. It does not select an FFmpeg video encoder.
+The render queue now exposes lease-correlated native preflight and replay requests. Every plan's
+authenticated header must match the frozen job's scope, revision, composition, binary time,
+rational frame rate, output/render extents, AA and color pipeline. The actual `begin_export`
+transport is qualified during preflight, before opening an MP4 mux, so initialization failure can
+reject native selection without producing output. A shared transport startup failure permits one
+fresh-process, hardware-qualified native NV12 readback attempt with a recorded transport reason;
+cancellation prevents that retry. Every frame must pass before sealing permits
+`startMp4`; native replay supplies frame indices only and rejects raw pixel messages. One H.264
+MP4 output is currently eligible. Unsupported output sets, preparation errors and failed admission
+select the complete retained TS job and log a concrete reason. Failures after output starts never
+switch renderers midstream. Queue admission performs decode, render and encoding once per frame;
+the reply authenticates the exact supplied plan and validated frame header. Compressed packets stay
+private until all frames pass, encoder tail packets drain and the sidecar shuts down. The last
+replayed video input forwards those retained tail packets before waiting for PCM, allowing FFmpeg
+to drain short audiovisual exports. Publication still requires complete audio, packet counts and
+a successful mux exit.
+Packaged application checks cover these routes; full corpus/owner quality and performance remain
+separate required gates.
+
+`NativeFrameAdmission` keeps bounded resource digests and frame counts without persisting raw
+plans or pixel buffers. It owns each IPC frame before admission, rejects changed contents under a
+reused resource identity, and records a frame only after native validation and compressed storage
+succeed. Sealing requires every declared frame; cancellation drains pending work before cleanup.
+The diagnostic `NativeExportSpool` retains authenticated raw replay for its independent checks.
+`NativeResourceWindow` evicts prior-only resources before installing the next dependency closure,
+so a long job does not grow the sidecar registry without bound.
+The queue bounds cumulative admitted input at 31 GiB, distinct resource identities at 262144 and
+each frame at 64 MiB. Only resource digests survive admission; private compressed replies stay
+within 1 GiB. `NativeEncodedSpool` authenticates sizes, packet order, rational timestamps and hashes;
+it becomes readable only after a complete hardware drain. Queue replay uses these compressed bytes
+instead of reinstalling raw resources and repeating native decoding/rendering. A late admission,
+drain or storage failure invalidates the whole private job before any MP4 mux is opened.
+
+`serve` also accepts the native media authorization manifest and packaged FFmpeg/FFprobe options
+used by supplied-plan rendering. Checks and exports decode file media through the same native
+media cache. Temporary decoded entries are retired after each request, including admission
+failure; caller-owned identical resources are preserved. Cache hits share immutable verified pixel
+resources with these temporary entries, avoiding repeated pixel copies and hashing without changing
+wire validation, authorization or residency limits. Missing grants and supplied file-media
+pixel overrides are rejected when native file decoding is enabled.
+The Phase A media producer retains one verified source/frame identity pair per live media owner.
+It reuses hashes only while every descriptor value matches; changes to authorization scope,
+source identity, raster bounds, texture extent or video clocks produce fresh identities. Returned
+messages cannot mutate the retained pair. The GPU registry compares repeated puts against its
+private verified descriptor before skipping hashing and byte accounting, while still checking
+the current binding generation, retirement, budgets and leases on every registration.
+Native raster assembly snapshots the declared frame before asynchronous readback and gives the
+capture callback a separate copy of its required media descriptors. The bounded raster cache keeps
+opaque verified pixel snapshots while the exact retained texture generation survives. Private bytes
+and a runtime-guarded constructor prevent mutable packets or forged hashes from becoming proofs.
+The GPU lease is released after readback and initial verification. Assembly copies each proof once
+into its transferable packet, reusing only its content verification; ordinary captures still undergo
+hash verification. Layout, declared coverage and aggregate resource limits precede every attachment.
+Caller mutations or transfers cannot change cached bytes, a pending frame or its published packet.
+Generated plan resources reuse the hash computed over their freshly encoded owned bytes; ordinary
+external resource insertion still checks its message and payload. Synchronous SHA-256 consumes the
+same domain header and exact payload view in segments, avoiding a temporary full-payload copy while
+preserving the wire identity used by Rust and asynchronous browser verification.
+Bundle producers register dependencies from the same plan that encoding has just validated,
+without immediately decoding the new container again. Contract checks, dependency resolution,
+media-source closure and storage budgets still apply. Consumers of received bundles retain the
+full container decoder; mutable producer objects are never retained as verification proofs.
+`NativeMediaGrants` derives decoder paths exclusively from the main-process authorization lease
+or authenticated inline source bytes. Renderer-supplied resource metadata cannot grant local paths.
+Materialized media and spool directories are owned by the native job and removed after pending
+operations settle; cancellation kills blocked sidecars before waiting for file cleanup.
+
+Audio export prepares one source decoder at a time while retaining the source-bound PCM map for
+mixing. This bounds simultaneous codec intermediates and ensures a failed preparation leaves no
+other source decode running. Rational audio/video timing and the mixed samples are unchanged.
+
+`WebGpuRenderer.planExportFrame` shares exact-resource discovery with diagnostic frame capture,
+but does not reserve an output readback or record the final scene/output graph. Phase A still
+prepares media and raster inputs, including temporal text rasters. Only raster pixels are captured;
+file-media identities remain in the plan for authorized native decoding. `nativeFramePacket`
+rejects file-pixel overrides and owns the plan/resource buffers crossing the native transport.
+
+## Production frames
+
 Output anti-aliasing is captured alongside each Beauty request and render job. Equal project, time,
 resolution and AA mode share the same production output path; see [Output Anti-Aliasing](ANTI_ALIASING.md).
 Preview resolution changes do not override that captured mode. Legacy requests and jobs use Off.
@@ -105,10 +242,16 @@ It indexes presentation timestamps from an authorized snapshot, selects the cont
 requires the requested and uploaded times to select the same frame. The producer's seek bias is
 already encoded in these times. Native decode preserves source color metadata and uses the verified
 browser-compatible chroma reconstruction before straight sRGB upload; it rejects unsupported color
-routes explicitly.
+routes explicitly. Native snapshot and still decoding bound codec, filter, and raw-output worker
+threads to one by default through `DecodeLimits`, avoiding CPU-count-dependent intermediate memory.
+This leaves frame selection, color conversion, and output byte limits unchanged.
 
-Exact-frame capture also treats initial image decode, SVG rasterization, and image-sequence frame
-decode as frame dependencies. A current-generation resource barrier ignores stale completions,
+Exact-frame capture also treats initial image decode, SVG rasterization, image-sequence frame
+decode, HDR environment upload, and normal-map GPU validation as frame dependencies. Material
+waits have a finite timeout, propagate failures, and abort when the renderer is destroyed;
+retired generations cannot delay the active frame even if their source ignores cancellation.
+Interactive preview may use fallback material texels while these resources load. A
+current-generation resource barrier ignores stale completions,
 propagates decode failures and timeouts, and requires a redraw before accepting pixels whenever the
 first render discovered pending resources. Cached stills and synchronous text rasterization retain a
 single GPU submission; only a newly requested asynchronous generation is prepared and recaptured.

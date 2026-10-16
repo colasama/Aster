@@ -1,6 +1,7 @@
 {
   "schema_version": 1,
   "fragments": {
+    "output-nv12": "color/output-nv12.wgsl",
     "output-anti-aliasing": "effects/anti-aliasing.wgsl",
     "scene-shape-layout-prefix": "scene/shape-layout-prefix.wgsl",
     "scene-shape-layout-suffix": "scene/shape-layout-suffix.wgsl",
@@ -84,6 +85,11 @@
     "native-pyramid-seed": "effects/native-pyramid-seed.wgsl"
   },
   "programs": {
+    "output-nv12": {
+      "fragments": ["output-nv12"],
+      "entry_points": [{ "name": "convert", "stage": "compute" }],
+      "overrides": {}
+    },
     "output-anti-aliasing": {
       "fragments": ["output-anti-aliasing"],
       "entry_points": [

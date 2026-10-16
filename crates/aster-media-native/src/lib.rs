@@ -5,7 +5,7 @@ mod exr_snapshot;
 #[cfg(test)]
 mod exr_tests;
 #[cfg(windows)]
-mod jpeg_windows;
+mod image_windows;
 mod session;
 #[cfg(test)]
 mod session_tests;
@@ -17,8 +17,13 @@ mod texture_tests;
 pub use session::{DecodedMedia, MediaCacheLimits, MediaCacheStatistics, NativeMediaSession};
 pub use texture::{DecodedTexture, NativeTextureReceipt, NativeTextureSession, TextureLimits};
 mod video;
+mod video_prefetch;
 mod video_time;
-pub use video::{DecodedVideo, NativeVideoDecoder, NativeVideoReceipt, VideoLimits};
+mod video_window;
+pub use video::{
+    DecodedVideo, NativeVideoDecoder, NativeVideoReceipt, VideoLimits, VideoSourceCacheStatistics,
+};
+pub use video_window::VideoWindowStatistics;
 #[cfg(test)]
 mod tests;
 pub use still::{DecodedStill, NativeImageReceipt, NativeStillDecoder, StillLimits};

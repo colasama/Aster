@@ -18,7 +18,7 @@
     "artifact:build": "pnpm artifact:prepare-ffmpeg && pnpm build && electron-builder --config scripts/electron-builder.ts",
     "artifact:prepare-ffmpeg": "node scripts/prepare-ffmpeg.mjs",
     "artifact:download-ffmpeg": "node scripts/download-ffmpeg.mjs",
-    "build": "pnpm typecheck && vite build && pnpm electron:compile && pnpm electron:bridge:build",
+    "build": "pnpm typecheck && vite build && pnpm electron:compile && pnpm electron:native:build",
     "check": "pnpm check:frontend && pnpm check:rust",
     "check:frontend": "biome check . && pnpm typecheck && vitest run && pnpm test:packaging",
     "check:rust": "cargo fmt --all --check && cargo clippy --workspace --all-targets --all-features -- -D warnings && cargo test --workspace --all-features",
@@ -33,12 +33,14 @@
     "preview": "vite preview",
     "prepare": "lefthook install",
     "electron": "pnpm dev",
+    "electron:native:build": "node scripts/native-build.mjs",
     "electron:bridge:build": "cargo build --release -p aster-desktop-bridge",
+    "electron:renderer:build": "cargo build --release -p aster-render-cli",
     "electron:bridge:dev": "cargo build -p aster-desktop-bridge",
     "electron:compile": "node -e \"require('node:fs').rmSync('dist-electron',{recursive:true,force:true})\" && tsc -p electron/tsconfig.json",
     "test": "vitest run",
     "test:packaging": "node --test scripts/prepare-ffmpeg.test.mjs scripts/download-ffmpeg.test.mjs scripts/electron-download-compat.test.mjs",
-    "test:migration": "node --test scripts/migration/*.test.mjs scripts/parity/*.test.mjs scripts/performance/*.test.mjs",
+    "test:migration": "node --test --test-concurrency=4 scripts/migration/*.test.mjs scripts/parity/*.test.mjs scripts/performance/*.test.mjs",
     "test:watch": "vitest",
     "typecheck": "concurrently --kill-others-on-fail \"tsc --noEmit -p tsconfig.json\" \"tsc --noEmit -p tsconfig.node.json\" \"tsc --noEmit -p electron/tsconfig.json\""
   },
@@ -101,7 +103,9 @@
           "aster-desktop-bridge",
           "aster-desktop-bridge.exe",
           "aster-mcp",
-          "aster-mcp.exe"
+          "aster-mcp.exe",
+          "aster-render-cli",
+          "aster-render-cli.exe"
         ]
       },
       {

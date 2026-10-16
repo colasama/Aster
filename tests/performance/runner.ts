@@ -2,9 +2,11 @@ import { runRenderHostFrameLoop } from "../../src/components/render-host/render-
 import { frameTimeAtIndex } from "../../src/core/rendering/render-export";
 import { CaptureHealth, captureErrorMessage } from "../parity/capture-health";
 import { validatePerformanceAssignment } from "./assignment";
+import { measureNativePerformance } from "./native-runner";
 import { PerformanceOutput } from "./output";
 import { measurePreviewPerformance } from "./preview-runner";
 import type {
+  NativePerformanceResult,
   PerformanceApi,
   PerformanceAssignment,
   PerformanceResult,
@@ -159,15 +161,17 @@ export async function runPerformanceAssignments(
     if (!assignment) return;
     health.beginCase();
     let session: PerformanceSession | undefined;
-    let result: PerformanceResult | PreviewPerformanceResult | undefined;
+    let result: PerformanceResult | PreviewPerformanceResult | NativePerformanceResult | undefined;
     let failure: string | undefined;
     try {
       validatePerformanceAssignment(assignment);
       session = await runtime.open(assignment, health);
       result =
-        assignment.benchmark.mode === "preview-present"
-          ? await measurePreviewPerformance(assignment, session)
-          : await measurePerformance(assignment, session, (request) => api.output(request));
+        assignment.benchmark.renderer === "rust"
+          ? await measureNativePerformance(assignment, session, api)
+          : assignment.benchmark.mode === "preview-present"
+            ? await measurePreviewPerformance(assignment, session)
+            : await measurePerformance(assignment, session, (request) => api.output(request));
     } catch (error) {
       failure = captureErrorMessage(error);
     } finally {

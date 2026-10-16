@@ -15,9 +15,15 @@ serde_json.workspace = true
 thiserror.workspace = true
 wgpu = { workspace = true, features = ["naga-ir"] }
 
+[target.'cfg(windows)'.dependencies]
+windows = { version = "=0.62.2", features = ["Win32_Graphics_Direct3D12", "Win32_Graphics_Dxgi_Common", "Win32_Foundation", "Win32_Security"] }
+
 [dev-dependencies]
 aster-media-native.workspace = true
 aster-video.workspace = true
 exr.workspace = true
 sha2.workspace = true
 uuid.workspace = true
+
+[target.'cfg(windows)'.dev-dependencies]
+windows = { version = "=0.62.2", features = ["Win32_Graphics_Direct3D11", "Win32_Graphics_Direct3D", "Win32_Graphics_Dxgi"] }

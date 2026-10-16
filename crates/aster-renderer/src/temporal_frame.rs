@@ -1,8 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use aster_render_ir::{
-    DecodeLimits, FplnCodec, FrameHeaderSlice, MediaSample, RasterOrigin, ResourceDescriptor,
-    ResourceHash, ResourceRegistry,
+    FrameHeaderSlice, MediaSample, RasterOrigin, ResourceDescriptor, ResourceHash, ResourceRegistry,
 };
 
 use crate::{RenderError, TemporalTextPlan, image_input::ImageInput, layer_key::LayerKey};
@@ -24,11 +23,11 @@ impl TemporalFrame {
         header: &FrameHeaderSlice,
         images: &BTreeMap<ResourceHash, ImageInput>,
         registry: &ResourceRegistry,
-        limits: &DecodeLimits,
+        plans: &crate::frame_plans::FramePlans,
     ) -> Result<Self, RenderError> {
         let mut result = Self::default();
         for hash in hashes {
-            let stage = FplnCodec::decode(registry.resolve(hash)?.to_vec(), limits)?;
+            let stage = plans.resolve(hash, registry)?;
             if &stage.metadata.header != header {
                 return Err(RenderError::Invalid(
                     "temporal frame identity differs".into(),

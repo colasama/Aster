@@ -41,8 +41,17 @@ async function main() {
     const assets = Object.fromEntries(
       ["pattern.png", "barcode-24000-1001.mp4"].map((name) => [name, catalog.assets[name]]),
     );
+    if (config.videoOverride) {
+      const bytes = await readFile(config.videoOverride);
+      assets["barcode-24000-1001.mp4"] = {
+        ...assets["barcode-24000-1001.mp4"],
+        data: bytes.toString("base64"),
+        sha256: sha(bytes),
+      };
+      report.video_override_sha256 = sha(bytes);
+    }
     const results = await window.webContents.executeJavaScript(
-      `window.captureMixedMedia(${JSON.stringify(assets)})`,
+      `window.captureMixedMedia(${JSON.stringify(assets)}, ${config.jobCapture === true})`,
     );
     assert.equal(results.length, 6);
     report.gpu_info = await app.getGPUInfo("complete");
@@ -52,6 +61,9 @@ async function main() {
     for (const result of results) {
       const { plan: input, replay: captured, rgba, resources: packets, ...proof } = result;
       assert(proof.independent_device_exact && proof.temporal.passes > 0);
+      assert(proof.plan_only_exact && proof.plan_only_final_output_accesses === 0);
+      assert(proof.plan_only_repeat_exact);
+      assert.equal(proof.plan_only_file_pixel_captures, 0);
       const dir = join(config.output, proof.id);
       await mkdir(dir);
       const plan = Buffer.from(input),

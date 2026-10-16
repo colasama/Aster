@@ -1,6 +1,7 @@
 //! Translation checks measure the original pixels; they never align comparison inputs.
 
 mod refinement;
+mod sparse;
 mod spectrum;
 #[cfg(test)]
 mod tests;
@@ -18,6 +19,9 @@ pub struct RegistrationOptions {
     pub taper_fraction: f64,
     pub relative_spectral_floor: f64,
     pub minimum_rms: f64,
+    pub maximum_sparse_fraction: f64,
+    pub minimum_sparse_pixels: usize,
+    pub minimum_sparse_coherence: f64,
     pub minimum_axis_ratio: f64,
     pub minimum_active_frequencies: usize,
     pub minimum_peak_ratio: f64,
@@ -35,6 +39,9 @@ impl Default for RegistrationOptions {
             taper_fraction: 0.125,
             relative_spectral_floor: 0.001,
             minimum_rms: 1.0 / 255.0,
+            maximum_sparse_fraction: 0.001,
+            minimum_sparse_pixels: 32,
+            minimum_sparse_coherence: 0.95,
             minimum_axis_ratio: 0.000_1,
             minimum_active_frequencies: 32,
             minimum_peak_ratio: 1.1,
@@ -56,6 +63,12 @@ impl RegistrationOptions {
             || !(0.0..1.0).contains(&self.relative_spectral_floor)
             || !self.minimum_rms.is_finite()
             || self.minimum_rms <= 0.0
+            || !self.maximum_sparse_fraction.is_finite()
+            || !(0.0..=0.001).contains(&self.maximum_sparse_fraction)
+            || self.maximum_sparse_fraction == 0.0
+            || self.minimum_sparse_pixels < 32
+            || !self.minimum_sparse_coherence.is_finite()
+            || !(0.95..1.0).contains(&self.minimum_sparse_coherence)
             || !self.minimum_axis_ratio.is_finite()
             || !(0.0..0.5).contains(&self.minimum_axis_ratio)
             || self.minimum_axis_ratio == 0.0
@@ -85,6 +98,7 @@ impl RegistrationOptions {
 pub enum RegistrationStatus {
     Measured,
     ExactIdentity,
+    UniformReferenceEquivalence,
     Indeterminate,
 }
 
@@ -113,6 +127,10 @@ pub struct RegistrationQuality {
     pub relative_spectral_floor: f64,
     pub taper_fraction: f64,
     pub working_bytes: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub support_shift_disagreement: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sparse_support: Option<sparse::SparseRegistrationSupport>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -124,6 +142,32 @@ pub struct RegistrationReport {
 }
 
 impl RegistrationReport {
+    pub(crate) fn apply_uniform_reference(&mut self, reference: &RgbaImage, candidate: &RgbaImage) {
+        if self.status != RegistrationStatus::Indeterminate {
+            return;
+        }
+        let Some(color) = reference.pixels.chunks_exact(4).next() else {
+            return;
+        };
+        if color[3] != 255
+            || !reference.pixels.chunks_exact(4).all(|pixel| pixel == color)
+            || !candidate.pixels.chunks_exact(4).all(|pixel| {
+                pixel[3] == color[3]
+                    && pixel[..3]
+                        .iter()
+                        .zip(&color[..3])
+                        .all(|(actual, expected)| actual.abs_diff(*expected) <= 1)
+            })
+        {
+            return;
+        }
+        self.status = RegistrationStatus::UniformReferenceEquivalence;
+        self.shift = None;
+        self.diagnostic = Some(
+            "translation is unobservable for an exactly uniform opaque reference; exhaustive RGB error <= 1 and identical alpha, with all other checks required independently".into(),
+        );
+    }
+
     fn indeterminate(diagnostic: impl Into<String>, quality: RegistrationQuality) -> Self {
         Self {
             status: RegistrationStatus::Indeterminate,
@@ -138,6 +182,56 @@ pub struct PhaseCorrelation;
 
 impl PhaseCorrelation {
     pub fn measure(
+        reference: &RgbaImage,
+        candidate: &RgbaImage,
+        options: &RegistrationOptions,
+    ) -> Result<RegistrationReport, CompareError> {
+        let report = Self::measure_spectrum(reference, candidate, options)?;
+        if report.status != RegistrationStatus::Indeterminate {
+            return Ok(report);
+        }
+        if (report.quality.reference_rms < options.minimum_rms
+            || report.quality.candidate_rms < options.minimum_rms)
+            && let Some(recovered) = Self::measure_sparse(reference, candidate, options)?
+        {
+            return Ok(recovered);
+        }
+        // A dominant repeating pattern can hide weaker distinguishing features, while a wide
+        // taper can erase valid near-edge content. Retry with more signal only when the first
+        // estimate is unobservable; retain every confidence and signal-quality requirement.
+        let expanded = RegistrationOptions {
+            taper_fraction: options.taper_fraction * 0.5,
+            relative_spectral_floor: options.relative_spectral_floor * 0.1,
+            ..options.clone()
+        };
+        let retried = Self::measure_spectrum(reference, candidate, &expanded)?;
+        let Some(tapered_shift) = retried.shift else {
+            return Ok(report);
+        };
+        // Tapering a clipped feature can bias a real translation toward zero. An expanded
+        // estimate is trusted only when an independently untapered phase estimate agrees.
+        let untapered = RegistrationOptions {
+            taper_fraction: 0.0,
+            ..expanded
+        };
+        let mut verified = Self::measure_spectrum(reference, candidate, &untapered)?;
+        let Some(untapered_shift) = verified.shift else {
+            return Ok(report);
+        };
+        let disagreement =
+            (tapered_shift.dx - untapered_shift.dx).hypot(tapered_shift.dy - untapered_shift.dy);
+        if disagreement > 2.0 / f64::from(options.upsample_factor) {
+            return Ok(report);
+        }
+        verified.quality.support_shift_disagreement = Some(disagreement);
+        verified.diagnostic = Some(
+            "expanded spectral support agrees across tapered and untapered phase estimates"
+                .to_owned(),
+        );
+        Ok(verified)
+    }
+
+    fn measure_spectrum(
         reference: &RgbaImage,
         candidate: &RgbaImage,
         options: &RegistrationOptions,

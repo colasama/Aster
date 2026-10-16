@@ -1,6 +1,9 @@
 import { createLayerForComposition } from "../../../src/core/layers/layer-factory";
+import type { NativeFramePacket } from "../../../src/core/rendering/native-export-protocol";
+import type { RenderJobManifest } from "../../../src/core/rendering/render-queue";
 import { type Composition, createTransform, type FootageSource } from "../../../src/core/types";
 import { FrameBundleRenderer } from "../../../src/renderer/compositing/frame-bundle-renderer";
+import { nativeFramePacket } from "../../../src/renderer/compositing/native-frame-packet";
 import { encodeFramePlan } from "../../../src/renderer/frame-plan/codec";
 import type { FrameBundle } from "../../../src/renderer/frame-plan/frame-bundle-plan";
 import { readFrameBundle } from "../../../src/renderer/frame-plan/frame-bundle-read";
@@ -15,6 +18,27 @@ interface Asset {
   width: number;
   height: number;
   duration?: number;
+}
+
+function assertNativePacket(actual: NativeFramePacket, expected: NativeFramePacket): void {
+  const sameBytes = (left: ArrayBuffer, right: ArrayBuffer) => {
+    const actual = new Uint8Array(left),
+      expected = new Uint8Array(right);
+    return (
+      actual.length === expected.length && actual.every((value, index) => value === expected[index])
+    );
+  };
+  if (
+    !sameBytes(actual.plan, expected.plan) ||
+    actual.resources.length !== expected.resources.length ||
+    JSON.stringify(actual.retainedResources) !== JSON.stringify(expected.retainedResources) ||
+    actual.resources.some(
+      (resource, index) =>
+        JSON.stringify(resource.message) !== JSON.stringify(expected.resources[index].message) ||
+        !sameBytes(resource.bytes, expected.resources[index].bytes),
+    )
+  )
+    throw Error("Direct native packet differs from complete production capture");
 }
 
 function nativeInputs(input: FrameBundle) {
@@ -46,7 +70,7 @@ function nativeInputs(input: FrameBundle) {
 }
 
 /** Independent-device TS replay freezes mixed native-file and temporal-raster expectations. */
-export async function captureMixedMedia(assets: Record<string, Asset>) {
+export async function captureMixedMedia(assets: Record<string, Asset>, jobCapture = false) {
   const results = [];
   for (const mode of ["root", "recursive"] as const) {
     const { project, composition, layer: text } = fixture("full");
@@ -64,6 +88,7 @@ export async function captureMixedMedia(assets: Record<string, Asset>) {
         mimeType: asset.mimeType,
         contentIdentity: `sha256:${asset.sha256}`,
         runtimeUrl: `data:${asset.mimeType};base64,${asset.data}`,
+        ...(jobCapture ? { dataUrl: `data:${asset.mimeType};base64,${asset.data}` } : {}),
         width: asset.width,
         height: asset.height,
         interpretation: { alpha: "straight" as const, colorSpace: "srgb" as const },
@@ -102,6 +127,40 @@ export async function captureMixedMedia(assets: Record<string, Asset>) {
       }
     }
     const canvas = document.createElement("canvas");
+    const job: RenderJobManifest | undefined = jobCapture
+      ? {
+          id: `native-media-${mode}`,
+          compositionId: target.id,
+          compositionName: target.name,
+          projectRevision: 1,
+          projectSnapshot: JSON.stringify({
+            ...project,
+            sources: project.sources.map(({ runtimeUrl: _runtimeUrl, ...source }) => source),
+          }),
+          antiAliasing: "off",
+          width: 320,
+          height: 180,
+          frameRate: { numerator: 30, denominator: 1 },
+          startFrame: 15,
+          endFrameExclusive: 18,
+          priority: 1,
+          createdAt: new Date(0).toISOString(),
+          outputs: [
+            {
+              id: "video",
+              kind: "mp4",
+              codec: "h264",
+              destination: "fixture.mp4",
+              bitrateMbps: 8,
+              includeAudio: false,
+            },
+          ],
+        }
+      : undefined;
+    const snapshot = {
+      snapshotScope: job ? `render-job:${job.id}` : `mixed-media:${mode}`,
+      projectRevision: 1,
+    };
     canvas.width = 320;
     canvas.height = 180;
     document.body.append(canvas);
@@ -112,12 +171,47 @@ export async function captureMixedMedia(assets: Record<string, Asset>) {
     try {
       let previous: Uint8ClampedArray | undefined;
       renderer.configureBeautyTarget(320, 180, "off");
-      for (const [index, time] of [0.5, 1, 0.5].entries()) {
+      for (const [index, time] of (job ? [15 / 30, 16 / 30, 17 / 30] : [0.5, 1, 0.5]).entries()) {
         console.log(`capture: ${mode}-${index} render`);
+        const context = canvas.getContext("webgpu");
+        if (!context) throw Error("Production canvas context missing");
+        const currentTexture = context.getCurrentTexture;
+        context.getCurrentTexture = () => {
+          throw Error("Plan-only capture touched the final output");
+        };
+        let planned: FrameBundle;
+        try {
+          planned = await renderer.planExportFrame(target, time, snapshot, project, true);
+          const warm = await renderer.planExportFrame(target, time, snapshot, project, true);
+          if (JSON.stringify(warm) !== JSON.stringify(planned))
+            throw Error("Warm native raster capture differs from its cold input bytes");
+          const complete = nativeFramePacket(planned);
+          const direct = await renderer.planExportPacket(
+            new Set(),
+            target,
+            time,
+            snapshot,
+            project,
+            true,
+          );
+          assertNativePacket(direct, complete);
+          const retained = new Set(complete.resources.map((resource) => resource.message.hash));
+          const references = await renderer.planExportPacket(
+            retained,
+            target,
+            time,
+            snapshot,
+            project,
+            true,
+          );
+          assertNativePacket(references, nativeFramePacket(planned, retained));
+        } finally {
+          context.getCurrentTexture = currentTexture;
+        }
         const raw = await renderer.renderRawFrame(
           target,
           time,
-          { snapshotScope: `mixed-media:${mode}`, projectRevision: 1 },
+          snapshot,
           project,
           true,
           undefined,
@@ -133,6 +227,40 @@ export async function captureMixedMedia(assets: Record<string, Asset>) {
         const repeated = await replay.render(raw.bundle);
         if (rgba.some((byte, i) => byte !== repeated[i]))
           throw Error("Independent TS replay differs");
+        const hybrid = nativeInputs(raw.bundle);
+        const expectedPlan = encodeFramePlan(hybrid.plan.metadata, hybrid.plan.blobs);
+        const plannedBytes = new Uint8Array(nativeFramePacket(planned).plan);
+        if (
+          expectedPlan.length !== plannedBytes.length ||
+          expectedPlan.some((byte, i) => byte !== plannedBytes[i])
+        )
+          throw Error(
+            `Plan-only native plan differs from the production plan: ${JSON.stringify(
+              [planned, hybrid].map((bundle) =>
+                bundle.resources
+                  .filter(
+                    (r) =>
+                      r.message.kind === "media_frame" &&
+                      r.message.descriptor.sample.kind === "video",
+                  )
+                  .map((r) => r.message.descriptor),
+              ),
+            )}`,
+          );
+        if (
+          hybrid.resources.length !== planned.resources.length ||
+          hybrid.resources.some((expected) => {
+            const resource = planned.resources.find(
+              (r) => r.message.hash === expected.message.hash,
+            );
+            return (
+              !resource ||
+              resource.bytes.length !== expected.bytes.length ||
+              resource.bytes.some((byte, i) => byte !== expected.bytes[i])
+            );
+          })
+        )
+          throw Error("Plan-only native resources differ from the production capture");
         const decoded = readFrameBundle(raw.bundle);
         const kinds = new Set<string>(decoded.mediaFrames.map((f) => f.descriptor.sample.kind));
         if (!["image", "video", "raster"].every((kind) => kinds.has(kind)))
@@ -140,14 +268,20 @@ export async function captureMixedMedia(assets: Record<string, Asset>) {
         if (replay.temporalExecution.passes === 0) throw Error("Temporal raster execution absent");
         if (mode === "recursive" && decoded.plans.precompositions.length < 2)
           throw Error("Recursive surfaces absent");
-        const hybrid = nativeInputs(raw.bundle);
         results.push({
           id: `${mode}-${index}`,
           mode,
+          ...(job ? { job } : {}),
           time,
           width: 320,
           height: 180,
           independent_device_exact: true,
+          plan_only_exact: true,
+          plan_only_repeat_exact: true,
+          direct_packet_exact: true,
+          direct_packet_reference_exact: true,
+          plan_only_final_output_accesses: 0,
+          plan_only_file_pixel_captures: 0,
           adapter: {
             device: renderer.diagnostics.adapter,
             description: renderer.diagnostics.description,

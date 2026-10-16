@@ -67,7 +67,9 @@ export default defineConfig(({ command, mode }) => {
                     },
                     {
                       name: "gpu-runtime",
-                      test: /src[\\/]renderer[\\/]/,
+                      // Keep eager shader catalog inputs in the same chunk as its constructor.
+                      // Otherwise the application chunk's cyclic import exposes uninitialized JSON.
+                      test: /(?:src[\\/]renderer|shaders)[\\/]/,
                       priority: 5,
                       includeDependenciesRecursively: false,
                     },

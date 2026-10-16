@@ -130,6 +130,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "aster-encode"
+version = "0.3.5"
+dependencies = [
+ "aster-render-ir",
+ "clap",
+ "serde",
+ "thiserror",
+ "windows",
+ "windows-core",
+]
+
+[[package]]
 name = "aster-media-native"
 version = "0.3.5"
 dependencies = [
@@ -208,6 +220,7 @@ dependencies = [
 name = "aster-render-cli"
 version = "0.3.5"
 dependencies = [
+ "aster-encode",
  "aster-media-native",
  "aster-render",
  "aster-render-compare",
@@ -263,6 +276,7 @@ dependencies = [
  "thiserror",
  "uuid",
  "wgpu",
+ "windows",
 ]
 
 [[package]]

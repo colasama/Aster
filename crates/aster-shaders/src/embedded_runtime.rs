@@ -6,6 +6,10 @@ impl ShaderCatalog {
     pub(crate) fn embedded_runtime_sources() -> BTreeMap<String, String> {
         [
             (
+                "color/output-nv12.wgsl",
+                include_str!("../../../shaders/color/output-nv12.wgsl"),
+            ),
+            (
                 "audio/analysis-abi.wgsl",
                 include_str!("../../../shaders/audio/analysis-abi.wgsl"),
             ),

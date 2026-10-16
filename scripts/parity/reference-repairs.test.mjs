@@ -6,6 +6,35 @@ import { repairFixture } from "../migration/m0-reference-repairs-fixtures.mjs";
 import { PixelInputs } from "./pixel-inputs.mjs";
 import { digest } from "./provenance.mjs";
 
+test("reused export references retain byte checks across case boundaries", async (t) => {
+  const data = await repairFixture(t);
+  await mkdir(join(data.root, "artifacts", "parity"), { recursive: true });
+  await cp(join(data.root, "refs"), join(data.root, "artifacts", "parity", "reference"), {
+    recursive: true,
+  });
+  data.ledger.reference_baseline = { renderer_source_sha256: "a".repeat(64) };
+  await data.json("docs/migration/rust-renderer-progress.json", data.ledger);
+  const inputs = new PixelInputs({ root: data.root });
+  await inputs.loadReferenceCatalog();
+  const item = inputs.corpus.cases[0];
+  const first = await inputs.reference(item, 1);
+  const binding = inputs.referenceBinding();
+  await inputs.verifyStable();
+  assert.deepEqual(await inputs.reference(item, 1), first);
+  assert.deepEqual(inputs.referenceBinding(), binding);
+  for (const path of [
+    "docs/migration/rust-renderer-progress.json",
+    `${data.ledger.reference_repairs[0].directory}/sequence/1/frame.png`,
+    "artifacts/parity/reference/sequence/0/frame.png",
+  ]) {
+    const original = await readFile(join(data.root, path));
+    await data.write(path, Buffer.concat([original, Buffer.from("changed")]));
+    await assert.rejects(inputs.verifyStable(), /Input changed during comparison/);
+    await data.write(path, original);
+    await inputs.verifyStable();
+  }
+});
+
 test("PixelInputs applies only the reviewed requested frame and preserves original sequence neighbors", async (t) => {
   const data = await repairFixture(t);
   await mkdir(join(data.root, "artifacts", "parity"), { recursive: true });

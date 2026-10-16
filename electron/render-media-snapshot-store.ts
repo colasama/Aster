@@ -12,6 +12,8 @@ interface SnapshotAuthorization {
 }
 
 export interface RenderMediaAuthorizationLease {
+  /** Verified job-owned paths for a main-process native decoder; never exposed over renderer IPC. */
+  readonly nativeMediaPaths?: readonly string[];
   dispose(): void;
 }
 
@@ -98,6 +100,10 @@ export class RenderMediaSnapshotStore {
     }
     let disposed = false;
     return {
+      get nativeMediaPaths() {
+        if (disposed) throw new Error("Render media authorization lease is disposed");
+        return authorized.map((grant) => grant.path);
+      },
       dispose: () => {
         if (disposed) return;
         disposed = true;

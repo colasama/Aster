@@ -7,6 +7,7 @@ import {
 } from "../../core/audio/audio-export";
 import { validateProjectDocument } from "../../core/project/project-file";
 import { type FrameBufferLease, FrameBufferPool } from "../../core/rendering/frame-buffer-pool";
+import type { NativeFramePacket } from "../../core/rendering/native-export-protocol";
 import {
   framePipelineDepth,
   frameTimeAtIndex,
@@ -26,6 +27,7 @@ import type {
   Mp4PixelFormat,
 } from "../../desktop/api";
 import type { RawVideoFrame } from "../../renderer/gpu/frame-readback";
+import { preflightNativeRenderHost } from "./render-host-native-preflight";
 
 const MAX_PREFETCH_BYTES = 64 * 1024 * 1024;
 
@@ -38,12 +40,17 @@ export interface ValidatedRenderHostAssignment {
   synchronizeVideo: boolean;
 }
 
-interface RenderHostFrameLoopOptions {
+export interface RenderHostFrameLoopOptions {
   assignment: ValidatedRenderHostAssignment;
   pixelFormat: Mp4PixelFormat;
   maxInFlightFrames?: number;
   audioDecoder?: AudioSourceDecoder;
   renderFrame(frame: number, time: number): Promise<RawVideoFrame>;
+  planFrame?(
+    frame: number,
+    time: number,
+    retained?: ReadonlySet<string>,
+  ): Promise<NativeFramePacket>;
   /** Explicit support for a caller-owned destination, retained until every output acknowledges it. */
   renderFrameInto?(frame: number, time: number, destination: ArrayBuffer): Promise<RawVideoFrame>;
   encodePng(frame: RawVideoFrame): Promise<ArrayBuffer>;
@@ -83,6 +90,8 @@ export async function runRenderHostFrameLoop(
   const pngOutputs = manifest.outputs.filter(
     (output) => output.kind === "pngSequence" || output.kind === "still",
   );
+  const native = await preflightNativeRenderHost(options);
+  if (native.cancelled) return await reportCancelled(options.report, shared);
   const audio = await prepareAudioPipeline(options, audioOutputs.length > 0);
   for (const output of mp4Outputs)
     await options.output({
@@ -102,7 +111,7 @@ export async function runRenderHostFrameLoop(
         : {}),
     });
 
-  await options.report({ type: "prepared", ...shared });
+  if (!native.prepared) await options.report({ type: "prepared", ...shared });
   const now = options.now ?? (() => performance.now());
   const startedAt = now();
   let pausedDurationMs = 0;
@@ -141,12 +150,13 @@ export async function runRenderHostFrameLoop(
       })
     : Promise.resolve(0);
   const totalFrames = manifest.endFrameExclusive - manifest.startFrame;
-  const maxInFlight = validated.synchronizeVideo
-    ? 1
-    : Math.min(
-        options.maxInFlightFrames ?? 1,
-        Math.max(1, Math.floor(MAX_PREFETCH_BYTES / (manifest.width * manifest.height * 4))),
-      );
+  const maxInFlight =
+    native.active || validated.synchronizeVideo
+      ? 1
+      : Math.min(
+          options.maxInFlightFrames ?? 1,
+          Math.max(1, Math.floor(MAX_PREFETCH_BYTES / (manifest.width * manifest.height * 4))),
+        );
   const waitAtControlBoundary = async (): Promise<"continue" | "cancel"> => {
     const control = options.requestedControl();
     if (control === "cancel") return "cancel";
@@ -158,14 +168,14 @@ export async function runRenderHostFrameLoop(
     return released;
   };
   try {
-    const renderFrameInto = options.renderFrameInto;
+    const renderFrameInto = native.active ? undefined : options.renderFrameInto;
     const frameBuffers = renderFrameInto
       ? new FrameBufferPool(
           manifest.width * manifest.height * 4,
           framePipelineDepth(maxInFlight) + 1,
         )
       : undefined;
-    const completed = await streamFramePipeline<RawVideoFrame | LeasedHostFrame>({
+    const completed = await streamFramePipeline<RawVideoFrame | LeasedHostFrame | number>({
       frameCount: totalFrames,
       maxInFlight,
       cancelled: () => options.requestedControl() === "cancel",
@@ -175,6 +185,7 @@ export async function runRenderHostFrameLoop(
         throwAudioFailure(audioFailure);
       },
       render: (index) => {
+        if (native.active) return Promise.resolve(index);
         const frame = manifest.startFrame + index;
         const time = frameTimeAtIndex(frame, manifest.frameRate);
         return frameBuffers && renderFrameInto
@@ -182,9 +193,18 @@ export async function runRenderHostFrameLoop(
           : options.renderFrame(frame, time);
       },
       release: (frame) => {
-        if (!("pixels" in frame)) frame.lease.release();
+        if (typeof frame !== "number" && !("pixels" in frame)) frame.lease.release();
       },
       write: async (captured, index) => {
+        if (typeof captured === "number") {
+          await options.output({
+            type: "renderNativeFrame",
+            ...shared,
+            outputId: mp4Outputs[0].id,
+            frame: index,
+          });
+          return;
+        }
         const raw = "pixels" in captured ? captured : captured.raw;
         const frame = manifest.startFrame + index;
         validateRawFrame(raw, manifest, options.pixelFormat);

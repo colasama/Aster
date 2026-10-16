@@ -1,4 +1,10 @@
+import type {
+  NativeFramePacket,
+  NativeRenderHostRequest,
+} from "../src/core/rendering/native-export-protocol.js";
+
 export type RenderHostOutputRequest =
+  | NativeRenderHostRequest
   | {
       type: "startMp4";
       jobId: string;
@@ -45,6 +51,52 @@ export function parseRenderHostOutputRequest(value: unknown): RenderHostOutputRe
     leaseId: boundedId(value.leaseId, "lease"),
     outputId: boundedId(value.outputId, "output"),
   };
+  if (value.type === "prepareNative" || value.type === "sealNative") {
+    exactKeys(value, ["type", "jobId", "leaseId", "outputId"]);
+    return { type: value.type, ...shared };
+  }
+  if (value.type === "abandonNative") {
+    exactKeys(value, ["type", "jobId", "leaseId", "outputId", "reason"]);
+    if (typeof value.reason !== "string" || !value.reason || value.reason.length > 2048)
+      throw new Error("Native fallback reason is invalid");
+    return { type: value.type, ...shared, reason: value.reason };
+  }
+  if (value.type === "admitNative" || value.type === "renderNativeFrame") {
+    exactKeys(value, [
+      "type",
+      "jobId",
+      "leaseId",
+      "outputId",
+      "frame",
+      ...(value.type === "admitNative" ? ["packet"] : []),
+    ]);
+    if (
+      !Number.isSafeInteger(value.frame) ||
+      Number(value.frame) < 0 ||
+      Number(value.frame) >= 1_000_000
+    )
+      throw new Error("Native RenderHost frame index is invalid");
+    if (value.type === "renderNativeFrame")
+      return { type: value.type, ...shared, frame: Number(value.frame) };
+    if (
+      !isRecord(value.packet) ||
+      !(value.packet.plan instanceof ArrayBuffer) ||
+      !Array.isArray(value.packet.resources)
+    )
+      throw new Error("Native RenderHost frame packet is invalid");
+    exactKeys(value.packet, [
+      "plan",
+      "resources",
+      ...(value.packet.retainedResources === undefined ? [] : ["retainedResources"]),
+    ]);
+    // Admission owns and bounds resource payloads before its first asynchronous operation.
+    return {
+      type: value.type,
+      ...shared,
+      frame: Number(value.frame),
+      packet: value.packet as unknown as NativeFramePacket,
+    };
+  }
   if (value.type === "startMp4") {
     exactKeys(value, [
       "type",

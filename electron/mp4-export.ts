@@ -22,6 +22,7 @@ const STALE_EXPORT_NAME =
 
 export type Mp4PixelFormat = "bgra" | "rgba";
 export type Mp4Encoder = "h264_nvenc" | "libx264";
+export type Mp4VideoEncoder = Mp4Encoder | "h264_mf";
 
 export interface Mp4ExportStartRequest {
   outputPath: string;
@@ -41,7 +42,7 @@ export interface Mp4ExportStartRequest {
 
 export interface Mp4ExportStarted {
   jobId: string;
-  encoder: Mp4Encoder;
+  encoder: Mp4VideoEncoder;
 }
 
 export interface Mp4ExportReport extends Mp4ExportStarted {
@@ -63,21 +64,28 @@ interface ProcessExit {
 
 export class Mp4ExportManager {
   readonly #ffmpegExecutable: string;
+  readonly #input: "raw" | "native-h264";
   #encoderProbe?: Promise<Mp4Encoder>;
   #active?: Mp4ExportSession;
 
-  constructor(ffmpegExecutable: string) {
+  constructor(ffmpegExecutable: string, input: "raw" | "native-h264" = "raw") {
     this.#ffmpegExecutable = ffmpegExecutable;
+    this.#input = input;
   }
 
   async start(value: unknown, ownerId: number): Promise<Mp4ExportStarted> {
     if (this.#active) throw new Error("Another MP4 export is already active");
     const request = await validateMp4ExportRequest(value);
     await removeStaleMp4ExportFiles(dirname(request.outputPath));
-    if (!this.#encoderProbe) this.#encoderProbe = selectEncoder(this.#ffmpegExecutable);
-    let encoder: Mp4Encoder;
+    let encoder: Mp4VideoEncoder;
     try {
-      encoder = await this.#encoderProbe;
+      if (this.#input === "native-h264") {
+        await assertFfmpegAvailable(this.#ffmpegExecutable);
+        encoder = "h264_mf";
+      } else {
+        if (!this.#encoderProbe) this.#encoderProbe = selectEncoder(this.#ffmpegExecutable);
+        encoder = await this.#encoderProbe;
+      }
     } catch (error) {
       this.#encoderProbe = undefined;
       throw error;
@@ -91,6 +99,15 @@ export class Mp4ExportManager {
     const session = this.#ownedSession(jobId, ownerId);
     if (!(pixels instanceof ArrayBuffer)) throw new Error("MP4 frame must be an ArrayBuffer");
     await session.write(pixels);
+  }
+
+  async writeEncoded(
+    jobId: string,
+    bytes: Uint8Array,
+    frameCount: number,
+    ownerId: number,
+  ): Promise<void> {
+    await this.#ownedSession(jobId, ownerId).writeEncoded(bytes, frameCount);
   }
 
   async writeAudio(jobId: unknown, samples: unknown, ownerId: number): Promise<void> {
@@ -174,7 +191,7 @@ class Mp4ExportSession {
   readonly jobId = randomUUID();
   readonly ownerId: number;
   readonly #request: ValidatedRequest;
-  readonly #encoder: Mp4Encoder;
+  readonly #encoder: Mp4VideoEncoder;
   readonly #temporaryPath: string;
   readonly #child: ChildProcessWithoutNullStreams;
   readonly #audioInput?: Writable;
@@ -185,9 +202,16 @@ class Mp4ExportSession {
   #receivedFrames = 0;
   #receivedAudioFrames = 0;
   #closed = false;
+  #cancelled = false;
+  #encodedWritePending = false;
   #exited?: ProcessExit;
 
-  constructor(executable: string, request: ValidatedRequest, encoder: Mp4Encoder, ownerId: number) {
+  constructor(
+    executable: string,
+    request: ValidatedRequest,
+    encoder: Mp4VideoEncoder,
+    ownerId: number,
+  ) {
     this.ownerId = ownerId;
     this.#request = request;
     this.#encoder = encoder;
@@ -217,6 +241,7 @@ class Mp4ExportSession {
   }
 
   async write(pixels: ArrayBuffer): Promise<void> {
+    if (this.#encoder === "h264_mf") throw new Error("Native MP4 requires encoded packets");
     if (this.#closed) throw new Error("MP4 export input is already closed");
     if (this.#receivedFrames >= this.#request.frameCount)
       throw new Error("MP4 export received more frames than declared");
@@ -229,6 +254,29 @@ class Mp4ExportSession {
     this.#assertRunning();
     this.#receivedFrames += 1;
     if (this.#receivedFrames === this.#request.frameCount) this.#child.stdin.end();
+  }
+
+  async writeEncoded(bytes: Uint8Array, frameCount: number): Promise<void> {
+    if (this.#closed || this.#encodedWritePending || this.#encoder !== "h264_mf")
+      throw new Error("Encoded MP4 input is unavailable");
+    if (
+      !Number.isSafeInteger(frameCount) ||
+      frameCount < 1 ||
+      this.#receivedFrames + frameCount > this.#request.frameCount ||
+      bytes.byteLength < 5 ||
+      bytes.byteLength > MAX_FRAME_BYTES
+    )
+      throw new Error("Encoded MP4 batch exceeds its declared bounds");
+    this.#assertRunning();
+    this.#encodedWritePending = true;
+    try {
+      await writeChunk(this.#child.stdin, Buffer.from(bytes));
+      this.#assertRunning();
+      this.#receivedFrames += frameCount;
+      if (this.#receivedFrames === this.#request.frameCount) this.#child.stdin.end();
+    } finally {
+      this.#encodedWritePending = false;
+    }
   }
 
   async writeAudio(samples: ArrayBuffer): Promise<void> {
@@ -273,6 +321,7 @@ class Mp4ExportSession {
       const exit = await this.#exit;
       if (exit.code !== 0) throw this.#processError(exit);
       const metadata = await stat(this.#temporaryPath);
+      if (this.#cancelled) throw new Error("MP4 export was cancelled before publication");
       await publishOutput(this.#temporaryPath, this.#request.outputPath);
       return {
         jobId: this.jobId,
@@ -296,16 +345,22 @@ class Mp4ExportSession {
   }
 
   async cancel(): Promise<void> {
-    if (!this.#closed) {
-      this.#closed = true;
-      this.#child.stdin.destroy();
-      this.#audioInput?.destroy();
-      if (this.#exited === undefined) this.#child.kill();
+    this.#cancelled = true;
+    this.#closed = true;
+    this.#child.stdin.destroy();
+    this.#audioInput?.destroy();
+    if (this.#exited === undefined) this.#child.kill();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await Promise.race([
+        this.#exit.catch(() => undefined),
+        new Promise<void>((resolveTimeout) => {
+          timer = setTimeout(resolveTimeout, CANCEL_TIMEOUT_MS);
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
     }
-    await Promise.race([
-      this.#exit.catch(() => undefined),
-      new Promise<void>((resolveTimeout) => setTimeout(resolveTimeout, CANCEL_TIMEOUT_MS)),
-    ]);
     if (this.#exited === undefined) this.#child.kill("SIGKILL");
     await this.#removeTemporary();
   }
@@ -536,7 +591,7 @@ async function probeEncoder(executable: string, encoder: Mp4Encoder): Promise<bo
 
 export function buildExportArguments(
   request: ValidatedRequest,
-  encoder: Mp4Encoder,
+  encoder: Mp4VideoEncoder,
   temporaryPath: string,
 ): string[] {
   const audioInput = request.audio
@@ -554,19 +609,31 @@ export function buildExportArguments(
   const audioOutput = request.audio
     ? ["-map", "1:a:0", "-c:a", "aac", "-b:a", "192k", "-ar", request.audio.sampleRate.toString()]
     : ["-an"];
+  const native = encoder === "h264_mf";
+  const videoInput = native
+    ? ["-r", `${request.frameRateNumerator}/${request.frameRateDenominator}`, "-f", "h264"]
+    : [
+        "-f",
+        "rawvideo",
+        "-pix_fmt",
+        request.pixelFormat,
+        "-video_size",
+        `${request.width}x${request.height}`,
+        "-framerate",
+        `${request.frameRateNumerator}/${request.frameRateDenominator}`,
+      ];
+  const videoOutput = native
+    ? ["-c:v", "copy"]
+    : ["-c:v", encoder, ...encoderOptions(encoder, request.videoBitrateBps), "-pix_fmt", "yuv420p"];
+  const timestamps = native
+    ? `setts=ts=N*${request.frameRateDenominator}:duration=${request.frameRateDenominator}:time_base=1/${request.frameRateNumerator},`
+    : "";
   return [
     "-hide_banner",
     "-v",
     "error",
     "-nostdin",
-    "-f",
-    "rawvideo",
-    "-pix_fmt",
-    request.pixelFormat,
-    "-video_size",
-    `${request.width}x${request.height}`,
-    "-framerate",
-    `${request.frameRateNumerator}/${request.frameRateDenominator}`,
+    ...videoInput,
     "-i",
     "pipe:0",
     ...audioInput,
@@ -575,11 +642,7 @@ export function buildExportArguments(
     ...audioOutput,
     "-sn",
     "-dn",
-    "-c:v",
-    encoder,
-    ...encoderOptions(encoder, request.videoBitrateBps),
-    "-pix_fmt",
-    "yuv420p",
+    ...videoOutput,
     "-color_range",
     "tv",
     "-colorspace",
@@ -589,7 +652,7 @@ export function buildExportArguments(
     "-color_trc",
     "bt709",
     "-bsf:v",
-    "h264_metadata=video_full_range_flag=0:colour_primaries=1:transfer_characteristics=1:matrix_coefficients=1",
+    `${timestamps}h264_metadata=video_full_range_flag=0:colour_primaries=1:transfer_characteristics=1:matrix_coefficients=1`,
     "-frames:v",
     request.frameCount.toString(),
     "-movflags",

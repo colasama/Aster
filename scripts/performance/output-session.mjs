@@ -204,6 +204,7 @@ export class PerformanceOutputSession {
       videoBitrateBps: payload.videoBitrateBps,
       ...(audio ? { audio: { ...audio } } : {}),
     };
+    this.report.videoBitrateBps = payload.videoBitrateBps;
     if (benchmark.mode === "full-mp4") {
       await mkdir(join(this.#directory, ".."), { recursive: true });
       // A fresh private directory prevents the production publisher from replacing user output.

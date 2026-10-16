@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
+import { nativeReleaseBuild } from "../native-build.mjs";
 import { runPixelGate } from "../parity/pixel-gate.mjs";
 import { captureSource } from "../parity/provenance.mjs";
 import { auditAuxiliaryGenerators } from "./auxiliary-generators-gate.mjs";
@@ -61,14 +62,7 @@ export async function verifyTsPixels(options, dependencies = {}) {
       path: manifestPath,
       sha256: manifestFile.sha256,
     };
-    report.build = await execute(
-      {
-        id: "compare-build",
-        file: "cargo",
-        args: ["build", "--release", "-p", "aster-desktop-bridge", "-p", "aster-render-cli"],
-      },
-      context,
-    );
+    report.build = await execute(nativeReleaseBuild("compare-build"), context);
     assert.equal(report.build.status, "passed", "Comparison CLI build failed");
     assert.equal(report.build.exit_code, 0, "Comparison CLI build exited unsuccessfully");
     report.renderer_source = await rendererSource(root);

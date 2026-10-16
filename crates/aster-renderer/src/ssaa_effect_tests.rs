@@ -101,6 +101,7 @@ impl ResolutionExperiment {
                     enabled: false,
                     statistics: Default::default(),
                 },
+                None,
             ),
             &renderer.output,
         )?;
@@ -227,6 +228,8 @@ fn ssaa_effect_resolution_gpu_evaluation() -> Result<(), Box<dyn std::error::Err
         }),
         gpu_budget_bytes: 128 * 1024 * 1024,
         layer_cache_bytes: 0,
+        effect_pipeline_entries: 16,
+        gpu_timestamps: false,
         effect_regions: false,
         timeout: Duration::from_secs(30),
     })?;

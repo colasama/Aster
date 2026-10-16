@@ -4,6 +4,7 @@ import { posix, resolve } from "node:path";
 import { auditCandidate } from "./m0-captures.mjs";
 import { evidencePath, validSha } from "./m0-evidence.mjs";
 import { auditComparisonEvidence } from "./m0-pixels.mjs";
+import { auditMaterialReferenceRepairs } from "./material-reference-repair.mjs";
 
 function bounded(value, maximum, name) {
   assert(Number.isFinite(value) && value >= 0 && value <= maximum, `${name} exceeds its limit`);
@@ -105,6 +106,13 @@ export async function auditReferenceRepairs(reader, ledger, corpus, references, 
   const repairs = [];
   const seen = new Set();
   const snapshots = new Map();
+  const materialRepairs = await auditMaterialReferenceRepairs(
+    reader,
+    ledger,
+    corpus,
+    references,
+    definitions,
+  );
   const catalog = definitions.length
     ? await reader.json("tests/parity/tolerances.json", catalogHash)
     : null;
@@ -118,6 +126,13 @@ export async function auditReferenceRepairs(reader, ledger, corpus, references, 
     );
     assert(!seen.has(key), "Duplicate reference repair");
     seen.add(key);
+    const material = materialRepairs.get(key);
+    if (material) {
+      effective.set(key, material.replacement);
+      repairs.push(material.evidence);
+      continue;
+    }
+    assert(repair.kind === undefined, "Unknown reference repair kind");
     for (const name of ["directory", "capture_report", "candidate_manifest", "approval_review"])
       evidencePath(repair[name]);
     assert.equal(

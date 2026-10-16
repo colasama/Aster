@@ -19,17 +19,23 @@ export async function sourceProvenance(root) {
     .filter(Boolean)
     .sort();
   const hash = createHash("sha256");
+  const execution = createHash("sha256");
   for (const file of files) {
     hash.update(`${file}\0`);
+    let identity;
     try {
       const path = join(root, file);
       const info = await lstat(path);
-      hash.update(info.isSymbolicLink() ? await readlink(path) : await hashFile(path));
+      identity = info.isSymbolicLink() ? await readlink(path) : await hashFile(path);
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
-      hash.update("<deleted>");
+      identity = "<deleted>";
     }
+    hash.update(identity);
     hash.update("\0");
+    // Resume may add reviews/checkpoints, but must never reuse changed executable or fixture sources.
+    if (file !== "docs/migration/rust-renderer-progress.json")
+      execution.update(`${file}\0${identity}\0`);
   }
   const status = git("status", "--porcelain=v1", "--untracked-files=all");
   return {
@@ -38,6 +44,7 @@ export async function sourceProvenance(root) {
     dirty: status.length > 0,
     status: status.split("\n").filter(Boolean),
     source_sha256: hash.digest("hex"),
+    execution_sha256: execution.digest("hex"),
     source_file_count: files.length,
     source_scope: "git tracked and non-ignored untracked files, including deletions",
   };

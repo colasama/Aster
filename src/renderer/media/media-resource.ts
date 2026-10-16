@@ -18,9 +18,13 @@ export interface MediaResource {
   textBounds?: TextRasterBounds;
   textSignature?: string;
   video?: HTMLVideoElement;
+  /** This generation supplies descriptors for native file decode and has no browser pixels. */
+  nativeVideoPlan?: boolean;
+  cancelVideoPreparation?: () => void;
   videoCanvas?: HTMLCanvasElement;
   videoContext?: CanvasRenderingContext2D;
   videoExternalUpload?: VideoExternalUpload;
+  /** Browser upload clock, or its equivalent selection clock for native-only planning. */
   lastUploadedTime?: number;
   uploadErrorReported?: boolean;
 }
@@ -88,6 +92,7 @@ export function destroyMediaResource(resource?: MediaResource): void {
   state.retired = true;
   if (state.pins > 0 || state.destroyed) return;
   state.destroyed = true;
+  resource.cancelVideoPreparation?.();
   resource.videoExternalUpload?.destroy();
   resource.video?.pause();
   if (resource.videoCanvas) {

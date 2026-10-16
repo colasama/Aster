@@ -24,6 +24,7 @@ pub struct NativeTextureResources {
     pub pixels: Vec<DecodedTexturePixels>,
     pub receipts: Vec<NativeTextureReceipt>,
     pub cache: MediaCacheStatistics,
+    installed: Vec<ResourceHash>,
 }
 
 impl NativeTextureArgs {
@@ -99,9 +100,28 @@ impl NativeTextureResources {
             result.receipts.push(decoded.receipt);
         }
         for (request, bytes) in staged {
-            registry.put(request, bytes)?;
+            let added = registry.descriptor(&request.hash).is_err();
+            let hash = request.hash.clone();
+            if let Err(error) = registry.put(request, bytes) {
+                result.release(registry)?;
+                return Err(error.into());
+            }
+            if added {
+                result.installed.push(hash);
+            }
         }
         result.cache = session.statistics();
         Ok(result)
+    }
+
+    /// Release only decoded entries created by this request; caller-supplied resources stay owned.
+    pub fn release(
+        &mut self,
+        registry: &mut ResourceRegistry,
+    ) -> Result<(), aster_render_ir::IrError> {
+        for hash in self.installed.drain(..) {
+            registry.evict(&hash)?;
+        }
+        Ok(())
     }
 }

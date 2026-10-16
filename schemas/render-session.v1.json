@@ -1,0 +1,645 @@
+{
+  "$defs": {
+    "AdapterLuid": {
+      "additionalProperties": false,
+      "properties": {
+        "high": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "low": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": ["low", "high"],
+      "type": "object"
+    },
+    "BufferResourceDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "byte_length": {
+          "format": "uint32",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "element_count": {
+          "format": "uint32",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "element_type": {
+          "$ref": "#/$defs/ElementType"
+        }
+      },
+      "required": ["element_type", "element_count", "byte_length"],
+      "type": "object"
+    },
+    "CompositionIdentity": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/Utf16CompositionIdentity"
+        }
+      ]
+    },
+    "ElementType": {
+      "enum": ["u8", "u32_le", "f32_le"],
+      "type": "string"
+    },
+    "EncodedTextureDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "color_space_conversion": {
+          "$ref": "#/$defs/TextureColorConversion"
+        },
+        "encoding": {
+          "$ref": "#/$defs/TextureEncoding"
+        },
+        "format": {
+          "$ref": "#/$defs/TexturePixelFormat"
+        }
+      },
+      "required": ["encoding", "format", "color_space_conversion"],
+      "type": "object"
+    },
+    "ExportVideoConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "bitrate_bps": {
+          "format": "uint32",
+          "maximum": 1000000000,
+          "minimum": 64000,
+          "type": "integer"
+        },
+        "frame_rate": {
+          "$ref": "#/$defs/RationalFrameRate"
+        },
+        "size": {
+          "$ref": "#/$defs/Extent2d"
+        }
+      },
+      "required": ["size", "frame_rate", "bitrate_bps"],
+      "type": "object"
+    },
+    "Extent2d": {
+      "additionalProperties": false,
+      "properties": {
+        "height": {
+          "format": "uint32",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "width": {
+          "format": "uint32",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": ["width", "height"],
+      "type": "object"
+    },
+    "FrameTime": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "rational",
+              "type": "string"
+            },
+            "scale": {
+              "format": "uint32",
+              "minimum": 1,
+              "type": "integer"
+            },
+            "value": {
+              "format": "int64",
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            }
+          },
+          "required": ["kind", "value", "scale"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "exponent": {
+              "format": "int16",
+              "maximum": 1023,
+              "minimum": -1074,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "binary_rational",
+              "type": "string"
+            },
+            "negative": {
+              "type": "boolean"
+            },
+            "significand": {
+              "format": "uint64",
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": ["kind", "negative", "significand", "exponent"],
+          "type": "object"
+        }
+      ]
+    },
+    "MediaFrameDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "$ref": "#/$defs/MediaTextureFormat"
+        },
+        "height": {
+          "format": "uint32",
+          "maximum": 16384,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "sample": {
+          "$ref": "#/$defs/MediaSample"
+        },
+        "source": {
+          "$ref": "#/$defs/ResourceHash"
+        },
+        "width": {
+          "format": "uint32",
+          "maximum": 16384,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": ["source", "sample", "width", "height", "format"],
+      "type": "object"
+    },
+    "MediaKind": {
+      "enum": ["image", "sequence", "video", "raster"],
+      "type": "string"
+    },
+    "MediaSample": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "image",
+              "type": "string"
+            }
+          },
+          "required": ["kind"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "bounds_f64_le": {
+              "description": "x/y/width/height, each represented by two little-endian IEEE-754 f64 words.",
+              "items": {
+                "format": "uint32",
+                "minimum": 0,
+                "type": "integer"
+              },
+              "maxItems": 8,
+              "minItems": 8,
+              "type": "array"
+            },
+            "kind": {
+              "const": "raster",
+              "type": "string"
+            },
+            "origin": {
+              "$ref": "#/$defs/RasterOrigin"
+            }
+          },
+          "required": ["kind", "origin", "bounds_f64_le"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "file_identity": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "frame": {
+              "format": "int64",
+              "maximum": 9007199254740991,
+              "minimum": -9007199254740991,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "sequence",
+              "type": "string"
+            }
+          },
+          "required": ["kind", "frame", "file_identity"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "video",
+              "type": "string"
+            },
+            "requested_time": {
+              "$ref": "#/$defs/FrameTime"
+            },
+            "uploaded_time": {
+              "$ref": "#/$defs/FrameTime"
+            }
+          },
+          "required": ["kind", "requested_time", "uploaded_time"],
+          "type": "object"
+        }
+      ]
+    },
+    "MediaSourceDescriptor": {
+      "additionalProperties": false,
+      "description": "The job broker resolves this identity; a descriptor never grants filesystem access.",
+      "properties": {
+        "authorization_scope": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "content_identity": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "media_kind": {
+          "$ref": "#/$defs/MediaKind"
+        },
+        "source_id": {
+          "$ref": "#/$defs/CompositionIdentity"
+        }
+      },
+      "required": ["source_id", "content_identity", "authorization_scope", "media_kind"],
+      "type": "object"
+    },
+    "MediaTextureFormat": {
+      "enum": ["rgba8unorm-srgb", "rgba16float"],
+      "type": "string"
+    },
+    "PutResource": {
+      "additionalProperties": false,
+      "properties": {
+        "descriptor": {
+          "$ref": "#/$defs/ResourceDescriptor"
+        },
+        "hash": {
+          "$ref": "#/$defs/ResourceHash"
+        },
+        "kind": {
+          "$ref": "#/$defs/ResourceKind"
+        }
+      },
+      "required": ["hash", "kind", "descriptor"],
+      "type": "object"
+    },
+    "RasterOrigin": {
+      "enum": ["text", "svg", "psd"],
+      "type": "string"
+    },
+    "RasterPixelsDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "$ref": "#/$defs/MediaTextureFormat"
+        },
+        "frame": {
+          "$ref": "#/$defs/ResourceHash"
+        },
+        "height": {
+          "format": "uint32",
+          "maximum": 16384,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "width": {
+          "format": "uint32",
+          "maximum": 16384,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": ["frame", "width", "height", "format"],
+      "type": "object"
+    },
+    "RationalFrameRate": {
+      "additionalProperties": false,
+      "properties": {
+        "denominator": {
+          "format": "uint32",
+          "minimum": 1,
+          "type": "integer"
+        },
+        "numerator": {
+          "format": "uint32",
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": ["numerator", "denominator"],
+      "type": "object"
+    },
+    "ResourceDescriptor": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BufferResourceDescriptor"
+        },
+        {
+          "$ref": "#/$defs/MediaSourceDescriptor"
+        },
+        {
+          "$ref": "#/$defs/MediaFrameDescriptor"
+        },
+        {
+          "$ref": "#/$defs/RasterPixelsDescriptor"
+        },
+        {
+          "$ref": "#/$defs/TexturePixelsDescriptor"
+        },
+        {
+          "$ref": "#/$defs/EncodedTextureDescriptor"
+        }
+      ]
+    },
+    "ResourceHash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "ResourceKind": {
+      "enum": [
+        "buffer",
+        "media_source",
+        "media_frame",
+        "raster_pixels",
+        "texture_pixels",
+        "encoded_texture"
+      ],
+      "type": "string"
+    },
+    "SessionCommand": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "adapter_luid": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/AdapterLuid"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": {
+              "const": "probe",
+              "type": "string"
+            },
+            "video": {
+              "$ref": "#/$defs/ExportVideoConfig"
+            }
+          },
+          "required": ["type", "video"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "payload_bytes": {
+              "format": "uint32",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "resource": {
+              "$ref": "#/$defs/PutResource"
+            },
+            "type": {
+              "const": "put_resource",
+              "type": "string"
+            }
+          },
+          "required": ["type", "resource", "payload_bytes"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "hash": {
+              "$ref": "#/$defs/ResourceHash"
+            },
+            "type": {
+              "const": "evict_resource",
+              "type": "string"
+            }
+          },
+          "required": ["type", "hash"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "plan_bytes": {
+              "format": "uint32",
+              "minimum": 32,
+              "type": "integer"
+            },
+            "type": {
+              "const": "check_frame",
+              "type": "string"
+            }
+          },
+          "required": ["type", "plan_bytes"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "plan_bytes": {
+              "format": "uint32",
+              "minimum": 32,
+              "type": "integer"
+            },
+            "type": {
+              "const": "warm_frame",
+              "type": "string"
+            }
+          },
+          "required": ["type", "plan_bytes"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "frame_count": {
+              "format": "uint64",
+              "maximum": 9007199254740991,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "type": {
+              "const": "begin_export",
+              "type": "string"
+            },
+            "video": {
+              "$ref": "#/$defs/ExportVideoConfig"
+            }
+          },
+          "required": ["type", "video", "frame_count"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "frame_index": {
+              "format": "uint64",
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "plan_bytes": {
+              "format": "uint32",
+              "minimum": 32,
+              "type": "integer"
+            },
+            "type": {
+              "const": "render_frame",
+              "type": "string"
+            }
+          },
+          "required": ["type", "plan_bytes", "frame_index"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "finish_export",
+              "type": "string"
+            }
+          },
+          "required": ["type"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "cancel_export",
+              "type": "string"
+            }
+          },
+          "required": ["type"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "shutdown",
+              "type": "string"
+            }
+          },
+          "required": ["type"],
+          "type": "object"
+        }
+      ]
+    },
+    "TextureColorConversion": {
+      "enum": ["none"],
+      "type": "string"
+    },
+    "TextureDimension": {
+      "enum": ["2d", "3d"],
+      "type": "string"
+    },
+    "TextureEncoding": {
+      "enum": ["png", "jpeg", "webp"],
+      "type": "string"
+    },
+    "TexturePixelFormat": {
+      "enum": ["rgba8unorm", "rgba16float"],
+      "type": "string"
+    },
+    "TexturePixelsDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "depth": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "dimension": {
+          "$ref": "#/$defs/TextureDimension"
+        },
+        "format": {
+          "$ref": "#/$defs/TexturePixelFormat"
+        },
+        "height": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "width": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": ["dimension", "width", "height", "depth", "format"],
+      "type": "object"
+    },
+    "Utf16CompositionIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "utf16_units": {
+          "items": {
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": ["utf16_units"],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "command": {
+      "$ref": "#/$defs/SessionCommand"
+    },
+    "request_id": {
+      "format": "uint64",
+      "maximum": 9007199254740991,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "version": {
+      "format": "uint32",
+      "maximum": 1,
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": ["version", "request_id", "command"],
+  "title": "SessionRequest",
+  "type": "object"
+}

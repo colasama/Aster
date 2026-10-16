@@ -8,7 +8,7 @@ import { auditMediaCache } from "./m6-cache.mjs";
 import { auditTimedMedia } from "./m6-media.mjs";
 import { auditMixedMedia } from "./m6-mixed.mjs";
 import { auditGeneratorAudio, auditSceneLifetimes } from "./m7-lifetimes.mjs";
-import { validateM7Gates } from "./m7-scope.mjs";
+import { validateNativeSceneGates } from "./m7-scope.mjs";
 import { auditM7Supplements } from "./m7-supplements.mjs";
 
 /** Scene completion is bound to current execution, frozen inputs and reviewed pixel identities. */
@@ -21,6 +21,14 @@ export async function auditM7Exit(root, report) {
   for (const id of ["M7-T1", "M7-T2", "M7-T3", "M7-T4", "M7-T5"])
     assert.equal(milestone.tasks.find((t) => t.id === id)?.status, "done");
   assert(["in_progress", "done"].includes(milestone.tasks.find((t) => t.id === "M7-T6")?.status));
+  return {
+    ...(await auditNativeSceneExecution(reader, report, ledger, "M7")),
+    checked_files: await reader.stable(),
+  };
+}
+
+/** Reuse complete native scene provenance without relabelling an export report as an earlier milestone. */
+export async function auditNativeSceneExecution(reader, report, ledger, milestone) {
   const pin = ledger.milestones.find((m) => m.id === "M3");
   const manifest = await reader.json(pin.input_manifest.path, pin.input_manifest.sha256);
   assert.equal(
@@ -28,7 +36,11 @@ export async function auditM7Exit(root, report) {
     "passed",
   );
   const corpus = await reader.json("tests/parity/corpus.json", manifest.corpus_sha256);
-  const { native, selected, sequences, videos } = validateM7Gates(report, corpus);
+  const { native, selected, sequences, videos } = validateNativeSceneGates(
+    report,
+    corpus,
+    milestone,
+  );
   const output = posix.dirname(native.build.log);
   assert.deepEqual(await reader.json(`${output}/report.json`), native);
   assert.deepEqual(native.input_manifest, pin.input_manifest);
@@ -75,6 +87,5 @@ export async function auditM7Exit(root, report) {
       "Production preview/export routing remains in its integration milestones",
       "Pixel and lifetime evidence does not establish native export or preview performance",
     ],
-    checked_files: await reader.stable(),
   };
 }

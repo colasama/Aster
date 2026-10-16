@@ -14,7 +14,6 @@ import {
 } from "../core/rendering/gpu-memory-policy";
 import type { CachedPreviewFrame } from "../core/rendering/preview-frame-cache";
 import {
-  copyRenderSnapshotIdentity,
   type RenderSnapshotIdentity,
   validateRenderSnapshotIdentity,
 } from "../core/rendering/render-snapshot";
@@ -22,7 +21,10 @@ import { evaluateCameraBasis } from "../core/scene/camera-rig";
 import { flattenSceneLayers } from "../core/scene/scene-evaluation";
 import type { Composition, GpuDiagnostics, Project, RendererMetrics } from "../core/types";
 import { requestPreferredGpuAdapter } from "../desktop/gpu-preference";
-import { buildProductionFrameBundle } from "./compositing/build-production-frame-bundle";
+import {
+  buildProductionFrameBundle,
+  buildProductionFrameBundleAsync,
+} from "./compositing/build-production-frame-bundle";
 import { configureFrameSources } from "./compositing/configure-frame-sources";
 import { planFrameOutput } from "./compositing/plan-frame-output";
 import { recordPlannedFrame } from "./compositing/record-planned-frame";
@@ -59,6 +61,10 @@ import {
 } from "./gpu/frame-readback";
 import { planGpuMemory } from "./gpu/gpu-memory-budget";
 import { initializeGpuResources } from "./gpu/initialize-gpu-resources";
+import type {
+  ProductionFrameRequest,
+  RawProductionFrameRequest,
+} from "./gpu/production-capture-render";
 import {
   type CapturedProductionFrame,
   ProductionFrameCapture,
@@ -86,7 +92,11 @@ export class WebGpuRenderer {
   readonly #device: GPUDevice;
   readonly #context: GPUCanvasContext;
   readonly #format: GPUTextureFormat;
-  readonly #frameCaptures = new ProductionFrameCapture();
+  readonly #frameCaptures = new ProductionFrameCapture(() => ({
+    renderer: this,
+    pool: this.#resources.frameReadback,
+    resources: this.#frameResources,
+  }));
   #width = 1;
   #height = 1;
   #outputWidth = 1;
@@ -127,9 +137,18 @@ export class WebGpuRenderer {
     this.#antiAliasing = new AntiAliasingRenderer(device, format);
     this.#audioAnalysis = new AudioAnalysisProvider(invalidate);
     this.#cacheReadback = new GpuFrameReadbackPool(device, format);
+    const resources = this.#resources;
     this.#frameResources = combineFrameResourceBarriers(
-      this.#resources.mediaTextures,
+      resources.mediaTextures,
       this.#audioAnalysis,
+      {
+        get hasPendingFrameResources() {
+          return resources.materialTextures?.hasPendingResources ?? false;
+        },
+        async waitForFrameResources() {
+          await resources.materialTextures?.waitForFrameResources();
+        },
+      },
     );
   }
   static async create(
@@ -280,42 +299,18 @@ export class WebGpuRenderer {
       this.#resources.auxiliaryBuffers.depthOfFieldDiagnostic,
     );
   }
-  async renderRawFrame(
-    composition: Composition,
-    time: number,
-    snapshot: RenderSnapshotIdentity,
-    project?: Project,
-    synchronizeVideo = false,
-    destination?: ArrayBuffer,
-    captureBundle = false,
-  ): Promise<CapturedProductionFrame> {
+  async renderRawFrame(...args: RawProductionFrameRequest): Promise<CapturedProductionFrame> {
     this.#assertActive();
-    const capturedSnapshot = copyRenderSnapshotIdentity(snapshot);
-    // Video exports hold the discovery capture until every active video shows its exact frame,
-    // so the only readback submitted is the exact one.
-    return this.#frameCaptures.capture({
-      pool: this.#resources.frameReadback,
-      resources: this.#frameResources,
-      width: this.#outputWidth,
-      height: this.#outputHeight,
-      synchronizeVideo,
-      destination,
-      captureBundle,
-      render: (holdInexactVideo) => {
-        this.render(
-          composition,
-          time,
-          capturedSnapshot,
-          false,
-          project,
-          undefined,
-          true,
-          holdInexactVideo,
-        );
-        const error = this.productionRenderError;
-        if (error) throw new Error(error);
-      },
-    });
+    return this.#frameCaptures.captureFrame(...args);
+  }
+  /** Capture Phase A inputs without recording the final scene/output graph or reading its pixels. */
+  async planExportFrame(...args: ProductionFrameRequest) {
+    this.#assertActive();
+    return this.#frameCaptures.captureExportPlan(...args);
+  }
+  async planExportPacket(retained: ReadonlySet<string>, ...args: ProductionFrameRequest) {
+    this.#assertActive();
+    return this.#frameCaptures.captureExportPacket(retained, ...args);
   }
   /** Captures installed raster resources only when requested by the dedicated parity harness. */
   captureRasterResources(scope: string, known: Map<string, string>) {
@@ -389,7 +384,10 @@ export class WebGpuRenderer {
       this.#width,
       this.#height,
     );
-    resources.mediaTextures.beginFrame(this.#frameCaptures.capturesBundle);
+    resources.mediaTextures.beginFrame(
+      this.#frameCaptures.capturesBundle,
+      this.#frameCaptures.plansOnly,
+    );
     const motionBlurSettings = compositionMotionBlurSettings(composition);
     const previewResolutionScale = Math.max(
       this.#width / Math.max(1, composition.width),
@@ -766,7 +764,7 @@ export class WebGpuRenderer {
       compositionWidth: composition.width,
       selectedLayerId,
     });
-    const frameBundle = buildProductionFrameBundle({
+    const bundleInput = {
       scene: mediaPlan,
       root: rootPlan,
       post: postPlan,
@@ -777,7 +775,22 @@ export class WebGpuRenderer {
       surfaces: surfacePlans,
       mediaBindings,
       resources,
-    });
+    };
+    if (this.#frameCaptures.plansOnly) {
+      const metrics = this.#frameCaptures.submitPlan({
+        device: this.#device,
+        bundle: () => buildProductionFrameBundleAsync(bundleInput),
+        header: postPlan.metadata.header,
+        media: mediaBindings,
+        textures: resources.mediaTextures,
+        memory,
+        started,
+        cacheHitRate: this.#evaluationCache.hitRate(),
+      });
+      cacheCapture?.();
+      return metrics;
+    }
+    const frameBundle = buildProductionFrameBundle(bundleInput);
     const encoder = this.#device.createCommandEncoder({ label: "Aster frame render graph" });
     const outputTexture = this.#context.getCurrentTexture();
     const {

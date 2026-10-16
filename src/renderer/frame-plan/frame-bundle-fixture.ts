@@ -78,7 +78,7 @@ export function frameBundleFixtures() {
       }),
     };
     const recursive = empty ? undefined : precompositionBundleFixtures()[0];
-    const plannedBundle = buildFrameBundle({
+    const bundleInput = {
       scene,
       root: buildRootScenePlan(header, commands, draws),
       post: buildRootPostUniformPlan(input),
@@ -88,10 +88,12 @@ export function frameBundleFixtures() {
       generators: generators.map((plan) => ({ plan, capacity: plan.capacity })),
       resources: [],
       precompositions: recursive?.bundle,
-    });
+    };
+    const plannedBundle = buildFrameBundle(bundleInput);
     const frameBundle = withFrameBundleMedia(plannedBundle, recursive?.mediaPixels ?? []);
     return {
       id: empty ? "frame-bundle-empty" : "frame-bundle-programs-recursive",
+      input: bundleInput,
       frameBundle,
       bytes: encodeFramePlan(frameBundle.plan.metadata, frameBundle.plan.blobs),
     };

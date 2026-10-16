@@ -53,6 +53,11 @@ fn cli_exit_codes_and_atomic_evidence_follow_pixel_outcomes()
     assert_eq!(unchanged.status.code(), Some(0));
     let report: serde_json::Value = serde_json::from_slice(&unchanged.stdout)?;
     assert_eq!(report["report"]["comparison"]["passed"], true);
+    assert!(
+        report["report"]["context"]
+            .get("g5_uniform_reference")
+            .is_none()
+    );
     for file in ["report.json", "heatmap.png", "contact-sheet.png"] {
         assert!(fixture.root.join("equal").join(file).is_file());
     }

@@ -4,6 +4,7 @@ import { validateReport } from "../parity/pixel-gate.mjs";
 import { PixelInputs } from "../parity/pixel-inputs.mjs";
 import { reviewStatus } from "../parity/pixel-review.mjs";
 import { validateNativeReceipt } from "./native-core-gate.mjs";
+import { suppliedFrameRecord } from "./supplied-frame-inputs.mjs";
 
 export function validateCurrentStep(step, startedAt, rejected = false, rejectionExitCode = 2) {
   assert.equal(step.status, rejected ? "failed" : "passed");
@@ -63,15 +64,28 @@ export async function auditNativePixels(reader, group, corpus, report, base, dec
     }
     const receipts = receiptsByLog.get(execution.step.log);
     assert.deepEqual(receipts[execution.receipt.frame_index], execution.receipt);
+    const repair = inputs.ledger.reference_repairs?.find(
+      (r) =>
+        r.kind === "material-ready-first-frame-reference-repair-v1" &&
+        r.case_id === entry.case_id &&
+        r.frame === entry.frame,
+    );
+    let suppliedBase = base;
+    if (repair) {
+      const pin = inputs.ledger.milestones.find((m) => m.id === "M3").input_manifest;
+      const manifest = await reader.json(pin.path, pin.sha256);
+      suppliedBase = (await suppliedFrameRecord(reader, entry.item, entry.frame, base, manifest))
+        .base;
+    }
     assert.equal(
       execution.input.path,
-      `${base}/${entry.case_id}/${entry.frame}/${decoded ? "plan" : "replay"}.fpln`,
+      `${suppliedBase}/${entry.case_id}/${entry.frame}/${decoded ? "plan" : "replay"}.fpln`,
     );
     const plan = await reader.bytes(execution.input.path, execution.input.sha256);
     assert.equal(execution.output.path, relative(reader.root, entry.path).replaceAll("\\", "/"));
     const pixels = await reader.image(execution.output.path, execution.output.sha256);
     assert.equal(pixels.png_sha256, entry.png_sha256);
-    const meta = await reader.json(`${base}/${entry.case_id}/${entry.frame}/meta.json`);
+    const meta = await reader.json(`${suppliedBase}/${entry.case_id}/${entry.frame}/meta.json`);
     validateNativeReceipt(execution.receipt, {
       plan_sha256: plan.sha256,
       rgba_sha256: pixels.rgba_sha256,
@@ -94,7 +108,12 @@ export async function auditNativePixels(reader, group, corpus, report, base, dec
       await reader.bytes(evidence[name], evidence[`${name}_sha256`]);
     if (decoded) {
       assert.equal(execution.receipt.native_images.length, 1);
-      assert.equal(execution.receipt.native_images[0].backend, "ffmpeg-still-snapshot");
+      assert.equal(
+        execution.receipt.native_images[0].backend,
+        process.platform === "win32" && entry.case_id === "media-png"
+          ? "windows-wic-png-snapshot"
+          : "ffmpeg-still-snapshot",
+      );
       assert(execution.receipt.image_cache.uploads > 0);
     }
   }

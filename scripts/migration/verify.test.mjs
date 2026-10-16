@@ -34,6 +34,93 @@ async function fakeHook(command, context) {
 
 const provenance = async () => ({ source_sha256: "source-123", commit: "123", dirty: true });
 
+test("M8 completion requires a successful exit audit after every full gate passes", async (t) => {
+  for (const accepted of [false, true]) {
+    const context = await fixture(t);
+    await writeAtomicJson(context.ledger, {
+      status: "running",
+      milestones: [
+        {
+          id: "M8",
+          status: "in_progress",
+          gates: ["G0", "G3", "G4", "G5", "G6"],
+          tasks: [{ id: "M8-T8", status: "in_progress" }],
+        },
+      ],
+    });
+    let audited = false;
+    const result = await verifyMigration(context, {
+      provenance,
+      execute: fakeHook,
+      runNativeCoreGate: async () => ({ id: "G3", status: "passed" }),
+      runNativePerformanceGate: async () => ({ id: "G4", status: "passed" }),
+      runNativeExportGate: async () => ({ id: "G5", status: "passed" }),
+      runNativeAppGate: async (appContext) => {
+        const report = { id: "G6", status: "passed" };
+        await writeAtomicJson(join(appContext.output, "report.json"), report);
+        return report;
+      },
+      auditM8Exit: async () => {
+        audited = true;
+        if (!accepted) throw new Error("Unreviewed encoded frame");
+        return { status: "passed" };
+      },
+    });
+    assert(audited);
+    assert.equal(result.report.required_gates_passed, true);
+    assert.equal(result.report.milestone_exit_satisfied, accepted);
+    assert.equal(result.exitCode, accepted ? 0 : 1);
+  }
+});
+
+test("M8 uses native pixels and never promotes session checks to export acceptance", async (t) => {
+  const context = await fixture(t);
+  await writeAtomicJson(context.ledger, {
+    status: "running",
+    milestones: [
+      {
+        id: "M8",
+        status: "in_progress",
+        gates: ["G0", "G3", "G4", "G5", "G6"],
+        tasks: [{ id: "M8-T1", status: "in_progress" }],
+      },
+    ],
+  });
+  let called = false;
+  const result = await verifyMigration(context, {
+    provenance,
+    execute: fakeHook,
+    runNativePerformanceGate: async (nativeContext) => {
+      assert.equal(nativeContext.milestone, "M8");
+      return { id: "G4", status: "failed", error: "Native median FPS is lower" };
+    },
+    runNativeAppGate: async (appContext) => {
+      const report = { id: "G6", status: "passed" };
+      await writeAtomicJson(join(appContext.output, "report.json"), report);
+      return report;
+    },
+    runNativeExportGate: async (nativeContext) => {
+      assert.equal(nativeContext.milestone, "M8");
+      assert(nativeContext.appEvidence?.sha256);
+      assert.equal(JSON.parse(await readFile(nativeContext.appEvidence.path, "utf8")).id, "G6");
+      return { id: "G5", status: "failed", error: "Missing corpus export quality" };
+    },
+    runNativeCoreGate: async (nativeContext) => {
+      assert.equal(nativeContext.milestone, "M8");
+      called = true;
+      return { id: "G3", status: "passed", full_coverage: false, milestone_exit_eligible: false };
+    },
+  });
+  assert(called);
+  assert.equal(result.report.required_gates_passed, false);
+  assert.equal(result.report.milestone_exit_satisfied, false);
+  assert.equal(result.report.gates.find((g) => g.id === "G6").status, "passed");
+  for (const id of ["G4", "G5"]) {
+    assert.equal(result.report.gates.find((g) => g.id === id).status, "failed");
+  }
+  assert.equal(result.exitCode, 1);
+});
+
 test("passing native geometry gates cannot establish the full M3 exit", async (t) => {
   const context = await fixture(t);
   await writeAtomicJson(context.ledger, {
@@ -61,6 +148,34 @@ test("passing native geometry gates cannot establish the full M3 exit", async (t
   assert.equal(result.report.required_gates_passed, true);
   assert.equal(result.report.milestone_exit_satisfied, false);
   assert.equal(result.exitCode, 0);
+});
+
+test("M8 quick mode skips export execution without claiming full gate or milestone acceptance", async (t) => {
+  const context = await fixture(t);
+  await writeAtomicJson(context.ledger, {
+    status: "running",
+    milestones: [
+      {
+        id: "M8",
+        status: "in_progress",
+        gates: ["G0", "G3", "G4", "G5", "G6"],
+        tasks: [{ id: "M8-T1", status: "in_progress" }],
+      },
+    ],
+  });
+  const result = await verifyMigration(
+    { ...context, quick: true },
+    {
+      provenance,
+      execute: fakeHook,
+      runNativeExportGate: async () => {
+        throw Error("Quick mode must not encode clips");
+      },
+    },
+  );
+  assert.equal(result.report.gates.find((gate) => gate.id === "G5").status, "skipped");
+  assert.equal(result.report.required_gates_passed, false);
+  assert.equal(result.report.milestone_exit_satisfied, false);
 });
 
 test("M5 raster increments require IR and native pixels without claiming temporal completion", async (t) => {
@@ -327,6 +442,23 @@ test("a zero-exit lefthook without step evidence cannot pass G0", async (t) => {
   const gate = await runStaticGate(context, false, async () => ({ status: "passed" }));
   assert.equal(gate.status, "failed");
   assert.match(gate.error, /Missing or invalid/);
+});
+
+test("static directory reuse rejects before running checks or replacing existing evidence", async (t) => {
+  const context = await fixture(t);
+  const path = join(context.output, "static-results.json");
+  await writeAtomicJson(path, { quick: false, steps: [{ id: "cargo-fmt", status: "passed" }] });
+  const original = await readFile(path);
+  let calls = 0;
+  await assert.rejects(
+    runStaticChecks(context, false, async () => {
+      calls++;
+      return { status: "failed" };
+    }),
+    /Static evidence already exists/,
+  );
+  assert.equal(calls, 0);
+  assert.deepEqual(await readFile(path), original);
 });
 
 test("full static failure propagates while every required check is still recorded", async (t) => {

@@ -7,6 +7,7 @@ import { build, preview } from "vite";
 import { runStep } from "./migration/process.mjs";
 import { writeAtomicJson } from "./migration/report.mjs";
 import { sourceProvenance } from "./migration/source.mjs";
+import { nativeReleaseBuild } from "./native-build.mjs";
 import { publishCandidateCapture } from "./parity/candidate-capture.mjs";
 import { publishCaptures } from "./parity/capture-store.mjs";
 import { captureAssignments, captureSource, digest } from "./parity/provenance.mjs";
@@ -41,11 +42,7 @@ const context = { root, output: runDirectory, env: process.env, print: console.l
 const sourceBeforeBuild = await sourceProvenance(root);
 for (const command of [
   { id: "capture-electron-build", file: "pnpm", args: ["electron:compile"] },
-  {
-    id: "capture-bridge-build",
-    file: "cargo",
-    args: ["build", "--release", "-p", "aster-desktop-bridge", "-p", "aster-render-cli"],
-  },
+  nativeReleaseBuild("capture-bridge-build"),
 ]) {
   const result = await runStep(command, context);
   if (result.status !== "passed") throw new Error(`Capture prerequisite failed: ${command.id}`);
