@@ -363,96 +363,16 @@
     }
   },
   "last_cycle": {
-    "id": 117,
-    "time": "2026-10-20T13:56:55.041Z",
+    "id": 118,
+    "time": "2026-10-20T13:58:16.324Z",
+    "updated_at": "2026-10-20T14:01:45.611Z",
     "milestone": "M9",
-    "task": "M9-T19",
-    "outcome": "passed",
-    "commit": "63e99625bc59e1c262c75a97e24f5b26595d5410",
-    "verification": {
-      "path": "artifacts/migration/verify-2026-10-20T07-49-52-871Z-5959cc44.json",
-      "sha256": "91522549bb9ff6f1d0ae733f160b3c445c5a0ff16d1c6965bba8a591a64f1fb2"
-    },
-    "gates": [
-      {
-        "id": "G0",
-        "status": "passed",
-        "proof": {
-          "path": "artifacts/migration/2026-10-20T07-49-52-871Z-5959cc44/static-results.json",
-          "sha256": "cfce0d67834939bd862e5159a54991d7dd2811e77321485af3476590f4b953d0"
-        }
-      },
-      {
-        "id": "G1",
-        "status": "passed",
-        "proof": {
-          "path": "artifacts/migration/2026-10-20T07-49-52-871Z-5959cc44/G1/report.json",
-          "sha256": "dc25ee1ab73f999da67749f2f444b7bd186ff1508c1c343bee0967906a24311b"
-        }
-      },
-      {
-        "id": "G2",
-        "status": "passed",
-        "proof": {
-          "path": "artifacts/migration/2026-10-20T07-49-52-871Z-5959cc44/G2/report.json",
-          "sha256": "e091f7f60bbd2cdfbd7adbc9a59e24225a14a2d6f27a58449672f28cb7864a4c"
-        }
-      },
-      {
-        "id": "G3",
-        "status": "passed",
-        "proof": {
-          "path": "artifacts/migration/2026-10-20T07-49-52-871Z-5959cc44/G3/report.json",
-          "sha256": "7f9da505b653f58f1ac1350907bd0802ea540e615146e255e3dcf19d8bb56dc0"
-        }
-      },
-      {
-        "id": "G5",
-        "status": "passed",
-        "proof": {
-          "path": "artifacts/migration/2026-10-20T07-49-52-871Z-5959cc44/G5/report.json",
-          "sha256": "4af15e8a4490e47fb53326aef7bbb1422f1f4abf685e119c323e0f15a8b81b34"
-        }
-      }
-    ],
-    "milestone_exit_satisfied": false,
-    "next_step": "Start the next cycle with M9-T20: independently audit complete native evaluation and headless export coverage. Keep M10-M12 pending.",
+    "task": "M9-T20",
+    "outcome": "in_progress",
+    "next_step": "Run full M9 verification with independently authenticated original G2/G5 checkpoint identities and require the M9 exit audit to pass.",
     "notes": [
-      "Read the current specification, ledger and newest full M8 verification before selecting M9. No base-branch synchronization requested.",
-      "Preserve all project semantics and capability-gated production behavior. Each listed task is a bounded implementation increment; full native plan and headless export coverage remain required for M9 acceptance.",
-      "Current full verification passed G0/G1 with camera, lighting and mesh scene components. Required M9 G2/G3/G5 remain red until native project plans/export are integrated; no commit permitted yet.",
-      "Vector geometry and shape graph increment passed full current-source G0/G1. M9-T8 selected as the first open task. No commit while M9 G2/G3/G5 remain unimplemented.",
-      "Text component increment passed full current-source G0/G1. M9-T9 selected as first open task; no commit while required native plan/export gates remain unimplemented.",
-      "Effect input component parity and five negative controls passed. Quick verifier intentionally skips G1 and does not establish full G0. Continue with operation compilation; no commit until all required M9 gates are green.",
-      "Native scene/effect/root producer checkpoint passed full current-source G0/G1. Component acceptance does not establish complete native project rendering or export.",
-      "Full source-stable G0/G1 accepted recursive surfaces, motion/final output and temporal text producers. All positive oracles and intentional corruption controls passed. Dependency audit is green after pure-Rust ICU4X admission and zip security update.",
-      "Auxiliary/depth/surface post increment passed full G0/G1. Follow-up seeded material-number diagnostics expose an exact-ID issue outside the earlier fixtures; retained failure: artifacts/migration/cycle117-auxiliary-number-diagnostic.log.",
-      "Native persisted-project runtime loader and independent TS schema-upgrade oracle passed full current-source G0/G1. Continue native media acquisition; no commit while required M9 gates are red.",
-      "Native project media increment passed full current-source G0/G1. Retained TS reference bridge identity is preserved separately from fresh native candidate execution; no old native gate acceptance was reused. Continue M9-T17b; no commit while required M9 G2/G3/G5 remain red.",
-      "Retained raster increment passed full G0/G1 with exact fresh pixels; split remaining frame assembly into bounded resource traversal, native inputs, GPU observation and integration tasks. No commit while required M9 G2/G3/G5 remain red.",
-      "The 07:34 verification pin was quick, not full. The latest completed formal verify file is 08:49 quick. Current full G0/G1/G2 segments and the intentionally interrupted G5 attempt are bound separately; no interrupted run is relabeled passed. Profiling measured 26.16 seconds for one checkpoint audit, with 15.83 seconds in repeated reference-repair image decoding.",
-      "The resumed full run finished on 2026-10-19 with full G0/G1/G2/G3 acceptance, full G5 corpus coverage and passing lifecycle. All 973 new layered frame reviews have now been directly inspected and audited under the approved ink-bounds alternative; original flat failures and prior reports remain unchanged.",
-      "All required M9-T19 gates passed under the frozen source and merged self-reviews; M9-T20 exit audit is still pending."
-    ],
-    "verification_sha256": "91522549bb9ff6f1d0ae733f160b3c445c5a0ff16d1c6965bba8a591a64f1fb2",
-    "latest_increment_verification": {
-      "path": "artifacts/migration/verify-2026-10-20T07-49-52-871Z-5959cc44.json",
-      "sha256": "91522549bb9ff6f1d0ae733f160b3c445c5a0ff16d1c6965bba8a591a64f1fb2"
-    },
-    "latest_quick_verification": {
-      "path": "artifacts/migration/verify-2026-10-18T08-49-11-926Z-4f349fad.json",
-      "sha256": "e9021fb9d4783814040e1f4f699ff3220e5754f973efba749bd022f23c166f42"
-    },
-    "full_g0": {
-      "path": "artifacts/migration/2026-10-20T07-49-52-871Z-5959cc44/static-results.json",
-      "sha256": "cfce0d67834939bd862e5159a54991d7dd2811e77321485af3476590f4b953d0"
-    },
-    "updated_at": "2026-10-20T13:56:55.041Z",
-    "verification_mode": "full",
-    "latest_full_attempt": {
-      "path": "artifacts/migration/verify-2026-10-20T07-49-52-871Z-5959cc44.json",
-      "sha256": "91522549bb9ff6f1d0ae733f160b3c445c5a0ff16d1c6965bba8a591a64f1fb2"
-    }
+      "Cycle 117 completed full G0/G1/G2/G3/G5 and commits 63e9962 / efd9933."
+    ]
   },
   "milestones": [
     {
@@ -23676,18 +23596,34 @@
         {
           "id": "M9-T20",
           "title": "Audit complete native evaluation and headless export coverage before M9 exit",
-          "status": "pending",
+          "status": "in_progress",
           "estimated_hours": 2,
           "required_followups": [
             {
-              "status": "pending",
+              "status": "implemented_pending_full_verification",
               "title": "Reject source inventory path and identity separators before M9 exit",
               "evidence": {
                 "path": "artifacts/migration/cycle117-checkpoint-inventory-delimiter-finding.json",
                 "sha256": "842ce425d07522bb648b6cd57ad69d7396fccb01f7d285919fcf6bcc8ef205d7"
-              }
+              },
+              "implementation": "scripts/migration/checkpoint-source.mjs"
             }
-          ]
+          ],
+          "started_at": "2026-10-20T13:58:16.324Z",
+          "progress": {
+            "state": "exit_audit_implemented_pending_full_verification",
+            "scope": "Full current-invocation gate binding, complete corpus/random-time coverage, native project receipts, original export origins, current pixel reviews and source inventory authentication.",
+            "targeted_tests": {
+              "path": "artifacts/migration/cycle118-focused-tests.log",
+              "sha256": "fc1a746ca97aeb0d1110d98fcadce703bcff3e5a63cf4181c37f22e273dc1974",
+              "passed": 50
+            },
+            "evidence_integration": {
+              "path": "artifacts/migration/cycle118-exit-evidence-integration.json",
+              "sha256": "4d1eb0970211a0343ea2e8938b3513c4f6b166c153899463a92622e6ea6dbf2e"
+            },
+            "test_file_split": "Preserved all 39 preexisting verification test cases in cohesive suites."
+          }
         }
       ]
     },
@@ -2439453,85 +2439389,13 @@
     }
   ],
   "active_cycle": {
-    "id": 117,
-    "started_at": "2026-10-16T03:23:03.523Z",
+    "id": 118,
     "milestone": "M9",
-    "task": "M9-T19",
-    "source_head": "100053143abab6c3ead1d73ef055c47739243737",
-    "increment": "Integrate current-source G1/G2/G3/G5 native evaluation gates and adversarial parity controls",
-    "implementation_state": "done",
-    "failed_attempts": [],
-    "verification_state": "Full G0/G1/G2/G3/G5 passed. Independent M9-T20 exit audit remains pending.",
-    "next_step": "Start the next cycle with M9-T20: independently audit complete native evaluation and headless export coverage. Keep M10-M12 pending.",
-    "updated_at": "2026-10-20T13:56:55.041Z",
-    "completed_components": [
-      "M9-T1",
-      "M9-T2",
-      "M9-T3",
-      "M9-T4",
-      "M9-T5",
-      "M9-T6",
-      "M9-T7",
-      "M9-T8",
-      "M9-T9",
-      "M9-T10",
-      "M9-T11",
-      "M9-T12",
-      "M9-T13",
-      "M9-T14",
-      "M9-T15",
-      "M9-T16",
-      "M9-T17",
-      "M9-T17a",
-      "M9-T17b",
-      "M9-T17c",
-      "M9-T17d",
-      "M9-T17e",
-      "M9-T17f",
-      "M9-T18",
-      "M9-T18a",
-      "M9-T18b",
-      "M9-T18c",
-      "M9-T19"
-    ],
-    "project_model_verification": {
-      "path": "artifacts/migration/verify-2026-10-16T03-31-15-559Z-14482069.json",
-      "sha256": "5c1ca9662e74e92747f1e33f5bfc8293a3129e026cccb852da53ab197770d7a9"
-    },
-    "expression_runtime_finding": {
-      "source": "src/core/animation/expressions.ts",
-      "detail": "Current TS uses a bounded token parser, not QuickJS. Reconcile the M9 QuickJS assumption at the expression task without changing accepted expression semantics.",
-      "ai_script_runtime": "QuickJS WASM is already used by src/ai/script-runtime.ts for AI editing scripts, independently of render-time animation expressions.",
-      "dependency_review": {
-        "path": "artifacts/migration/cycle117-expression-engine-review-20261016.json",
-        "sha256": "dcf0f306137b67713d2af1417a0c28e6f0c355d1519e207fe573de338ddf6830"
-      }
-    },
-    "latest_verification": {
-      "path": "artifacts/migration/verify-2026-10-20T07-49-52-871Z-5959cc44.json",
-      "sha256": "91522549bb9ff6f1d0ae733f160b3c445c5a0ff16d1c6965bba8a591a64f1fb2"
-    },
-    "expression_reference": {
-      "cases": 26750,
-      "corpus_expressions": 410,
-      "accepted": 26484,
-      "rejected": 266,
-      "evidence": {
-        "path": "artifacts/migration/cycle117-expression-ts-oracle-20261016.json",
-        "sha256": "4cd912e95ac50666a80bc18a72e40e642145bc3613a4d7600499c8813953d525"
-      }
-    },
-    "latest_quick_verification": {
-      "path": "artifacts/migration/verify-2026-10-18T06-58-25-814Z-8cc00bfd.json",
-      "sha256": "3bc19e4862ca1ab578d0dbc60843a033b26739792b6164343f7d44ea490fe354"
-    },
-    "build_environment": {
-      "CARGO_BUILD_BUILD_DIR": "C:/Users/colanns/AppData/Local/Temp/aster-rust-migration-build-c117",
-      "CARGO_INCREMENTAL": "0",
-      "reason": "D drive has 5.4 GiB free. Automatic approval review rejected recursive deletion of the known rebuildable incremental cache; no cache was deleted. Future intermediate outputs use C drive without moving or deleting existing files.",
-      "documentation": "https://doc.rust-lang.org/stable/cargo/reference/config.html#buildbuild-dir"
-    },
-    "completed_at": "2026-10-20T13:56:55.041Z"
+    "task": "M9-T20",
+    "increment": "Audit complete native evaluation and headless export coverage before M9 exit",
+    "started_at": "2026-10-20T13:58:16.324Z",
+    "updated_at": "2026-10-20T14:01:45.611Z",
+    "implementation_state": "implemented_pending_full_verification"
   },
   "execution_pause": {
     "requested_by": "owner",

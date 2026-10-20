@@ -597,10 +597,11 @@ frame data are excluded, and successful hot-path operations are intentionally si
 | `aster-render` | Adapter strategy, render graph, lifetimes, aliasing, debug export |
 | `aster-render-ir` | Typed frame plans, recursive resource closure and bounded transport validation |
 | `aster-renderer` | Native wgpu execution of supplied frame plans with explicit capability rejection |
-| `aster-render-cli` | Headless plan rendering, transport diagnostics and image comparison |
+| `aster-render-cli` | Headless authored-project evaluation, rendering and export; supplied-plan diagnostics and image comparison |
 | `aster-profiler` | RAII CPU timing and rolling metrics |
-| `aster-project` | Versioned bundle validation and atomic persistence |
-| `aster-eval` | Native time-addressable scalar, expression, transform, composition, camera, light, vector geometry, mesh, shape-graph, text-animator and effect-input evaluation, with native effect operation kernels; complete project-to-plan integration remains in progress |
+| `aster-project` | Versioned bundle validation, lossless authored documents, bounded runtime upgrades and atomic persistence |
+| `aster-eval` | Native time-addressable project evaluation and frame-plan assembly, including bounded expressions, animation, scene geometry, effects, audio analysis and text animators |
+| `aster-render-project` | Job-owned project sessions, authenticated media and raster acquisition, native GPU frame preparation and submission |
 | `aster-plugin` | Manifest, parameter, permission, and capability validation |
 | `aster-desktop-bridge` | Electron sidecar protocol, native project I/O, and plugin runtime |
 
@@ -615,8 +616,8 @@ resources across nested clones. Audio analysis uses bounded radix-2 FFTs and exp
 sample reads, producing the existing 9,280-byte generator audio ABI independently of seek order.
 Generator input evaluation reuses the native plugin graph validator, retains authoring parameters
 at double precision, and packs the shared context, parameter, indirect and dispatch records under
-device budgets. Shader admission and complete project-to-plan resource assembly remain separate
-boundaries; these component checks do not establish native project rendering parity.
+device budgets. Native project sessions enforce shader admission and resource assembly as separate
+boundaries. Whole-project plan and pixel gates exercise the integrated path in addition to component checks.
 
 Native frame producers own validated scene, lighting and post-process buffers, exact binary frame
 times and frame rates, effect routing/fusion records, LUT texture resources, and root draw commands.
@@ -643,8 +644,8 @@ raster boundary explicit; child surfaces preserve namespaced resource identities
 Locale-sensitive ordering uses pure-Rust ICU4X behind the native text interface with the host's
 resolved Intl locale. The pinned Unicode-3.0 dependencies replace a language-specific collation
 implementation that would be impractical to maintain locally; they add no native C/C++ runtime.
-Authenticated bundle assembly is available; project-driven orchestration and headless resource
-resolution remain required before these producers establish whole-frame parity.
+Native project sessions connect authenticated bundle assembly to project-driven orchestration and
+headless resource resolution. Whole-frame gates compare the resulting authored-project captures.
 
 Native auxiliary plans retain geometry draw order, UTF-16 object IDs, surface-before-media bindings,
 generator order and packed motion data. File-backed compilation preserves ECMAScript material JSON
@@ -673,8 +674,8 @@ time, preserves map insertion order, and uses the enclosing render target's pixe
 generator plans snapshot admitted shader sources into bounded content resources, translate the
 validated plugin graph, and pack context, parameters, indirect commands and optional root-time audio.
 Temporal raster passes preserve binary64 exposure weights and bind distinct supplied sample/output
-identities. These producers are compared with production TS; raster acquisition, complete frame
-orchestration and headless resource authorization remain separate integration requirements.
+identities. These producers are compared with production TS. Native project sessions coordinate frame
+assembly and authorize headless resources; the bounded retained raster provider supplies text/SVG/PSD pixels.
 
 Material planning evaluates normal strength, environment intensity and wrapped rotation before
 packing binary64 binding slices. The project producer shares normal maps by resource instance and

@@ -5,6 +5,7 @@ import { evidencePath, M0Evidence, validSha } from "./m0-evidence.mjs";
 // This narrow list covers diagnostic acceptance and native-project checkpoint auditing only.
 // Runtime, renderer, shaders, fixtures, dependencies and tolerance catalogs are deliberately absent.
 const verificationFiles = new Set([
+  "docs/ARCHITECTURE.md",
   "docs/migration/RUST_RENDERER_MIGRATION.md",
   "scripts/migration/checkpoint-source.mjs",
   "scripts/migration/checkpoint-source.test.mjs",
@@ -14,6 +15,13 @@ const verificationFiles = new Set([
   "scripts/migration/diagnostic-structural-inputs.mjs",
   "scripts/migration/diagnostic-structural-witness.mjs",
   "scripts/migration/m8-quality.mjs",
+  "scripts/migration/m9-coverage.mjs",
+  "scripts/migration/m9-coverage.test.mjs",
+  "scripts/migration/m9-exit.mjs",
+  "scripts/migration/m9-gates.mjs",
+  "scripts/migration/m9-gates.test.mjs",
+  "scripts/migration/m9-pixels.mjs",
+  "scripts/migration/m9-pixels.test.mjs",
   "scripts/migration/native-corpus-schedule.mjs",
   "scripts/migration/native-corpus-rgb.mjs",
   "scripts/migration/native-corpus-rgb.test.mjs",
@@ -33,12 +41,19 @@ const verificationFiles = new Set([
   "scripts/migration/native-nv12-corpus.mjs",
   "scripts/migration/verify.mjs",
   "scripts/migration/verify.test.mjs",
+  "scripts/migration/verify-native.test.mjs",
+  "scripts/migration/verify-evaluation.test.mjs",
+  "scripts/migration/verify-fixtures.mjs",
 ]);
 
 /** Authenticate complete historical inventories against the original execution digest. */
 export function snapshotExecution(snapshot) {
   assert.equal(snapshot.files.length, snapshot.source.source_file_count);
-  const paths = snapshot.files.map((f) => evidencePath(f.path));
+  const paths = snapshot.files.map((f) => {
+    const path = evidencePath(f.path);
+    assert(!path.includes("\0"), "Source inventory path contains a NUL separator");
+    return path;
+  });
   assert.deepEqual(
     paths,
     [...new Set(paths)].sort(),
@@ -47,6 +62,7 @@ export function snapshotExecution(snapshot) {
   const execution = createHash("sha256");
   for (const file of snapshot.files) {
     assert(typeof file.identity === "string" && file.identity.length > 0);
+    assert(!file.identity.includes("\0"), "Source inventory identity contains a NUL separator");
     if (file.path !== "docs/migration/rust-renderer-progress.json")
       execution.update(`${file.path}\0${file.identity}\0`);
   }
@@ -80,27 +96,42 @@ export function verifyCheckpointSourceDelta(before, after) {
 /** Compatibility never grants a gate: every artifact, input, binary and review is still audited. */
 export async function checkpointSource(context, prior) {
   const current = validSha(context.source.execution_sha256);
-  let delta = null;
+  const accepted = new Set([current]);
   const pin = prior?.source_compatibility;
   if (pin) {
     const reader = new M0Evidence(context.root);
     const proof = await reader.json(pin.path, validSha(pin.sha256));
-    assert.equal(proof.kind, "verification-only-checkpoint-source-v1");
-    const before = await reader.json(proof.before.path, validSha(proof.before.sha256));
+    assert(
+      ["verification-only-checkpoint-source-v1", "verification-only-checkpoint-source-v2"].includes(
+        proof.kind,
+      ),
+      "Unknown checkpoint compatibility proof kind",
+    );
+    const histories =
+      proof.kind === "verification-only-checkpoint-source-v1"
+        ? [{ before: proof.before, changed: proof.changed }]
+        : proof.histories;
+    assert(
+      Array.isArray(histories) && histories.length > 0,
+      "Checkpoint compatibility needs complete historical inventories",
+    );
     const after = await reader.json(proof.after.path, validSha(proof.after.sha256));
-    delta = verifyCheckpointSourceDelta(before, after);
-    assert.equal(delta.current, current, "Checkpoint compatibility proof is stale");
-    assert.deepEqual(proof.changed, delta.changed);
+    assert.equal(snapshotExecution(after), current, "Checkpoint compatibility proof is stale");
+    for (const history of histories) {
+      const before = await reader.json(history.before.path, validSha(history.before.sha256));
+      const delta = verifyCheckpointSourceDelta(before, after);
+      assert.equal(delta.current, current, "Checkpoint compatibility proof is stale");
+      assert(!accepted.has(delta.original), "Duplicate historical execution source");
+      assert.deepEqual(history.changed, delta.changed);
+      accepted.add(delta.original);
+    }
     await reader.stable();
   }
   return {
     pin,
     assert(digest) {
       validSha(digest);
-      assert(
-        digest === current || digest === delta?.original,
-        "Checkpoint execution source changed",
-      );
+      assert(accepted.has(digest), "Checkpoint execution source changed");
     },
   };
 }

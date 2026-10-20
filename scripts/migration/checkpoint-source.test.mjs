@@ -109,3 +109,115 @@ test("proof-free reuse is exact; pinned compatibility rejects stale targets and 
   await f.json("after.json", before);
   await assert.rejects(checkpointSource(context, prior), /SHA-256/);
 });
+
+test("source inventories reject NUL-folded identity and path entries", () => {
+  const allowed = "scripts/migration/verify.mjs";
+  const runtime = "src/native-runtime.ts";
+  for (const value of ["before", "after"]) {
+    const original = snapshot({ [allowed]: "verifier", [runtime]: value });
+    const foldedIdentity = {
+      files: [{ path: allowed, identity: `verifier\0${runtime}\0${value}` }],
+      source: { ...original.source, source_file_count: 1 },
+    };
+    const foldedPath = {
+      files: [{ path: `${allowed}\0verifier\0${runtime}`, identity: value }],
+      source: { ...original.source, source_file_count: 1 },
+    };
+    assert.throws(() => snapshotExecution(foldedIdentity), /NUL separator/);
+    assert.throws(() => snapshotExecution(foldedPath), /NUL separator/);
+  }
+});
+
+test("multiple historical sources each authenticate directly against the complete current inventory", async (t) => {
+  const f = await fixture(t);
+  const verifier = "scripts/migration/native-export-gate.mjs";
+  const runtime = "crates/aster-eval/src/lib.rs";
+  const snapshots = ["oldest", "previous", "current"].map((identity) =>
+    snapshot({ [verifier]: identity, [runtime]: "unchanged" }),
+  );
+  const pins = [];
+  for (const [index, value] of snapshots.entries()) {
+    const path = `source-${index}.json`;
+    await f.json(path, value);
+    pins.push({ path, sha256: await f.hash(path) });
+  }
+  const current = snapshots[2];
+  const context = { root: f.root, source: current.source };
+  const proof = {
+    kind: "verification-only-checkpoint-source-v2",
+    after: pins[2],
+    histories: snapshots.slice(0, 2).map((value, index) => ({
+      before: pins[index],
+      changed: verifyCheckpointSourceDelta(value, current).changed,
+    })),
+  };
+  const publish = async (value) => {
+    await f.json("proof.json", value);
+    return { source_compatibility: { path: "proof.json", sha256: await f.hash("proof.json") } };
+  };
+  const accepted = await checkpointSource(context, await publish(proof));
+  for (const value of snapshots) accepted.assert(value.source.execution_sha256);
+  assert.throws(() => accepted.assert("f".repeat(64)), /execution source changed/);
+
+  for (const [name, mutate, expected] of [
+    [
+      "empty",
+      (p) => {
+        p.histories = [];
+      },
+      /historical inventories/,
+    ],
+    [
+      "duplicate",
+      (p) => {
+        p.histories.push(p.histories[0]);
+      },
+      /Duplicate/,
+    ],
+    [
+      "unlisted-delta",
+      (p) => {
+        p.histories[0].changed = [];
+      },
+      /deep-equal/,
+    ],
+    [
+      "stale",
+      (p) => {
+        p.after = pins[1];
+      },
+      /stale/,
+    ],
+    [
+      "bad-pin",
+      (p) => {
+        p.histories[0].before.sha256 = "a".repeat(64);
+      },
+      /SHA-256/,
+    ],
+    [
+      "unknown-kind",
+      (p) => {
+        p.kind = "unverified-source-list";
+      },
+      /Unknown/,
+    ],
+  ]) {
+    const changed = structuredClone(proof);
+    mutate(changed);
+    await assert.rejects(checkpointSource(context, await publish(changed)), expected, name);
+  }
+
+  const changedRuntime = snapshot({ [verifier]: "oldest", [runtime]: "different" });
+  await f.json("changed-runtime.json", changedRuntime);
+  const invalid = structuredClone(proof);
+  invalid.histories[0].before = {
+    path: "changed-runtime.json",
+    sha256: await f.hash("changed-runtime.json"),
+  };
+  invalid.histories[0].changed = [runtime, verifier].sort();
+  await assert.rejects(
+    checkpointSource(context, await publish(invalid)),
+    /production dependency changed/,
+  );
+});

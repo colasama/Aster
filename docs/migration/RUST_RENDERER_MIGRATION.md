@@ -521,6 +521,15 @@ identities and reports. Sharing the already authenticated repair catalog avoids 
 decoding; byte-stability checks, current self-reviews and every numerical limit still apply. Frozen TS
 producer files remain unchanged. Partial or supplied-plan captures cannot establish complete G2.
 
+The final M9 exit audit binds the current invocation's on-disk gate reports to its in-memory
+results, reconstructs the complete project and sample coverage, and authenticates pixel reviews and
+original native project commands. It does not repeat the complete G2/G5 artifact scan already
+performed by those gates in the same invocation. The enumerated verification-file list also includes
+the M9 exit modules, their tests, the split verifier tests, and the synchronized architecture document.
+When reused checkpoints have multiple historical execution identities, authenticate each complete
+historical inventory directly against the same current inventory; never rewrite the original
+identities or infer compatibility transitively. Reject NUL separators in inventory paths and identities.
+
 ### Moving-target rule
 
 While the migration runs, any new TS renderer feature arriving from the base branch must either
