@@ -364,16 +364,38 @@
   },
   "last_cycle": {
     "id": 121,
-    "time": "2026-10-20T21:53:29.967Z",
-    "updated_at": "2026-10-20T22:10:34.884Z",
+    "time": "2026-10-20T22:43:47.490Z",
+    "updated_at": "2026-10-20T22:43:47.490Z",
     "milestone": "M10",
     "task": "M10-T3",
-    "outcome": "in_progress",
-    "previous_verification": {
-      "path": "artifacts/migration/verify-2026-10-20T21-23-29-944Z-a8be3302.json",
-      "sha256": "a4f5e74f24512b9ada9980338841b0d09ce76017bf304ab4673909a6208d9132"
+    "outcome": "passed",
+    "commit": "77675460262d554a89f40f8d84f08604a0930245",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-20T22-10-45-805Z-eb5070df.json",
+      "sha256": "c33f1a5304f6ce8c8dfbaf5268a9f91751b6a14046a7cf1914c4e39ad3b7b640"
     },
-    "next_step": "Run full M10 G0/G3 with authenticated production text layout observations, then commit the green increment."
+    "gates": [
+      {
+        "id": "G0",
+        "status": "passed",
+        "duration_ms": 252857,
+        "proof": {
+          "path": "artifacts/migration/2026-10-20T22-10-45-805Z-eb5070df/static-results.json",
+          "sha256": "cfed072e67ccf7adca80e6bcd53bc644d6516e8388b82bfdf4e57ba71db9c407"
+        }
+      },
+      {
+        "id": "G3",
+        "status": "passed",
+        "duration_ms": 1681829,
+        "proof": {
+          "path": "artifacts/migration/2026-10-20T22-10-45-805Z-eb5070df/G3/report.json",
+          "sha256": "656e1740cda1491926b338788848d668cf2a1b8c785e7b49f6b64c0aa69b93c6"
+        }
+      }
+    ],
+    "duration_ms": 1937366,
+    "next_step": "M10-T4: implement bounded native shaping and production-compatible segmentation/layout; use authenticated TS observations and retain explicit unsupported reasons where strict glyph evidence or layout limits cannot be satisfied."
   },
   "milestones": [
     {
@@ -23954,7 +23976,7 @@
         {
           "id": "M10-T3",
           "title": "Capture production TS layout observations for native comparison",
-          "status": "in_progress",
+          "status": "done",
           "scope": "Bind actual measure/draw calls to project, font bytes, locale, time and scale. Capture advances, baseline anchors and exact wrapped lines for whole-line and per-grapheme modes without changing production output.",
           "acceptance": "Layout evidence includes nested owner text and declared text corpus; frozen original references retained; current G0/G3 remain green.",
           "estimated_implementation_hours": 2,
@@ -23964,7 +23986,7 @@
           ],
           "started_at": "2026-10-20T21:53:29.967Z",
           "progress": {
-            "state": "full_required_verification_pending",
+            "state": "full_required_gates_passed",
             "preparation": "artifacts/migration/cycle120-layout-observation-preparation.json",
             "acceptance_boundary": "Capture actual production measurements, draw calls, transforms and wrapped lines. Paired ordinary/extended-metrics captures must preserve pixels; cluster geometry is not raw glyph identity.",
             "features": [
@@ -24030,7 +24052,92 @@
                   }
                 ]
               }
+            },
+            "completed_full_run": {
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-20T22-10-45-805Z-eb5070df.json",
+                "sha256": "c33f1a5304f6ce8c8dfbaf5268a9f91751b6a14046a7cf1914c4e39ad3b7b640"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 252857,
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-20T22-10-45-805Z-eb5070df/static-results.json",
+                    "sha256": "cfed072e67ccf7adca80e6bcd53bc644d6516e8388b82bfdf4e57ba71db9c407"
+                  }
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 1681829,
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-20T22-10-45-805Z-eb5070df/G3/report.json",
+                    "sha256": "656e1740cda1491926b338788848d668cf2a1b8c785e7b49f6b64c0aa69b93c6"
+                  }
+                }
+              ],
+              "duration_ms": 1937366,
+              "primary_pixel_frames": 1315,
+              "native_text_acceptance": false,
+              "layout_cases": [
+                {
+                  "id": "enchanted-love",
+                  "samples": 206,
+                  "records": 14,
+                  "draws": 181,
+                  "observed_layers": 3,
+                  "excluded_layers": 0
+                },
+                {
+                  "id": "owner-opening",
+                  "samples": 378,
+                  "records": 9635,
+                  "draws": 47670,
+                  "observed_layers": 298,
+                  "excluded_layers": 0
+                },
+                {
+                  "id": "owner-main",
+                  "samples": 674,
+                  "records": 48450,
+                  "draws": 234184,
+                  "observed_layers": 298,
+                  "excluded_layers": 0
+                },
+                {
+                  "id": "layer-text",
+                  "samples": 70,
+                  "records": 70,
+                  "draws": 280,
+                  "observed_layers": 1,
+                  "excluded_layers": 0
+                },
+                {
+                  "id": "scene-motion-blur",
+                  "samples": 70,
+                  "records": 70,
+                  "draws": 70,
+                  "observed_layers": 1,
+                  "excluded_layers": 0
+                },
+                {
+                  "id": "scene-text-animators",
+                  "samples": 70,
+                  "records": 70,
+                  "draws": 2800,
+                  "observed_layers": 1,
+                  "excluded_layers": 0
+                }
+              ]
             }
+          },
+          "completed_at": "2026-10-20T22:43:47.490Z",
+          "commit": "77675460262d554a89f40f8d84f08604a0930245",
+          "verification": {
+            "path": "artifacts/migration/verify-2026-10-20T22-10-45-805Z-eb5070df.json",
+            "sha256": "c33f1a5304f6ce8c8dfbaf5268a9f91751b6a14046a7cf1914c4e39ad3b7b640"
           }
         },
         {
@@ -24043,7 +24150,12 @@
           "required_gates": [
             "G0",
             "G3"
-          ]
+          ],
+          "preparation": {
+            "path": "artifacts/migration/cycle121-layout-shaping-preparation.json",
+            "sha256": "33b68b260ee7b3e3f36ee76604265d8329bcc3af0fee336e93c0aed545c4415f",
+            "status": "read_only_preparation; dependency admission and native implementation remain pending"
+          }
         },
         {
           "id": "M10-T5",
@@ -24103,8 +24215,8 @@
       ],
       "started_at": "2026-10-20T20:25:14.937Z",
       "latest_verification": {
-        "path": "artifacts/migration/verify-2026-10-20T21-23-29-944Z-a8be3302.json",
-        "sha256": "a4f5e74f24512b9ada9980338841b0d09ce76017bf304ab4673909a6208d9132"
+        "path": "artifacts/migration/verify-2026-10-20T22-10-45-805Z-eb5070df.json",
+        "sha256": "c33f1a5304f6ce8c8dfbaf5268a9f91751b6a14046a7cf1914c4e39ad3b7b640"
       }
     },
     {
@@ -2439677,6 +2439789,19 @@
         "sha256": "a4f5e74f24512b9ada9980338841b0d09ce76017bf304ab4673909a6208d9132"
       },
       "milestone_exit_satisfied": false
+    },
+    {
+      "cycle": 121,
+      "time": "2026-10-20T22:43:47.490Z",
+      "milestone": "M10",
+      "task": "M10-T3",
+      "outcome": "passed",
+      "commit": "77675460262d554a89f40f8d84f08604a0930245",
+      "verification": {
+        "path": "artifacts/migration/verify-2026-10-20T22-10-45-805Z-eb5070df.json",
+        "sha256": "c33f1a5304f6ce8c8dfbaf5268a9f91751b6a14046a7cf1914c4e39ad3b7b640"
+      },
+      "milestone_exit_satisfied": false
     }
   ],
   "known_boundaries": [
@@ -2439903,11 +2440028,17 @@
     "task": "M10-T3",
     "increment": "Capture production TS layout observations for native comparison",
     "started_at": "2026-10-20T21:53:29.967Z",
-    "updated_at": "2026-10-20T22:10:34.884Z",
-    "implementation_state": "verification_pending",
+    "updated_at": "2026-10-20T22:43:47.490Z",
+    "implementation_state": "committed",
     "previous_verification": {
       "path": "artifacts/migration/verify-2026-10-20T21-23-29-944Z-a8be3302.json",
       "sha256": "a4f5e74f24512b9ada9980338841b0d09ce76017bf304ab4673909a6208d9132"
+    },
+    "outcome": "passed",
+    "commit": "77675460262d554a89f40f8d84f08604a0930245",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-20T22-10-45-805Z-eb5070df.json",
+      "sha256": "c33f1a5304f6ce8c8dfbaf5268a9f91751b6a14046a7cf1914c4e39ad3b7b640"
     }
   },
   "execution_pause": {
