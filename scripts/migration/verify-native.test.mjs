@@ -6,6 +6,39 @@ import { writeAtomicJson } from "./report.mjs";
 import { verifyMigration } from "./verify.mjs";
 import { deliveryPolicy, fakeHook, fixture, provenance } from "./verify-fixtures.mjs";
 
+test("M10 font increments execute native GPU checks without claiming text migration acceptance", async (t) => {
+  const context = await fixture(t);
+  await writeAtomicJson(context.ledger, {
+    status: "running",
+    milestones: [
+      {
+        id: "M10",
+        status: "in_progress",
+        gates: ["G0", "G3"],
+        tasks: [{ id: "M10-T1", status: "in_progress" }],
+      },
+    ],
+  });
+  let nativeCalls = 0;
+  const result = await verifyMigration(context, {
+    provenance,
+    execute: fakeHook,
+    runNativeCoreGate: async (nativeContext) => {
+      assert.equal(nativeContext.milestone, "M10");
+      nativeCalls += 1;
+      return { id: "G3", status: "passed", native_gpu_execution: true };
+    },
+    runPixelGate: async () => {
+      throw new Error("Existing candidate pixels cannot establish native execution");
+    },
+  });
+  assert.equal(nativeCalls, 1);
+  assert.equal(result.report.required_gates_passed, true);
+  assert.equal(result.report.milestone_exit_satisfied, false);
+  assert.match(result.report.milestone_exit_reason, /per-glyph layout parity/);
+  assert.equal(result.exitCode, 0);
+});
+
 test("M8 completion requires a successful exit audit after every full gate passes", async (t) => {
   for (const accepted of [false, true]) {
     const context = await fixture(t);

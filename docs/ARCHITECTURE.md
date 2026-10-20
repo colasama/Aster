@@ -552,8 +552,14 @@ blur text textures. Enumeration, decoding and font bytes stay outside the steady
 The inspector uses a searchable, fixed-row virtual list with three overscan rows per edge.
 Filtering does not mutate the project; selection or an explicit text commit changes the style.
 Family sorting is memoized, and the inspector shares font enumeration for up to one minute.
-The Rust `aster-text` file-discovery helpers remain available to native consumers; desktop rendering
-does not require a second font parser or directory inventory.
+Native consumers use `aster-text` for bounded file discovery and a separately owned face catalog.
+The catalog parses OpenType, TrueType and collections with `read-fonts`; it authenticates complete
+font hashes and collection indices, admits collections atomically, and bounds font bytes, faces,
+family names and variation axes. ICU default case folding matches localized family aliases without
+Unicode normalization. Ordered family selection ranks physical width, style and weight and retains
+explicit weight/width variation coordinates. Selection alone does not establish glyph coverage,
+shaping support or pixel parity. Compressed font containers require a decoder before admission.
+This native foundation does not change the active Chromium text raster path or editor font inventory.
 
 ## Pi agent runtime
 

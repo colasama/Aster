@@ -75,7 +75,7 @@ export function validateNativeReceipt(receipt, expected) {
 export async function runNativeCoreGate(context, execute = runStep) {
   const started = Date.now();
   const exportSession = context.milestone === "M8";
-  const scenes = exportSession || context.milestone === "M7";
+  const scenes = exportSession || ["M7", "M10"].includes(context.milestone);
   const media = scenes || context.milestone === "M6";
   const rasters = media || context.milestone === "M5";
   const effects = rasters || context.milestone === "M4";
@@ -672,7 +672,8 @@ export async function runNativeCoreGate(context, execute = runStep) {
     report.checked_files = await reader.stable();
     report.status = "passed";
     report.full_coverage = true;
-    report.milestone_exit_eligible = true;
+    report.milestone_exit_eligible = context.milestone !== "M10";
+    if (context.milestone === "M10") report.native_text_acceptance = false;
   } catch (error) {
     report.error = error.stack ?? error.message;
   }

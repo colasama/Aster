@@ -363,66 +363,17 @@
     }
   },
   "last_cycle": {
-    "id": 118,
-    "time": "2026-10-20T20:24:11.993Z",
-    "updated_at": "2026-10-20T20:24:11.993Z",
-    "milestone": "M9",
-    "task": "M9-T20",
-    "outcome": "passed",
-    "next_step": "Begin M10: read the ledger and newest verification, define bounded native text tasks, then work on the first task. Rust preview and retirement remain M11/M12.",
-    "notes": [
-      "Cycle 117 completed full G0/G1/G2/G3/G5 and commits 63e9962 / efd9933."
-    ],
-    "commit": "487410ac8591c8468d54fe7d652a7b85e9759863",
-    "verification": {
+    "id": 119,
+    "time": "2026-10-20T20:25:14.937Z",
+    "updated_at": "2026-10-20T20:38:22.042Z",
+    "milestone": "M10",
+    "task": "M10-T1",
+    "outcome": "in_progress",
+    "next_step": "Run fresh full M10 G0/G3; commit only after required gates pass. Native shaping and production text acceptance remain later tasks.",
+    "previous_verification": {
       "path": "artifacts/migration/verify-2026-10-20T14-02-34-985Z-5ff5b22a.json",
       "sha256": "5d980335648f921729dfeff94bf65ee6756229290dd4d03570c8ebc60f1f9028"
-    },
-    "gates": [
-      {
-        "id": "G0",
-        "status": "passed",
-        "duration_ms": 262190,
-        "proof": {
-          "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/static-results.json",
-          "sha256": "8173393dd18ca789d5afa3f49fffbf8ed041ab9d4cd102fe936cb009f35b25f4"
-        }
-      },
-      {
-        "id": "G1",
-        "status": "passed",
-        "duration_ms": 1743481,
-        "proof": {
-          "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G1/report.json",
-          "sha256": "23e4e061351305d625f3bdb5a82e41bd3d74093def96bc60c6646478a56a0313"
-        }
-      },
-      {
-        "id": "G2",
-        "status": "passed",
-        "proof": {
-          "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G2/report.json",
-          "sha256": "42cf53993fcca989b7ddd54a73cecb017b5e7ace4d860d3cce96d135328cbde8"
-        }
-      },
-      {
-        "id": "G3",
-        "status": "passed",
-        "proof": {
-          "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G3/report.json",
-          "sha256": "7c09478d89ef305061cba4aee7b37f67cb2c3bca106c3b61a58aea38f1446a4a"
-        }
-      },
-      {
-        "id": "G5",
-        "status": "passed",
-        "proof": {
-          "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G5/report.json",
-          "sha256": "f37a2f5d19e53803d1ca399fafe00b9b3c2f3ccf99bf3efda60525392b714a3b"
-        }
-      }
-    ],
-    "milestone_exit_satisfied": true
+    }
   },
   "milestones": [
     {
@@ -23858,12 +23809,133 @@
     {
       "id": "M10",
       "title": "Native text shaping and rasterization",
-      "status": "pending",
+      "status": "in_progress",
       "gates": [
         "G0",
         "G3"
       ],
-      "tasks": []
+      "tasks": [
+        {
+          "id": "M10-T1",
+          "title": "Introduce maintained pure-Rust font parsing and deterministic face selection",
+          "status": "in_progress",
+          "scope": "Review maintained pure-Rust parsing dependencies and their locked graph; add bounded OpenType/TrueType collection face metadata and deterministic family/weight/style selection behind Aster-owned interfaces. Keep shaping, project-font decoding and production text routing in their later tasks.",
+          "acceptance": "Deterministic selection from pinned font bytes, bounded discovery and cache identity; current G0/G3 remain green.",
+          "estimated_implementation_hours": 2,
+          "required_gates": [
+            "G0",
+            "G3"
+          ],
+          "started_at": "2026-10-20T20:25:14.937Z",
+          "progress": {
+            "state": "implemented_pending_full_verification",
+            "features": [
+              "Authenticated bounded TTF/OTF/TTC metadata admission with atomic collection updates",
+              "Deterministic Unicode family, width/style/weight and variable-axis selection",
+              "Current-source native G3 regression without claiming native text acceptance"
+            ],
+            "focused_validation": {
+              "rust_text_tests": 16,
+              "verifier_tests": 12,
+              "clippy": "passed",
+              "cargo_deny": "passed",
+              "cargo_audit": "unavailable",
+              "pnpm_audit_advisories": 0
+            },
+            "dependency_evidence": [
+              "artifacts/migration/cycle119-cargo-deny.log",
+              "artifacts/migration/cycle119-cargo-audit.log",
+              "artifacts/migration/cycle119-pnpm-audit.json",
+              "artifacts/migration/cycle119-pnpm-audit-patched.json"
+            ]
+          }
+        },
+        {
+          "id": "M10-T2",
+          "title": "Resolve embedded fonts and bounded supported container decoding",
+          "status": "pending",
+          "scope": "Preserve authored family aliases, weight ranges, project font revision and existing schema limits. Evaluate WOFF/WOFF2 support with explicit reasons for unsupported containers instead of silently changing faces.",
+          "acceptance": "Project fonts override corresponding platform faces correctly; malformed/oversized input fails atomically; current G0/G3 remain green.",
+          "estimated_implementation_hours": 2,
+          "required_gates": [
+            "G0",
+            "G3"
+          ]
+        },
+        {
+          "id": "M10-T3",
+          "title": "Capture production TS layout observations for native comparison",
+          "status": "pending",
+          "scope": "Bind actual measure/draw calls to project, font bytes, locale, time and scale. Capture advances, baseline anchors and exact wrapped lines for whole-line and per-grapheme modes without changing production output.",
+          "acceptance": "Layout evidence includes nested owner text and declared text corpus; frozen original references retained; current G0/G3 remain green.",
+          "estimated_implementation_hours": 2,
+          "required_gates": [
+            "G0",
+            "G3"
+          ]
+        },
+        {
+          "id": "M10-T4",
+          "title": "Implement native shaping and production-compatible line layout",
+          "status": "pending",
+          "scope": "Support bounded shaping, segmentation, direction, fallback face runs, tracking, leading and alignment; reproduce existing whitespace and wrap behavior.",
+          "acceptance": "Advance and baseline deltas at most 0.5 px and exact line breaks for admitted cases; explicit unsupported reasons for cases that cannot meet the limits; G0/G3 green.",
+          "estimated_implementation_hours": 2,
+          "required_gates": [
+            "G0",
+            "G3"
+          ]
+        },
+        {
+          "id": "M10-T5",
+          "title": "Rasterize glyphs into a bounded atlas with complete generation keys",
+          "status": "pending",
+          "scope": "Rasterize supported outline/bitmap glyphs with correct fractional origin, size, variation, color, stroke and hinting identity. Preserve whitespace advances without empty atlas uploads.",
+          "acceptance": "Coverage/color format and limits verified, cache invalidation follows font and raster changes, no live frame atlas coordinates can be evicted; G0/G3 green.",
+          "estimated_implementation_hours": 2,
+          "required_gates": [
+            "G0",
+            "G3"
+          ]
+        },
+        {
+          "id": "M10-T6",
+          "title": "Compose native text from the glyph atlas on the GPU",
+          "status": "pending",
+          "scope": "Add budgeted native glyph outputs coordinated with temporal derived textures and renderer generation lifetime. Preserve fill/stroke, animator transforms, clipping and motion samples.",
+          "acceptance": "No CPU readback required for normal native text composition; temporal sampling sees the correct generation; G0/G3 green.",
+          "estimated_implementation_hours": 2,
+          "required_gates": [
+            "G0",
+            "G3"
+          ]
+        },
+        {
+          "id": "M10-T7",
+          "title": "Use native text in authored-project rendering with explicit capability routing",
+          "status": "pending",
+          "scope": "Wire native layout and GPU glyph output through project sessions and headless exports. Keep only documented unsupported fonts/scripts/features on the M5 raster service, with ledger follow-ups.",
+          "acceptance": "Supported text actually uses native output in the production project path; unsupported cases have exact reasons and preserved rendering; G0/G3 green.",
+          "estimated_implementation_hours": 2,
+          "required_gates": [
+            "G0",
+            "G3"
+          ]
+        },
+        {
+          "id": "M10-T8",
+          "title": "Complete full text layout and pixel self-review acceptance",
+          "status": "pending",
+          "scope": "Verify all text-bearing corpus cases including owner compositions and nested reachability. Self-review every non-exact native comparison under the perceptual profile and bind layout/font evidence.",
+          "acceptance": "All text cases meet pixel and layout requirements or have explicit authenticated M5 routing with reasons; no blanket fallback; full G0/G3 and M10 exit audit green.",
+          "estimated_implementation_hours": 2,
+          "required_gates": [
+            "G0",
+            "G3"
+          ]
+        }
+      ],
+      "started_at": "2026-10-20T20:25:14.937Z"
     },
     {
       "id": "M11",
@@ -2439630,19 +2439702,17 @@
     }
   ],
   "active_cycle": {
-    "id": 118,
-    "milestone": "M9",
-    "task": "M9-T20",
-    "increment": "Audit complete native evaluation and headless export coverage before M9 exit",
-    "started_at": "2026-10-20T13:58:16.324Z",
-    "updated_at": "2026-10-20T14:01:45.611Z",
-    "implementation_state": "done",
-    "completed_at": "2026-10-20T20:24:11.993Z",
-    "latest_verification": {
+    "id": 119,
+    "milestone": "M10",
+    "task": "M10-T1",
+    "increment": "Introduce maintained pure-Rust font parsing and deterministic face selection",
+    "started_at": "2026-10-20T20:25:14.937Z",
+    "updated_at": "2026-10-20T20:38:22.042Z",
+    "implementation_state": "implemented_pending_full_verification",
+    "previous_verification": {
       "path": "artifacts/migration/verify-2026-10-20T14-02-34-985Z-5ff5b22a.json",
       "sha256": "5d980335648f921729dfeff94bf65ee6756229290dd4d03570c8ebc60f1f9028"
-    },
-    "next_step": "Begin M10: read the ledger and newest verification, define bounded native text tasks, then work on the first task. Rust preview and retirement remain M11/M12."
+    }
   },
   "execution_pause": {
     "requested_by": "owner",

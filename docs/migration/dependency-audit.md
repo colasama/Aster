@@ -1,5 +1,34 @@
 # Renderer comparison dependency audit
 
+## Native font catalog dependencies
+
+The native font catalog adds `read-fonts` 0.45.1 and its `font-types` 0.12.7 dependency
+(MIT OR Apache-2.0), maintained in Google's Fontations project. Table parsing stays behind
+`aster-text` interfaces and bounds face counts, resident bytes, family names and variation axes.
+Using a maintained checked parser avoids implementing another OpenType binary parser. The catalog
+does not yet establish shaping, glyph coverage, rasterization or production text parity.
+
+`icu_casemap` 2.3.0 and `icu_casemap_data` 2.3.0 (Unicode-3.0) provide Unicode default case
+folding for family matching without normalization or locale tailoring. Lowercasing alone does not
+implement this behavior. Both dependencies are pure Rust. Their MSRVs (1.85 for `read-fonts`,
+1.88 for `icu_casemap`) are below the workspace's Rust 1.97 requirement. The reviewed Cargo lockfile
+adds these four packages, enables `serde` on the existing `potential_utf` dependency, and changes
+no existing package version. No native library, plugin ABI or project format changes are required.
+
+The 2026-10-20 audit passes `cargo deny check` for advisories, bans, licenses and sources
+(`artifacts/migration/cycle119-cargo-deny.log`). `cargo audit` is unavailable in this environment;
+its failed invocation is retained in `cycle119-cargo-audit.log` and is not counted as a passing
+release audit. This increment is not a release.
+
+The same audit found four newly reported advisories in the existing JavaScript graph. Scoped
+overrides update Hono 4.13.7 to 4.13.11 under MCP SDK 1.32.1 and `follow-redirects` 1.16.0 to
+1.16.1 under Axios 1.20.0. Vite is pinned to 8.2.4 from 8.2.1 to apply its Windows launch-editor
+fix without selecting a newer minor release. No other installed package versions change.
+The original audit is retained at `artifacts/migration/cycle119-pnpm-audit.json`; the final
+`cycle119-pnpm-audit-patched.json` reports zero advisories across 527 dependencies. Installation
+used `--ignore-scripts`; Electron and the shipped FFmpeg build remain unchanged. These overrides
+can be removed when their direct parents require the patched versions themselves.
+
 The new CPU comparison crate uses RustFFT 6.4.1 (MIT OR Apache-2.0) for its phase-correlation FFT.
 Its maintained, SIMD-capable, pure-Rust implementation avoids maintaining a second numerical FFT
 and introduces no native C/C++ library or GPU/vendor dependency. The lockfile adds RustFFT,

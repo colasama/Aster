@@ -275,7 +275,10 @@ export async function verifyMigration(options, dependencies = {}) {
           output_replay: checked.report.output_replay,
           duration_ms: checked.report.duration_ms,
         });
-      } else if (id === "G3" && ["M3", "M4", "M5", "M6", "M7", "M8"].includes(milestone.id)) {
+      } else if (
+        id === "G3" &&
+        ["M3", "M4", "M5", "M6", "M7", "M8", "M10"].includes(milestone.id)
+      ) {
         report.gates.push(
           quick
             ? { id, status: "skipped", reason: "Quick mode omits native core GPU execution" }
@@ -285,17 +288,19 @@ export async function verifyMigration(options, dependencies = {}) {
               ),
         );
         report.milestone_exit_reason =
-          milestone.id === "M8"
-            ? "Native export requires NV12 pixels, encoded quality, paired performance and application delivery"
-            : milestone.id === "M7"
-              ? "Native scene completion requires the full M7 exit audit"
-              : milestone.id === "M6"
-                ? "Native media completion requires the full M6 exit audit"
-                : milestone.id === "M5"
-                  ? "Native raster increments require temporal text and the complete M5 exit audit"
-                  : milestone.id === "M4"
-                    ? "Native effect increments require the complete effect/style corpus and M4 exit audit"
-                    : "Native core increments require the complete core corpus and M3 exit audit";
+          milestone.id === "M10"
+            ? "Native text requires production routing, per-glyph layout parity and reviewed text pixels"
+            : milestone.id === "M8"
+              ? "Native export requires NV12 pixels, encoded quality, paired performance and application delivery"
+              : milestone.id === "M7"
+                ? "Native scene completion requires the full M7 exit audit"
+                : milestone.id === "M6"
+                  ? "Native media completion requires the full M6 exit audit"
+                  : milestone.id === "M5"
+                    ? "Native raster increments require temporal text and the complete M5 exit audit"
+                    : milestone.id === "M4"
+                      ? "Native effect increments require the complete effect/style corpus and M4 exit audit"
+                      : "Native core increments require the complete core corpus and M3 exit audit";
       } else if (id === "G3") {
         const pixelContext = { ...context, output: join(output, "G3") };
         const build = await execute(nativeReleaseBuild("compare-cli-build"), pixelContext);

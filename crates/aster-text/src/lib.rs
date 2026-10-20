@@ -1,11 +1,19 @@
 //! Bounded caches and GPU upload descriptions for text rendering.
 //!
-//! This crate discovers font files without shaping text or rasterizing glyphs.
-//! Callers provide font bytes and rasterized coverage; this crate manages their lifetime.
+//! Font discovery and bounded face selection precede shaping and rasterization.
+//! Callers provide glyph coverage; this crate manages font, glyph and atlas lifetimes.
 
 mod atlas;
 mod cache;
+mod catalog;
 mod discovery;
+mod face;
+mod selection;
+
+#[cfg(test)]
+mod catalog_test_font;
+#[cfg(test)]
+mod catalog_tests;
 
 pub use atlas::{
     AtlasConfig, AtlasFormat, AtlasLimits, AtlasRect, GlyphAtlas, GlyphAtlasDescriptor,
@@ -14,4 +22,7 @@ pub use atlas::{
 pub use cache::{
     CacheError, CacheStatistics, FontCache, FontId, GlyphBitmap, GlyphCache, GlyphKey, GlyphMetrics,
 };
+pub use catalog::{FontCatalog, FontCatalogConfig, FontCatalogError};
 pub use discovery::{FontContainer, FontDiscoveryConfig, FontDiscoveryError, FontFile, LoadedFont};
+pub use face::{FontAxis, FontFaceId, FontFaceMetadata, FontStyle};
+pub use selection::{FontRequest, FontSelection};

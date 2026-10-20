@@ -1,4 +1,6 @@
 overrides:
+  '@modelcontextprotocol/sdk@1.32.1>hono': 4.13.11
+  axios@1.20.0>follow-redirects: 1.16.1
   express>proxy-addr: 2.0.8
   concurrently>shell-quote: 1.11.0
   postcss>source-map-js: 1.2.2
