@@ -363,39 +363,17 @@
     }
   },
   "last_cycle": {
-    "id": 120,
-    "time": "2026-10-20T21:50:18.295Z",
-    "updated_at": "2026-10-20T21:50:18.295Z",
+    "id": 121,
+    "time": "2026-10-20T21:53:29.967Z",
+    "updated_at": "2026-10-20T22:10:34.884Z",
     "milestone": "M10",
-    "task": "M10-T2",
-    "outcome": "passed",
-    "commit": "efd394df904f006b012b82083379689a40c44ba8",
-    "verification": {
+    "task": "M10-T3",
+    "outcome": "in_progress",
+    "previous_verification": {
       "path": "artifacts/migration/verify-2026-10-20T21-23-29-944Z-a8be3302.json",
       "sha256": "a4f5e74f24512b9ada9980338841b0d09ce76017bf304ab4673909a6208d9132"
     },
-    "gates": [
-      {
-        "id": "G0",
-        "status": "passed",
-        "duration_ms": 271030,
-        "proof": {
-          "path": "artifacts/migration/2026-10-20T21-23-29-944Z-a8be3302/static-results.json",
-          "sha256": "b1a999e1daab7bb67090bc5265d86fe9b3386e833ad6013ff7715a9385c5208c"
-        }
-      },
-      {
-        "id": "G3",
-        "status": "passed",
-        "duration_ms": 1295973,
-        "proof": {
-          "path": "artifacts/migration/2026-10-20T21-23-29-944Z-a8be3302/G3/report.json",
-          "sha256": "5e14c5978b4dcd03b9dbb8acb05a5f8836aee6052fcec1a1f7c7a433f7ed4e63"
-        }
-      }
-    ],
-    "duration_ms": 1569800,
-    "next_step": "M10-T3: capture actual production TS text layout observations with font/source identity and unchanged pixels; distinguish post-shaping cluster observations from unavailable raw glyph metrics."
+    "next_step": "Run full M10 G0/G3 with authenticated production text layout observations, then commit the green increment."
   },
   "milestones": [
     {
@@ -23976,14 +23954,84 @@
         {
           "id": "M10-T3",
           "title": "Capture production TS layout observations for native comparison",
-          "status": "pending",
+          "status": "in_progress",
           "scope": "Bind actual measure/draw calls to project, font bytes, locale, time and scale. Capture advances, baseline anchors and exact wrapped lines for whole-line and per-grapheme modes without changing production output.",
           "acceptance": "Layout evidence includes nested owner text and declared text corpus; frozen original references retained; current G0/G3 remain green.",
           "estimated_implementation_hours": 2,
           "required_gates": [
             "G0",
             "G3"
-          ]
+          ],
+          "started_at": "2026-10-20T21:53:29.967Z",
+          "progress": {
+            "state": "full_required_verification_pending",
+            "preparation": "artifacts/migration/cycle120-layout-observation-preparation.json",
+            "acceptance_boundary": "Capture actual production measurements, draw calls, transforms and wrapped lines. Paired ordinary/extended-metrics captures must preserve pixels; cluster geometry is not raw glyph identity.",
+            "features": [
+              "Production measure/draw observations with exact wrapped lines, baseline anchors and transforms",
+              "Paired ordinary/extended browser captures and instrumented/plain raster pixel identity",
+              "Complete declared and nested authored text coverage with pinned font, project, locale and source identities"
+            ],
+            "focused_validation": {
+              "audit_tests": 2,
+              "typecheck": "passed",
+              "layout_canary": {
+                "path": "artifacts/migration/cycle121-layout-canary2/report.json",
+                "sha256": "87a8619e1dd64f19b2d234332269652b1afadb7875d797af3de417c3f1508a15",
+                "duration_ms": 400153,
+                "cases": [
+                  {
+                    "id": "enchanted-love",
+                    "samples": 206,
+                    "records": 14,
+                    "draws": 181,
+                    "observed_layers": 3,
+                    "excluded_layers": 0
+                  },
+                  {
+                    "id": "owner-opening",
+                    "samples": 378,
+                    "records": 9635,
+                    "draws": 47670,
+                    "observed_layers": 298,
+                    "excluded_layers": 0
+                  },
+                  {
+                    "id": "owner-main",
+                    "samples": 674,
+                    "records": 48450,
+                    "draws": 234184,
+                    "observed_layers": 298,
+                    "excluded_layers": 0
+                  },
+                  {
+                    "id": "layer-text",
+                    "samples": 70,
+                    "records": 70,
+                    "draws": 280,
+                    "observed_layers": 1,
+                    "excluded_layers": 0
+                  },
+                  {
+                    "id": "scene-motion-blur",
+                    "samples": 70,
+                    "records": 70,
+                    "draws": 70,
+                    "observed_layers": 1,
+                    "excluded_layers": 0
+                  },
+                  {
+                    "id": "scene-text-animators",
+                    "samples": 70,
+                    "records": 70,
+                    "draws": 2800,
+                    "observed_layers": 1,
+                    "excluded_layers": 0
+                  }
+                ]
+              }
+            }
+          }
         },
         {
           "id": "M10-T4",
@@ -2439850,20 +2439898,14 @@
     }
   ],
   "active_cycle": {
-    "id": 120,
+    "id": 121,
     "milestone": "M10",
-    "task": "M10-T2",
-    "increment": "Resolve embedded fonts and bounded supported container decoding",
-    "started_at": "2026-10-20T21:17:16.700Z",
-    "updated_at": "2026-10-20T21:50:18.295Z",
-    "implementation_state": "committed",
+    "task": "M10-T3",
+    "increment": "Capture production TS layout observations for native comparison",
+    "started_at": "2026-10-20T21:53:29.967Z",
+    "updated_at": "2026-10-20T22:10:34.884Z",
+    "implementation_state": "verification_pending",
     "previous_verification": {
-      "path": "artifacts/migration/verify-2026-10-20T20-38-23-126Z-56911203.json",
-      "sha256": "1ebc0f6f0ce68c93752efcc85297ff90e9ad5fe16a6212a7c7bfcdf0b5a1062c"
-    },
-    "outcome": "passed",
-    "commit": "efd394df904f006b012b82083379689a40c44ba8",
-    "verification": {
       "path": "artifacts/migration/verify-2026-10-20T21-23-29-944Z-a8be3302.json",
       "sha256": "a4f5e74f24512b9ada9980338841b0d09ce76017bf304ab4673909a6208d9132"
     }

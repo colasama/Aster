@@ -569,6 +569,16 @@ has an explicit retained-provider reason. Neither silently substitutes a platfor
 This native foundation does not change the active Chromium text raster path or editor font inventory;
 production routing and layout/pixel acceptance are separate integration requirements.
 
+The diagnostic text-layout capture observes production Canvas measurements and draw calls, including
+wrapped lines, baseline anchors, transforms and temporal samples. It covers declared and deterministic
+random corpus times plus authored text intervals in every composition. Ordinary and extended-metrics
+browser runs must agree exactly on common layout fields and raster pixels; instrumentation is also
+checked against an untouched raster in each run. Source, project, embedded-font, system-font inventory,
+browser and locale identities bind the observations. Chromium's diagnostic cluster API adds UTF-16
+spans and selection geometry, not raw glyph identities. These observations support subsequent native
+layout comparisons but cannot by themselves establish per-glyph or native text pixel acceptance.
+Original reference rasters remain unchanged.
+
 ## Pi agent runtime
 
 The desktop host runs Pi in an Electron utility process. Pi receives only Aster-owned meta-tools by

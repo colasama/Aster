@@ -51,6 +51,7 @@ import { runNativeSurfaceFrameGate } from "./native-surface-frame-gate.mjs";
 import { runNativeSurfacePostGate } from "./native-surface-post-gate.mjs";
 import { runNativeTemporalFrameGate } from "./native-temporal-frame-gate.mjs";
 import { runNativeTemporalGate } from "./native-temporal-gate.mjs";
+import { runNativeTextLayoutGate } from "./native-text-layout-gate.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile } from "./source.mjs";
@@ -669,6 +670,21 @@ export async function runNativeCoreGate(context, execute = runStep) {
       report.binary.sha256,
       "Native binary changed during execution",
     );
+    if (
+      context.milestone === "M10" &&
+      ledger.milestones.find((m) => m.id === "M10").tasks.find((t) => t.id === "M10-T3")?.status !==
+        "pending"
+    ) {
+      report.native_text_layout = await runNativeTextLayoutGate(
+        { ...context, output: join(context.output, "native-text-layout") },
+        execute,
+      );
+      assert.equal(
+        report.native_text_layout.status,
+        "passed",
+        "Production text layout observations failed",
+      );
+    }
     report.checked_files = await reader.stable();
     report.status = "passed";
     report.full_coverage = true;
