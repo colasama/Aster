@@ -364,16 +364,38 @@
   },
   "last_cycle": {
     "id": 119,
-    "time": "2026-10-20T20:25:14.937Z",
-    "updated_at": "2026-10-20T20:38:22.042Z",
+    "time": "2026-10-20T21:16:15.302Z",
+    "updated_at": "2026-10-20T21:16:15.302Z",
     "milestone": "M10",
     "task": "M10-T1",
-    "outcome": "in_progress",
-    "next_step": "Run fresh full M10 G0/G3; commit only after required gates pass. Native shaping and production text acceptance remain later tasks.",
-    "previous_verification": {
-      "path": "artifacts/migration/verify-2026-10-20T14-02-34-985Z-5ff5b22a.json",
-      "sha256": "5d980335648f921729dfeff94bf65ee6756229290dd4d03570c8ebc60f1f9028"
-    }
+    "outcome": "passed",
+    "commit": "b4fdc59e19c0fcef93b8f9c5bc508d904fa4438a",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-20T20-38-23-126Z-56911203.json",
+      "sha256": "1ebc0f6f0ce68c93752efcc85297ff90e9ad5fe16a6212a7c7bfcdf0b5a1062c"
+    },
+    "gates": [
+      {
+        "id": "G0",
+        "status": "passed",
+        "duration_ms": 392326,
+        "proof": {
+          "path": "artifacts/migration/2026-10-20T20-38-23-126Z-56911203/static-results.json",
+          "sha256": "2dcfc7ac9cde8737d004171836b939c72567e8b7c8aaf1fe0209397ee0890c44"
+        }
+      },
+      {
+        "id": "G3",
+        "status": "passed",
+        "duration_ms": 1782992,
+        "proof": {
+          "path": "artifacts/migration/2026-10-20T20-38-23-126Z-56911203/G3/report.json",
+          "sha256": "8b07be8028173e74813a3d7e25077c40e09ab4f4ce24e67b5bd693133969d7f6"
+        }
+      }
+    ],
+    "duration_ms": 2199326,
+    "next_step": "M10-T2: resolve embedded project font descriptors and bounded supported containers; preserve explicit retained-raster reasons for unsupported inputs."
   },
   "milestones": [
     {
@@ -23818,7 +23840,7 @@
         {
           "id": "M10-T1",
           "title": "Introduce maintained pure-Rust font parsing and deterministic face selection",
-          "status": "in_progress",
+          "status": "done",
           "scope": "Review maintained pure-Rust parsing dependencies and their locked graph; add bounded OpenType/TrueType collection face metadata and deterministic family/weight/style selection behind Aster-owned interfaces. Keep shaping, project-font decoding and production text routing in their later tasks.",
           "acceptance": "Deterministic selection from pinned font bytes, bounded discovery and cache identity; current G0/G3 remain green.",
           "estimated_implementation_hours": 2,
@@ -23828,7 +23850,7 @@
           ],
           "started_at": "2026-10-20T20:25:14.937Z",
           "progress": {
-            "state": "implemented_pending_full_verification",
+            "state": "full_required_gates_passed",
             "features": [
               "Authenticated bounded TTF/OTF/TTC metadata admission with atomic collection updates",
               "Deterministic Unicode family, width/style/weight and variable-axis selection",
@@ -23847,7 +23869,42 @@
               "artifacts/migration/cycle119-cargo-audit.log",
               "artifacts/migration/cycle119-pnpm-audit.json",
               "artifacts/migration/cycle119-pnpm-audit-patched.json"
-            ]
+            ],
+            "completed_full_run": {
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-20T20-38-23-126Z-56911203.json",
+                "sha256": "1ebc0f6f0ce68c93752efcc85297ff90e9ad5fe16a6212a7c7bfcdf0b5a1062c"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 392326,
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-20T20-38-23-126Z-56911203/static-results.json",
+                    "sha256": "2dcfc7ac9cde8737d004171836b939c72567e8b7c8aaf1fe0209397ee0890c44"
+                  }
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 1782992,
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-20T20-38-23-126Z-56911203/G3/report.json",
+                    "sha256": "8b07be8028173e74813a3d7e25077c40e09ab4f4ce24e67b5bd693133969d7f6"
+                  }
+                }
+              ],
+              "duration_ms": 2199326,
+              "primary_pixel_frames": 1315,
+              "native_text_acceptance": false
+            }
+          },
+          "completed_at": "2026-10-20T21:16:15.302Z",
+          "commit": "b4fdc59e19c0fcef93b8f9c5bc508d904fa4438a",
+          "verification": {
+            "path": "artifacts/migration/verify-2026-10-20T20-38-23-126Z-56911203.json",
+            "sha256": "1ebc0f6f0ce68c93752efcc85297ff90e9ad5fe16a6212a7c7bfcdf0b5a1062c"
           }
         },
         {
@@ -23935,7 +23992,11 @@
           ]
         }
       ],
-      "started_at": "2026-10-20T20:25:14.937Z"
+      "started_at": "2026-10-20T20:25:14.937Z",
+      "latest_verification": {
+        "path": "artifacts/migration/verify-2026-10-20T20-38-23-126Z-56911203.json",
+        "sha256": "1ebc0f6f0ce68c93752efcc85297ff90e9ad5fe16a6212a7c7bfcdf0b5a1062c"
+      }
     },
     {
       "id": "M11",
@@ -2439481,6 +2439542,19 @@
         "sha256": "5d980335648f921729dfeff94bf65ee6756229290dd4d03570c8ebc60f1f9028"
       },
       "milestone_exit_satisfied": true
+    },
+    {
+      "cycle": 119,
+      "time": "2026-10-20T21:16:15.302Z",
+      "milestone": "M10",
+      "task": "M10-T1",
+      "outcome": "passed",
+      "commit": "b4fdc59e19c0fcef93b8f9c5bc508d904fa4438a",
+      "verification": {
+        "path": "artifacts/migration/verify-2026-10-20T20-38-23-126Z-56911203.json",
+        "sha256": "1ebc0f6f0ce68c93752efcc85297ff90e9ad5fe16a6212a7c7bfcdf0b5a1062c"
+      },
+      "milestone_exit_satisfied": false
     }
   ],
   "known_boundaries": [
@@ -2439707,11 +2439781,17 @@
     "task": "M10-T1",
     "increment": "Introduce maintained pure-Rust font parsing and deterministic face selection",
     "started_at": "2026-10-20T20:25:14.937Z",
-    "updated_at": "2026-10-20T20:38:22.042Z",
-    "implementation_state": "implemented_pending_full_verification",
+    "updated_at": "2026-10-20T21:16:15.302Z",
+    "implementation_state": "committed",
     "previous_verification": {
       "path": "artifacts/migration/verify-2026-10-20T14-02-34-985Z-5ff5b22a.json",
       "sha256": "5d980335648f921729dfeff94bf65ee6756229290dd4d03570c8ebc60f1f9028"
+    },
+    "outcome": "passed",
+    "commit": "b4fdc59e19c0fcef93b8f9c5bc508d904fa4438a",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-20T20-38-23-126Z-56911203.json",
+      "sha256": "1ebc0f6f0ce68c93752efcc85297ff90e9ad5fe16a6212a7c7bfcdf0b5a1062c"
     }
   },
   "execution_pause": {
