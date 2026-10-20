@@ -7,7 +7,10 @@ repository.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+aster-types.workspace = true
+base64.workspace = true
 clap.workspace = true
+flate2.workspace = true
 icu_casemap.workspace = true
 read-fonts.workspace = true
 sha2.workspace = true
@@ -15,3 +18,4 @@ thiserror.workspace = true
 
 [dev-dependencies]
 aster-storage.workspace = true
+serde_json.workspace = true

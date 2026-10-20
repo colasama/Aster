@@ -8,12 +8,17 @@ mod cache;
 mod catalog;
 mod discovery;
 mod face;
+mod project_font_input;
+mod project_fonts;
 mod selection;
+mod woff;
 
 #[cfg(test)]
 mod catalog_test_font;
 #[cfg(test)]
 mod catalog_tests;
+#[cfg(test)]
+mod project_font_tests;
 
 pub use atlas::{
     AtlasConfig, AtlasFormat, AtlasLimits, AtlasRect, GlyphAtlas, GlyphAtlasDescriptor,
@@ -25,4 +30,6 @@ pub use cache::{
 pub use catalog::{FontCatalog, FontCatalogConfig, FontCatalogError};
 pub use discovery::{FontContainer, FontDiscoveryConfig, FontDiscoveryError, FontFile, LoadedFont};
 pub use face::{FontAxis, FontFaceId, FontFaceMetadata, FontStyle};
+pub use project_font_input::ProjectFontConfig;
+pub use project_fonts::{ProjectFontFallback, ProjectFontResolution, ProjectFontSet};
 pub use selection::{FontRequest, FontSelection};

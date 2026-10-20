@@ -363,39 +363,17 @@
     }
   },
   "last_cycle": {
-    "id": 119,
-    "time": "2026-10-20T21:16:15.302Z",
-    "updated_at": "2026-10-20T21:16:15.302Z",
+    "id": 120,
+    "time": "2026-10-20T21:17:16.700Z",
+    "updated_at": "2026-10-20T21:23:26.372Z",
     "milestone": "M10",
-    "task": "M10-T1",
-    "outcome": "passed",
-    "commit": "b4fdc59e19c0fcef93b8f9c5bc508d904fa4438a",
-    "verification": {
+    "task": "M10-T2",
+    "outcome": "in_progress",
+    "previous_verification": {
       "path": "artifacts/migration/verify-2026-10-20T20-38-23-126Z-56911203.json",
       "sha256": "1ebc0f6f0ce68c93752efcc85297ff90e9ad5fe16a6212a7c7bfcdf0b5a1062c"
     },
-    "gates": [
-      {
-        "id": "G0",
-        "status": "passed",
-        "duration_ms": 392326,
-        "proof": {
-          "path": "artifacts/migration/2026-10-20T20-38-23-126Z-56911203/static-results.json",
-          "sha256": "2dcfc7ac9cde8737d004171836b939c72567e8b7c8aaf1fe0209397ee0890c44"
-        }
-      },
-      {
-        "id": "G3",
-        "status": "passed",
-        "duration_ms": 1782992,
-        "proof": {
-          "path": "artifacts/migration/2026-10-20T20-38-23-126Z-56911203/G3/report.json",
-          "sha256": "8b07be8028173e74813a3d7e25077c40e09ab4f4ce24e67b5bd693133969d7f6"
-        }
-      }
-    ],
-    "duration_ms": 2199326,
-    "next_step": "M10-T2: resolve embedded project font descriptors and bounded supported containers; preserve explicit retained-raster reasons for unsupported inputs."
+    "next_step": "Run fresh full M10 G0/G3 before committing project font resolution; production integration remains M10-T7."
   },
   "milestones": [
     {
@@ -23910,14 +23888,33 @@
         {
           "id": "M10-T2",
           "title": "Resolve embedded fonts and bounded supported container decoding",
-          "status": "pending",
+          "status": "in_progress",
           "scope": "Preserve authored family aliases, weight ranges, project font revision and existing schema limits. Evaluate WOFF/WOFF2 support with explicit reasons for unsupported containers instead of silently changing faces.",
           "acceptance": "Project fonts override corresponding platform faces correctly; malformed/oversized input fails atomically; current G0/G3 remain green.",
           "estimated_implementation_hours": 2,
           "required_gates": [
             "G0",
             "G3"
-          ]
+          ],
+          "started_at": "2026-10-20T21:17:16.700Z",
+          "progress": {
+            "state": "implemented_pending_full_verification",
+            "container_policy": "Admit bounded SFNT fonts; implement bounded WOFF1 decoding using the existing zlib dependency. Keep WOFF2 and unsupported font metadata behind explicit retained-raster decisions until their decoder and layout limits are verified.",
+            "features": [
+              "Atomic embedded SFNT/WOFF1 admission with existing schema and aggregate byte limits",
+              "Authored alias/weight-range resolution before platform families and complete font content revision",
+              "Explicit WOFF2 and embedded collection retained-provider decisions without silent substitution"
+            ],
+            "focused_validation": {
+              "text_tests": 21,
+              "clippy": "passed"
+            },
+            "evidence": [
+              "artifacts/migration/cycle120-text-tests-final.log",
+              "artifacts/migration/cycle120-clippy-final.log",
+              "artifacts/migration/cycle119-m10-project-font-preparation.json"
+            ]
+          }
         },
         {
           "id": "M10-T3",
@@ -23977,6 +23974,13 @@
           "required_gates": [
             "G0",
             "G3"
+          ],
+          "required_followups": [
+            {
+              "status": "pending",
+              "title": "Bind WOFF2 and embedded-collection capability reasons to authenticated retained raster routing",
+              "acceptance": "The selected project font id, bytes and revision remain bound to retained provider validation and pixels; malformed bytes are rejected by that provider; no platform substitution or blanket text fallback."
+            }
           ]
         },
         {
@@ -2439776,20 +2439780,14 @@
     }
   ],
   "active_cycle": {
-    "id": 119,
+    "id": 120,
     "milestone": "M10",
-    "task": "M10-T1",
-    "increment": "Introduce maintained pure-Rust font parsing and deterministic face selection",
-    "started_at": "2026-10-20T20:25:14.937Z",
-    "updated_at": "2026-10-20T21:16:15.302Z",
-    "implementation_state": "committed",
+    "task": "M10-T2",
+    "increment": "Resolve embedded fonts and bounded supported container decoding",
+    "started_at": "2026-10-20T21:17:16.700Z",
+    "updated_at": "2026-10-20T21:23:26.372Z",
+    "implementation_state": "implemented_pending_full_verification",
     "previous_verification": {
-      "path": "artifacts/migration/verify-2026-10-20T14-02-34-985Z-5ff5b22a.json",
-      "sha256": "5d980335648f921729dfeff94bf65ee6756229290dd4d03570c8ebc60f1f9028"
-    },
-    "outcome": "passed",
-    "commit": "b4fdc59e19c0fcef93b8f9c5bc508d904fa4438a",
-    "verification": {
       "path": "artifacts/migration/verify-2026-10-20T20-38-23-126Z-56911203.json",
       "sha256": "1ebc0f6f0ce68c93752efcc85297ff90e9ad5fe16a6212a7c7bfcdf0b5a1062c"
     }

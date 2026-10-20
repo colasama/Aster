@@ -29,6 +29,18 @@ The original audit is retained at `artifacts/migration/cycle119-pnpm-audit.json`
 used `--ignore-scripts`; Electron and the shipped FFmpeg build remain unchanged. These overrides
 can be removed when their direct parents require the patched versions themselves.
 
+Embedded font resolution reuses the locked `base64` 0.22.1 and `flate2` 1.1.9 packages; no new
+third-party package is added. The small WOFF1 container adapter validates directory arithmetic,
+non-overlapping contiguous blocks and padding before allocating a bounded SFNT, requires exact
+zlib stream consumption/output size, and verifies table checksums before rebuilding the overall
+checksum. Font table interpretation remains in `read-fonts`.
+
+Wuff 0.2.9 (MIT, pure Rust) was evaluated for WOFF/WOFF2 but was not added. Its WOFF1 decoder
+leaves checksum adjustment unfinished, and its WOFF2 final reconstructed-size check occurs after
+reconstruction; a declared header size alone cannot establish Aster's allocation bound. The native
+resolver therefore identifies WOFF2 explicitly for the existing retained raster provider, which
+must still validate and decode it. This is a capability boundary, not native WOFF2 acceptance.
+
 The new CPU comparison crate uses RustFFT 6.4.1 (MIT OR Apache-2.0) for its phase-correlation FFT.
 Its maintained, SIMD-capable, pure-Rust implementation avoids maintaining a second numerical FFT
 and introduces no native C/C++ library or GPU/vendor dependency. The lockfile adds RustFFT,

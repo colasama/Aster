@@ -51,7 +51,7 @@ impl FontCatalog {
 }
 
 impl FontSelection {
-    fn for_face(face: &FontFaceMetadata, family: &str, request: &FontRequest) -> Self {
+    pub(crate) fn for_face(face: &FontFaceMetadata, family: &str, request: &FontRequest) -> Self {
         let mut variations: BTreeMap<_, _> = face
             .axes
             .values()
@@ -78,7 +78,7 @@ impl FontSelection {
         }
     }
 
-    fn rank(&self, request: &FontRequest) -> (u8, u32, u8, u8, u32, FontFaceId) {
+    pub(crate) fn rank(&self, request: &FontRequest) -> (u8, u32, u8, u8, u32, FontFaceId) {
         let width_side = u8::from(if request.width_percent <= 100.0 {
             self.width_percent > request.width_percent
         } else {

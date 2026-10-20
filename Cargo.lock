@@ -364,9 +364,13 @@ name = "aster-text"
 version = "0.3.5"
 dependencies = [
  "aster-storage",
+ "aster-types",
+ "base64",
  "clap",
+ "flate2",
  "icu_casemap",
  "read-fonts",
+ "serde_json",
  "sha2",
  "thiserror",
 ]

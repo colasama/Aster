@@ -558,8 +558,16 @@ font hashes and collection indices, admits collections atomically, and bounds fo
 family names and variation axes. ICU default case folding matches localized family aliases without
 Unicode normalization. Ordered family selection ranks physical width, style and weight and retains
 explicit weight/width variation coordinates. Selection alone does not establish glyph coverage,
-shaping support or pixel parity. Compressed font containers require a decoder before admission.
-This native foundation does not change the active Chromium text raster path or editor font inventory.
+shaping support or pixel parity. Project font sets validate the existing 32-face/8 MiB source
+schema and atomically replace their catalog, preserving authored family aliases and CSS weight
+descriptors ahead of matching platform families. Their content-derived revision includes ordered
+font bytes, identities, aliases and weight descriptors; in-flight users retain immutable byte handles.
+WOFF1 decoding bounds reconstructed bytes before allocation, validates offsets, padding, zlib
+completion and checksums, and rebuilds the SFNT header. WOFF2 remains an opaque retained-provider
+request whose bytes still require that provider's validation; embedded collection selection also
+has an explicit retained-provider reason. Neither silently substitutes a platform font.
+This native foundation does not change the active Chromium text raster path or editor font inventory;
+production routing and layout/pixel acceptance are separate integration requirements.
 
 ## Pi agent runtime
 
