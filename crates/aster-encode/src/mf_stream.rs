@@ -6,7 +6,7 @@ use std::{
 };
 
 use aster_render_ir::{AdapterLuid, ExportVideoConfig};
-use windows::{Win32::Media::MediaFoundation::*, core::Interface};
+use windows::Win32::Media::MediaFoundation::*;
 
 use crate::{
     EncodeError, EncodedPacket, EncoderOptions, EncoderStatistics,
@@ -18,7 +18,7 @@ use crate::{
 
 pub(crate) struct MfEncoder {
     active: Option<ActiveTransform>,
-    events: IMFMediaEventGenerator,
+    events: crate::mf_events::MfEvents,
     gpu: Option<GpuInputDevice>,
     gpu_leases: BTreeMap<u64, GpuInputLease>,
     // Drop the transform and event interface before releasing the COM/MF thread scope.
@@ -40,6 +40,7 @@ impl MfEncoder {
         shared: bool,
     ) -> Result<Self, EncodeError> {
         let runtime = MfRuntime::start()?;
+        tracing::debug!(phase = "device", shared, "Initializing hardware encoder");
         let gpu = if shared {
             Some(GpuInputDevice::new(luid)?)
         } else {
@@ -49,6 +50,11 @@ impl MfEncoder {
             .encoders(luid, &options.probe)
             .map_err(|error| EncodeError::Platform(error.to_string()))?;
         let mut failures = Vec::new();
+        tracing::debug!(
+            phase = "enumerated",
+            count = encoders.len(),
+            "Initializing hardware encoder"
+        );
         for activation in encoders {
             let name = MfRuntime::name(&activation)
                 .map_err(|error| EncodeError::Platform(error.to_string()))?;
@@ -60,11 +66,12 @@ impl MfEncoder {
             )
             .map_err(EncodeError::from)
             .and_then(|mut active| {
+                tracing::debug!(phase = "probe", "Qualifying hardware encoder");
                 ProbeStream::verify(&mut active, &video, &options.probe, gpu.as_ref())
                     .map_err(|error| EncodeError::Platform(error.to_string()))?;
                 Ok(active)
             });
-            let active = match tested {
+            let mut active = match tested {
                 Ok(active) => active,
                 Err(error) => {
                     failures.push(format!("{name}: {error}"));
@@ -72,29 +79,29 @@ impl MfEncoder {
                 }
             };
             unsafe {
-                // Retain the qualified device/transform pair across the stream boundary.
-                // Flush removes probe packets before a new job requests input credits.
+                tracing::debug!(phase = "restart", "Starting qualified encoder stream");
+                // Keep one streaming lifetime for qualification and production. Ending and
+                // immediately beginning streaming can race hardware resource teardown.
+                // Flush removes probe packets before the new stream requests input credits.
                 active
                     .transform
                     .ProcessMessage(MFT_MESSAGE_COMMAND_FLUSH, 0)?;
-                let events: IMFMediaEventGenerator = active.transform.cast()?;
+                let events = active.events.take().ok_or_else(|| {
+                    EncodeError::Invalid("encoder event subscription missing".into())
+                })?;
                 let reset_started = Instant::now();
                 loop {
                     if reset_started.elapsed() >= Duration::from_millis(options.encoder_timeout_ms)
                     {
                         return Err(EncodeError::TimedOut);
                     }
-                    match events.GetEvent(MF_EVENT_FLAG_NO_WAIT) {
-                        Ok(event) => {
-                            event.GetStatus()?.ok()?;
+                    match events.poll()? {
+                        Some(event) => {
+                            let _ = event;
                         }
-                        Err(error) if error.code() == MF_E_NO_EVENTS_AVAILABLE => break,
-                        Err(error) => return Err(error.into()),
+                        None => break,
                     }
                 }
-                active
-                    .transform
-                    .ProcessMessage(MFT_MESSAGE_NOTIFY_BEGIN_STREAMING, 0)?;
                 active
                     .transform
                     .ProcessMessage(MFT_MESSAGE_NOTIFY_START_OF_STREAM, 0)?;
@@ -303,14 +310,12 @@ impl MfEncoder {
         bytes: &mut u64,
     ) -> Result<bool, EncodeError> {
         self.retire_gpu_leases();
-        unsafe {
-            let event = match self.events.GetEvent(MF_EVENT_FLAG_NO_WAIT) {
-                Ok(event) => event,
-                Err(error) if error.code() == MF_E_NO_EVENTS_AVAILABLE => return Ok(false),
-                Err(error) => return Err(error.into()),
+        {
+            let event = match self.events.poll()? {
+                Some(event) => event,
+                None => return Ok(false),
             };
-            event.GetStatus()?.ok()?;
-            let kind = event.GetType()?;
+            let kind = event;
             if kind == METransformNeedInput.0 as u32 {
                 self.credits = self
                     .credits

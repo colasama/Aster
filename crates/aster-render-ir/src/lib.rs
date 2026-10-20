@@ -2,7 +2,9 @@
 mod final_output;
 mod motion_reconstruction;
 mod post_effect;
-pub use motion_reconstruction::{MotionReconstructionSlice, MotionReconstructionStatus};
+pub use motion_reconstruction::{
+    MotionReconstructionInput, MotionReconstructionSlice, MotionReconstructionStatus,
+};
 pub use post_effect::{
     DepthEffectMode, PostEffect, PostEffectInput, PostEffectSlice, PostEffectStatus,
     SurfaceEffectMode,
@@ -33,6 +35,8 @@ pub use layer_effect::{EffectBlendMode, EffectRoute, LayerEffectSlice};
 mod camera;
 mod canonical;
 mod codec;
+mod comparison;
+pub use comparison::{PlanComparison, PlanComparisonReport, PlanDifference};
 mod effect_execution;
 mod encoded_texture;
 mod error;

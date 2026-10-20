@@ -147,7 +147,7 @@ fn rejects_wrong_frame_sizes_and_short_sources() -> Result<(), Box<dyn std::erro
         ExportFrameReceiver::write_frames(
             Vec::new(),
             ExportFrameReceiver::fixture(vec![Ok(vec![0; 3])])?,
-            4,
+            FrameEncoding::Raw(4),
             1,
             &cancellation
         ),
@@ -161,7 +161,7 @@ fn rejects_wrong_frame_sizes_and_short_sources() -> Result<(), Box<dyn std::erro
         ExportFrameReceiver::write_frames(
             Vec::new(),
             ExportFrameReceiver::fixture(vec![Ok(vec![0; 4])])?,
-            4,
+            FrameEncoding::Raw(4),
             2,
             &cancellation
         ),
@@ -184,7 +184,7 @@ fn frame_channel_enforces_finish_extra_frames_and_capacity()
         ExportFrameReceiver::write_frames(
             Vec::new(),
             ExportFrameReceiver::fixture(vec![Ok(vec![0; 4]), Ok(vec![1; 4])])?,
-            4,
+            FrameEncoding::Raw(4),
             1,
             &cancellation,
         ),
@@ -195,7 +195,13 @@ fn frame_channel_enforces_finish_extra_frames_and_capacity()
     sender.send_frame(Ok(vec![0; 4]))?;
     drop(sender);
     assert_eq!(
-        ExportFrameReceiver::write_frames(Vec::new(), receiver, 4, 1, &cancellation),
+        ExportFrameReceiver::write_frames(
+            Vec::new(),
+            receiver,
+            FrameEncoding::Raw(4),
+            1,
+            &cancellation
+        ),
         Err(ExportError::FrameStreamUnfinished { actual: 1 })
     );
     Ok(())
@@ -209,8 +215,13 @@ fn blocked_frame_receive_observes_cancellation_and_joins() -> Result<(), Box<dyn
     let writer_cancellation = cancellation.clone();
     let (done_sender, done_receiver) = mpsc::channel();
     let writer = thread::spawn(move || {
-        let result =
-            ExportFrameReceiver::write_frames(Vec::new(), receiver, 4, 1, &writer_cancellation);
+        let result = ExportFrameReceiver::write_frames(
+            Vec::new(),
+            receiver,
+            FrameEncoding::Raw(4),
+            1,
+            &writer_cancellation,
+        );
         let _ = done_sender.send(result);
     });
     thread::sleep(Duration::from_millis(20));
@@ -235,7 +246,13 @@ fn child_exit_releases_a_writer_waiting_for_frames_before_join()
     let (sender, receiver) = ExportLimits::default().frame_channel(1)?;
     let (done_sender, done_receiver) = mpsc::channel();
     let worker = thread::spawn(move || {
-        let result = backend.run_export(&command, receiver, 4, 1, &CancellationToken::default());
+        let result = backend.run_export(
+            &command,
+            receiver,
+            FrameEncoding::Raw(4),
+            1,
+            &CancellationToken::default(),
+        );
         let _ = done_sender.send(result);
     });
     assert_eq!(
@@ -266,7 +283,7 @@ fn delayed_finish_prevents_the_child_from_completing_early()
         let result = FfmpegExportBackend::default().run_export(
             &command,
             receiver,
-            4,
+            FrameEncoding::Raw(4),
             1,
             &CancellationToken::default(),
         );

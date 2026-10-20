@@ -7,7 +7,10 @@ use aster_video::{CancellationToken, DecodeLimits, FfmpegBackend};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
-use crate::{MediaError, StillAuthorization, authorization::MediaGrants};
+use crate::{
+    MediaError, MediaSnapshotAuthorization, SnapshotGrantLimits, StillAuthorization,
+    authorization::MediaGrants,
+};
 
 #[derive(Clone, Debug, clap::Args)]
 pub struct StillLimits {
@@ -53,6 +56,22 @@ impl NativeStillDecoder {
         authorizations: Vec<StillAuthorization>,
         limits: StillLimits,
     ) -> Result<Self, MediaError> {
+        Self::with_snapshots(
+            executable,
+            authorizations,
+            Vec::new(),
+            SnapshotGrantLimits::default(),
+            limits,
+        )
+    }
+
+    pub fn with_snapshots(
+        executable: PathBuf,
+        authorizations: Vec<StillAuthorization>,
+        snapshots: Vec<MediaSnapshotAuthorization>,
+        snapshot_limits: SnapshotGrantLimits,
+        limits: StillLimits,
+    ) -> Result<Self, MediaError> {
         if limits.still_max_source_bytes == 0
             || limits.still_max_source_bytes == u64::MAX
             || limits.still_max_pixel_bytes == 0
@@ -64,7 +83,7 @@ impl NativeStillDecoder {
                 "positive bounded decode limits required".into(),
             ));
         }
-        let grants = MediaGrants::new(authorizations)?;
+        let grants = MediaGrants::with_snapshots(authorizations, snapshots, snapshot_limits)?;
         let decode_limits = DecodeLimits {
             max_media_bytes: limits.still_max_source_bytes,
             max_frame_bytes: usize::try_from(limits.still_max_pixel_bytes)

@@ -600,8 +600,292 @@ frame data are excluded, and successful hot-path operations are intentionally si
 | `aster-render-cli` | Headless plan rendering, transport diagnostics and image comparison |
 | `aster-profiler` | RAII CPU timing and rolling metrics |
 | `aster-project` | Versioned bundle validation and atomic persistence |
+| `aster-eval` | Native time-addressable scalar, expression, transform, composition, camera, light, vector geometry, mesh, shape-graph, text-animator and effect-input evaluation, with native effect operation kernels; complete project-to-plan integration remains in progress |
 | `aster-plugin` | Manifest, parameter, permission, and capability validation |
 | `aster-desktop-bridge` | Electron sidecar protocol, native project I/O, and plugin runtime |
+
+Native effect kernels emit the existing 16-float operation ABI in composition render order.
+The development-time translator emits ordinary Rust and pins its TS sources for parity checks;
+the native runtime does not invoke JavaScript. Bokeh choice tables and stable-sorted gradient
+stops use explicit Rust kernels. Native text animation consumes supplied layout units until native
+shaping and rasterization replace that boundary.
+
+Native cloners cache static distributions and preserve instance identities while sharing source
+resources across nested clones. Audio analysis uses bounded radix-2 FFTs and explicit absolute
+sample reads, producing the existing 9,280-byte generator audio ABI independently of seek order.
+Generator input evaluation reuses the native plugin graph validator, retains authoring parameters
+at double precision, and packs the shared context, parameter, indirect and dispatch records under
+device budgets. Shader admission and complete project-to-plan resource assembly remain separate
+boundaries; these component checks do not establish native project rendering parity.
+
+Native frame producers own validated scene, lighting and post-process buffers, exact binary frame
+times and frame rates, effect routing/fusion records, LUT texture resources, and root draw commands.
+The root command producer preserves bottom-to-top ordering, 3D-to-2D depth boundaries, isolated
+layers, adjustments and generator availability. Effect programs borrow compiled tracks rather than
+copying them per frame; LUT packing preserves the established half-float rounding and resource hash.
+Component oracles compare metadata and packed bytes against TS. Complete authenticated media
+assembly remains required before native project rendering can pass the whole-frame gates.
+
+Native motion planning evaluates shutter endpoints directly, matches full selection/instance/resource
+identities and vertex counts, and emits zero velocity for missing or changed topology. The same
+bounded shutter interval drives reconstruction uniforms and optional scene-vector payloads. Final
+output routing preserves the existing availability rules for beauty, depth and auxiliary displays;
+temporal text exposure uses the same shutter interval with native source-time evaluation.
+
+Native recursive surface planning shares targets by revision, composition and source time, applies
+the existing depth, texture, dimension and memory budgets, and emits child-first scene/root plans
+with explicit graph routes and alias ordering. Geometry consumes the already evaluated, namespaced
+child layers. Component oracles verify the graph and command bytes against TS, including deliberate
+budget, alias, ordering, route and draw-index corruption. Temporal text planning merges shutter
+samples into microsecond cache buckets, retains transparent exposure weights, and inserts
+representative exposure-only scenes in render order. Supplied text layout units keep the existing
+raster boundary explicit; child surfaces preserve namespaced resource identities across samples.
+Locale-sensitive ordering uses pure-Rust ICU4X behind the native text interface with the host's
+resolved Intl locale. The pinned Unicode-3.0 dependencies replace a language-specific collation
+implementation that would be impractical to maintain locally; they add no native C/C++ runtime.
+Authenticated bundle assembly is available; project-driven orchestration and headless resource
+resolution remain required before these producers establish whole-frame parity.
+
+Native auxiliary plans retain geometry draw order, UTF-16 object IDs, surface-before-media bindings,
+generator order and packed motion data. File-backed compilation preserves ECMAScript material JSON
+property order and number formatting before hashing material IDs. JSON parsing enables exact float
+round trips; the shared scalar formatter uses pure-Rust Ryū-js for ECMAScript shortest-decimal
+rounding, including halfway values. Allocation state is an explicit
+input; unavailable, cleared and drawn outcomes retain the existing texture and attribute budgets.
+Component checks compare production TS plans with mocked allocation handles, including material
+ordering and budget boundaries; complete project resource assembly remains separate.
+
+Native depth and surface post producers preserve the existing camera-optics scaling, bounded uniform
+packing, attachment fallback roles and ready/skipped outcomes. Their component oracle invokes the
+production TS post-effect classes with allocation handles supplied by the harness, so Rust output
+is checked against the existing input-selection logic without running a second GPU pipeline.
+
+Native bundle assembly admits immutable content proofs under the existing 65,536-resource and
+64 MiB bounds, resolves media-frame source dependencies, and publishes only the used resource set.
+Prepared effect records retain direct/skipped/failed/ready outcomes, encoded programs and LUTs.
+Frame and recursive surface bundles preserve UTF-16 identities and diagnostics, generator order,
+temporal plans, draw mappings and authenticated media-pixel links. Output-stage consistency is
+validated before publication. Component oracles establish exact packing and dependency hashes
+from supplied component inputs; they do not establish project-driven native plan or pixel parity.
+
+Project effect preparation resolves compiled source-layer tracks at each flattened instance's local
+time, preserves map insertion order, and uses the enclosing render target's pixel scale. Native
+generator plans snapshot admitted shader sources into bounded content resources, translate the
+validated plugin graph, and pack context, parameters, indirect commands and optional root-time audio.
+Temporal raster passes preserve binary64 exposure weights and bind distinct supplied sample/output
+identities. These producers are compared with production TS; raster acquisition, complete frame
+orchestration and headless resource authorization remain separate integration requirements.
+
+Material planning evaluates normal strength, environment intensity and wrapped rotation before
+packing binary64 binding slices. The project producer shares normal maps by resource instance and
+binds them to each draw instance; normal/environment bytes remain supplied, authenticated resources.
+Scene media binding records exact or pending references alongside geometry, rejects repeated binding,
+and retains sorted resource identities without copying geometry payloads.
+
+An immutable native generator catalog admits definitions and deduplicates shader storage under the
+bundle resource budget. Project invocation reads compiled source clocks, flattened transforms and
+the enclosing camera, while all recursive generators reuse the root-time audio record. Recursive
+surface preparation binds media, uses distinct scene/effect/generator snapshot scopes, derives effect
+mip counts from each target, and preserves child-first order and diagnostic origins. Generator
+records remain planned until execution admission establishes their available capacity.
+
+Native frame preparation shares current geometry between scene packing and stable-identity shutter
+matching. Beauty frames evaluate temporal text unions before geometry; diagnostic views retain the
+current scene. Camera optics, layer motion eligibility and visualization determine which endpoint
+samples and output stages are needed. Raster bounds and text layouts remain explicit supplied inputs.
+The output coordinator derives shutter timing from the project, observes auxiliary allocation and
+motion readiness, and preserves depth-source fallback, generator exclusion during beauty motion,
+selection IDs and final route consistency. Production TS coordinator comparisons cover all output
+modes and unavailable/cleared/drawn resources; complete frame/resource admission remains separate.
+
+The project-frame coordinator now joins scene evaluation, recursive surfaces, effect and material
+programs, media bindings, output selection and bounded resource-bundle assembly. Generator realization
+observes each exact invocation and must return matching capacity/count or an unavailable outcome;
+planned outcomes cannot be published as execution evidence. Root generators are realized before
+recursive generators; unavailable root generators are omitted, while recursive records preserve the
+observed outcome. Shadow eligibility comes from the evaluated primary light and allocated shadow-map
+size. Surface scale must match frame anti-aliasing. Resource acquisition remains an explicit boundary.
+TS comparisons cover primitive, moving, effected and isolated child scenes across output modes;
+generator, lighting and root/recursive media integration checks extend this coverage. Media tests
+distinguish pending frames, authenticated source/frame descriptors and supplied pixel payloads.
+Corpus-wide native plan/pixel
+acceptance and headless acquisition remain required.
+
+The diagnostic `aster-render-cli plan-project` command upgrades persisted project JSON in memory
+through the current TS schema transformations before native evaluation. The runtime loader preserves
+authored material property order and unknown fields, bounds input/output bytes and collection sizes,
+and never writes the authored document. Lossless bundle persistence remains a separate API. Its G1
+oracle covers every corpus project, historical schema transitions and rejection controls; external
+owner documents are referenced by path and digest only. The command accepts a typed
+frame/resource-observation request and reports both authored and runtime document hashes. Input payloads
+are content authenticated under aggregate bounds. Generator observations are keyed by the complete
+invocation binary digest, so stale or mismatched allocations cannot authorize a different invocation.
+The command atomically publishes a new directory containing `plan.fpln`, `resources.json`, hash-named
+payloads and an input/output digest report. It does not acquire media or claim GPU execution; the
+headless resource adapter supplies those observations separately.
+
+`aster-project::MediaSourceReader` admits portable payloads and bundle-relative media without
+materializing files or trusting stored resolved-path hints. It authenticates byte and content
+identities under per-source, inline, aggregate and file-count budgets. External unsaved payloads are
+rejected. `aster-media-native` also accepts immutable broker-provided snapshots under separate
+resident-byte and entry limits; filesystem and snapshot grants share scope, sequence-member and
+descriptor-identity checks. `ProjectMediaCatalog` binds source and payload identities, validates
+sequence members and resolves missing-frame policies. `NativeProjectMediaSession` builds media
+descriptors from these bindings and native layer source times, using authenticated video metadata
+and the retained seek tolerance and microsecond upload clock. Planning can omit pixel decoding;
+execution uses the same descriptors through the bounded native media session. G1 checks corpus bytes
+against TS identities and file-media descriptors against authenticated TS plan references. Complete
+recursive scene assembly and retained raster acquisition remain separate integration requirements.
+
+`aster-render-cli prepare-rasters` resolves retained-raster requests from the native scene, source
+clock, transform and text-exposure evaluators. Its bounded JSON input contains a frame address,
+font-provider layout units and device limits, without supplied scene or effect plans. Text density
+includes composed transforms; SVG density follows the authored local transform. The retained raster
+provider consumes these requests through the existing text, SVG and PSD raster implementations,
+returns authenticated pixel resources and text bounds, and preserves temporal sample resources until
+capture completes. The isolated resource harness checks fresh acquisition against frozen reference
+bindings, pixel bytes, font identity and adapter identity. This component boundary does not establish
+recursive frame assembly or whole-project native export acceptance.
+
+`prepare-resources` extends native acquisition planning to the complete ordered frame: root text,
+recursive surface targets and child media, then root images and video. Frame size and AA determine
+root raster density; child text uses its source composition's frame rate and surface resolution,
+while child SVG retains the existing default image density. Shared surface sources are acquired once.
+File-media requests retain native layer addresses and local times so the admitted media session can
+apply source-duration-aware clocks. Target requests describe required allocations and never claim
+GPU availability. G1 compares these operations, surface bindings and diagnostics against TS over the
+corpus, with additional nested text/SVG cases and explicit corruption controls. Actual allocations,
+complete resource acquisition and final frame assembly remain separate steps.
+
+`aster-render-project` owns bounded native project loading and input acquisition for a job.
+File media is admitted from the native ordered requests, decoded through authenticated source
+snapshots, and bound to native instance identities and source clocks. Descriptor/plan resources
+and decoded frame pixels have separate byte budgets: the plan budget does not represent decoded
+texture residency. Interrupted file sessions cannot resume partially advanced clocks. Material
+acquisition resolves active native mesh bindings, decodes normal maps through the existing native
+texture boundary, and converts Radiance environments to the retained RGBA16-float representation.
+Content hashes and per-frame budgets remain authoritative before GPU upload.
+Serialized plans retain media frame identities; native file-decoder pixels are attached separately
+at the existing execution boundary, while retained raster derivations remain in the plan bundle.
+
+Native audio acquisition selects audible root-composition sources independently of visual
+visibility, authenticates source bytes, and decodes bounded PCM into a job-owned cache. The mixer
+preserves separate audio/video solo groups, source time remapping, reversal, channel levels, pan,
+Float32 accumulation, and export clipping. Its 48 kHz mono windows feed the native audio-analysis
+ABI. Input component gates compare material bytes, ordered media bindings, PCM mixes and analysis
+windows with independent retained TS results. These gates do not establish final pixel parity or
+complete project export, and production rendering remains capability-gated until those gates pass.
+
+Audio is decoded at the source rate before the native compatibility resampler produces the 48 kHz
+analysis input. Integer normalization preserves Chromium's positive/negative full-scale distinction;
+the windowed-sinc kernel, block phase progression and Float32 reduction order preserve the retained
+decoder's results. Source sample format is obtained from the same bounded probe as stream metadata.
+Resampling validates the output byte budget before allocation and checks cancellation by block.
+
+Native project preparation allocates root and precomposition targets on the same renderer device
+that executes the frame. Generator readiness follows shader validation, pipeline creation and real
+context, parameter, indirect, storage and audio buffer allocation. The execution path reuses these
+handles by an identity containing the evaluated invocation and its owned audio bytes, and rejects a final
+generator or target closure that differs from its preparation. Admission accounts for retained
+cache residency and invalidates preparation on GPU allocation failure. Growing targets retire
+least-recent image generations before reserving space; final frame admission re-uploads any needed
+generation. Mandatory attachments still fail when they exceed the configured budget. Auxiliary attribute targets
+also support bounded retained buffers; their uploads are ordered before the corresponding GPU draws.
+The supplied-plan path retains its existing transient attribute behavior.
+
+Output preparation shares the retained primary attachments across depth, motion and diagnostic
+passes. It admits transparency tiers and attribute capacity against the configured budgets before
+publishing final output plans. Motion readiness includes a real post-process binding that is reused
+with ordered uniform uploads. Root-time audio remains shared across root and child generators;
+unrelated analysis does not change the identity of a generator that does not consume audio.
+
+The job-local `NativeProjectSession` assembles these inputs, evaluates complete native plans and
+publishes a prepared frame only after resource and execution validation. Prepared frames carry a
+session identity and generation; stale or repeated submission is rejected, and acquisition or GPU
+failure poisons the session. Retained text, SVG and PSD raster responses bind to a digest of the
+native ordered requests. Their bounded payload files, resource descriptors and pixel hashes are
+verified before admission. Bundled particle metadata is generated at build time and checked against
+shared WGSL identities, so native frame evaluation does not require a TypeScript runtime.
+Explicitly selected installed generators pass the existing native manifest and shader validator.
+Their program identities preserve the bridge's Float32-to-JSON promotion and locale-sorted text
+fingerprint, while shader bytes and aggregate admission budgets remain independently validated.
+
+The diagnostic `aster-render-cli render-project` command accepts bounded project jobs containing
+frame addresses, raster-provider settings and optional authenticated raster responses. It acquires
+file media, audio and materials itself, evaluates native plans and executes them on a retained GPU.
+It accepts no supplied scene plans or allocation observations. A complete job publishes its plans,
+content-addressed resource closure, PNG frames and hashed receipts together in a new directory;
+failed jobs remove unpublished staging and never replace existing output. Explicit capture byte
+budgets bound disk output independently of frame resource budgets. PNG readback is diagnostic and
+does not define the production preview or encoding path.
+
+Jobs may select an on-demand retained raster process instead of supplying frame manifests. Rust
+owns the loaded project, frame schedule and ordered resource requests. The isolated Electron host
+loads the same authored project identity and supplies font layouts and text/SVG/PSD pixels through
+a nonce-authenticated loopback channel. Length-prefixed controls and separate binary payloads have
+per-frame budgets, deadlines and cancellation checks. Native admission verifies request digests,
+resource descriptors and pixel hashes before using a response; failed exchanges poison the provider.
+The child process and its temporary profile belong to the job and are removed when it ends. This
+boundary carries no host-authored scene plans and does not stage a complete job's raster frames.
+
+`FfmpegExportBackend::mux_h264` accepts a bounded sequence of ordered Annex-B access units from
+the native encoder. It copies H.264 into MP4, assigns rational frame timestamps and BT.709 limited
+range metadata, and optionally encodes the supplied audio track as AAC. Raw-frame export and
+encoded-packet muxing share the bounded channel, explicit completion marker, concurrent stderr
+drain and cancellation monitor. The final packet is withheld until producer completion; short,
+extra or interrupted streams cannot publish a partial file. Atomic publication preserves an
+existing destination and removes the owned temporary on failure.
+
+`aster-render-cli export --project ... --composition ... --out ...` builds a bounded frame schedule
+from the native project and optional output size, rational rate and range overrides. Native audio
+mixing uses 48 kHz stereo chunks with the existing limiter and pads the final rational frame interval
+with silence. A job-owned float WAV supplies the muxer and is removed after completion or failure.
+Rendering and encoding use shared GPU NV12 surfaces when available, with an explicit in-process
+NV12 readback fallback. Packet indices, timestamps, durations and encoder drain receipts are checked
+before the producer can finish the mux stream. Optional newline-delimited stdin controls pause,
+resume or cancel the job; malformed controls or a disconnected controller cancel it. Pausing holds
+the next acquisition boundary without changing the schedule, and cancellation cannot publish an
+unfinished MP4. The production application's export selection remains capability-gated separately.
+`--start-frame` evaluates each absolute index directly through the rational output rate, matching
+the TS export clock bit for bit; it is mutually exclusive with an arbitrary `--start` time offset.
+Optional `--witness` and `--witness-frames` capture bounded RGB, NV12 and native-plan evidence from
+the actual export loop. Memory-input witnesses hash the exact bytes submitted to the encoder;
+shared-input witnesses explicitly identify the same-frame conversion mirror. The atomic witness
+manifest binds project hashes, adapter, frame times, output MP4 hash and transport. Failed or
+cancelled exports discard unpublished witness staging. Capture itself grants no quality verdict,
+and ordinary exports perform no diagnostic RGB readbacks.
+
+Surface cache generations are independent of the root project revision: a newly loaded TS surface
+renderer starts at generation one, even when the root snapshot revision is zero. Native recursive
+surface plans carry the admitted surface generation while root plans retain the snapshot revision.
+
+The diagnostic `pnpm parity:capture --plan-references` mode captures the production TS evaluator at
+all declared case frames and 64 deterministic subframe times per case. A SHA-256-derived schedule
+binds the case and authored project, with sample indices kept separate from exact evaluation times.
+The capture uses the existing production export-plan path, including its resource readiness barrier,
+without reading final beauty pixels. Each isolated run records the loaded project snapshot, resource
+payloads, native IR validation receipts, host/font identity and before/after source inventories; only
+complete authenticated runs publish a plan-reference manifest. These artifacts establish TS plan
+references and cannot substitute for native evaluation, pixel acceptance or headless export gates.
+Owner project snapshots are retained in a unique system temporary directory outside the checkout;
+the manifest binds their exact external paths and content hashes. Ordinary corpus snapshots remain
+inside the isolated run. Missing or changed external snapshots invalidate reference admission.
+
+`plan-diff` authenticates both resource closures and follows only typed nested-plan references. It
+compares metadata exactly, preserves plan aliasing through a bijective hash mapping, and applies the
+bounded float tolerances to declared numeric lanes. Resource content outside nested plans remains
+exact, including shaders and pixel payloads. Mixed binary layouts keep IDs, counts, opcodes, modes
+and discrete controls exact. Reports identify the first differing metadata path or blob byte offset;
+comparison failures return exit code 1, while malformed inputs return exit code 2.
+
+Native project verification evaluates authored projects through `render-project`, supplying only
+frame addresses, bounded settings, plugin locations and the raster-only provider. Frozen TS plans
+are independent comparator inputs. G2 binds every declared and seeded sample to its native receipt;
+G3 accepts only the PNG manifest produced by that authenticated project run. Headless G5 invokes
+`export --project` independently, compares complete segments against frozen pixels and retained TS
+quality, and verifies audio, pause, cancellation and temporary-file cleanup. Encoded structural
+alternatives use the actual export's RGB and NV12 witnesses, with separate numeric checks and
+self-reviews; supplied-plan replay checkpoints cannot establish native project export coverage.
 
 ## Frame flow
 
@@ -1019,6 +1303,9 @@ the renderer device's exact DX12 LUID, configures NV12/H.264 media types, and re
 Annex-B test frames with successful drain. COM objects and activations are scoped to the worker
 thread and shut down on failure. Peak-constrained VBR explicitly binds mean and peak bitrate to
 the job; codec property readback before and after media-type negotiation rejects driver overrides.
+Asynchronous MFT events use `BeginGetEvent`/`EndGetEvent`, with one pending notification and
+only the event type or error crossing into the render thread. Qualification and production share
+one streaming lifetime; the first sample after drain declares a discontinuity.
 This preparatory capability is separate from production export
 routing; complete Electron mux integration remains pending.
 
@@ -1039,6 +1326,11 @@ released after GPU completion when capability selection chooses the readback fal
 
 The hardware encoder creates a D3D11 device on that same LUID and binds its DXGI device manager
 only to D3D11-aware transforms. Shared handles become DXGI sample buffers without pixel mapping.
+The Radeon 780M (1002:1900) driver 32.0.21030.2001 is excluded from shared input because its
+adapter-selection trace can access invalid memory before the first sample. Exact adapter and
+driver identity checks return an explicit capability error before activation. Callers retain native
+NV12 conversion and hardware H.264 encoding through memory input and report the fallback reason;
+other adapters and driver versions still qualify shared input normally.
 Tracked-sample callbacks and matching encoded packets jointly retire frame leases, so early sample
 release cannot expose a texture still needed by an outstanding encoded frame. The pool reserves
 one preparation slot in addition to the configured in-flight bound. GPU probe samples stay alive

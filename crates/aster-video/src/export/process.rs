@@ -2,11 +2,39 @@ use super::{ExportError, ExportFrameReceiver, spec::FrameMessage};
 use crate::CancellationToken;
 use std::{io::Write, sync::mpsc::RecvTimeoutError};
 
+#[derive(Clone, Copy)]
+pub(super) enum FrameEncoding {
+    Raw(usize),
+    AnnexB { maximum_bytes: usize },
+}
+
+impl FrameEncoding {
+    fn validate(self, frame: &[u8], index: u64) -> Result<(), ExportError> {
+        match self {
+            Self::Raw(expected) if frame.len() != expected => Err(ExportError::InvalidFrameSize {
+                index,
+                expected,
+                actual: frame.len(),
+            }),
+            Self::AnnexB { maximum_bytes }
+                if frame.len() < 5
+                    || frame.len() > maximum_bytes
+                    || !(frame.starts_with(&[0, 0, 0, 1]) || frame.starts_with(&[0, 0, 1])) =>
+            {
+                Err(ExportError::InvalidRequest(format!(
+                    "encoded frame {index} is not a bounded Annex-B packet"
+                )))
+            }
+            _ => Ok(()),
+        }
+    }
+}
+
 impl ExportFrameReceiver {
     pub(super) fn write_frames(
         mut stdin: impl Write,
         frames: ExportFrameReceiver,
-        frame_bytes: usize,
+        encoding: FrameEncoding,
         frame_count: u64,
         cancellation: &CancellationToken,
     ) -> Result<(), ExportError> {
@@ -17,7 +45,7 @@ impl ExportFrameReceiver {
         }
         for index in 0..frame_count - 1 {
             let frame = frames.receive_frame(index, frame_count, cancellation)?;
-            Self::validate_frame_size(&frame, index, frame_bytes)?;
+            encoding.validate(&frame, index)?;
             stdin.write_all(&frame).map_err(ExportError::from)?;
         }
 
@@ -26,21 +54,10 @@ impl ExportFrameReceiver {
         // a legitimate producer is about to send the finish marker.
         let final_index = frame_count - 1;
         let final_frame = frames.receive_frame(final_index, frame_count, cancellation)?;
-        Self::validate_frame_size(&final_frame, final_index, frame_bytes)?;
+        encoding.validate(&final_frame, final_index)?;
         frames.wait_for_finish(frame_count, cancellation)?;
         stdin.write_all(&final_frame).map_err(ExportError::from)?;
         stdin.flush().map_err(ExportError::from)
-    }
-
-    fn validate_frame_size(frame: &[u8], index: u64, expected: usize) -> Result<(), ExportError> {
-        if frame.len() != expected {
-            return Err(ExportError::InvalidFrameSize {
-                index,
-                expected,
-                actual: frame.len(),
-            });
-        }
-        Ok(())
     }
 
     fn receive_frame(

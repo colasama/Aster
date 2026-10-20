@@ -9,6 +9,16 @@ use aster_shaders::ShaderCatalog;
 
 use crate::{RenderError, SuppliedFrame, output::OutputPipelines, scene::ScenePipelines};
 
+#[path = "project_allocation.rs"]
+mod project_allocation;
+pub use project_allocation::{ProjectDeviceLimits, ProjectSurfaceTarget};
+#[path = "project_output.rs"]
+mod project_output;
+pub use project_output::{ProjectOutputAvailability, ProjectOutputRequest};
+#[cfg(test)]
+#[path = "project_allocation_tests.rs"]
+mod project_allocation_tests;
+
 #[cfg(windows)]
 #[path = "shared_nv12_output.rs"]
 mod shared_nv12_output;
@@ -92,6 +102,8 @@ pub struct NativeRenderer {
     nv12: Option<crate::nv12::Nv12Converter>,
     gpu_profiler: Option<crate::gpu_profile::GpuProfiler>,
     gpu_timings: Option<crate::GpuTimings>,
+    project_preparation: Option<project_allocation::ProjectPreparation>,
+    project_outputs: Option<project_output::ProjectOutputTargets>,
     #[cfg(windows)]
     shared_nv12: Vec<Arc<crate::shared_nv12::SharedNv12Target>>,
     #[cfg(windows)]
@@ -281,6 +293,8 @@ impl NativeRenderer {
             nv12: None,
             gpu_profiler,
             gpu_timings: None,
+            project_preparation: None,
+            project_outputs: None,
             #[cfg(windows)]
             shared_nv12: Vec::new(),
             #[cfg(windows)]
@@ -377,6 +391,20 @@ impl NativeRenderer {
                 "previous output frame is still leased".into(),
             ));
         }
+        if let Some(preparation) = &self.project_preparation {
+            preparation.validate(frame)?;
+            if let Some(output) = &self.project_outputs {
+                output.validate(frame)?;
+            }
+        } else if self.project_outputs.is_some() {
+            self.device
+                .poll(wgpu::PollType::Wait {
+                    submission_index: None,
+                    timeout: Some(self.options.timeout),
+                })
+                .map_err(|error| RenderError::Gpu(error.to_string()))?;
+            self.discard_project_outputs();
+        }
         let render_size = frame.scene.header.render_target;
         let size = frame.scene.header.target;
         let has_generators = std::iter::once(&frame.scene)
@@ -393,6 +421,10 @@ impl NativeRenderer {
             .motion
             .as_ref()
             .map_or(0, crate::frame_motion::FrameMotion::required_bytes)
+            + self
+                .project_outputs
+                .as_ref()
+                .map_or(0, |output| output.additional_bytes(frame))
             + frame
                 .depth
                 .as_ref()
@@ -444,7 +476,7 @@ impl NativeRenderer {
             self.scene.generators = Some(crate::generators::GeneratorPipelines::new(&self.device));
         }
         if let Some(generators) = &mut self.scene.generators {
-            generators.prepare(&self.device, frame)?;
+            generators.prepare(&self.device, frame, self.project_preparation.is_some())?;
         }
         if std::iter::once(&frame.scene)
             .chain(frame.surfaces.targets.iter().map(|s| &s.scene))
@@ -596,7 +628,6 @@ impl NativeRenderer {
             .targets
             .as_ref()
             .ok_or_else(|| RenderError::Invalid("frame allocation missing".into()))?;
-        let scene = targets.scene.create_view(&Default::default());
         let depth = targets.depth.create_view(&Default::default());
         let display = targets.display.create_view(&Default::default());
         let output = targets.output.create_view(&Default::default());
@@ -673,9 +704,6 @@ impl NativeRenderer {
         } else {
             None
         };
-        let scene = motion
-            .as_ref()
-            .map_or(scene, |texture| texture.create_view(&Default::default()));
         if frame.visualizer.is_some() {
             let destination = if frame.scene.header.aa == AntiAliasing::Off {
                 targets.output.raw()
@@ -750,7 +778,7 @@ impl NativeRenderer {
                 &self.device,
                 &mut encoder,
                 frame,
-                &scene,
+                motion.as_ref().unwrap_or(targets.scene.raw()),
                 if frame.scene.header.aa == AntiAliasing::Off {
                     &output
                 } else {
@@ -778,6 +806,7 @@ impl NativeRenderer {
             return Err(RenderError::Gpu(error.to_string()));
         }
         self.layer_cache.commit();
+        self.project_preparation = None;
         if let Some(profile) = &self.gpu_profiler {
             self.gpu_timings = Some(profile.read_frame(&self.device, self.options.timeout)?);
         }

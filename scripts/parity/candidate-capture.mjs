@@ -22,6 +22,7 @@ async function stagedFile(directory, ...parts) {
 
 /** Publish a fresh capture as an isolated, whole-run candidate; references are never read or moved. */
 export async function publishCandidateCapture(config, report) {
+  assert(!config.planReferences, "Plan-only captures must never publish pixel candidates");
   assert.equal(config.candidate, true, "Candidate publication requires candidate mode");
   assert.equal(report.status, "passed", "Cannot publish a failed candidate capture");
   assert.equal(report.source_unchanged, true, "Candidate source or inputs changed");

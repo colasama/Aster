@@ -37,6 +37,21 @@ pub(crate) struct LayerTargetPool {
 }
 
 impl LayerTargetPool {
+    pub fn resident_bytes(&self) -> u64 {
+        self.entries
+            .keys()
+            .map(|key| {
+                let size = Extent2d {
+                    width: key.width,
+                    height: key.height,
+                };
+                u64::from(key.width) * u64::from(key.height) * 20
+                    + crate::pyramid::Pyramid::bytes(size, key.blur)
+                    + crate::pyramid::Pyramid::bytes(size, key.glow)
+            })
+            .sum()
+    }
+
     /// Retire before other frame allocations grow. Unique slots cost no more than the
     /// per-scene transient attachments already included in the frame's GPU budget.
     pub fn retire(

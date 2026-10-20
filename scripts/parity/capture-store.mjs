@@ -159,6 +159,7 @@ export class CaptureStore {
 }
 
 export async function publishCaptures(config, report) {
+  assert(!config.planReferences, "Plan-only captures must never publish pixel references");
   assert(!config.candidate, "Candidate captures must never publish references");
   assert.equal(report.status, "passed", "Cannot publish references from a failed capture run");
   assert.equal(report.source_unchanged, true, "Cannot publish references from changed inputs");

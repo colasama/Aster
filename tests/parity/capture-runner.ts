@@ -5,6 +5,7 @@ import { CaptureHealth, captureErrorMessage } from "./capture-health";
 import type {
   ParityCaptureApi,
   ParityCaptureAssignment,
+  ParityCapturedPlan,
   ParityFramePlanReceipt,
 } from "./capture-protocol";
 
@@ -15,6 +16,7 @@ export interface CaptureSession {
   diagnostics(): GpuDiagnostics;
   assertHealthy(): void;
   readback(time: number): Promise<ArrayBuffer>;
+  plan?(time: number, index: number): Promise<ParityCapturedPlan>;
   temporalReplay?(): { passes: number; samples: number };
   framePlan?(): ParityFramePlanReceipt | undefined;
   productionPixels?(): ArrayBuffer | undefined;
@@ -45,6 +47,14 @@ export async function runCaptureAssignments(
       session = await runtime.open(assignment, health);
       for (const frame of assignment.frames) {
         session.assertHealthy();
+        if (assignment.planSamples) {
+          const sample = assignment.planSamples.samples[frame];
+          if (!sample || sample.index !== frame || !session.plan || !api.plan)
+            throw new Error("Plan sample capture is unavailable");
+          await api.plan(await session.plan(sample.time, frame));
+          session.assertHealthy();
+          continue;
+        }
         const time = frameTimeAtIndex(frame, session.composition.frameRate);
         const readbackStarted = now();
         const pixels = await session.readback(time);

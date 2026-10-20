@@ -10,6 +10,7 @@ import { CaptureStore } from "./capture-store.mjs";
 import { CaptureDesktopAccess, DesktopBridgeClient } from "./desktop-bridge.mjs";
 import { CaptureSession } from "./electron-capture-session.mjs";
 import { captureHostInfo } from "./electron-host-info.mjs";
+import { PlanCaptureStore } from "./plan-capture-store.mjs";
 
 let capture;
 let bridge;
@@ -33,7 +34,10 @@ async function stop(error) {
   let report;
   try {
     if (!store && config?.assignments) {
-      store = new CaptureStore(config, { backend: "browser-webgpu", initialization_failed: true });
+      store = new (config.planReferences ? PlanCaptureStore : CaptureStore)(config, {
+        backend: "browser-webgpu",
+        initialization_failed: true,
+      });
     }
     if (capture) report = error ? await capture.abort(error) : await capture.done();
     else if (store) {
@@ -98,7 +102,7 @@ async function main() {
     writeLog("startup", "Electron ready; requesting GPU information");
     const gpuInfo = await app.getGPUInfo("complete");
     const host = captureHostInfo(gpuInfo, app.getGPUFeatureStatus());
-    store = new CaptureStore(config, host);
+    store = new (config.planReferences ? PlanCaptureStore : CaptureStore)(config, host);
     const allowedAssets = new Map();
     protocol.handle(
       assets.ASSET_SCHEME,
@@ -156,6 +160,7 @@ async function main() {
       if (!assignment) waitForProgress("Capture finalization timed out");
       return assignment;
     });
+    handle("plan", (payload) => capture.plan(payload));
     handle("frame", (payload) => capture.frame(payload));
     handle("prepare-frame", (payload) => capture.prepareFrame(payload));
     handle("complete", async (payload) => {

@@ -1,0 +1,520 @@
+{
+  "version": 1,
+  "phase": "all",
+  "supported": [
+    "add-grain",
+    "advanced-lightning",
+    "alpha-bevel",
+    "alpha-boundary",
+    "alpha-erode-dilate",
+    "alpha-from-luminance",
+    "alpha-levels",
+    "alpha-stroke",
+    "anamorphic-flare",
+    "arithmetic",
+    "asc-cdl",
+    "ball-action",
+    "barn-doors",
+    "beam",
+    "bend-it",
+    "bevel-alpha",
+    "bevel-emboss-style",
+    "bezier-warp",
+    "bilateral-blur",
+    "black-white",
+    "block-dissolve",
+    "bloom",
+    "box-blur",
+    "brightness-contrast",
+    "broadcast-colors",
+    "brush-strokes",
+    "bubbles",
+    "bulge",
+    "burn-film",
+    "camera-lens-blur",
+    "card-wipe",
+    "cartoon",
+    "caustics",
+    "cc-blobbylize",
+    "cc-plastic",
+    "cc-threshold",
+    "cc-toner",
+    "cell-pattern",
+    "change-to-color",
+    "channel-blur",
+    "channel-combiner",
+    "channel-mixer",
+    "checkerboard",
+    "chroma-key",
+    "chromatic",
+    "circle",
+    "clarity",
+    "clock-wipe",
+    "color-balance",
+    "color-emboss",
+    "color-halftone",
+    "color-matrix",
+    "color-overlay",
+    "color-range",
+    "colorama",
+    "compound-blur",
+    "compression-blocks",
+    "core-matte",
+    "corner-pin",
+    "crop",
+    "cross-blur",
+    "curves",
+    "cylinder",
+    "deband",
+    "denoise",
+    "despot",
+    "detail-preserving-upscale",
+    "directional-blur",
+    "displacement-map",
+    "drizzle",
+    "drop-shadow",
+    "dust-scratches",
+    "echo",
+    "edge-color-blend",
+    "edge-decontaminate",
+    "edge-extend",
+    "edge-feather",
+    "ellipse",
+    "emboss",
+    "exposure",
+    "extract",
+    "eyedropper-fill",
+    "false-color",
+    "fast-bokeh",
+    "fill",
+    "film-damage",
+    "film-emulation",
+    "film-print-density",
+    "filmic-tone-map",
+    "find-edges",
+    "flo-motion",
+    "focus-peaking",
+    "four-color-gradient",
+    "fractal-noise",
+    "frequency-separation",
+    "gamma-pedestal-gain",
+    "gamut-compressor",
+    "gamut-warning",
+    "gate-weave",
+    "gaussian-blur",
+    "glass",
+    "glow",
+    "glowing-edges",
+    "god-rays",
+    "gradient-overlay",
+    "gradient-ramp",
+    "gradient-wipe",
+    "grid",
+    "grid-wipe",
+    "griddler",
+    "hair",
+    "hdr-clamp",
+    "hdr-compander",
+    "head-switching",
+    "hex-tile",
+    "high-pass",
+    "highlight-recovery",
+    "highlight-tint",
+    "hsl-secondary",
+    "hue-saturation",
+    "hue-vs-hue",
+    "hue-vs-saturation",
+    "inner-glow",
+    "inner-shadow",
+    "invert",
+    "iris-wipe",
+    "jaws",
+    "kaleidoscope",
+    "kawase-blur",
+    "key-cleaner",
+    "keylight",
+    "laser",
+    "leave-color",
+    "lens-distortion",
+    "lens-flare",
+    "letterbox",
+    "levels",
+    "light-burst",
+    "light-leak",
+    "light-rays",
+    "light-sweep",
+    "light-wipe",
+    "light-wrap",
+    "line-sweep",
+    "linear-color-key",
+    "linear-wipe",
+    "local-contrast",
+    "log-wheels",
+    "looks-color-lab",
+    "luma-key",
+    "luma-vs-saturation",
+    "lut",
+    "magnify",
+    "matte-choker",
+    "matte-cleanup",
+    "matte-feather",
+    "median",
+    "mesh-warp",
+    "minimax",
+    "mirror",
+    "mosaic",
+    "motion-tile",
+    "motion-trails",
+    "mr-mercury",
+    "multi-stop-gradient",
+    "noise",
+    "noise-alpha",
+    "noise-hls",
+    "noise-hls-auto",
+    "offset",
+    "optics-compensation",
+    "outer-glow",
+    "overscan",
+    "page-turn",
+    "paint-bucket",
+    "particle-systems-ii",
+    "particle-world",
+    "photo-filter",
+    "pixel-polly",
+    "pixel-sort",
+    "polar-coordinates",
+    "posterize",
+    "posterize-time",
+    "power-pin",
+    "premultiply-color",
+    "printer-lights",
+    "radial-blur",
+    "radial-fast-blur",
+    "radial-shadow",
+    "radial-wipe",
+    "radio-waves",
+    "rainfall",
+    "reduce-interlace-flicker",
+    "refine-hard-matte",
+    "refine-soft-matte",
+    "remove-color-matting",
+    "remove-grain",
+    "rgb-lift-gamma-gain",
+    "rgb-phosphor",
+    "ripple",
+    "ripple-pulse",
+    "roughen-edges",
+    "satin",
+    "scale-wipe",
+    "scanlines",
+    "scatter",
+    "scatterize",
+    "screen-matte",
+    "scribble",
+    "selective-color",
+    "set-channels",
+    "set-matte",
+    "shadow-desaturate",
+    "shadows-highlights",
+    "sharpen",
+    "sharpen-edges",
+    "shift-channels",
+    "simple-choker",
+    "skin-tone-refine",
+    "slant",
+    "smart-blur",
+    "smart-sharpen",
+    "smear",
+    "snowfall",
+    "solarize",
+    "solid-composite",
+    "sphere",
+    "spherize",
+    "spill-killer",
+    "spill-suppressor",
+    "split",
+    "split-tone",
+    "spotlight",
+    "star-burst",
+    "strobe-light",
+    "stroke",
+    "tape-dropout",
+    "texturize",
+    "threshold",
+    "tiles",
+    "tint",
+    "transform",
+    "tritone",
+    "turbulent-displace",
+    "turbulent-noise",
+    "twirl",
+    "twister",
+    "unpremultiply-color",
+    "vector-blur",
+    "vegas",
+    "venetian-blinds",
+    "vibrance",
+    "volumetric-fog",
+    "vr-blur",
+    "vr-chromatic-aberrations",
+    "vr-color-gradients",
+    "vr-digital-glitch",
+    "vr-fractal-noise",
+    "vr-glow",
+    "vr-plane-to-sphere",
+    "vr-rotate-sphere",
+    "warp",
+    "wave-warp",
+    "wave-world",
+    "white-balance",
+    "wire-removal",
+    "write-on",
+    "zebra-overlay"
+  ],
+  "sources": [
+    {
+      "path": "src/renderer/effects/effect-program.ts",
+      "sha256": "cc7b7fd8c8f8eb4c0c42451645f71b257d4ca6f775158a6945efcf47f91033ae"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-advanced-distort.ts",
+      "sha256": "f7d314d87707410eadda11a86698c4297cc77472e0d6a4ffb95e6a78dadba54c"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-blur-sharpen.ts",
+      "sha256": "bdf01e3951f3e1de17059be914dd90eda6409f19179a40c5373a0539bd740bd1"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-channel-keying.ts",
+      "sha256": "373cd1b5cfd310d525a007b72e09c922ec16515ca795858a5bcbcd18d1cd6bda"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-channel-utility.ts",
+      "sha256": "586996ba051658339452d9161d11a79fa7aa85d0a1c4771e0f1a579f0234d8cb"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-color-pipeline.ts",
+      "sha256": "fc9ce949ee40c085042e1e617143a4a31a4a6261b96b13b654d1e267e4d5c87f"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-detail-processing.ts",
+      "sha256": "7fd293970d0943418eda34ee9264fef95500fc83975f53847a3556e82059cc9c"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-draw-generators.ts",
+      "sha256": "c27380644715764da5d6f5a9d24551708391781fa3ea39f9be5922d1cc8c4a14"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-framing.ts",
+      "sha256": "aec1419b49e15868e8af8b3f16da41db799a5b51addb0acafa1082bf40029bb7"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-immersive-video.ts",
+      "sha256": "468e0798ce7337da616091cbe5835557d7da9c25fb1dd6c9c0ca8dc9e5164dae"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-keying-cleanup.ts",
+      "sha256": "9a22602556f332551d2df1e878efcfbbc7b44f1413f2f98c1ef3151c14e84d05"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-layer-styles.ts",
+      "sha256": "8b5e39f8c52f9f4c6326372a181e9da4caee863fd7e96ce2d8fc95b9b68dd0cd"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-lighting.ts",
+      "sha256": "bbd8fbcb2fe38b7246757644f2c4df13ea224d574331aa805a7eb4cdd0dd00e7"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-matte.ts",
+      "sha256": "34e1000d5314b3728ee7a6c5e1f34bbec00bae0cbdfd149f8443700a0f5aefab"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-noise-grain.ts",
+      "sha256": "371e4cb5b13c095f4ad9d98d5e75d8b8bc29a79c1ea08e48dfb726bc8212368b"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-perspective.ts",
+      "sha256": "9cda7d7c3d01dddb664213f698209f7d73476d1ca57686a70956f203c8cda94b"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-professional-color.ts",
+      "sha256": "8cfbec186f285b881be1692348b56e69fba1eb0bc8082c02cbead0a3448eddb4"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-qc-overlays.ts",
+      "sha256": "d1c713abb63f9434befcf1cd0acee5014c3e0d969014b040a1ffd07106123ff6"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-retro-media.ts",
+      "sha256": "960984f1983ade039f0f85fae5f47dcefca3d52bc6ddfa2afb170be7dbcee661"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-simulation.ts",
+      "sha256": "13dba3f8b1da00c79aa005ddcc051bbb3cf1c9b820b11b09c1709e340c906a41"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-stylize.ts",
+      "sha256": "4136efee8a1ead7c6edc77ce0d0efd6f329e8c244ca6be51d7cc7b4019190670"
+    },
+    {
+      "path": "src/renderer/effects/programs/effect-program-transitions.ts",
+      "sha256": "dad47c3271903d6d507e4b5d5c9ba6e174c80e92cf6f55681a725716f7b6978a"
+    },
+    {
+      "path": "src/renderer/effects/effect-opcodes.ts",
+      "sha256": "e3e329e8259093c54eeef0a6e436e84fd9550cfef7536a47c30652eeb687c949"
+    },
+    {
+      "path": "src/effects/layer-style-actions.ts",
+      "sha256": "277d1ecd3a86b8756364695bc839365f248c7ec92fbb87846439530295bfd5ed"
+    },
+    {
+      "path": "src/effects/parameter-builders.ts",
+      "sha256": "11458e1a960ba8d18a44f36d2bd85a73488402b9a6aa20241955400a27591f4c"
+    },
+    {
+      "path": "src/effects/plugin-registry.ts",
+      "sha256": "28da2d430bc9e007d0571cdf2d888662caa51136a3441d6f7a1b1fc4865f8272"
+    },
+    {
+      "path": "src/effects/registry.ts",
+      "sha256": "5d7b3a929c3ab30ffad2d475db31c444df03dd63b7636cbaf138385c44dbd783"
+    },
+    {
+      "path": "src/effects/types.ts",
+      "sha256": "e31be66058785effd67dd1883103e1ad3f8058e7c4f334ab5a0b885f0dc081e0"
+    },
+    {
+      "path": "src/effects/resources/cube-lut.ts",
+      "sha256": "135cbb976e8bcc16c792c1e82014efed6e2ed6f9c22a775e3c83800a1098619e"
+    },
+    {
+      "path": "src/effects/presets/presets-professional.ts",
+      "sha256": "3fd1a1d8fe98a18a993c0f6df3acbc33011f7092b3a0b7d29efe9075341472d4"
+    },
+    {
+      "path": "src/effects/presets/presets-stylized.ts",
+      "sha256": "6e2112b85dfecb39678c642483b2752ea73e733e78c48c71b5deb3edbd14c802"
+    },
+    {
+      "path": "src/effects/presets/presets.ts",
+      "sha256": "7d5d1fe4adbd27be552f60f3857f593fea02eab224b9200cc457116c2a294c20"
+    },
+    {
+      "path": "src/effects/presets/user-presets.ts",
+      "sha256": "fb4e577f6d83fb4bc3c372f2ecbfeb480a493aa977cbe381fe77c2f61108092d"
+    },
+    {
+      "path": "src/effects/definitions/stylize/noise-grain.ts",
+      "sha256": "f56702ea3c47c3d0900a3d94d8967a2529980a08e4661292246051377cf04447"
+    },
+    {
+      "path": "src/effects/definitions/stylize/qc-overlays.ts",
+      "sha256": "60e51b5aeb46c2d30e660840431cac557ad779cc5b093cfdfb122cdb7bb03ef8"
+    },
+    {
+      "path": "src/effects/definitions/stylize/retro-media.ts",
+      "sha256": "455931c7f7deb7871a26eb47cb141ee6a0c1347306e409984a7ac9b36603b6fe"
+    },
+    {
+      "path": "src/effects/definitions/stylize/stylize-advanced.ts",
+      "sha256": "52399c0e30d5614585cf643c57ecdbd595c8488afb74731ffe2a370c1df41c00"
+    },
+    {
+      "path": "src/effects/definitions/spatial/blur-sharpen.ts",
+      "sha256": "58446e4771fb196ee95ce45730c0c79ece48d2c011479e31002827eefda111ef"
+    },
+    {
+      "path": "src/effects/definitions/spatial/detail-processing.ts",
+      "sha256": "4d999a297058cd06bb6b6e778f3d8b1dc67639f0fd30f7527c421980d6168b11"
+    },
+    {
+      "path": "src/effects/definitions/spatial/distort-advanced.ts",
+      "sha256": "3fe71bc4ba639589e360173565506ac22f84a162e4fd852140de819ab24e880c"
+    },
+    {
+      "path": "src/effects/definitions/spatial/framing.ts",
+      "sha256": "f8e39841ff25fa3e9cb33d0f241a50ca6306e0daac422c2bde70fde5f0a626b0"
+    },
+    {
+      "path": "src/effects/definitions/spatial/immersive-video.ts",
+      "sha256": "fef7937d5177131eadf00df403dbd439ba9a2a1754d51e6d4e2037584385d204"
+    },
+    {
+      "path": "src/effects/definitions/spatial/perspective.ts",
+      "sha256": "3fb2c85fb58d0894a63b05566015d98f22aec4b749be12fd99af058593b6c12d"
+    },
+    {
+      "path": "src/effects/definitions/generate/draw-generators.ts",
+      "sha256": "30075db8da6a5c6d923da63fcca3cf6b8203d102e12e2ede579cc99f470b0209"
+    },
+    {
+      "path": "src/effects/definitions/generate/environment.ts",
+      "sha256": "8157f52c946956c752948b01ca86e1044d63c945a9940a633d4da5cab37a5892"
+    },
+    {
+      "path": "src/effects/definitions/generate/generators.ts",
+      "sha256": "2956294f012487a48d79115c4ae59d679a80ece6f18912c16c0804108a66dcca"
+    },
+    {
+      "path": "src/effects/definitions/generate/lighting.ts",
+      "sha256": "b1126509cdccabd0fa7f0ff8e3f87983621691d9525748238523b742b45d716b"
+    },
+    {
+      "path": "src/effects/definitions/generate/simulation.ts",
+      "sha256": "ddb7839ef721d93c45158a22974c97aaa27bb8d5f3fd6691a519b68433d51375"
+    },
+    {
+      "path": "src/effects/definitions/compositing/channel-keying.ts",
+      "sha256": "6ecd0c68a6725c0cd744da2e3d328c8beaa1dae678ceb7167a4dba48a22601d1"
+    },
+    {
+      "path": "src/effects/definitions/compositing/channel-utility.ts",
+      "sha256": "0b82ee147b9c394196ee4cadc75658fcc0cf9dae0ab5e966c45fd940a27dd640"
+    },
+    {
+      "path": "src/effects/definitions/compositing/keying-cleanup.ts",
+      "sha256": "c9ea96c51e5372246c60a50675b217917a6a5316bac400f5d5e97bb6380aaeb2"
+    },
+    {
+      "path": "src/effects/definitions/compositing/layer-styles.ts",
+      "sha256": "11201c94fa66cf0e6bea482cee355c4e33380498230c24af615bff52178aac6b"
+    },
+    {
+      "path": "src/effects/definitions/compositing/matte-refine.ts",
+      "sha256": "0a0710d11d269f44085ed27d22ea4e148ff3d62c1b8ea4d06b78139b7b30c34a"
+    },
+    {
+      "path": "src/effects/definitions/compositing/stylize-transitions.ts",
+      "sha256": "bbfa48596f6807704e1a7ec6639c3bcb0ee3c72e7782eb8498a058d40f3357c9"
+    },
+    {
+      "path": "src/effects/definitions/compositing/transitions-advanced.ts",
+      "sha256": "112c3601288dca5ee58c1f84208065638abc41a6941ecefc9f4c15d89bf09f70"
+    },
+    {
+      "path": "src/effects/definitions/color/additional.ts",
+      "sha256": "19101a9105beed1b77eaa25fa023ae88c9de8d290bad3d4690108828ded2e237"
+    },
+    {
+      "path": "src/effects/definitions/color/color-pipeline.ts",
+      "sha256": "303e9a3818fc463297262bc5682b0b2720f471cb1d9c56995677654d3166e641"
+    },
+    {
+      "path": "src/effects/definitions/color/color-professional.ts",
+      "sha256": "c05c91c3c059990fbadf0b38537820d3dd5b7a5819ab17ef4b7e3a99e08effdf"
+    },
+    {
+      "path": "src/effects/definitions/color/color.ts",
+      "sha256": "78c216c91ab05a74e5d83663aa1eedc9013414694e7ad68235a13d5ac6d26f29"
+    },
+    {
+      "path": "src/effects/browser/browser-preferences.ts",
+      "sha256": "195a1d14cce385a0bbe82820c563d574985a61dd6d922e1d105ae41a30c0a1bf"
+    },
+    {
+      "path": "scripts/migration/generate-native-effect-ops.mjs",
+      "sha256": "ed557cd7b556b88ab45e4971fae0d47f23c085cd8c762cf4d4909ce467c38452"
+    }
+  ]
+}

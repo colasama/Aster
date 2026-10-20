@@ -55,7 +55,7 @@ impl FrameDepth {
             })
             .map_or(-1, |tier| tier);
         if ready
-            && (tier < 0
+            && (auxiliary.is_none()
                 || inputs.iter().any(|input| match input {
                     PostEffectInput::TransparentWorldPosition
                     | PostEffectInput::FrontLayerColor => tier < 1,

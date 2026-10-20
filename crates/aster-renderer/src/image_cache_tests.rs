@@ -139,10 +139,18 @@ fn native_image_cache_reuses_generations_and_admits_atomically()
         timeout,
     )?;
     assert_eq!(renderer.images.statistics.resident_bytes, 16);
-    renderer
-        .images
-        .prepare(gpu, &BTreeMap::new(), &registry, 0, timeout)?;
+    // A growing project target must evict old images before rejecting an otherwise fitting frame.
+    let size = aster_render_ir::Extent2d {
+        width: 32,
+        height: 32,
+    };
+    renderer.options.gpu_budget_bytes = 32 * 32 * 20 - 1;
+    assert!(renderer.begin_project_frame(size, size, &[]).is_err());
+    assert_eq!(renderer.images.statistics.resident_bytes, 16);
+    renderer.options.gpu_budget_bytes += 1;
+    renderer.begin_project_frame(size, size, &[])?;
     assert_eq!(renderer.images.statistics.resident_bytes, 0);
+    renderer.options.gpu_budget_bytes = 1024 * 1024;
     raster_input_tests::RasterFixture::verify_gpu(&mut renderer)?;
     Ok(())
 }

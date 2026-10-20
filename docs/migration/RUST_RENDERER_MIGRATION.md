@@ -71,7 +71,7 @@ migration hits most often:
 ### 3.1 Phases
 
 - **Phase A — TypeScript evaluates, Rust renders.** The TS application keeps `evaluate(time)`,
-  expressions (QuickJS), text rasterization, and the editing model. It emits a `FramePlan` per frame
+  bounded animation expressions, text rasterization, and the editing model. It emits a `FramePlan` per frame
   (section 4). The Rust renderer executes every GPU pass. Pixel transport disappears; only plans
   (kilobytes) and cacheable resources cross process boundaries.
 - **Phase B — Rust evaluates.** Timeline, animation, expressions, scene evaluation, text animators
@@ -434,9 +434,13 @@ required gates; `G0` is always required.
 
 - Reconcile `aster-types` / `aster-project` with the current TS project format so every fixture and
   example deserializes losslessly (round-trip test against `docs/PROJECT_FORMAT.md` and schemas).
-- `aster-eval`: keyframes and easing, graph-editor curves, expressions (embedded QuickJS via a
-  vetted crate; identical semantics and determinism), scene evaluation, text animators, effect
+- `aster-eval`: keyframes and easing, graph-editor curves, expressions (a native Rust parser matching
+  the current bounded TS language and determinism), scene evaluation, text animators, effect
   parameter evaluation and op compilation, audio analysis inputs.
+- On 2026-10-18 (Asia/Tokyo), the owner approved replacing the QuickJS assumption with the
+  native Rust parser. Preserve existing operators, functions, `time`/`value`, the 2,048 UTF-16
+  code-unit, 512-token and 32-level limits, and error fallback; verify against the TS evaluator.
+  The existing QuickJS WASM runtime for AI editing scripts is independent and remains unchanged.
 - `aster-render-cli export --project --composition --out` headless.
 - Exit: `G2` plan parity over the whole corpus at every listed frame plus 64 random times per case;
   headless export passes `G5`.
@@ -507,6 +511,15 @@ verification files may differ; any runtime, shader, fixture, dependency or toler
 invalidates reuse. Keep original source identities and failed reports intact. Re-audit every checkpoint's
 inputs, binary, artifact hashes, numeric results and self-reviews under the current verifier; compatibility
 alone grants no gate. The full current-source G0, G3, G4, G5, G6 and milestone-exit checks remain required.
+
+M9 may resume a complete native-project G2 report with `--project-corpus-resume` and native-project
+G5 checkpoints with `--export-resume`. The explicit verification-file list also covers their
+checkpoint auditors and shared native-witness reference-catalog orchestration. Reconstruct every
+current corpus address and request, authenticate original project commands and receipts, and recheck
+all plans, resources, images, comparator logs and complete coverage. Retain original execution source
+identities and reports. Sharing the already authenticated repair catalog avoids repeated image
+decoding; byte-stability checks, current self-reviews and every numerical limit still apply. Frozen TS
+producer files remain unchanged. Partial or supplied-plan captures cannot establish complete G2.
 
 ### Moving-target rule
 

@@ -49,7 +49,14 @@ function frameMetadata(bytes) {
 }
 
 /** Read through the caller's contained, hash-tracked evidence reader. */
-export async function validateFrameArtifacts(read, meta, item, source, resourceCache = new Map()) {
+export async function validateFrameArtifacts(
+  read,
+  meta,
+  item,
+  source,
+  resourceCache = new Map(),
+  { requirePixelReplay = true } = {},
+) {
   const proof = meta.frame_plan;
   assert(proof?.schema_version === 1, "Missing submitted frame artifact evidence");
   assert.equal(proof.ir_cli_sha256, source.ir_cli_sha256, "Frame validator binary changed");
@@ -110,9 +117,11 @@ export async function validateFrameArtifacts(read, meta, item, source, resourceC
     resourceBytes += bytes.length;
   }
   assert.equal(resourceBytes, report.resource_bytes);
-  assert.equal(meta.frame_replay?.exact, true, "Missing exact native-roundtrip TS replay");
-  assert.equal(meta.frame_replay.production_sha256, meta.rgba_sha256);
-  assert.equal(meta.frame_replay.replay_sha256, meta.rgba_sha256);
+  if (requirePixelReplay) {
+    assert.equal(meta.frame_replay?.exact, true, "Missing exact native-roundtrip TS replay");
+    assert.equal(meta.frame_replay.production_sha256, meta.rgba_sha256);
+    assert.equal(meta.frame_replay.replay_sha256, meta.rgba_sha256);
+  }
   return report;
 }
 
@@ -207,6 +216,14 @@ export class FrameArtifactStore {
     };
     this.#prepared.set(key, { proof, receipt });
     return { plan: new Uint8Array(files["replay.rust.fpln"]), receipt };
+  }
+
+  releaseCase(caseId) {
+    assert(
+      ![...this.#prepared.keys()].some((key) => key.startsWith(`${caseId}/`)),
+      "Cannot release unconsumed plan receipts",
+    );
+    this.#resources.delete(caseId);
   }
 
   consume(payload) {

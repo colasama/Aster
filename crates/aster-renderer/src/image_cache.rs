@@ -116,37 +116,7 @@ impl ImageCache {
                 "images exceed GPU allocation budget".into(),
             ));
         }
-        let mut total = self.statistics.resident_bytes + missing;
-        let mut candidates = self
-            .entries
-            .iter()
-            .filter(|(key, _)| !required.contains(*key))
-            .map(|(key, value)| (value.last_used, key.clone(), value.bytes))
-            .collect::<Vec<_>>();
-        candidates.sort();
-        let mut victims = Vec::new();
-        for (_, key, bytes) in candidates {
-            if total <= budget {
-                break;
-            }
-            victims.push(key);
-            total -= bytes;
-        }
-        if !victims.is_empty() {
-            // Waiting only under pressure lets retired GPU objects actually leave the byte budget.
-            device
-                .poll(wgpu::PollType::Wait {
-                    submission_index: None,
-                    timeout: Some(timeout),
-                })
-                .map_err(|e| RenderError::Gpu(e.to_string()))?;
-        }
-        for key in victims {
-            if let Some(value) = self.entries.remove(&key) {
-                self.statistics.resident_bytes -= value.bytes;
-                self.statistics.evictions += 1;
-            }
-        }
+        self.retire(device, &required, budget - missing, timeout)?;
         self.epoch = epoch;
         for input in inputs.values() {
             let key = (input.frame.clone(), input.pixels.clone());
@@ -223,6 +193,47 @@ impl ImageCache {
             .get(&(image.frame.clone(), image.pixels.clone()))
             .map(|entry| &entry.binding)
             .ok_or_else(|| RenderError::Invalid("image generation absent from GPU cache".into()))
+    }
+
+    /// Release least-recent generations before other frame allocations consume their budget.
+    pub fn retire(
+        &mut self,
+        device: &wgpu::Device,
+        required: &BTreeSet<ImageKey>,
+        budget: u64,
+        timeout: Duration,
+    ) -> Result<(), RenderError> {
+        let mut total = self.statistics.resident_bytes;
+        let mut candidates = self
+            .entries
+            .iter()
+            .filter(|(key, _)| !required.contains(*key))
+            .map(|(key, value)| (value.last_used, key.clone(), value.bytes))
+            .collect::<Vec<_>>();
+        candidates.sort();
+        let mut victims = Vec::new();
+        for (_, key, bytes) in candidates {
+            if total <= budget {
+                break;
+            }
+            victims.push(key);
+            total -= bytes;
+        }
+        if !victims.is_empty() {
+            device
+                .poll(wgpu::PollType::Wait {
+                    submission_index: None,
+                    timeout: Some(timeout),
+                })
+                .map_err(|e| RenderError::Gpu(e.to_string()))?;
+        }
+        for key in victims {
+            if let Some(value) = self.entries.remove(&key) {
+                self.statistics.resident_bytes -= value.bytes;
+                self.statistics.evictions += 1;
+            }
+        }
+        Ok(())
     }
 
     pub fn invalidate(&mut self) {

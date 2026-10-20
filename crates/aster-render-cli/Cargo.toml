@@ -6,9 +6,13 @@ license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+aster-eval.workspace = true
+aster-plugin.workspace = true
+aster-project.workspace = true
 aster-render-compare.workspace = true
 aster-render-ir.workspace = true
 aster-renderer.workspace = true
+aster-render-project.workspace = true
 aster-media-native.workspace = true
 aster-video.workspace = true
 aster-render.workspace = true

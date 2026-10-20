@@ -2,6 +2,7 @@ use wgpu::util::DeviceExt;
 
 use crate::{RenderError, generator_input::GeneratorInput};
 
+#[derive(Clone)]
 pub(crate) struct GeneratorBindings {
     pub compute: wgpu::BindGroup,
     pub render: wgpu::BindGroup,

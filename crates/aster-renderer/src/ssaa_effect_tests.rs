@@ -153,7 +153,7 @@ impl ResolutionExperiment {
                 device,
                 &mut encoder,
                 &frame,
-                &targets.scene.create_view(&Default::default()),
+                targets.scene.raw(),
                 &targets.display.create_view(&Default::default()),
                 &targets.output.create_view(&Default::default()),
             )?;

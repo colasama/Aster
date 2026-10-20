@@ -76,6 +76,25 @@ test("frame artifact audit binds plans, native receipt, binary resources and exa
     audit({ ...meta, frame_plan: { ...meta.frame_plan, ir_cli_sha256: "d".repeat(64) } }),
     /validator binary changed/,
   );
+  assert.equal(
+    (
+      await validateFrameArtifacts(
+        read,
+        { ...meta, frame_replay: undefined },
+        item,
+        source,
+        new Map(),
+        { requirePixelReplay: false },
+      )
+    ).status,
+    "passed",
+  );
+  await assert.rejects(
+    validateFrameArtifacts(read, { ...meta, time: meta.time + 0.001 }, item, source, new Map(), {
+      requirePixelReplay: false,
+    }),
+    /time differs/,
+  );
   assert.throws(
     () => new FrameArtifactStore({}).consume({ caseId: "case", frame: 0 }),
     /Missing prepared/,

@@ -63,6 +63,18 @@ impl GpuInputDevice {
                 LowPart: luid.low,
                 HighPart: luid.high,
             })?;
+            let description = adapter.GetDesc()?;
+            let version = adapter.CheckInterfaceSupport(&IDXGIDevice::IID)? as u64;
+            // This driver faults inside its adapter-selection trace before the first GPU
+            // sample. Reject it before activation so callers can use hardware memory input.
+            if description.VendorId == 0x1002
+                && description.DeviceId == 0x1900
+                && version == (32_u64 << 48) | (21030_u64 << 16) | 2001
+            {
+                return Err(EncodeError::Unsupported(
+                    "AMD Radeon 780M driver 32.0.21030.2001 has an unsafe shared-input initialization; use native NV12 readback with hardware encoding".into(),
+                ));
+            }
             let mut device = None;
             D3D11CreateDevice(
                 &adapter,
@@ -187,6 +199,9 @@ impl GpuInputDevice {
             sample.AddBuffer(&buffer)?;
             sample.SetSampleTime(timing.timestamp_100ns)?;
             sample.SetSampleDuration(timing.duration_100ns)?;
+            if index == 0 {
+                sample.SetUINT32(&MFSampleExtension_Discontinuity, 1)?;
+            }
         }
         Ok(())
     }

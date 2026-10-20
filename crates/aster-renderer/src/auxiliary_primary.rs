@@ -85,10 +85,13 @@ impl AuxiliaryPrimaryPlan {
     }
 }
 
+#[derive(Clone)]
 pub struct AuxiliaryPrimaryTargets {
     pub(crate) colors: Vec<wgpu::Texture>,
     pub(crate) depth: wgpu::Texture,
     budget: u64,
+    attributes: [Option<wgpu::Buffer>; 3],
+    retained_attributes: bool,
 }
 
 impl AuxiliaryPrimaryTargets {
@@ -97,11 +100,34 @@ impl AuxiliaryPrimaryTargets {
         plan: &AuxiliaryPrimaryPlan,
         budget: u64,
     ) -> Result<Self, RenderError> {
-        if plan.required_bytes() > budget
-            || plan.size.width == 0
-            || plan.size.height == 0
-            || plan.size.width > device.limits().max_texture_dimension_2d
-            || plan.size.height > device.limits().max_texture_dimension_2d
+        if plan.required_bytes() > budget {
+            return Err(RenderError::Invalid(
+                "auxiliary extent or budget exceeded".into(),
+            ));
+        }
+        let mut targets = Self::allocate(device, plan.size, [0; 3], budget)?;
+        targets.retained_attributes = false;
+        Ok(targets)
+    }
+
+    pub(crate) fn allocate(
+        device: &wgpu::Device,
+        size: Extent2d,
+        capacities: [u64; 3],
+        budget: u64,
+    ) -> Result<Self, RenderError> {
+        let required = u64::from(size.width)
+            .saturating_mul(u64::from(size.height))
+            .saturating_mul(32)
+            .saturating_add(capacities.iter().copied().sum::<u64>());
+        if required > budget
+            || size.width == 0
+            || size.height == 0
+            || size.width > device.limits().max_texture_dimension_2d
+            || size.height > device.limits().max_texture_dimension_2d
+            || capacities
+                .iter()
+                .any(|bytes| *bytes > device.limits().max_buffer_size || !bytes.is_multiple_of(4))
         {
             return Err(RenderError::Invalid(
                 "auxiliary extent or budget exceeded".into(),
@@ -111,8 +137,8 @@ impl AuxiliaryPrimaryTargets {
             device.create_texture(&wgpu::TextureDescriptor {
                 label: Some("Native primary auxiliary surface"),
                 size: wgpu::Extent3d {
-                    width: plan.size.width,
-                    height: plan.size.height,
+                    width: size.width,
+                    height: size.height,
                     depth_or_array_layers: 1,
                 },
                 mip_level_count: 1,
@@ -125,6 +151,17 @@ impl AuxiliaryPrimaryTargets {
         };
         Ok(Self {
             budget,
+            retained_attributes: true,
+            attributes: capacities.map(|size| {
+                (size > 0).then(|| {
+                    device.create_buffer(&wgpu::BufferDescriptor {
+                        label: Some("Retained auxiliary vertex attributes"),
+                        size,
+                        usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                        mapped_at_creation: false,
+                    })
+                })
+            }),
             colors: Self::formats()
                 .into_iter()
                 .map(|format| {
@@ -141,6 +178,20 @@ impl AuxiliaryPrimaryTargets {
                 wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
             ),
         })
+    }
+
+    pub(crate) fn covers(&self, plan: &AuxiliaryPrimaryPlan) -> bool {
+        plan.size.width == self.depth.width()
+            && plan.size.height == self.depth.height()
+            && plan.required_bytes() <= self.budget
+            && (!self.retained_attributes
+                || self
+                    .attributes
+                    .iter()
+                    .zip([plan.vertices.len(), plan.ids.len(), plan.motion.len()])
+                    .all(|(buffer, length)| {
+                        buffer.as_ref().map_or(0, wgpu::Buffer::size) >= length as u64
+                    }))
     }
 
     pub(crate) fn formats() -> [wgpu::TextureFormat; 5] {
@@ -179,9 +230,7 @@ impl crate::auxiliary_pipelines::AuxiliaryPrimaryPipelines {
                     })
             })
             .collect::<Result<Vec<_>, _>>()?;
-        if plan.required_bytes() > targets.budget
-            || targets.depth.width() != plan.size.width
-            || targets.depth.height() != plan.size.height
+        if !targets.covers(plan)
             || media.len() != plan.draws.len()
             || plan.draws.iter().zip(media).any(|(draw, binding)| {
                 matches!(draw.texture, RootTextureReference::None) == binding.is_some()
@@ -191,20 +240,37 @@ impl crate::auxiliary_pipelines::AuxiliaryPrimaryPipelines {
                 "auxiliary targets or media bindings differ".into(),
             ));
         }
-        let buffer = |contents| {
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("Supplied auxiliary vertex attributes"),
-                contents,
-                usage: wgpu::BufferUsages::VERTEX,
-            })
+        let attributes = if !plan.draws.is_empty() && !plan.vertices.is_empty() {
+            let mut attributes = Vec::new();
+            for (index, contents) in [&plan.vertices, &plan.ids, &plan.motion]
+                .into_iter()
+                .enumerate()
+            {
+                if targets.retained_attributes {
+                    let buffer = targets.attributes[index].as_ref().ok_or_else(|| {
+                        RenderError::Invalid("auxiliary attribute allocation absent".into())
+                    })?;
+                    let staging = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                        label: Some("Auxiliary attribute upload"),
+                        contents,
+                        usage: wgpu::BufferUsages::COPY_SRC,
+                    });
+                    encoder.copy_buffer_to_buffer(&staging, 0, buffer, 0, contents.len() as u64);
+                    attributes.push(buffer.clone());
+                } else {
+                    attributes.push(
+                        device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                            label: Some("Supplied auxiliary vertex attributes"),
+                            contents,
+                            usage: wgpu::BufferUsages::VERTEX,
+                        }),
+                    );
+                }
+            }
+            Some(attributes)
+        } else {
+            None
         };
-        let attributes = (!plan.draws.is_empty() && !plan.vertices.is_empty()).then(|| {
-            [
-                buffer(&plan.vertices),
-                buffer(&plan.ids),
-                buffer(&plan.motion),
-            ]
-        });
         let views = targets
             .colors
             .iter()

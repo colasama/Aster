@@ -12,6 +12,11 @@ pub struct SurfaceCacheStatistics {
     pub resident_bytes: u64,
 }
 
+pub(crate) struct SurfaceExtent {
+    pub key: Vec<u16>,
+    pub size: Extent2d,
+}
+
 pub(crate) struct SurfaceTarget {
     pub color: wgpu::Texture,
     pub depth: wgpu::TextureView,
@@ -35,14 +40,34 @@ impl SurfaceCache {
         budget: u64,
         timeout: Duration,
     ) -> Result<(), RenderError> {
-        let bytes = plan
+        let targets = plan
             .targets
+            .iter()
+            .map(|target| SurfaceExtent {
+                key: target.key.clone(),
+                size: target.size,
+            })
+            .collect::<Vec<_>>();
+        self.prepare_extents(device, layout, &targets, budget, timeout)
+    }
+
+    pub fn prepare_extents(
+        &mut self,
+        device: &wgpu::Device,
+        layout: &wgpu::BindGroupLayout,
+        targets: &[SurfaceExtent],
+        budget: u64,
+        timeout: Duration,
+    ) -> Result<(), RenderError> {
+        let bytes = targets
             .iter()
             .map(|t| u64::from(t.size.width) * u64::from(t.size.height) * 12)
             .sum::<u64>();
         if bytes > budget
-            || plan.targets.iter().any(|t| {
-                t.size.width > device.limits().max_texture_dimension_2d
+            || targets.iter().any(|t| {
+                t.size.width == 0
+                    || t.size.height == 0
+                    || t.size.width > device.limits().max_texture_dimension_2d
                     || t.size.height > device.limits().max_texture_dimension_2d
             })
         {
@@ -52,8 +77,8 @@ impl SurfaceCache {
         }
         // Retiring old generations must not overlap their physical allocations with the new budget.
         if !self.entries.is_empty()
-            && (self.entries.len() != plan.targets.len()
-                || plan.targets.iter().any(|t| {
+            && (self.entries.len() != targets.len()
+                || targets.iter().any(|t| {
                     self.entries
                         .get(&t.key)
                         .is_none_or(|old| old.size != t.size)
@@ -69,7 +94,7 @@ impl SurfaceCache {
         let mut pool = std::mem::take(&mut self.entries);
         let mut entries = BTreeMap::new();
         // Reserve exact matches before reassigning unused compatible allocations.
-        for target in &plan.targets {
+        for target in targets {
             if pool
                 .get(&target.key)
                 .is_some_and(|old| old.size == target.size)
@@ -80,7 +105,7 @@ impl SurfaceCache {
             }
         }
         let mut missing = Vec::new();
-        for target in &plan.targets {
+        for target in targets {
             if entries.contains_key(&target.key) {
                 continue;
             }

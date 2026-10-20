@@ -39,6 +39,11 @@ test("complete source proof permits verifier changes but rejects every productio
   ]);
   for (const path of [
     "crates/aster-renderer/src/lib.rs",
+    "crates/aster-eval/src/lib.rs",
+    "scripts/migration/native-project-runtime.mjs",
+    "scripts/migration/native-project-corpus-inputs.mjs",
+    "scripts/migration/native-project-export-runs.mjs",
+    "scripts/parity/pixel-inputs.mjs",
     "electron/native-export-job.ts",
     "shaders/nv12.wgsl",
     "tests/parity/corpus.json",

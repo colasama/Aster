@@ -1,5 +1,7 @@
 //! Shared project data and time-addressable property types.
 
+pub mod editor;
+
 use std::collections::BTreeMap;
 
 use aster_timeline::{Animatable, FrameRate, Time};

@@ -1,0 +1,272 @@
+{
+  "definition": {
+    "pluginId": "org.aster.builtin.particles",
+    "nodeType": "particle_system",
+    "apiVersion": 1,
+    "parameters": [
+      {
+        "type": "choice",
+        "name": "renderMode",
+        "label": "Render mode",
+        "default": "billboard",
+        "choices": ["billboard", "streak", "mesh"]
+      },
+      {
+        "type": "choice",
+        "name": "meshPrimitive",
+        "label": "Mesh primitive",
+        "default": "cube",
+        "choices": ["cube"]
+      },
+      {
+        "type": "number",
+        "name": "count",
+        "label": "Count",
+        "default": 100000,
+        "min": 1,
+        "max": 1000000
+      },
+      {
+        "type": "number",
+        "name": "seed",
+        "label": "Seed",
+        "default": 13337,
+        "min": 0,
+        "max": 16777215
+      },
+      {
+        "type": "number",
+        "name": "lifetime",
+        "label": "Lifetime",
+        "default": 4,
+        "min": 0.05,
+        "max": 3600
+      },
+      {
+        "type": "choice",
+        "name": "emitterShape",
+        "label": "Emitter shape",
+        "default": "point",
+        "choices": ["point", "box", "sphere", "ring", "line"]
+      },
+      {
+        "type": "vector",
+        "name": "emitterPosition",
+        "label": "Emitter position",
+        "default": [0, 0, 0],
+        "min": -100000,
+        "max": 100000
+      },
+      {
+        "type": "vector",
+        "name": "emitterSize",
+        "label": "Emitter size",
+        "default": [0, 0, 0],
+        "min": 0,
+        "max": 100000
+      },
+      {
+        "type": "number",
+        "name": "emitterSpread",
+        "label": "Emitter spread",
+        "default": 12,
+        "min": 0,
+        "max": 180
+      },
+      {
+        "type": "vector",
+        "name": "velocity",
+        "label": "Velocity",
+        "default": [0, -0.26, 0],
+        "min": -10000,
+        "max": 10000
+      },
+      {
+        "type": "vector",
+        "name": "gravity",
+        "label": "Gravity",
+        "default": [0, 0.08, 0],
+        "min": -10000,
+        "max": 10000
+      },
+      {
+        "type": "number",
+        "name": "drag",
+        "label": "Drag",
+        "default": 0.04,
+        "min": 0,
+        "max": 10
+      },
+      {
+        "type": "number",
+        "name": "turbulence",
+        "label": "Turbulence",
+        "default": 0.06,
+        "min": 0,
+        "max": 10
+      },
+      {
+        "type": "number",
+        "name": "turbulenceScale",
+        "label": "Turbulence scale",
+        "default": 3,
+        "min": 0.01,
+        "max": 100
+      },
+      {
+        "type": "vector",
+        "name": "startColor",
+        "label": "Start color",
+        "default": [1, 0.48, 0.12],
+        "min": 0,
+        "max": 16
+      },
+      {
+        "type": "vector",
+        "name": "endColor",
+        "label": "End color",
+        "default": [0.12, 0.35, 1],
+        "min": 0,
+        "max": 16
+      },
+      {
+        "type": "number",
+        "name": "startOpacity",
+        "label": "Start opacity",
+        "default": 0.9,
+        "min": 0,
+        "max": 1
+      },
+      {
+        "type": "number",
+        "name": "endOpacity",
+        "label": "End opacity",
+        "default": 0,
+        "min": 0,
+        "max": 1
+      },
+      {
+        "type": "number",
+        "name": "startSize",
+        "label": "Start size",
+        "default": 16,
+        "min": 0.01,
+        "max": 256
+      },
+      {
+        "type": "number",
+        "name": "endSize",
+        "label": "End size",
+        "default": 2,
+        "min": 0.01,
+        "max": 256
+      },
+      {
+        "type": "number",
+        "name": "startRotation",
+        "label": "Start rotation",
+        "default": 0,
+        "min": -36000,
+        "max": 36000
+      },
+      {
+        "type": "number",
+        "name": "endRotation",
+        "label": "End rotation",
+        "default": 180,
+        "min": -36000,
+        "max": 36000
+      },
+      {
+        "type": "number",
+        "name": "streakLength",
+        "label": "Streak length",
+        "default": 1,
+        "min": 0.01,
+        "max": 5
+      }
+    ],
+    "graph": {
+      "api_version": 1,
+      "node_type": "particle_system",
+      "capacity_parameter": "count",
+      "max_instances": 1000000,
+      "instance_stride": 48,
+      "render_parameter": "renderMode",
+      "compute_passes": [
+        {
+          "id": "simulate",
+          "shader": "particle-compute.wgsl",
+          "entry_point": "compute_main",
+          "workgroup_size": [256, 1, 1],
+          "phase": "simulation"
+        }
+      ],
+      "render_variants": [
+        {
+          "id": "billboard",
+          "shader": "particle-render.wgsl",
+          "vertex_entry": "billboard_vertex",
+          "fragment_entry": "billboard_fragment",
+          "vertex_count": 6,
+          "selector_value": "billboard",
+          "blend": "layer",
+          "depth": "none",
+          "cull": "none",
+          "auxiliary": {
+            "shader": "particle-render.wgsl",
+            "vertex_entry": "billboard_vertex",
+            "fragment_entry": "billboard_auxiliary"
+          }
+        },
+        {
+          "id": "streak",
+          "shader": "particle-render.wgsl",
+          "vertex_entry": "streak_vertex",
+          "fragment_entry": "streak_fragment",
+          "vertex_count": 6,
+          "selector_value": "streak",
+          "blend": "layer",
+          "depth": "none",
+          "cull": "none",
+          "auxiliary": {
+            "shader": "particle-render.wgsl",
+            "vertex_entry": "streak_vertex",
+            "fragment_entry": "streak_auxiliary"
+          }
+        },
+        {
+          "id": "mesh",
+          "shader": "particle-render.wgsl",
+          "vertex_entry": "mesh_vertex",
+          "fragment_entry": "mesh_fragment",
+          "vertex_count": 36,
+          "selector_value": "mesh",
+          "blend": "layer",
+          "depth": "read_write",
+          "cull": "back",
+          "auxiliary": {
+            "shader": "particle-render.wgsl",
+            "vertex_entry": "mesh_vertex",
+            "fragment_entry": "mesh_auxiliary"
+          }
+        }
+      ]
+    },
+    "audioAnalysis": false
+  },
+  "pluginName": "Particles",
+  "runtimeKey": "58ca-7f4ed2f0-2f72e66c",
+  "shaders": [
+    {
+      "path": "particle-compute.wgsl",
+      "id": "particle-compute",
+      "sha256": "8e9b65c7e2fbab32928cfe9028693c81b6b3aa562e3d446992533a26d2433e8b"
+    },
+    {
+      "path": "particle-render.wgsl",
+      "id": "particle-render",
+      "sha256": "2ad720ba4ee2d2b08517d9ff955d973a0ca360438062b19716ab14c44240cf77"
+    }
+  ]
+}

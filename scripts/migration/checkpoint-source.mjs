@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { evidencePath, M0Evidence, validSha } from "./m0-evidence.mjs";
 
-// This narrow list covers the diagnostic acceptance repair and its checkpoint auditing only.
+// This narrow list covers diagnostic acceptance and native-project checkpoint auditing only.
 // Runtime, renderer, shaders, fixtures, dependencies and tolerance catalogs are deliberately absent.
 const verificationFiles = new Set([
   "docs/migration/RUST_RENDERER_MIGRATION.md",
@@ -20,6 +20,16 @@ const verificationFiles = new Set([
   "scripts/migration/native-encoded-quality-case.mjs",
   "scripts/migration/native-export-checkpoint.mjs",
   "scripts/migration/native-export-gate.mjs",
+  "scripts/migration/native-project-corpus-checkpoint.mjs",
+  "scripts/migration/native-project-corpus-checkpoint.test.mjs",
+  "scripts/migration/native-project-corpus-evidence.mjs",
+  "scripts/migration/native-project-corpus-gate.mjs",
+  "scripts/migration/native-project-export-gate.mjs",
+  "scripts/migration/native-project-pixel-inputs.mjs",
+  "scripts/migration/native-project-pixel-inputs.test.mjs",
+  "scripts/migration/native-project-witness-pixels.mjs",
+  "scripts/migration/native-project-witness-review.mjs",
+  "scripts/migration/native-project-witness.mjs",
   "scripts/migration/native-nv12-corpus.mjs",
   "scripts/migration/verify.mjs",
   "scripts/migration/verify.test.mjs",

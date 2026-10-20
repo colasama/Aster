@@ -12,6 +12,7 @@ rust-version = "1.97"
 
 [workspace.dependencies]
 aster-types = { path = "crates/aster-types", version = "0.3.5" }
+aster-eval = { path = "crates/aster-eval", version = "0.3.5" }
 aster-storage = { path = "crates/aster-storage", version = "0.3.5" }
 aster-core = { path = "crates/aster-core", version = "0.3.5" }
 aster-plugin = { path = "crates/aster-plugin", version = "0.3.5" }
@@ -20,6 +21,7 @@ aster-project = { path = "crates/aster-project", version = "0.3.5" }
 aster-render = { path = "crates/aster-render", version = "0.3.5" }
 aster-render-ir = { path = "crates/aster-render-ir", version = "0.3.5" }
 aster-renderer = { path = "crates/aster-renderer", version = "0.3.5" }
+aster-render-project = { path = "crates/aster-render-project", version = "0.3.5" }
 aster-media-native = { path = "crates/aster-media-native", version = "0.3.5" }
 aster-encode = { path = "crates/aster-encode", version = "0.3.5" }
 aster-render-compare = { path = "crates/aster-render-compare", version = "0.3.5" }
@@ -36,20 +38,23 @@ flate2 = "=1.1.9"
 glam = { version = "0.33.5", features = ["serde"] }
 indexmap = { version = "2.14.0", features = ["serde"] }
 image-webp = "=0.2.4"
+icu_collator = "=2.3.1"
+icu_locale_core = "=2.3.0"
 naga = { version = "30.0.0", features = ["wgsl-in"] }
 parking_lot = "0.12.5"
 pollster = "1.0.1"
 rustfft = "=6.4.1"
+ryu-js = "=1.0.3"
 schemars = { version = "1.2.2", features = ["uuid1"] }
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
+serde_json = { version = "1.0.149", features = ["float_roundtrip"] }
 sha2 = "0.10.9"
 thiserror = "2.0.20"
 toml = "1.1.4"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }
 uuid = { version = "1.24.1", features = ["serde", "v4"] }
-zip = { version = "=9.0.0", default-features = false, features = ["deflate"] }
+zip = { version = "=9.0.4", default-features = false, features = ["deflate"] }
 wgpu = "30.0.0"
 
 [profile.release]

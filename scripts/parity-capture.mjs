@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import electron from "electron";
 import { build, preview } from "vite";
@@ -10,22 +11,27 @@ import { sourceProvenance } from "./migration/source.mjs";
 import { nativeReleaseBuild } from "./native-build.mjs";
 import { publishCandidateCapture } from "./parity/candidate-capture.mjs";
 import { publishCaptures } from "./parity/capture-store.mjs";
+import { publishPlanReferences } from "./parity/plan-reference-publication.mjs";
 import { captureAssignments, captureSource, digest } from "./parity/provenance.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const selected = [];
 let force = false;
 let candidate = false;
+let planReferences = false;
 let timeoutMs = 120_000;
 for (let index = 2; index < process.argv.length; index++) {
   const value = process.argv[index];
   if (value === "--case" && process.argv[index + 1]) selected.push(process.argv[++index]);
   else if (value === "--force") force = true;
   else if (value === "--candidate") candidate = true;
+  else if (value === "--plan-references") planReferences = true;
   else if (value === "--timeout-ms" && /^\d+$/.test(process.argv[index + 1] ?? ""))
     timeoutMs = Number(process.argv[++index]);
   else throw new Error(`Unknown or incomplete capture argument: ${value}`);
 }
+if (candidate && planReferences)
+  throw new Error("Plan references and pixel candidates are separate modes");
 if (timeoutMs < 1000 || timeoutMs > 1_200_000)
   throw new Error("Capture timeout must be 1000..1200000 ms per case");
 process.env.ASTER_PERF_PROJECT ??= process.platform === "win32" ? "D:\\code\\SD04PV" : "";
@@ -52,7 +58,7 @@ if (sourceBeforeBuild.source_sha256 !== source.tree_sha256)
   throw new Error(
     "Source changed while building capture prerequisites; discard the generated code",
   );
-const assignments = await captureAssignments(root, cases);
+const assignments = await captureAssignments(root, cases, process.env, { planReferences });
 const output = join(runDirectory, "web");
 await build({
   configFile: false,
@@ -82,6 +88,11 @@ const config = {
   timeoutMs,
   force,
   candidate,
+  planReferences,
+  ownerSnapshotDirectory:
+    planReferences && cases.some((item) => item.project === "env:ASTER_PERF_PROJECT")
+      ? await mkdtemp(join(tmpdir(), "aster-parity-owner-plans-"))
+      : undefined,
   requireFrameBundles: true,
   url: new URL("tests/parity/harness.html", server.resolvedUrls.local[0]).href,
 };
@@ -123,7 +134,7 @@ try {
   });
   report = JSON.parse(await readFile(join(runDirectory, "report.json"), "utf8"));
   const after = await captureSource(root, { frameBundles: true });
-  const inputsAfter = await captureAssignments(root, cases);
+  const inputsAfter = await captureAssignments(root, cases, process.env, { planReferences });
   report.source_unchanged =
     source.tree_sha256 === after.tree_sha256 &&
     source.renderer_source_sha256 === after.renderer_source_sha256 &&
@@ -145,7 +156,8 @@ try {
   )
     report.status = "failed";
   if (report.status === "passed") {
-    if (candidate) report.candidate = await publishCandidateCapture(config, report);
+    if (planReferences) report.plan_reference = await publishPlanReferences(config, report);
+    else if (candidate) report.candidate = await publishCandidateCapture(config, report);
     else await publishCaptures(config, report);
   }
   process.exitCode = report.status === "passed" ? 0 : 1;
@@ -159,7 +171,7 @@ try {
   };
   process.exitCode = 1;
 } finally {
-  report.capture_mode = candidate ? "candidate" : "reference";
+  report.capture_mode = planReferences ? "plan-reference" : candidate ? "candidate" : "reference";
   await new Promise((resolveClose, reject) =>
     server.httpServer.close((error) => (error ? reject(error) : resolveClose())),
   );
@@ -167,8 +179,10 @@ try {
   const reportPath = join(root, "artifacts", "parity", `capture-${runId}.json`);
   await writeAtomicJson(reportPath, report);
   console.log(
-    `${candidate ? "Candidate" : "Reference"} capture ${report.status}: ${report.cases.filter((item) => ["passed", "cached"].includes(item.status)).length}/${cases.length} cases`,
+    `${planReferences ? "Plan reference" : candidate ? "Candidate" : "Reference"} capture ${report.status}: ${report.cases.filter((item) => ["passed", "cached"].includes(item.status)).length}/${cases.length} cases`,
   );
   console.log(`Report: ${reportPath}`);
+  if (report.plan_reference)
+    console.log(`Plan reference manifest: ${report.plan_reference.manifest}`);
   if (report.candidate) console.log(`Candidate manifest: ${report.candidate.manifest}`);
 }

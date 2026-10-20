@@ -6,6 +6,7 @@ use crate::{
 pub(crate) struct SurfaceOutput {
     auxiliary: AuxiliaryPrimaryPipelines,
     effect: SurfacePostPipeline,
+    pub(crate) prepared: Option<AuxiliaryPrimaryTargets>,
 }
 
 impl SurfaceOutput {
@@ -14,6 +15,7 @@ impl SurfaceOutput {
         Ok(Self {
             auxiliary: AuxiliaryPrimaryPipelines::new(device, &catalog, layout)?,
             effect: SurfacePostPipeline::new(device, &catalog, wgpu::TextureFormat::Bgra8Unorm)?,
+            prepared: None,
         })
     }
 
@@ -34,7 +36,16 @@ impl SurfaceOutput {
             .as_ref()
             .ok_or_else(|| RenderError::Invalid("surface output missing".into()))?;
         let targets = if let Some(plan) = &surface.auxiliary {
-            let targets = AuxiliaryPrimaryTargets::new(device, plan, plan.required_bytes())?;
+            let targets = if let Some(prepared) = &self.prepared {
+                if !prepared.covers(plan) {
+                    return Err(RenderError::Invalid(
+                        "prepared surface attributes differ".into(),
+                    ));
+                }
+                prepared.clone()
+            } else {
+                AuxiliaryPrimaryTargets::new(device, plan, plan.required_bytes())?
+            };
             let bindings = plan.bindings(frame, (caches.0, caches.1))?;
             let bindings = bindings.iter().map(Option::as_ref).collect::<Vec<_>>();
             self.auxiliary

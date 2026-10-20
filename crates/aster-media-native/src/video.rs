@@ -12,8 +12,9 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 use crate::{
-    DecodedStill, MediaError, NativeImageReceipt, StillAuthorization, authorization::MediaGrants,
-    video_time::VideoTime, video_window::VideoDecodeWindow,
+    DecodedStill, MediaError, MediaSnapshotAuthorization, NativeImageReceipt, SnapshotGrantLimits,
+    StillAuthorization, authorization::MediaGrants, video_time::VideoTime,
+    video_window::VideoDecodeWindow,
 };
 
 #[derive(Clone, Debug, clap::Args)]
@@ -81,6 +82,13 @@ pub struct DecodedVideo {
     pub receipt: NativeVideoReceipt,
 }
 
+#[derive(Clone, Debug, Serialize)]
+pub struct NativeVideoSourceInfo {
+    pub width: u32,
+    pub height: u32,
+    pub duration_seconds: f64,
+}
+
 pub struct NativeVideoDecoder {
     grants: MediaGrants,
     probe: FfprobeBackend,
@@ -93,10 +101,61 @@ pub struct NativeVideoDecoder {
 }
 
 impl NativeVideoDecoder {
+    /// Resolve source timing from the same authenticated snapshot used by frame decoding.
+    pub fn inspect_source(
+        &mut self,
+        source: &ResourceHash,
+        registry: &ResourceRegistry,
+        cancellation: &CancellationToken,
+    ) -> Result<NativeVideoSourceInfo, MediaError> {
+        let ResourceDescriptor::MediaSource(descriptor) = registry.descriptor(source)? else {
+            return Err(MediaError::Unsupported(
+                "video source descriptor required".into(),
+            ));
+        };
+        if descriptor.media_kind != MediaKind::Video {
+            return Err(MediaError::Unsupported(
+                "video source required for metadata".into(),
+            ));
+        }
+        let bytes = self.grants.read(
+            source,
+            &descriptor.authorization_scope,
+            None,
+            &descriptor.content_identity,
+            self.limits.video_max_source_bytes,
+            cancellation,
+        )?;
+        let snapshot = self.snapshot(source, &bytes.bytes, cancellation)?;
+        Ok(NativeVideoSourceInfo {
+            width: snapshot.stream.width,
+            height: snapshot.stream.height,
+            duration_seconds: snapshot.duration_seconds,
+        })
+    }
+
     pub fn new(
         ffmpeg: PathBuf,
         ffprobe: PathBuf,
         authorizations: Vec<StillAuthorization>,
+        limits: VideoLimits,
+    ) -> Result<Self, MediaError> {
+        Self::with_snapshots(
+            ffmpeg,
+            ffprobe,
+            authorizations,
+            Vec::new(),
+            SnapshotGrantLimits::default(),
+            limits,
+        )
+    }
+
+    pub fn with_snapshots(
+        ffmpeg: PathBuf,
+        ffprobe: PathBuf,
+        authorizations: Vec<StillAuthorization>,
+        snapshots: Vec<MediaSnapshotAuthorization>,
+        snapshot_limits: SnapshotGrantLimits,
         limits: VideoLimits,
     ) -> Result<Self, MediaError> {
         if limits.video_max_source_bytes == 0
@@ -141,7 +200,7 @@ impl NativeVideoDecoder {
             },
         );
         Ok(Self {
-            grants: MediaGrants::new(authorizations)?,
+            grants: MediaGrants::with_snapshots(authorizations, snapshots, snapshot_limits)?,
             probe,
             decoder,
             window: VideoDecodeWindow::new(

@@ -5,7 +5,7 @@ use std::{
 };
 
 use aster_render_ir::ExportVideoConfig;
-use windows::{Win32::Media::MediaFoundation::*, core::Interface};
+use windows::Win32::Media::MediaFoundation::*;
 
 use crate::{EncodedProbeProof, EncoderProbeLimits, media_foundation::ActiveTransform};
 
@@ -42,31 +42,43 @@ impl ProbeStream {
             if info.dwFlags & MFT_OUTPUT_STREAM_PROVIDES_SAMPLES.0 as u32 == 0 {
                 return Err("hardware encoder must provide bounded output samples".into());
             }
-            let events: IMFMediaEventGenerator = transform.cast()?;
+            let events = encoder
+                .events
+                .as_ref()
+                .ok_or("encoder event subscription missing")?;
             transform.ProcessMessage(MFT_MESSAGE_NOTIFY_BEGIN_STREAMING, 0)?;
+            tracing::debug!(phase = "stream-start", "Starting encoder qualification");
             transform.ProcessMessage(MFT_MESSAGE_NOTIFY_START_OF_STREAM, 0)?;
             let mut draining = false;
             loop {
                 if started.elapsed() >= deadline {
                     return Err("hardware test frame or drain timed out".into());
                 }
-                let event = match events.GetEvent(MF_EVENT_FLAG_NO_WAIT) {
-                    Ok(event) => event,
-                    Err(error) if error.code() == MF_E_NO_EVENTS_AVAILABLE => {
+                let event = match events.poll()? {
+                    Some(event) => event,
+                    None => {
                         std::thread::sleep(Duration::from_millis(1));
                         continue;
                     }
-                    Err(error) => return Err(error.into()),
                 };
-                event.GetStatus()?.ok()?;
-                let kind = event.GetType()?;
+                let kind = event;
                 if kind == METransformNeedInput.0 as u32 && !draining {
+                    tracing::debug!(
+                        phase = "input",
+                        frame = proof.frames,
+                        "Submitting qualification sample"
+                    );
                     let sample = if let Some(gpu) = gpu {
                         gpu.probe_sample(video, proof.frames)?
                     } else {
                         Self::sample(video, proof.frames)?
                     };
                     transform.ProcessInput(0, &sample, 0)?;
+                    tracing::debug!(
+                        phase = "input-accepted",
+                        frame = proof.frames,
+                        "Submitted qualification sample"
+                    );
                     if gpu.is_some() {
                         // Retain test surfaces until explicit transform shutdown. The total
                         // probe allocation is bounded independently of production leases.
@@ -74,11 +86,17 @@ impl ProbeStream {
                     }
                     proof.frames += 1;
                     if proof.frames == limits.encoder_probe_frames {
+                        tracing::debug!(phase = "drain", "Draining encoder qualification");
                         transform.ProcessMessage(MFT_MESSAGE_NOTIFY_END_OF_STREAM, 0)?;
                         transform.ProcessMessage(MFT_MESSAGE_COMMAND_DRAIN, 0)?;
                         draining = true;
                     }
                 } else if kind == METransformHaveOutput.0 as u32 {
+                    tracing::debug!(
+                        phase = "output",
+                        frame = proof.packets,
+                        "Receiving qualification packet"
+                    );
                     let mut outputs = [MFT_OUTPUT_DATA_BUFFER::default()];
                     let mut status = 0;
                     let result = transform.ProcessOutput(0, &mut outputs, &mut status);
@@ -113,10 +131,12 @@ impl ProbeStream {
                     proof.packets += 1;
                     proof.encoded_bytes += u64::from(length);
                 } else if kind == METransformDrainComplete.0 as u32 {
+                    tracing::debug!(phase = "drained", "Drained encoder qualification");
                     if !draining || proof.packets != limits.encoder_probe_frames {
                         return Err("hardware drain dropped frames".into());
                     }
-                    transform.ProcessMessage(MFT_MESSAGE_NOTIFY_END_STREAMING, 0)?;
+                    // A drained transform can start another input stream without releasing
+                    // its device resources. The owner shuts it down after its final use.
                     proof.ordered_timestamps = true;
                     proof.annex_b = true;
                     proof.drain_completed = true;

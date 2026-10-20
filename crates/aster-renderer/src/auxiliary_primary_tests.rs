@@ -231,6 +231,34 @@ fn auxiliary_primary_supplied_gpu_outputs_and_controls() -> Result<(), Box<dyn s
             actual == reference[..actual.len()],
             "primary attachments differ: {id}"
         );
+        let retained_plan = if id == "cleared" {
+            AuxiliaryPrimaryPlan::new(&scene, &fixture.plan(id, "prime")?)?
+        } else {
+            AuxiliaryPrimaryPlan::new(&scene, &auxiliary)?
+        };
+        let retained = AuxiliaryPrimaryTargets::allocate(
+            &fixture.renderer.device,
+            retained_plan.size,
+            [
+                retained_plan.vertices.len() as u64,
+                retained_plan.ids.len() as u64,
+                retained_plan.motion.len() as u64,
+            ],
+            budget,
+        )?;
+        if id == "cleared" {
+            assert!(
+                fixture
+                    .render(&retained_plan, &retained)?
+                    .iter()
+                    .any(|byte| *byte != 0)
+            );
+        }
+        assert_eq!(
+            fixture.render(&plan, &retained)?,
+            actual,
+            "retained attributes differ: {id}"
+        );
         if let Some(path) = &output {
             use std::io::Write;
             let temporary = path.join(format!("{id}.bin.tmp"));

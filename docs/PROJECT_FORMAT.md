@@ -1,5 +1,25 @@
 # Aster project format v10
 
+## Native document access
+
+`aster-types::editor` models persisted project, composition, layer, transform, keyframe and effect
+records, media sources, fonts and scene/shape payloads separately from the legacy native command model.
+Identifiers remain strings, including
+imported identifiers that are not UUIDs. JSON numbers and uninterpreted fields retain their stored
+representation; absent fields, explicit nulls and extension data are not normalized during a
+round trip. Optional typed fields distinguish absence, null and a present value; unknown payload
+fields remain attached to their owning record. Typed deserialization checks field shapes without
+applying runtime defaults. Reading these records does not imply native evaluation support or perform a schema
+migration. `ProjectBundle::load_editor_model` and `save_editor_model` retain the existing version
+admission and atomic publication rules. Generated corpus and owner-project round trips run in the
+native project gate; the ordinary test suite covers legacy records and rejected atomic saves.
+
+Read-only native media admission accepts the existing inline and bundle-relative `mediaImports`
+storage variants. Byte identity, content identity and configured size limits are checked before
+publishing a source snapshot; stored `resolvedPath` hints cannot authorize access outside the bundle.
+Legacy relative source entries without a sidecar use their existing content identity. No persisted
+fields are added, and inline payloads remain in memory.
+
 ## Layer timing and keyframes
 
 Keyframe `time` remains expressed in seconds of the owning composition, including camera, text,
@@ -289,7 +309,10 @@ and [Advanced 3D depth-of-field controls](https://helpx.adobe.com/after-effects/
   Older, future, missing, or fractional versions fail
   before partially applying the document.
 - The native bundle boundary accepts v1 through v10 on read so the renderer can run migrations, but
-  new primary saves and autosaves must already be validated v10 documents.
+  new primary saves and autosaves must already be validated v10 documents. Native runtime evaluation
+  applies the same historical upgrades in memory with bounded input/output and collection admission.
+  It preserves authored material property order and unknown fields without rewriting the persisted
+  document; lossless typed bundle reads remain distinct from runtime upgrades.
 - Every future historical transform must preserve the source document, set exactly the next integer
   version, and gain a compatibility fixture before the current schema version increases.
 - Unknown effect types and parameters must be preserved and disabled when execution is unavailable.

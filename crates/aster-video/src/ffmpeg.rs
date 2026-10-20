@@ -116,6 +116,12 @@ impl Default for DecodeLimits {
 #[derive(Debug, Clone, Default)]
 pub struct CancellationToken(Arc<AtomicBool>);
 
+impl AsRef<AtomicBool> for CancellationToken {
+    fn as_ref(&self) -> &AtomicBool {
+        &self.0
+    }
+}
+
 impl CancellationToken {
     pub fn cancel(&self) {
         self.0.store(true, Ordering::Release);
@@ -181,6 +187,15 @@ impl FfprobeBackend {
         media_path: &Path,
         cancellation: &CancellationToken,
     ) -> Result<ContainerMetadata, FfprobeError> {
+        self.limits
+            .parse_ffprobe_json(&self.probe_bytes(media_path, cancellation)?)
+    }
+
+    pub(crate) fn probe_bytes(
+        &self,
+        media_path: &Path,
+        cancellation: &CancellationToken,
+    ) -> Result<Vec<u8>, FfprobeError> {
         if cancellation.is_cancelled() {
             return Err(FfprobeError::Cancelled);
         }
@@ -200,7 +215,7 @@ impl FfprobeBackend {
                 stderr: String::from_utf8_lossy(&output.stderr).trim().to_owned(),
             });
         }
-        self.limits.parse_ffprobe_json(&output.stdout)
+        Ok(output.stdout)
     }
 }
 

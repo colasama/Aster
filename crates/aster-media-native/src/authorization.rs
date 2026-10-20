@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, fs::File, io::Read, path::PathBuf};
+use std::{collections::BTreeMap, fs::File, io::Read, path::PathBuf, sync::Arc};
 
 use aster_render_ir::ResourceHash;
 use aster_video::CancellationToken;
@@ -20,13 +20,45 @@ pub struct StillAuthorization {
     pub sha256: String,
 }
 
+/// A broker supplies immutable portable bytes instead of materializing a temporary file.
+#[derive(Clone)]
+pub struct MediaSnapshotAuthorization {
+    pub source: ResourceHash,
+    pub sequence_frame: Option<i64>,
+    pub scope: String,
+    pub bytes: Arc<[u8]>,
+    pub sha256: String,
+}
+
+#[derive(Clone, Debug, clap::Args)]
+pub struct SnapshotGrantLimits {
+    #[arg(long, default_value_t = Self::default().snapshot_grant_bytes)]
+    pub snapshot_grant_bytes: u64,
+    #[arg(long, default_value_t = Self::default().snapshot_grant_entries)]
+    pub snapshot_grant_entries: usize,
+}
+
+impl Default for SnapshotGrantLimits {
+    fn default() -> Self {
+        Self {
+            snapshot_grant_bytes: 134_217_728,
+            snapshot_grant_entries: 50_000,
+        }
+    }
+}
+
+enum GrantedSource {
+    File(StillAuthorization),
+    Snapshot(MediaSnapshotAuthorization),
+}
+
 pub(crate) struct SourceSnapshot {
     pub bytes: Vec<u8>,
     pub sha256: String,
 }
 
 pub(crate) struct MediaGrants {
-    grants: BTreeMap<(ResourceHash, Option<i64>), StillAuthorization>,
+    grants: BTreeMap<(ResourceHash, Option<i64>), GrantedSource>,
 }
 
 impl MediaGrants {
@@ -38,7 +70,10 @@ impl MediaGrants {
             if grant.scope.is_empty()
                 || !grant.path.is_absolute()
                 || grants
-                    .insert((grant.source.clone(), grant.sequence_frame), grant)
+                    .insert(
+                        (grant.source.clone(), grant.sequence_frame),
+                        GrantedSource::File(grant),
+                    )
                     .is_some()
             {
                 return Err(MediaError::Authorization(
@@ -47,6 +82,49 @@ impl MediaGrants {
             }
         }
         Ok(Self { grants })
+    }
+
+    pub(crate) fn with_snapshots(
+        authorizations: Vec<StillAuthorization>,
+        snapshots: Vec<MediaSnapshotAuthorization>,
+        limits: SnapshotGrantLimits,
+    ) -> Result<Self, MediaError> {
+        if limits.snapshot_grant_bytes == 0
+            || limits.snapshot_grant_bytes == u64::MAX
+            || limits.snapshot_grant_entries == 0
+            || snapshots.len() > limits.snapshot_grant_entries
+        {
+            return Err(MediaError::Limit("bounded snapshot grants required".into()));
+        }
+        let mut grants = Self::new(authorizations)?;
+        let mut resident = 0_u64;
+        for grant in snapshots {
+            grant.source.validate()?;
+            ResourceHash(grant.sha256.clone()).validate()?;
+            resident = resident
+                .checked_add(grant.bytes.len() as u64)
+                .ok_or_else(|| MediaError::Limit("snapshot byte budget overflow".into()))?;
+            if resident > limits.snapshot_grant_bytes {
+                return Err(MediaError::Limit("snapshot byte budget exceeded".into()));
+            }
+            if grant.scope.is_empty()
+                || grants
+                    .grants
+                    .contains_key(&(grant.source.clone(), grant.sequence_frame))
+            {
+                return Err(MediaError::Authorization(
+                    "unique source members and nonempty snapshot scopes required".into(),
+                ));
+            }
+            if format!("{:x}", Sha256::digest(&grant.bytes)) != grant.sha256 {
+                return Err(MediaError::Identity);
+            }
+            grants.grants.insert(
+                (grant.source.clone(), grant.sequence_frame),
+                GrantedSource::Snapshot(grant),
+            );
+        }
+        Ok(grants)
     }
 
     pub(crate) fn read(
@@ -61,7 +139,10 @@ impl MediaGrants {
         let grant = self
             .grants
             .get(&(source.clone(), member))
-            .filter(|grant| grant.scope == scope)
+            .filter(|grant| match grant {
+                GrantedSource::File(grant) => grant.scope == scope,
+                GrantedSource::Snapshot(grant) => grant.scope == scope,
+            })
             .ok_or_else(|| MediaError::Authorization("source or scope is not granted".into()))?;
         if cancellation.is_cancelled() {
             return Err(aster_video::FfmpegError::Cancelled.into());
@@ -71,24 +152,37 @@ impl MediaGrants {
                 "positive bounded source limit required".into(),
             ));
         }
-        let file = File::open(&grant.path)?;
-        let metadata = file.metadata()?;
-        if !metadata.is_file() || metadata.len() > max_bytes {
-            return Err(MediaError::Limit("source exceeds file byte budget".into()));
-        }
-        let mut bytes = Vec::new();
-        file.take(max_bytes + 1).read_to_end(&mut bytes)?;
-        if bytes.len() as u64 > max_bytes {
-            return Err(MediaError::Limit(
-                "source changed beyond file byte budget".into(),
-            ));
-        }
-        let sha256 = format!("{:x}", Sha256::digest(&bytes));
-        if sha256 != grant.sha256 {
-            return Err(MediaError::Identity);
-        }
-        // The grant always authenticates freshly read bytes. Legacy identity compatibility
-        // needs another scan only when the descriptor does not already identify that digest.
+        let (bytes, sha256) = match grant {
+            GrantedSource::File(grant) => {
+                let file = File::open(&grant.path)?;
+                let metadata = file.metadata()?;
+                if !metadata.is_file() || metadata.len() > max_bytes {
+                    return Err(MediaError::Limit("source exceeds file byte budget".into()));
+                }
+                let mut bytes = Vec::new();
+                file.take(max_bytes + 1).read_to_end(&mut bytes)?;
+                if bytes.len() as u64 > max_bytes {
+                    return Err(MediaError::Limit(
+                        "source changed beyond file byte budget".into(),
+                    ));
+                }
+                let sha256 = format!("{:x}", Sha256::digest(&bytes));
+                if sha256 != grant.sha256 {
+                    return Err(MediaError::Identity);
+                }
+                (bytes, sha256)
+            }
+            GrantedSource::Snapshot(grant) => {
+                if grant.bytes.len() as u64 > max_bytes {
+                    return Err(MediaError::Limit(
+                        "snapshot exceeds source byte budget".into(),
+                    ));
+                }
+                (grant.bytes.to_vec(), grant.sha256.clone())
+            }
+        };
+        // Files are authenticated on every read; immutable snapshots were checked at admission.
+        // Legacy identity compatibility still checks the bytes against the descriptor.
         if identity != format!("sha256:{sha256}") {
             let (mut left, mut right) = (0x811c9dc5_u32, 0x9e3779b9_u32);
             for byte in &bytes {

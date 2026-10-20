@@ -4,6 +4,7 @@ use wgpu::util::DeviceExt;
 pub(crate) struct Visualizer {
     auxiliary: AuxiliaryPrimaryPipelines,
     pipelines: Vec<wgpu::RenderPipeline>,
+    pub(crate) prepared: Option<AuxiliaryPrimaryTargets>,
 }
 
 impl Visualizer {
@@ -46,6 +47,7 @@ impl Visualizer {
         Ok(Self {
             auxiliary: AuxiliaryPrimaryPipelines::new(device, &catalog, layout)?,
             pipelines,
+            prepared: None,
         })
     }
 
@@ -66,8 +68,16 @@ impl Visualizer {
             .as_ref()
             .ok_or_else(|| RenderError::Invalid("visualizer plan absent".into()))?;
         let targets = if let Some(auxiliary) = &plan.auxiliary {
-            let targets =
-                AuxiliaryPrimaryTargets::new(device, auxiliary, auxiliary.required_bytes())?;
+            let targets = if let Some(prepared) = &self.prepared {
+                if !prepared.covers(auxiliary) {
+                    return Err(RenderError::Invalid(
+                        "prepared visualization attributes differ".into(),
+                    ));
+                }
+                prepared.clone()
+            } else {
+                AuxiliaryPrimaryTargets::new(device, auxiliary, auxiliary.required_bytes())?
+            };
             let bindings = auxiliary.bindings(frame, (caches.0, caches.1))?;
             self.auxiliary.record(
                 device,

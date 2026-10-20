@@ -19,6 +19,10 @@ import { runNativeAppGate } from "./native-app-gate.mjs";
 import { runNativeCoreGate } from "./native-core-gate.mjs";
 import { runNativeExportGate } from "./native-export-gate.mjs";
 import { runNativePerformanceGate } from "./native-performance-gate.mjs";
+import { runNativeProjectCorpusGate } from "./native-project-corpus-gate.mjs";
+import { runNativeProjectExportGate } from "./native-project-export-gate.mjs";
+import { runNativeProjectGate } from "./native-project-gate.mjs";
+import { runNativeProjectPixelGate } from "./native-project-pixel-gate.mjs";
 import { runPerformanceGate } from "./performance-gate.mjs";
 import { selectRequiredGates } from "./performance-policy.mjs";
 import { runStep } from "./process.mjs";
@@ -37,6 +41,8 @@ export function parseArguments(args) {
       options.nv12Resume = args[++index];
     } else if (args[index] === "--export-resume" && args[index + 1]) {
       options.exportResume = args[++index];
+    } else if (args[index] === "--project-corpus-resume" && args[index + 1]) {
+      options.projectCorpusResume = args[++index];
     } else if (args[index] === "--diagnostic-resume" && args[index + 1]) {
       options.diagnosticResume = args[++index];
     } else if (args[index] === "--candidates" && args[index + 1]) {
@@ -130,6 +136,7 @@ export async function verifyMigration(options, dependencies = {}) {
       print: options.print,
       milestone: milestone.id,
       exportResume: options.exportResume,
+      projectCorpusResume: options.projectCorpusResume,
       diagnosticResume: options.diagnosticResume,
     };
     const gateOrder = [...report.required_gates];
@@ -138,9 +145,57 @@ export async function verifyMigration(options, dependencies = {}) {
       gateOrder.splice(gateOrder.indexOf("G5"), 0, "G6");
     }
     let appEvidence;
+    let projectCorpus;
     for (const id of gateOrder) {
       if (id === "G0") report.gates.push(await runStaticGate(context, quick, execute));
-      else if (id === "G1" && ["M2", "M3", "M5"].includes(milestone.id)) {
+      else if (id === "G1" && milestone.id === "M9") {
+        report.gates.push(
+          quick
+            ? {
+                id,
+                status: "skipped",
+                reason: "Quick mode omits native project and IR round trips",
+              }
+            : await (dependencies.runNativeProjectGate ?? runNativeProjectGate)(
+                { ...context, output: join(output, "G1"), source: report.source },
+                execute,
+              ),
+        );
+      } else if (id === "G2" && milestone.id === "M9") {
+        const gate = quick
+          ? {
+              id,
+              status: "skipped",
+              reason: "Quick mode omits complete native project plan evaluation",
+            }
+          : await (dependencies.runNativeProjectCorpusGate ?? runNativeProjectCorpusGate)(
+              { ...context, output: join(output, "G2"), source: report.source },
+              execute,
+            );
+        report.gates.push(gate);
+        if (!quick && gate.status === "passed") {
+          const path = join(output, "G2/report.json");
+          projectCorpus = {
+            path: relative(root, path).replaceAll("\\", "/"),
+            sha256: await hashFile(path),
+          };
+        }
+      } else if (id === "G3" && milestone.id === "M9") {
+        report.gates.push(
+          quick
+            ? { id, status: "skipped", reason: "Quick mode omits native project pixel comparisons" }
+            : !projectCorpus
+              ? {
+                  id,
+                  status: "failed",
+                  error: "A passed current native project corpus run is required",
+                }
+              : await (dependencies.runNativeProjectPixelGate ?? runNativeProjectPixelGate)(
+                  { ...context, output: join(output, "G3"), source: report.source, projectCorpus },
+                  execute,
+                ),
+        );
+      } else if (id === "G1" && ["M2", "M3", "M5"].includes(milestone.id)) {
         report.gates.push(
           quick
             ? { id, status: "skipped", reason: "Quick mode omits the full cross-language IR gate" }
@@ -265,6 +320,29 @@ export async function verifyMigration(options, dependencies = {}) {
             build,
           });
         }
+      } else if (id === "G5" && milestone.id === "M9") {
+        report.gates.push(
+          quick
+            ? {
+                id,
+                status: "skipped",
+                reason: "Quick mode omits native project headless export coverage",
+                native_export_acceptance: false,
+              }
+            : !projectCorpus
+              ? {
+                  id,
+                  status: "failed",
+                  error:
+                    "Complete current native project plan parity is required before full export acceptance",
+                  native_export_acceptance: false,
+                }
+              : await (dependencies.runNativeProjectExportGate ?? runNativeProjectExportGate)({
+                  ...context,
+                  output: join(output, "G5"),
+                  source: report.source,
+                }),
+        );
       } else if (id === "G5" && milestone.id === "M8") {
         report.gates.push(
           quick

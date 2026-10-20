@@ -1,5 +1,6 @@
 mod camera;
 mod codec;
+mod comparison;
 mod encoded_texture;
 mod frame_bundle;
 mod frame_time;

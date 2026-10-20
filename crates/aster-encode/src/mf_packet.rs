@@ -27,6 +27,9 @@ impl MfPacket {
             sample.AddBuffer(&buffer)?;
             sample.SetSampleTime(timing.timestamp_100ns)?;
             sample.SetSampleDuration(timing.duration_100ns)?;
+            if frame == 0 {
+                sample.SetUINT32(&MFSampleExtension_Discontinuity, 1)?;
+            }
             Ok(sample)
         }
     }

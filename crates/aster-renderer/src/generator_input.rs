@@ -20,6 +20,75 @@ pub(crate) struct GeneratorInput {
 }
 
 impl GeneratorInput {
+    pub fn allocation(
+        plan: &OwnedFpln,
+        registry: &ResourceRegistry,
+        frame_audio: Option<&[u8]>,
+    ) -> Result<Self, RenderError> {
+        let limits = aster_render_ir::DecodeLimits::default();
+        plan.metadata.validate(&limits)?;
+        if plan.metadata.contract_level != ContractLevel::SceneGeneratorSliceV1 {
+            return Err(RenderError::Invalid(
+                "generator allocation requires invocation".into(),
+            ));
+        }
+        let Some(PlanSlice::SceneGenerator(invocation)) = plan.metadata.slices.first() else {
+            return Err(RenderError::Invalid("generator invocation absent".into()));
+        };
+        let payload = plan.blob(invocation.blob_index as usize)?.to_vec();
+        plan.metadata
+            .validate_blob(invocation.blob_index as usize, &payload)?;
+        let own_audio = invocation.has_audio.then(|| &payload[2272..]);
+        if frame_audio.is_some_and(|bytes| bytes.len() != 9280)
+            || own_audio.zip(frame_audio).is_some_and(|(a, b)| a != b)
+        {
+            return Err(RenderError::Invalid(
+                "generator allocation audio differs".into(),
+            ));
+        }
+        let audio = frame_audio.or(own_audio).map(Arc::from);
+        let mut shaders = BTreeMap::new();
+        let mut total = 0_usize;
+        for hash in &plan.metadata.resources {
+            let ResourceDescriptor::Buffer(descriptor) = registry.descriptor(hash)? else {
+                return Err(RenderError::Invalid(
+                    "generator shader buffer required".into(),
+                ));
+            };
+            let bytes = registry.resolve(hash)?;
+            total = total.saturating_add(bytes.len());
+            if descriptor.element_type != ElementType::U8
+                || bytes.is_empty()
+                || bytes.len() > 4 * 1024 * 1024
+                || total > 16 * 1024 * 1024
+            {
+                return Err(RenderError::Invalid(
+                    "generator shader byte budget exceeded".into(),
+                ));
+            }
+            let source = std::str::from_utf8(bytes)
+                .map_err(|_| RenderError::Invalid("generator shader is not UTF-8".into()))?;
+            shaders.insert(hash.clone(), Arc::from(source));
+        }
+        let program = serde_json::to_vec(&invocation.program)
+            .map_err(|error| RenderError::Invalid(error.to_string()))?;
+        Ok(Self {
+            invocation: invocation.clone(),
+            payload,
+            audio,
+            shaders,
+            program_key: LayerKey::hash(&program)?,
+        })
+    }
+
+    /// The payload contains owned audio; unrelated shared audio does not change an invocation.
+    pub fn allocation_key(&self) -> Result<ResourceHash, RenderError> {
+        let mut bytes = serde_json::to_vec(&self.invocation)
+            .map_err(|error| RenderError::Invalid(error.to_string()))?;
+        bytes.extend_from_slice(&self.payload);
+        LayerKey::hash(&bytes)
+    }
+
     pub fn collect(
         records: &[PrecompositionGeneratorRecord],
         root: &OwnedFpln,

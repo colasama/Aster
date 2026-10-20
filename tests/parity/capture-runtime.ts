@@ -12,6 +12,7 @@ import { FrameBundleRenderer } from "../../src/renderer/compositing/frame-bundle
 import { decodeFramePlan, encodeFramePlan } from "../../src/renderer/frame-plan/codec";
 import { normalizeRawFrameRgba } from "../../src/renderer/gpu/raw-frame-png";
 import { WebGpuRenderer } from "../../src/renderer/webgpu-renderer";
+import { createPlanCaptureSession } from "./capture-plan-runtime";
 import type { ParityFramePlanReceipt } from "./capture-protocol";
 import {
   assertCaptureMedia,
@@ -68,6 +69,18 @@ export const productionCaptureRuntime: CaptureRuntime = {
       const load_ms = performance.now() - loadStarted;
       const initializeStarted = performance.now();
       renderer = await WebGpuRenderer.create(canvas);
+      if (assignment.planSamples)
+        return createPlanCaptureSession({
+          assignment,
+          renderer,
+          project,
+          composition,
+          snapshot,
+          health,
+          dispose,
+          load_ms,
+          initialize_ms: performance.now() - initializeStarted,
+        });
       replay = await FrameBundleRenderer.create();
       const activeReplay = replay;
       const activeRenderer = renderer;

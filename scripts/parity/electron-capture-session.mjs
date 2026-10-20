@@ -168,7 +168,33 @@ export class CaptureSession {
     }
   }
 
+  async plan(payload) {
+    const current = this.#requireCase(payload);
+    if (
+      !this.#config.planReferences ||
+      !current.assignment.planSamples ||
+      current.completing ||
+      !current.assignment.frames.includes(payload.frame) ||
+      current.frames.has(payload.frame) ||
+      current.pendingFrames.has(payload.frame) ||
+      !current.preparedFrames.has(payload.frame)
+    )
+      throw new Error("Unexpected or duplicate plan sample");
+    current.pendingFrames.add(payload.frame);
+    try {
+      await this.#store.writePlan(current.assignment, payload);
+      this.#assertCurrent(current);
+      current.frames.add(payload.frame);
+    } catch (error) {
+      if (this.#current === current) current.errors.push(error.message);
+      throw error;
+    } finally {
+      current.pendingFrames.delete(payload.frame);
+    }
+  }
+
   async frame(payload) {
+    if (this.#config.planReferences) throw new Error("Plan capture cannot accept pixel frames");
     const current = this.#requireCase(payload);
     if (
       current.completing ||

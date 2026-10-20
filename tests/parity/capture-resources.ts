@@ -26,6 +26,26 @@ export function captureComposition(
   const { numerator, denominator } = composition.frameRate;
   if (![numerator, denominator].every((value) => Number.isSafeInteger(value) && value > 0))
     throw new Error("Capture requires a positive rational frame rate");
+  if (assignment.planSamples) {
+    const schedule = assignment.planSamples;
+    if (
+      schedule.composition !== composition.id ||
+      schedule.duration !== composition.duration ||
+      schedule.frame_rate.numerator !== numerator ||
+      schedule.frame_rate.denominator !== denominator ||
+      schedule.samples.length !== assignment.frames.length ||
+      schedule.samples.some(
+        (sample, index) =>
+          sample.index !== index ||
+          assignment.frames[index] !== index ||
+          !Number.isFinite(sample.time) ||
+          sample.time < 0 ||
+          sample.time >= composition.duration,
+      )
+    )
+      throw new Error("Plan samples differ from the loaded composition");
+    return composition;
+  }
   const frameCount = Math.ceil((composition.duration * numerator) / denominator);
   if (
     assignment.frames.length === 0 ||

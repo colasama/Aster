@@ -5,6 +5,8 @@ use serde::Serialize;
 #[cfg(windows)]
 mod media_foundation;
 #[cfg(windows)]
+mod mf_events;
+#[cfg(windows)]
 mod mf_gpu;
 #[cfg(windows)]
 mod mf_packet;

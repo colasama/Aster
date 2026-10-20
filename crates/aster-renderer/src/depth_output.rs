@@ -19,7 +19,7 @@ pub(crate) struct DepthOutput {
     auxiliary: DepthAuxiliaryPipelines,
     effect: wgpu::RenderPipeline,
     sampler: wgpu::Sampler,
-    targets: Option<DepthTargets>,
+    pub(crate) targets: Option<DepthTargets>,
     pub statistics: DepthStatistics,
 }
 
@@ -89,9 +89,9 @@ impl DepthOutput {
                 })
         });
         let reusable = self.targets.as_ref().zip(plan).is_some_and(|(t, p)| {
-            p.auxiliary.as_ref().is_some_and(|a| {
-                t.size == a.size && t.tier == p.tier && t.bytes == p.required_bytes()
-            })
+            p.auxiliary
+                .as_ref()
+                .is_some_and(|a| t.size == a.size && t.tier == p.tier && t.primary.covers(a))
         });
         if reusable {
             self.statistics.reuses += 1;

@@ -2,14 +2,27 @@
 
 use aster_storage::DirectoryPublication as BundleAccess;
 mod disk_cache;
+mod editor_model;
+mod media_catalog;
+mod media_source;
 mod proxy;
+mod runtime_document;
 
 pub use aster_storage::AtomicFile;
 pub use disk_cache::{DiskCache, DiskCacheBenchmark, DiskCacheStatistics};
+pub use media_catalog::{
+    FootagePayload, MediaEntry, MissingSequenceFrame, ProjectMediaBinding, ProjectMediaCatalog,
+    ProjectMediaCatalogLimits, ProjectMediaPayload, ProjectSequence, ProjectSequenceFrame,
+    PsdPayload, SequenceRate, SequenceSelection, SvgPayload,
+};
+pub use media_source::{
+    MediaSourceLimits, MediaSourceReader, MediaSourceSnapshot, ProjectMediaStorage,
+};
 pub use proxy::{
     CancellationToken, ProxyCache, ProxyError, ProxyGenerationPlan, ProxyLimits, ProxyMetadata,
     ProxyProfile, ProxyValidity,
 };
+pub use runtime_document::{RuntimeProjectDocument, RuntimeProjectLimits};
 
 use std::{
     fs::{self, File},
@@ -397,6 +410,8 @@ assets/** -text
 }
 #[derive(Debug, Error)]
 pub enum ProjectError {
+    #[error("project media is invalid: {0}")]
+    InvalidMedia(&'static str),
     #[error("project I/O failed: {0}")]
     Io(#[from] std::io::Error),
     #[error("project JSON is invalid: {0}")]

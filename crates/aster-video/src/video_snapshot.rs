@@ -54,6 +54,7 @@ impl SnapshotStream {
 pub struct VideoSnapshot {
     file: AtomicFile,
     pub stream: StreamMetadata,
+    pub duration_seconds: f64,
     pub frames: Vec<PresentationFrame>,
     pub pixel_format: String,
     pub chroma_location: Option<String>,
@@ -156,6 +157,7 @@ impl FfprobeBackend {
         Ok(VideoSnapshot {
             file,
             stream,
+            duration_seconds: metadata.timebase.seconds(metadata.duration_ticks)?,
             frames: index.frames,
             pixel_format: raw.pix_fmt,
             chroma_location: raw.chroma_location,

@@ -12,17 +12,50 @@ pub struct MotionStatistics {
     pub passes: u64,
 }
 
-struct MotionTargets {
-    size: aster_render_ir::Extent2d,
-    bytes: u64,
-    auxiliary: AuxiliaryPrimaryTargets,
-    textures: [wgpu::Texture; 3],
+#[derive(Clone)]
+pub(crate) struct MotionTargets {
+    pub size: aster_render_ir::Extent2d,
+    pub auxiliary: AuxiliaryPrimaryTargets,
+    pub textures: [wgpu::Texture; 3],
+}
+
+impl MotionTargets {
+    pub fn new(
+        device: &wgpu::Device,
+        size: aster_render_ir::Extent2d,
+        tiles: aster_render_ir::Extent2d,
+        auxiliary: AuxiliaryPrimaryTargets,
+    ) -> Self {
+        let textures = [tiles, tiles, size].map(|size| {
+            device.create_texture(&wgpu::TextureDescriptor {
+                label: Some("Retained HDR motion target"),
+                size: wgpu::Extent3d {
+                    width: size.width,
+                    height: size.height,
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: wgpu::TextureFormat::Rgba16Float,
+                usage: wgpu::TextureUsages::TEXTURE_BINDING
+                    | wgpu::TextureUsages::RENDER_ATTACHMENT,
+                view_formats: &[],
+            })
+        });
+
+        Self {
+            size,
+            auxiliary,
+            textures,
+        }
+    }
 }
 
 pub(crate) struct MotionOutput {
     auxiliary: AuxiliaryPrimaryPipelines,
     reconstruction: MotionReconstruction,
-    targets: Option<MotionTargets>,
+    pub(crate) targets: Option<MotionTargets>,
     pub statistics: MotionStatistics,
 }
 
@@ -48,7 +81,7 @@ impl MotionOutput {
             .targets
             .as_ref()
             .zip(plan)
-            .is_some_and(|(t, p)| t.size == p.size && t.bytes == p.required_bytes());
+            .is_some_and(|(t, p)| t.size == p.size && t.auxiliary.covers(&p.auxiliary));
         self.statistics.passes = if plan.is_some() { 3 } else { 0 };
         if reusable {
             self.statistics.reuses += 1;
@@ -77,37 +110,20 @@ impl MotionOutput {
             return Ok(());
         }
         if let Some(plan) = plan {
-            let textures = [plan.tiles, plan.tiles, plan.size].map(|size| {
-                device.create_texture(&wgpu::TextureDescriptor {
-                    label: Some("Retained HDR motion target"),
-                    size: wgpu::Extent3d {
-                        width: size.width,
-                        height: size.height,
-                        depth_or_array_layers: 1,
-                    },
-                    mip_level_count: 1,
-                    sample_count: 1,
-                    dimension: wgpu::TextureDimension::D2,
-                    format: wgpu::TextureFormat::Rgba16Float,
-                    usage: wgpu::TextureUsages::TEXTURE_BINDING
-                        | wgpu::TextureUsages::RENDER_ATTACHMENT,
-                    view_formats: &[],
-                })
-            });
             self.statistics.allocations += 1;
             self.statistics.resident_bytes =
                 u64::from(plan.size.width) * u64::from(plan.size.height) * 40
                     + u64::from(plan.tiles.width) * u64::from(plan.tiles.height) * 16;
-            self.targets = Some(MotionTargets {
-                size: plan.size,
-                bytes: plan.required_bytes(),
-                textures,
-                auxiliary: AuxiliaryPrimaryTargets::new(
+            self.targets = Some(MotionTargets::new(
+                device,
+                plan.size,
+                plan.tiles,
+                AuxiliaryPrimaryTargets::new(
                     device,
                     &plan.auxiliary,
                     plan.auxiliary.required_bytes(),
                 )?,
-            });
+            ));
         }
         Ok(())
     }

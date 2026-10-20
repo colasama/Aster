@@ -12,6 +12,8 @@ import {
 } from "./encoded-structural-policy.mjs";
 import { M0Evidence, validSha } from "./m0-evidence.mjs";
 import { auditExportCaseEvidence } from "./native-export-evidence.mjs";
+import { auditProjectExportEvidence } from "./native-project-export-evidence.mjs";
+import { auditProjectStructuralWitness } from "./native-project-witness-review.mjs";
 import { hashFile } from "./source.mjs";
 import { auditStructuralWitness, layeredFrameReview } from "./structural-witness-audit.mjs";
 
@@ -70,12 +72,17 @@ export async function auditExportCheckpoint(context, checkpoint, assignment, ref
   assert.deepEqual(report.assignments[0].inputs, assignment.inputs);
   assert.deepEqual(report.reference_binding, referenceBinding);
   await auditExportCaseEvidence(context.root, report, assignment);
+  if (report.kind === "native-project-export")
+    await auditProjectExportEvidence(context.root, report.execution, report.assignments[0]);
   if (report.cases[0].structural_witness)
-    await auditStructuralWitness(
+    await (report.kind === "native-project-export"
+      ? auditProjectStructuralWitness
+      : auditStructuralWitness)(
       context.root,
       report.cases[0],
       report,
       await reader.json("docs/migration/rust-renderer-progress.json"),
+      context.referenceInputs,
     );
   await auditExecutionArtifacts(context.root, report.execution.execution);
   for (const file of report.execution.binaries) await reader.bytes(file.path, file.sha256);
@@ -87,13 +94,15 @@ export async function auditExportCheckpoint(context, checkpoint, assignment, ref
 }
 
 /** Layered acceptance retains the flat failure and requires independently audited witnesses. */
-export async function reviewExportCase(root, entry, ledger, execution) {
+export async function reviewExportCase(root, entry, ledger, execution, referenceInputs) {
   const reader = new M0Evidence(root);
   const reviews = [];
   const witness = entry.structural_witness
-    ? await (execution?.status === "diagnostic"
-        ? auditDiagnosticStructuralWitness
-        : auditStructuralWitness)(root, entry, execution, ledger)
+    ? await (execution?.kind === "native-project-export"
+        ? auditProjectStructuralWitness
+        : execution?.status === "diagnostic"
+          ? auditDiagnosticStructuralWitness
+          : auditStructuralWitness)(root, entry, execution, ledger, referenceInputs)
     : null;
   assert(entry.frames.length > 0 && new Set(entry.frames).size === entry.frames.length);
   assert.equal(entry.comparisons.length, entry.frames.length * 2);

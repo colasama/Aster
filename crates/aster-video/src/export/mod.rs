@@ -15,11 +15,14 @@ use std::time::Instant;
 
 use crate::{CancellationToken, FfmpegCommand};
 
+mod encoded;
 mod process;
 mod spec;
 
 use crate::process::BoundedRead;
 use aster_storage::AtomicFile;
+pub use encoded::{EncodedVideoExportReport, EncodedVideoExportRequest};
+use process::FrameEncoding;
 
 pub use spec::{
     AudioEncoder, AudioMuxSpec, EncoderAvailability, ExportContainer, ExportError, ExportFrame,
@@ -110,7 +113,7 @@ impl FfmpegExportBackend {
         self.run_export(
             &command,
             frames,
-            validated.frame_bytes,
+            FrameEncoding::Raw(validated.frame_bytes),
             request.frame_count,
             cancellation,
         )?;
@@ -221,7 +224,7 @@ impl FfmpegExportBackend {
         &self,
         command: &FfmpegCommand,
         frames: ExportFrameReceiver,
-        frame_bytes: usize,
+        encoding: FrameEncoding,
         frame_count: u64,
         cancellation: &CancellationToken,
     ) -> Result<(), ExportError> {
@@ -247,7 +250,7 @@ impl FfmpegExportBackend {
             let result = ExportFrameReceiver::write_frames(
                 stdin,
                 frames,
-                frame_bytes,
+                encoding,
                 frame_count,
                 &writer_control,
             );
@@ -306,7 +309,7 @@ mod tests;
 
 impl VideoExportRequest {
     fn validate(&self, limits: &ExportLimits) -> Result<ValidatedExport, ExportError> {
-        self.validate_output_path(limits)?;
+        limits.validate_output_path(&self.output_path, self.container)?;
         if self.width == 0
             || self.height == 0
             || self.width > limits.max_width
@@ -370,11 +373,14 @@ impl VideoExportRequest {
     }
 }
 
-impl VideoExportRequest {
-    fn validate_output_path(&self, limits: &ExportLimits) -> Result<(), ExportError> {
-        let path = &self.output_path;
+impl ExportLimits {
+    fn validate_output_path(
+        &self,
+        path: &Path,
+        container: ExportContainer,
+    ) -> Result<(), ExportError> {
         if path.as_os_str().is_empty()
-            || path.as_os_str().to_string_lossy().encode_utf16().count() > limits.max_path_units
+            || path.as_os_str().to_string_lossy().encode_utf16().count() > self.max_path_units
         {
             return Err(ExportError::InvalidRequest(
                 "output path is empty or too long".into(),
@@ -386,7 +392,7 @@ impl VideoExportRequest {
             .ok_or_else(|| {
                 ExportError::InvalidRequest("output path must have a UTF-8 extension".into())
             })?;
-        if !extension.eq_ignore_ascii_case(self.container.extension()) {
+        if !extension.eq_ignore_ascii_case(container.extension()) {
             return Err(ExportError::InvalidRequest(
                 "output extension does not match the container".into(),
             ));

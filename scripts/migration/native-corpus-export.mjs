@@ -44,12 +44,13 @@ export function corpusExportAssignment(input, composition) {
 }
 
 /** Export whole addressed segments and compare their declared frames to authenticated references. */
-export async function runNativeCorpusExport(context, ids = ["minimal-golden"]) {
+export async function runNativeCorpusExport(context, ids = ["minimal-golden"], dependencies = {}) {
   const { root, output } = context;
   await mkdir(output, { recursive: true });
   const local = (path) => relative(root, path).replaceAll("\\", "/");
   const report = { status: "failed", native_export_acceptance: false, cases: [] };
   try {
+    if (dependencies.kind) report.kind = dependencies.kind;
     report.source = await sourceProvenance(root);
     if (context.source) assert.equal(report.source.source_sha256, context.source.source_sha256);
     const inputs = context.referenceInputs ?? new PixelInputs(context);
@@ -77,7 +78,10 @@ export async function runNativeCorpusExport(context, ids = ["minimal-golden"]) {
       jobs.push(job);
     }
     report.assignments = jobs;
-    report.execution = await runCorpusExports({ ...context, source: report.source }, jobs);
+    report.execution = await (dependencies.runCorpusExports ?? runCorpusExports)(
+      { ...context, source: report.source },
+      jobs,
+    );
     const binary = resolve(root, report.execution.native_binary);
     for (const [index, job] of jobs.entries()) {
       const reference = references[index],
@@ -144,12 +148,15 @@ export async function runNativeCorpusExport(context, ids = ["minimal-golden"]) {
             encodedStructuralAlternatives({ ...frame, profile: { name: "yuv" } })?.length,
         )
       ) {
-        entry.structural_witness = await captureStructuralWitness(
+        entry.structural_witness = await (
+          dependencies.captureStructuralWitness ?? captureStructuralWitness
+        )(
           { ...context, source: report.source, output: join(directory, "structural-witness") },
           job,
           entry,
           inputs,
           binary,
+          report.execution,
         );
       }
       entry.status =

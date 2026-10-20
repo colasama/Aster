@@ -5,6 +5,8 @@
 //! canonical audio remains an explicitly bounded preview/playback path.
 
 mod audio;
+mod audio_format;
+pub use audio_format::{AudioProbe, AudioSampleFormat};
 mod export;
 mod exr;
 mod ffmpeg;
@@ -25,9 +27,10 @@ pub use exr::{
 };
 
 pub use export::{
-    AudioEncoder, AudioMuxSpec, EncoderAvailability, ExportContainer, ExportError, ExportFrame,
-    ExportFrameReceiver, ExportFrameSendError, ExportFrameSender, ExportLimits, ExportReport,
-    FfmpegExportBackend, PixelFormat, VideoCodec, VideoEncoder, VideoExportRequest,
+    AudioEncoder, AudioMuxSpec, EncodedVideoExportReport, EncodedVideoExportRequest,
+    EncoderAvailability, ExportContainer, ExportError, ExportFrame, ExportFrameReceiver,
+    ExportFrameSendError, ExportFrameSender, ExportLimits, ExportReport, FfmpegExportBackend,
+    PixelFormat, VideoCodec, VideoEncoder, VideoExportRequest,
 };
 
 pub use ffmpeg::{

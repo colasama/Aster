@@ -453,7 +453,8 @@ impl FramePlanSliceV1 {
         Ok(())
     }
 
-    pub(crate) fn validate_blob(&self, index: usize, bytes: &[u8]) -> Result<(), IrError> {
+    /// Validates an owned producer payload before encoding or registering it as a resource.
+    pub fn validate_blob(&self, index: usize, bytes: &[u8]) -> Result<(), IrError> {
         if self.contract_level == ContractLevel::FrameBundleSliceV1 {
             for slice in &self.slices {
                 if let PlanSlice::FrameBundle(bundle) = slice

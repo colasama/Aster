@@ -40,7 +40,12 @@ function harness(assignments, options = {}) {
   };
   const host = captureHostInfo({ gpuDevice: [] }, {});
   const session = new CaptureSession(
-    { runId: "test", assignments, timeoutMs: options.timeoutMs ?? 1000 },
+    {
+      runId: "test",
+      assignments,
+      timeoutMs: options.timeoutMs ?? 1000,
+      planReferences: options.planReferences,
+    },
     host,
     store,
     {
@@ -388,4 +393,29 @@ test("host cache identity ignores transient GPU memory while tracking drivers", 
       .cacheIdentity,
   );
   assert.equal(first.native_backend, null);
+});
+
+test("plan samples require prepared receipts and cannot become pixel frames", async () => {
+  const item = assignment("plan-case");
+  item.frames = [0];
+  item.planSamples = { samples: [{ index: 0, time: 0.001 }] };
+  const { session, calls } = harness([item], {
+    planReferences: true,
+    store: {
+      prepareFrame: async () => ({ receipt: {} }),
+      writePlan: async (_item, payload) => calls.push(["plan", payload.frame, payload.time]),
+    },
+  });
+  session.ready(identity);
+  await session.take();
+  const payload = { caseId: item.case.id, frame: 0, time: 0.001, diagnostics };
+  await assert.rejects(session.plan(payload), /Unexpected/);
+  await assert.rejects(session.frame(frame(item.case.id)), /cannot accept pixel/);
+  await session.prepareFrame(payload);
+  await session.plan(payload);
+  await assert.rejects(session.plan(payload), /duplicate/);
+  await session.completeCase({ caseId: item.case.id, diagnostics });
+  assert.equal((await session.done()).status, "passed");
+  assert(calls.some((call) => call[0] === "plan" && call[2] === 0.001));
+  assert(!calls.some((call) => call[0] === "frame"));
 });

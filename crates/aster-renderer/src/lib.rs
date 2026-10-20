@@ -68,7 +68,10 @@ pub use auxiliary_pipelines::AuxiliaryPrimaryPipelines;
 pub use auxiliary_primary::{AuxiliaryPrimaryPlan, AuxiliaryPrimaryTargets};
 pub use decoded_texture::DecodedTexturePixels;
 pub use depth_output::DepthStatistics;
-pub use device::{NativeOptions, NativeRenderer, RenderedFrame};
+pub use device::{
+    NativeOptions, NativeRenderer, ProjectDeviceLimits, ProjectOutputAvailability,
+    ProjectOutputRequest, ProjectSurfaceTarget, RenderedFrame,
+};
 pub use effect_region::EffectRegionStatistics;
 pub use frame::SuppliedFrame;
 pub use generator_auxiliary::AuxiliaryGeneratorDraw;

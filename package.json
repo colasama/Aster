@@ -18,7 +18,7 @@
     "artifact:build": "pnpm artifact:prepare-ffmpeg && pnpm build && electron-builder --config scripts/electron-builder.ts",
     "artifact:prepare-ffmpeg": "node scripts/prepare-ffmpeg.mjs",
     "artifact:download-ffmpeg": "node scripts/download-ffmpeg.mjs",
-    "build": "pnpm typecheck && vite build && pnpm electron:compile && pnpm electron:native:build",
+    "build": "pnpm typecheck && vite build && node scripts/build-native-raster.mjs && pnpm electron:compile && pnpm electron:native:build",
     "check": "pnpm check:frontend && pnpm check:rust",
     "check:frontend": "biome check . && pnpm typecheck && vitest run && pnpm test:packaging",
     "check:rust": "cargo fmt --all --check && cargo clippy --workspace --all-targets --all-features -- -D warnings && cargo test --workspace --all-features",

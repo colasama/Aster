@@ -139,6 +139,50 @@ impl Fixture {
 }
 
 #[test]
+fn portable_snapshot_decodes_identically_after_original_file_removal()
+-> Result<(), Box<dyn std::error::Error>> {
+    let fixture = Fixture::new(0.375, true)?;
+    let token = CancellationToken::default();
+    let mut disk = Fixture::session(vec![fixture.grant.clone()], 1024, 2)?;
+    let expected = disk.decode(&fixture.frame, &fixture.registry, &token)?;
+    let snapshot = crate::MediaSnapshotAuthorization {
+        source: fixture.grant.source.clone(),
+        sequence_frame: None,
+        scope: fixture.grant.scope.clone(),
+        bytes: std::fs::read(&fixture.grant.path)?.into(),
+        sha256: fixture.grant.sha256.clone(),
+    };
+    std::fs::remove_file(&fixture.grant.path)?;
+    let still = NativeStillDecoder::with_snapshots(
+        PathBuf::from("unused-for-exr"),
+        vec![],
+        vec![snapshot],
+        crate::SnapshotGrantLimits::default(),
+        StillLimits {
+            still_max_source_bytes: 1_048_576,
+            still_max_pixel_bytes: 1024,
+            still_max_dimension: 32,
+            still_timeout_ms: 1000,
+            still_max_header_bytes: 65536,
+        },
+    )?;
+    let mut memory = NativeMediaSession::new(
+        still,
+        None,
+        MediaCacheLimits {
+            media_cache_bytes: 1024,
+            media_cache_entries: 2,
+        },
+    );
+    let actual = memory.decode(&fixture.frame, &fixture.registry, &token)?;
+    assert_eq!(actual.pixels.request(), expected.pixels.request());
+    assert_eq!(actual.pixels.bytes(), expected.pixels.bytes());
+    assert_eq!(actual.receipt.source_sha256, expected.receipt.source_sha256);
+    assert_eq!(actual.receipt.rgba_sha256, expected.receipt.rgba_sha256);
+    Ok(())
+}
+
+#[test]
 fn retained_verified_bytes_survive_source_removal_but_not_eviction_or_job_boundary()
 -> Result<(), Box<dyn std::error::Error>> {
     for (bytes, entries) in [(16, 2), (32, 1)] {

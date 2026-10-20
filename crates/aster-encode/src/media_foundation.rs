@@ -42,6 +42,7 @@ pub(crate) struct ActiveTransform {
     activation: IMFActivate,
     pub(crate) transform: IMFTransform,
     pub(crate) probe_inputs: Vec<IMFSample>,
+    pub(crate) events: Option<crate::mf_events::MfEvents>,
 }
 impl Drop for ActiveTransform {
     fn drop(&mut self) {
@@ -62,10 +63,12 @@ impl ActiveTransform {
         limits: &EncoderProbeLimits,
     ) -> windows::core::Result<Self> {
         unsafe {
-            let active = Self {
+            tracing::debug!(phase = "activation", "Configuring hardware encoder");
+            let mut active = Self {
                 activation: activation.clone(),
                 transform: activation.ActivateObject()?,
                 probe_inputs: Vec::new(),
+                events: None,
             };
             let attributes = active.transform.GetAttributes()?;
             if attributes.GetUINT32(&MF_TRANSFORM_ASYNC)? != 1 {
@@ -76,6 +79,7 @@ impl ActiveTransform {
             attributes.SetUINT32(&MF_TRANSFORM_ASYNC_UNLOCK, 1)?;
             attributes.SetUINT32(&MF_LOW_LATENCY, 1)?;
             let quality = crate::mf_quality::MfQuality::new(video, limits);
+            tracing::debug!(phase = "quality", "Configuring hardware encoder");
             quality.apply(&active.transform)?;
             if let Some(manager) = manager {
                 if attributes.GetUINT32(&MF_SA_D3D11_AWARE)? != 1 {
@@ -90,10 +94,13 @@ impl ActiveTransform {
             active
                 .transform
                 .SetOutputType(0, &Self::media_type(video, true)?, 0)?;
+            tracing::debug!(phase = "input-type", "Configuring hardware encoder");
             active
                 .transform
                 .SetInputType(0, &Self::media_type(video, false)?, 0)?;
             quality.verify(&active.transform)?;
+            active.events = Some(crate::mf_events::MfEvents::new(&active.transform)?);
+            tracing::debug!(phase = "configured", "Configured hardware encoder");
             Ok(active)
         }
     }

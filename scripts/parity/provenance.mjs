@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { readdir, readFile, realpath, stat } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { hashFile, sourceProvenance } from "../migration/source.mjs";
+import { planSampleSchedule } from "./plan-samples.mjs";
 
 export function digest(value) {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -121,7 +122,12 @@ async function referencedFiles(project, directory) {
   return files;
 }
 
-export async function captureAssignments(root, cases, env = process.env) {
+export async function captureAssignments(
+  root,
+  cases,
+  env = process.env,
+  { planReferences = false } = {},
+) {
   const resources = new Map();
   const assignments = [];
   for (const item of cases) {
@@ -167,7 +173,12 @@ export async function captureAssignments(root, cases, env = process.env) {
     const plugins = [];
     for (const path of item.plugins ?? [])
       plugins.push({ path, files: await directoryHashes(resolve(root, path)) });
-    const frames = captureFrames(item, composition);
+    const planSamples = planReferences
+      ? planSampleSchedule(item, composition, resource.project_sha256)
+      : undefined;
+    const frames = planSamples
+      ? planSamples.samples.map((s) => s.index)
+      : captureFrames(item, composition);
     const inputs = {
       case: item,
       project_sha256: resource.project_sha256,
@@ -175,12 +186,14 @@ export async function captureAssignments(root, cases, env = process.env) {
       referenced_files: resource.referenced_files,
       plugins,
       frames,
+      ...(planSamples ? { plan_samples: planSamples } : {}),
     };
     assignments.push({
       case: item,
       frames,
       projectPath: resolve(projectPath),
       caseHash: digest(inputs),
+      ...(planSamples ? { planSamples } : {}),
       inputs,
     });
   }

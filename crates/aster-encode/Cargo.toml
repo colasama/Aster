@@ -10,6 +10,7 @@ aster-render-ir.workspace = true
 clap.workspace = true
 serde.workspace = true
 thiserror.workspace = true
+tracing.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 windows-core = "=0.62.2"

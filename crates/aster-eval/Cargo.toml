@@ -1,0 +1,21 @@
+[package]
+name = "aster-eval"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+aster-plugin.workspace = true
+aster-render-ir.workspace = true
+aster-types.workspace = true
+clap.workspace = true
+icu_collator.workspace = true
+icu_locale_core.workspace = true
+ryu-js.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+sha2.workspace = true

@@ -126,6 +126,43 @@ describe("ordered reference capture", () => {
     },
   );
 
+  it("preserves distinct subframe samples and does not publish pixel evidence", async () => {
+    const { assignment, session } = scenario("subframe", [0, 1]);
+    assignment.planSamples = {
+      schema_version: 1,
+      algorithm: "sha256-u53-v1",
+      seed: "a".repeat(64),
+      composition: session.composition.id,
+      duration: session.composition.duration,
+      frame_rate: session.composition.frameRate,
+      random_count: 64,
+      samples: [
+        { index: 0, kind: "random", time: 0.001 },
+        { index: 1, kind: "random", time: 0.002 },
+      ],
+    };
+    session.plan = vi.fn(async (time, frame) => ({
+      caseId: assignment.case.id,
+      frame,
+      time,
+      frameRate: session.composition.frameRate,
+      diagnostics: session.diagnostics(),
+      framePlan: { submitted_sha256: "a".repeat(64), replay_sha256: "b".repeat(64) },
+    }));
+    const api = apiFor([assignment]);
+    api.plan = vi.fn(async () => undefined);
+    await runCaptureAssignments(api, { open: async () => session });
+    expect(vi.mocked(session.plan).mock.calls).toEqual([
+      [0.001, 0],
+      [0.002, 1],
+    ]);
+    expect(vi.mocked(api.plan).mock.calls.map(([p]) => p.time)).toEqual([0.001, 0.002]);
+    expect(session.readback).not.toHaveBeenCalled();
+    expect(api.frame).not.toHaveBeenCalled();
+    expect(api.fail).not.toHaveBeenCalled();
+    expect(api.completeCase).toHaveBeenCalledOnce();
+  });
+
   it("stops reusing the case destination after a failed publication acknowledgement", async () => {
     const { assignment, session } = scenario("rejected-ack", [0, 1]);
     const api = apiFor([assignment]);

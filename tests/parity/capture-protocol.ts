@@ -1,4 +1,4 @@
-import type { GpuDiagnostics } from "../../src/core/types";
+import type { GpuDiagnostics, Project } from "../../src/core/types";
 import type { BundleResource } from "../../src/renderer/frame-plan/precomposition-bundle-resources";
 import type { RasterFrameCapture } from "../../src/renderer/media/raster-resource-capture";
 import type { CaptureFontFingerprint } from "./capture-fonts";
@@ -18,9 +18,35 @@ export interface ParityFramePlanReceipt {
   replay_sha256: string;
 }
 
+export interface ParityPlanSample {
+  index: number;
+  kind: "declared" | "random";
+  frame?: number;
+  time: number;
+}
+export interface ParityPlanSchedule {
+  schema_version: 1;
+  algorithm: "sha256-u53-v1";
+  seed: string;
+  composition: string;
+  duration: number;
+  frame_rate: { numerator: number; denominator: number };
+  random_count: 64;
+  samples: ParityPlanSample[];
+}
+export interface ParityCapturedPlan {
+  caseId: string;
+  frame: number;
+  time: number;
+  frameRate: { numerator: number; denominator: number };
+  diagnostics: GpuDiagnostics;
+  framePlan: ParityFramePlanReceipt;
+  project?: Project;
+}
 export interface ParityCaptureAssignment {
   case: ParityCase;
   frames: number[];
+  planSamples?: ParityPlanSchedule;
   projectPath: string;
   caseHash: string;
 }
@@ -62,6 +88,7 @@ export interface ParityCaptureApi {
   prepareFrame?(
     frame: ParityFramePlan,
   ): Promise<{ plan: Uint8Array; receipt: ParityFramePlanReceipt }>;
+  plan?(frame: ParityCapturedPlan): Promise<void>;
   ready(adapter: ParityAdapterIdentity): Promise<void>;
   take(): Promise<ParityCaptureAssignment | null>;
   frame(frame: ParityCapturedFrame): Promise<void>;

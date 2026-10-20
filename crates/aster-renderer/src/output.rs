@@ -10,6 +10,7 @@ use crate::{RenderError, SuppliedFrame};
 mod effect_variants;
 
 pub(crate) struct OutputPipelines {
+    pub(crate) prepared_motion: Option<PreparedPost>,
     pub(crate) luts: crate::lut_cache::LutCache,
     post: wgpu::RenderPipeline,
     linear_post: wgpu::RenderPipeline,
@@ -20,6 +21,13 @@ pub(crate) struct OutputPipelines {
     sampler: wgpu::Sampler,
     lut: wgpu::Texture,
     operations: wgpu::Buffer,
+}
+
+#[derive(Clone)]
+pub(crate) struct PreparedPost {
+    pub source: wgpu::Texture,
+    pub binding: wgpu::BindGroup,
+    uniforms: wgpu::Buffer,
 }
 
 impl OutputPipelines {
@@ -164,6 +172,7 @@ impl OutputPipelines {
             usage: wgpu::BufferUsages::STORAGE,
         });
         Ok(Self {
+            prepared_motion: None,
             luts: Default::default(),
             post,
             linear_post,
@@ -275,13 +284,13 @@ impl OutputPipelines {
         operations: &wgpu::Buffer,
         sources: (&wgpu::TextureView, &wgpu::TextureView),
         pyramids: (&wgpu::TextureView, &wgpu::TextureView),
-    ) -> wgpu::BindGroup {
+    ) -> (wgpu::BindGroup, wgpu::Buffer) {
         let uniforms = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Supplied root post uniforms"),
             contents: bytes,
-            usage: wgpu::BufferUsages::UNIFORM,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
-        device.create_bind_group(&wgpu::BindGroupDescriptor {
+        let binding = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Root display inputs"),
             layout: &self.post_layout,
             entries: &[
@@ -318,7 +327,29 @@ impl OutputPipelines {
                     resource: wgpu::BindingResource::TextureView(pyramids.1),
                 },
             ],
-        })
+        });
+        (binding, uniforms)
+    }
+
+    pub(crate) fn prepare_motion_post(
+        &self,
+        device: &wgpu::Device,
+        source: &wgpu::Texture,
+    ) -> PreparedPost {
+        let view = source.create_view(&Default::default());
+        let identity = self.lut.create_view(&Default::default());
+        let (binding, uniforms) = self.post_bindings(
+            device,
+            &[0; 96],
+            &self.operations,
+            (&view, &identity),
+            (&view, &view),
+        );
+        PreparedPost {
+            source: source.clone(),
+            binding,
+            uniforms,
+        }
     }
 
     pub(crate) fn record_layer(
@@ -353,7 +384,7 @@ impl OutputPipelines {
             Some(hash) => self.luts.view(hash)?,
             None => &identity,
         };
-        let bindings =
+        let (bindings, _) =
             self.post_bindings(device, &plan.uniforms, &operations, (source, lut), pyramids);
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Supplied linear layer pass"),
@@ -385,18 +416,31 @@ impl OutputPipelines {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         frame: &SuppliedFrame,
-        scene: &wgpu::TextureView,
+        scene: &wgpu::Texture,
         display: &wgpu::TextureView,
         output: &wgpu::TextureView,
     ) -> Result<(), RenderError> {
-        let identity = self.lut.create_view(&Default::default());
-        let bindings = self.post_bindings(
-            device,
-            &frame.post,
-            &self.operations,
-            (scene, &identity),
-            (scene, scene),
-        );
+        let bindings =
+            if let Some(prepared) = self.prepared_motion.as_ref().filter(|p| p.source == *scene) {
+                let upload = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("Root post upload"),
+                    contents: &frame.post,
+                    usage: wgpu::BufferUsages::COPY_SRC,
+                });
+                encoder.copy_buffer_to_buffer(&upload, 0, &prepared.uniforms, 0, 96);
+                prepared.binding.clone()
+            } else {
+                let view = scene.create_view(&Default::default());
+                let identity = self.lut.create_view(&Default::default());
+                self.post_bindings(
+                    device,
+                    &frame.post,
+                    &self.operations,
+                    (&view, &identity),
+                    (&view, &view),
+                )
+                .0
+            };
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Linear HDR to sRGB display"),

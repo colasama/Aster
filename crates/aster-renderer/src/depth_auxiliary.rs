@@ -3,6 +3,7 @@ use crate::{
 };
 use wgpu::util::DeviceExt;
 
+#[derive(Clone)]
 pub(crate) struct DepthTargets {
     pub primary: AuxiliaryPrimaryTargets,
     pub colors: Vec<wgpu::Texture>,
@@ -18,12 +19,29 @@ impl DepthTargets {
             .auxiliary
             .as_ref()
             .ok_or_else(|| RenderError::Invalid("depth geometry missing".into()))?;
+        let primary = AuxiliaryPrimaryTargets::new(device, auxiliary, auxiliary.required_bytes())?;
+        Ok(Self::allocate(
+            device,
+            primary,
+            auxiliary.size,
+            plan.tier,
+            plan.required_bytes(),
+        ))
+    }
+
+    pub fn allocate(
+        device: &wgpu::Device,
+        primary: AuxiliaryPrimaryTargets,
+        size: aster_render_ir::Extent2d,
+        tier: i8,
+        bytes: u64,
+    ) -> Self {
         let create = |format| {
             device.create_texture(&wgpu::TextureDescriptor {
                 label: Some("Retained transparent depth target"),
                 size: wgpu::Extent3d {
-                    width: auxiliary.size.width,
-                    height: auxiliary.size.height,
+                    width: size.width,
+                    height: size.height,
                     depth_or_array_layers: 1,
                 },
                 mip_level_count: 1,
@@ -35,22 +53,22 @@ impl DepthTargets {
                 view_formats: &[],
             })
         };
-        Ok(Self {
-            primary: AuxiliaryPrimaryTargets::new(device, auxiliary, auxiliary.required_bytes())?,
-            colors: (0..if plan.tier >= 2 {
+        Self {
+            primary,
+            colors: (0..if tier >= 2 {
                 4
-            } else if plan.tier >= 1 {
+            } else if tier >= 1 {
                 2
             } else {
                 0
             })
                 .map(|_| create(wgpu::TextureFormat::Rgba16Float))
                 .collect(),
-            peel_depth: (plan.tier >= 2).then(|| create(wgpu::TextureFormat::Depth24Plus)),
-            size: auxiliary.size,
-            tier: plan.tier,
-            bytes: plan.required_bytes(),
-        })
+            peel_depth: (tier >= 2).then(|| create(wgpu::TextureFormat::Depth24Plus)),
+            size,
+            tier,
+            bytes,
+        }
     }
 }
 
