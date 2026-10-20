@@ -364,59 +364,59 @@
   },
   "last_cycle": {
     "id": 117,
-    "time": "2026-10-20T07:49:18.223Z",
+    "time": "2026-10-20T13:56:55.041Z",
     "milestone": "M9",
     "task": "M9-T19",
-    "outcome": "in_progress",
-    "commit": null,
+    "outcome": "passed",
+    "commit": "63e99625bc59e1c262c75a97e24f5b26595d5410",
     "verification": {
-      "path": "artifacts/migration/verify-2026-10-18T16-38-02-838Z-8848d815.json",
-      "sha256": "c84e4560d4c61f61523e917334e227cac063fa4de7d6be1ab50bcb239ae6440b"
+      "path": "artifacts/migration/verify-2026-10-20T07-49-52-871Z-5959cc44.json",
+      "sha256": "91522549bb9ff6f1d0ae733f160b3c445c5a0ff16d1c6965bba8a591a64f1fb2"
     },
     "gates": [
       {
         "id": "G0",
         "status": "passed",
         "proof": {
-          "path": "artifacts/migration/2026-10-18T16-38-02-838Z-8848d815/static-results.json",
-          "sha256": "5ea4aef4cc358fc5e80e78bf90a9c013af0cee5cd2b4b9731fb9ca142173cf06"
+          "path": "artifacts/migration/2026-10-20T07-49-52-871Z-5959cc44/static-results.json",
+          "sha256": "cfce0d67834939bd862e5159a54991d7dd2811e77321485af3476590f4b953d0"
         }
       },
       {
         "id": "G1",
         "status": "passed",
         "proof": {
-          "path": "artifacts/migration/2026-10-18T16-38-02-838Z-8848d815/G1/report.json",
-          "sha256": "7870d04211eb77e24a14d30ce9617c85d5c0b5014cf97550eb17b2ff60f29e8d"
+          "path": "artifacts/migration/2026-10-20T07-49-52-871Z-5959cc44/G1/report.json",
+          "sha256": "dc25ee1ab73f999da67749f2f444b7bd186ff1508c1c343bee0967906a24311b"
         }
       },
       {
         "id": "G2",
         "status": "passed",
         "proof": {
-          "path": "artifacts/migration/2026-10-18T16-38-02-838Z-8848d815/G2/report.json",
-          "sha256": "346bf0965317e1d906d73d9fda110ff7a11829b479a70980c0134c6e61da714f"
+          "path": "artifacts/migration/2026-10-20T07-49-52-871Z-5959cc44/G2/report.json",
+          "sha256": "e091f7f60bbd2cdfbd7adbc9a59e24225a14a2d6f27a58449672f28cb7864a4c"
         }
       },
       {
         "id": "G3",
         "status": "passed",
         "proof": {
-          "path": "artifacts/migration/2026-10-18T16-38-02-838Z-8848d815/G3/report.json",
-          "sha256": "55866772f78dfd1c750b0c243e1b9a96bcc4eab9287d19283d1350a4db76ba6b"
+          "path": "artifacts/migration/2026-10-20T07-49-52-871Z-5959cc44/G3/report.json",
+          "sha256": "7f9da505b653f58f1ac1350907bd0802ea540e615146e255e3dcf19d8bb56dc0"
         }
       },
       {
         "id": "G5",
-        "status": "incomplete",
+        "status": "passed",
         "proof": {
-          "path": "artifacts/migration/2026-10-18T16-38-02-838Z-8848d815/G5/report.json",
-          "sha256": "c6f884b3b065c9f1e1a7a23c4f8657d7a905c99d610d02e8436a62e03d532fd4"
+          "path": "artifacts/migration/2026-10-20T07-49-52-871Z-5959cc44/G5/report.json",
+          "sha256": "4af15e8a4490e47fb53326aef7bbb1422f1f4abf685e119c323e0f15a8b81b34"
         }
       }
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Revalidate full M9 with the complete authenticated G2 report and all 337 G5 checkpoints using the current ledger. Commit only after every required gate passes; independent M9-T20 exit audit and M10-M12 remain pending.",
+    "next_step": "Start the next cycle with M9-T20: independently audit complete native evaluation and headless export coverage. Keep M10-M12 pending.",
     "notes": [
       "Read the current specification, ledger and newest full M8 verification before selecting M9. No base-branch synchronization requested.",
       "Preserve all project semantics and capability-gated production behavior. Each listed task is a bounded implementation increment; full native plan and headless export coverage remain required for M9 acceptance.",
@@ -431,26 +431,27 @@
       "Native project media increment passed full current-source G0/G1. Retained TS reference bridge identity is preserved separately from fresh native candidate execution; no old native gate acceptance was reused. Continue M9-T17b; no commit while required M9 G2/G3/G5 remain red.",
       "Retained raster increment passed full G0/G1 with exact fresh pixels; split remaining frame assembly into bounded resource traversal, native inputs, GPU observation and integration tasks. No commit while required M9 G2/G3/G5 remain red.",
       "The 07:34 verification pin was quick, not full. The latest completed formal verify file is 08:49 quick. Current full G0/G1/G2 segments and the intentionally interrupted G5 attempt are bound separately; no interrupted run is relabeled passed. Profiling measured 26.16 seconds for one checkpoint audit, with 15.83 seconds in repeated reference-repair image decoding.",
-      "The resumed full run finished on 2026-10-19 with full G0/G1/G2/G3 acceptance, full G5 corpus coverage and passing lifecycle. All 973 new layered frame reviews have now been directly inspected and audited under the approved ink-bounds alternative; original flat failures and prior reports remain unchanged."
+      "The resumed full run finished on 2026-10-19 with full G0/G1/G2/G3 acceptance, full G5 corpus coverage and passing lifecycle. All 973 new layered frame reviews have now been directly inspected and audited under the approved ink-bounds alternative; original flat failures and prior reports remain unchanged.",
+      "All required M9-T19 gates passed under the frozen source and merged self-reviews; M9-T20 exit audit is still pending."
     ],
-    "verification_sha256": "c84e4560d4c61f61523e917334e227cac063fa4de7d6be1ab50bcb239ae6440b",
+    "verification_sha256": "91522549bb9ff6f1d0ae733f160b3c445c5a0ff16d1c6965bba8a591a64f1fb2",
     "latest_increment_verification": {
-      "path": "artifacts/migration/verify-2026-10-18T02-19-49-864Z-6e7eba3c.json",
-      "sha256": "541b80aa8993c22524de81fba9dbd8ce7dd09e2cfc5db4bca828fa280df5caad"
+      "path": "artifacts/migration/verify-2026-10-20T07-49-52-871Z-5959cc44.json",
+      "sha256": "91522549bb9ff6f1d0ae733f160b3c445c5a0ff16d1c6965bba8a591a64f1fb2"
     },
     "latest_quick_verification": {
       "path": "artifacts/migration/verify-2026-10-18T08-49-11-926Z-4f349fad.json",
       "sha256": "e9021fb9d4783814040e1f4f699ff3220e5754f973efba749bd022f23c166f42"
     },
     "full_g0": {
-      "path": "artifacts/migration/cycle117-project-image-retirement-full-g0-1792308982895/report.json",
-      "sha256": "530729d6980f16f9bf572b2b75a8bf69624a538aa7ed23eed7ae67a694bfc5df"
+      "path": "artifacts/migration/2026-10-20T07-49-52-871Z-5959cc44/static-results.json",
+      "sha256": "cfce0d67834939bd862e5159a54991d7dd2811e77321485af3476590f4b953d0"
     },
-    "updated_at": "2026-10-20T07:49:18.223Z",
+    "updated_at": "2026-10-20T13:56:55.041Z",
     "verification_mode": "full",
     "latest_full_attempt": {
-      "path": "artifacts/migration/verify-2026-10-18T16-38-02-838Z-8848d815.json",
-      "sha256": "c84e4560d4c61f61523e917334e227cac063fa4de7d6be1ab50bcb239ae6440b"
+      "path": "artifacts/migration/verify-2026-10-20T07-49-52-871Z-5959cc44.json",
+      "sha256": "91522549bb9ff6f1d0ae733f160b3c445c5a0ff16d1c6965bba8a591a64f1fb2"
     }
   },
   "milestones": [
@@ -23430,11 +23431,11 @@
         {
           "id": "M9-T19",
           "title": "Integrate current-source G1/G2/G3/G5 native evaluation gates and adversarial parity controls",
-          "status": "in_progress",
+          "status": "done",
           "estimated_hours": 3,
           "started_at": "2026-10-18T08:46:12.505Z",
           "progress": {
-            "state": "all_export_reviews_recorded_pending_full_revalidation",
+            "state": "full_current_source_required_gates_passed",
             "scope": "337 cases; all 23387 declared and random plan samples, native project pixels and headless exports; no supplied-plan candidate acceptance",
             "plan_preflight": [
               {
@@ -23484,7 +23485,7 @@
               "lifecycle_controls": 5,
               "adversarial_controls": 6
             },
-            "acceptance": "Complete source-stable full run passed G0/G1/G2/G3 and exported all 337 G5 cases with passing lifecycle. G5 remained incomplete solely for 973 layered frame self-reviews, now directly inspected, audited and merged. Full current-ledger required gates remain mandatory before commit or task completion.",
+            "acceptance": "Full G0/G1/G2/G3/G5 passed. Independent M9-T20 exit audit remains pending.",
             "full_run_partial": {
               "G0": "passed",
               "G1": "passed",
@@ -23516,21 +23517,55 @@
             },
             "completed_full_run": {
               "verification": {
-                "path": "artifacts/migration/verify-2026-10-18T16-38-02-838Z-8848d815.json",
-                "sha256": "c84e4560d4c61f61523e917334e227cac063fa4de7d6be1ab50bcb239ae6440b"
+                "path": "artifacts/migration/verify-2026-10-20T07-49-52-871Z-5959cc44.json",
+                "sha256": "91522549bb9ff6f1d0ae733f160b3c445c5a0ff16d1c6965bba8a591a64f1fb2"
               },
-              "G0": "passed",
-              "G1": "passed",
-              "G2": "passed",
-              "G2_cases": 337,
-              "G2_samples": 23387,
-              "G3": "passed",
-              "G3_frames": 1819,
-              "G5": "incomplete-before-current-reviews",
-              "G5_cases": 337,
-              "G5_passed_cases": 85,
-              "G5_awaiting_review_cases": 252,
-              "G5_lifecycle": "passed"
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-20T07-49-52-871Z-5959cc44/static-results.json",
+                    "sha256": "cfce0d67834939bd862e5159a54991d7dd2811e77321485af3476590f4b953d0"
+                  }
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-20T07-49-52-871Z-5959cc44/G1/report.json",
+                    "sha256": "dc25ee1ab73f999da67749f2f444b7bd186ff1508c1c343bee0967906a24311b"
+                  }
+                },
+                {
+                  "id": "G2",
+                  "status": "passed",
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-20T07-49-52-871Z-5959cc44/G2/report.json",
+                    "sha256": "e091f7f60bbd2cdfbd7adbc9a59e24225a14a2d6f27a58449672f28cb7864a4c"
+                  }
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-20T07-49-52-871Z-5959cc44/G3/report.json",
+                    "sha256": "7f9da505b653f58f1ac1350907bd0802ea540e615146e255e3dcf19d8bb56dc0"
+                  }
+                },
+                {
+                  "id": "G5",
+                  "status": "passed",
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-20T07-49-52-871Z-5959cc44/G5/report.json",
+                    "sha256": "4af15e8a4490e47fb53326aef7bbb1422f1f4abf685e119c323e0f15a8b81b34"
+                  }
+                }
+              ],
+              "duration_ms": 21946983,
+              "source_sha256": "bac70a9c400078f3888bd816ee74c5199f7f3b9eeb7800c1eec00ee38504ad25",
+              "execution_sha256": "e88bb2230fc52271446ec599763ced4e3721e45f3c08281b42f3d4871fc8043d",
+              "milestone_exit_satisfied": false
             }
           },
           "evidence": [
@@ -23625,14 +23660,34 @@
             {
               "path": "artifacts/migration/verify-2026-10-18T16-38-02-838Z-8848d815.json",
               "sha256": "c84e4560d4c61f61523e917334e227cac063fa4de7d6be1ab50bcb239ae6440b"
+            },
+            {
+              "path": "artifacts/migration/verify-2026-10-20T07-49-52-871Z-5959cc44.json",
+              "sha256": "91522549bb9ff6f1d0ae733f160b3c445c5a0ff16d1c6965bba8a591a64f1fb2"
             }
-          ]
+          ],
+          "completed_at": "2026-10-20T13:56:55.041Z",
+          "commit": "63e99625bc59e1c262c75a97e24f5b26595d5410",
+          "verification": {
+            "path": "artifacts/migration/verify-2026-10-20T07-49-52-871Z-5959cc44.json",
+            "sha256": "91522549bb9ff6f1d0ae733f160b3c445c5a0ff16d1c6965bba8a591a64f1fb2"
+          }
         },
         {
           "id": "M9-T20",
           "title": "Audit complete native evaluation and headless export coverage before M9 exit",
           "status": "pending",
-          "estimated_hours": 2
+          "estimated_hours": 2,
+          "required_followups": [
+            {
+              "status": "pending",
+              "title": "Reject source inventory path and identity separators before M9 exit",
+              "evidence": {
+                "path": "artifacts/migration/cycle117-checkpoint-inventory-delimiter-finding.json",
+                "sha256": "842ce425d07522bb648b6cd57ad69d7396fccb01f7d285919fcf6bcc8ef205d7"
+              }
+            }
+          ]
         }
       ]
     },
@@ -2439401,14 +2439456,14 @@
     "id": 117,
     "started_at": "2026-10-16T03:23:03.523Z",
     "milestone": "M9",
-    "task": "M9-T18c",
+    "task": "M9-T19",
     "source_head": "100053143abab6c3ead1d73ef055c47739243737",
-    "increment": "Verify headless export timing, audio, cancellation and pause against independent corpus and owner evidence",
-    "implementation_state": "in_progress",
+    "increment": "Integrate current-source G1/G2/G3/G5 native evaluation gates and adversarial parity controls",
+    "implementation_state": "done",
     "failed_attempts": [],
-    "verification_state": "Full current-source G0 passed; 6000 TS clock addresses, bound export witnesses, lifecycle and three independent TS RGB comparisons passed. Whole-corpus G2/G3/G5 remain pending.",
-    "next_step": "Run full-segment native and independent TS exports at declared corpus sizes, compare encoded quality and audio with native preencode witnesses",
-    "updated_at": "2026-10-18T07:21:47.872Z",
+    "verification_state": "Full G0/G1/G2/G3/G5 passed. Independent M9-T20 exit audit remains pending.",
+    "next_step": "Start the next cycle with M9-T20: independently audit complete native evaluation and headless export coverage. Keep M10-M12 pending.",
+    "updated_at": "2026-10-20T13:56:55.041Z",
     "completed_components": [
       "M9-T1",
       "M9-T2",
@@ -2439435,7 +2439490,9 @@
       "M9-T17f",
       "M9-T18",
       "M9-T18a",
-      "M9-T18b"
+      "M9-T18b",
+      "M9-T18c",
+      "M9-T19"
     ],
     "project_model_verification": {
       "path": "artifacts/migration/verify-2026-10-16T03-31-15-559Z-14482069.json",
@@ -2439451,8 +2439508,8 @@
       }
     },
     "latest_verification": {
-      "path": "artifacts/migration/verify-2026-10-18T02-19-49-864Z-6e7eba3c.json",
-      "sha256": "541b80aa8993c22524de81fba9dbd8ce7dd09e2cfc5db4bca828fa280df5caad"
+      "path": "artifacts/migration/verify-2026-10-20T07-49-52-871Z-5959cc44.json",
+      "sha256": "91522549bb9ff6f1d0ae733f160b3c445c5a0ff16d1c6965bba8a591a64f1fb2"
     },
     "expression_reference": {
       "cases": 26750,
@@ -2439473,7 +2439530,8 @@
       "CARGO_INCREMENTAL": "0",
       "reason": "D drive has 5.4 GiB free. Automatic approval review rejected recursive deletion of the known rebuildable incremental cache; no cache was deleted. Future intermediate outputs use C drive without moving or deleting existing files.",
       "documentation": "https://doc.rust-lang.org/stable/cargo/reference/config.html#buildbuild-dir"
-    }
+    },
+    "completed_at": "2026-10-20T13:56:55.041Z"
   },
   "execution_pause": {
     "requested_by": "owner",
