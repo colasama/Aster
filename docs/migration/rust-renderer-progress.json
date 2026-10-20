@@ -364,15 +364,65 @@
   },
   "last_cycle": {
     "id": 118,
-    "time": "2026-10-20T13:58:16.324Z",
-    "updated_at": "2026-10-20T14:01:45.611Z",
+    "time": "2026-10-20T20:24:11.993Z",
+    "updated_at": "2026-10-20T20:24:11.993Z",
     "milestone": "M9",
     "task": "M9-T20",
-    "outcome": "in_progress",
-    "next_step": "Run full M9 verification with independently authenticated original G2/G5 checkpoint identities and require the M9 exit audit to pass.",
+    "outcome": "passed",
+    "next_step": "Begin M10: read the ledger and newest verification, define bounded native text tasks, then work on the first task. Rust preview and retirement remain M11/M12.",
     "notes": [
       "Cycle 117 completed full G0/G1/G2/G3/G5 and commits 63e9962 / efd9933."
-    ]
+    ],
+    "commit": "487410ac8591c8468d54fe7d652a7b85e9759863",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-20T14-02-34-985Z-5ff5b22a.json",
+      "sha256": "5d980335648f921729dfeff94bf65ee6756229290dd4d03570c8ebc60f1f9028"
+    },
+    "gates": [
+      {
+        "id": "G0",
+        "status": "passed",
+        "duration_ms": 262190,
+        "proof": {
+          "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/static-results.json",
+          "sha256": "8173393dd18ca789d5afa3f49fffbf8ed041ab9d4cd102fe936cb009f35b25f4"
+        }
+      },
+      {
+        "id": "G1",
+        "status": "passed",
+        "duration_ms": 1743481,
+        "proof": {
+          "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G1/report.json",
+          "sha256": "23e4e061351305d625f3bdb5a82e41bd3d74093def96bc60c6646478a56a0313"
+        }
+      },
+      {
+        "id": "G2",
+        "status": "passed",
+        "proof": {
+          "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G2/report.json",
+          "sha256": "42cf53993fcca989b7ddd54a73cecb017b5e7ace4d860d3cce96d135328cbde8"
+        }
+      },
+      {
+        "id": "G3",
+        "status": "passed",
+        "proof": {
+          "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G3/report.json",
+          "sha256": "7c09478d89ef305061cba4aee7b37f67cb2c3bca106c3b61a58aea38f1446a4a"
+        }
+      },
+      {
+        "id": "G5",
+        "status": "passed",
+        "proof": {
+          "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G5/report.json",
+          "sha256": "f37a2f5d19e53803d1ca399fafe00b9b3c2f3ccf99bf3efda60525392b714a3b"
+        }
+      }
+    ],
+    "milestone_exit_satisfied": true
   },
   "milestones": [
     {
@@ -22117,7 +22167,7 @@
     {
       "id": "M9",
       "title": "Native evaluation (Phase B)",
-      "status": "in_progress",
+      "status": "done",
       "gates": [
         "G0",
         "G1",
@@ -23596,22 +23646,26 @@
         {
           "id": "M9-T20",
           "title": "Audit complete native evaluation and headless export coverage before M9 exit",
-          "status": "in_progress",
+          "status": "done",
           "estimated_hours": 2,
           "required_followups": [
             {
-              "status": "implemented_pending_full_verification",
+              "status": "done",
               "title": "Reject source inventory path and identity separators before M9 exit",
               "evidence": {
                 "path": "artifacts/migration/cycle117-checkpoint-inventory-delimiter-finding.json",
                 "sha256": "842ce425d07522bb648b6cd57ad69d7396fccb01f7d285919fcf6bcc8ef205d7"
               },
-              "implementation": "scripts/migration/checkpoint-source.mjs"
+              "implementation": "scripts/migration/checkpoint-source.mjs",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-20T14-02-34-985Z-5ff5b22a.json",
+                "sha256": "5d980335648f921729dfeff94bf65ee6756229290dd4d03570c8ebc60f1f9028"
+              }
             }
           ],
           "started_at": "2026-10-20T13:58:16.324Z",
           "progress": {
-            "state": "exit_audit_implemented_pending_full_verification",
+            "state": "full_current_source_exit_audit_passed",
             "scope": "Full current-invocation gate binding, complete corpus/random-time coverage, native project receipts, original export origins, current pixel reviews and source inventory authentication.",
             "targeted_tests": {
               "path": "artifacts/migration/cycle118-focused-tests.log",
@@ -23622,10 +23676,184 @@
               "path": "artifacts/migration/cycle118-exit-evidence-integration.json",
               "sha256": "4d1eb0970211a0343ea2e8938b3513c4f6b166c153899463a92622e6ea6dbf2e"
             },
-            "test_file_split": "Preserved all 39 preexisting verification test cases in cohesive suites."
+            "test_file_split": "Preserved all 39 preexisting verification test cases in cohesive suites.",
+            "completed_full_run": {
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-20T14-02-34-985Z-5ff5b22a.json",
+                "sha256": "5d980335648f921729dfeff94bf65ee6756229290dd4d03570c8ebc60f1f9028"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 262190,
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/static-results.json",
+                    "sha256": "8173393dd18ca789d5afa3f49fffbf8ed041ab9d4cd102fe936cb009f35b25f4"
+                  }
+                },
+                {
+                  "id": "G1",
+                  "status": "passed",
+                  "duration_ms": 1743481,
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G1/report.json",
+                    "sha256": "23e4e061351305d625f3bdb5a82e41bd3d74093def96bc60c6646478a56a0313"
+                  }
+                },
+                {
+                  "id": "G2",
+                  "status": "passed",
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G2/report.json",
+                    "sha256": "42cf53993fcca989b7ddd54a73cecb017b5e7ace4d860d3cce96d135328cbde8"
+                  }
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G3/report.json",
+                    "sha256": "7c09478d89ef305061cba4aee7b37f67cb2c3bca106c3b61a58aea38f1446a4a"
+                  }
+                },
+                {
+                  "id": "G5",
+                  "status": "passed",
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G5/report.json",
+                    "sha256": "f37a2f5d19e53803d1ca399fafe00b9b3c2f3ccf99bf3efda60525392b714a3b"
+                  }
+                }
+              ],
+              "duration_ms": 22826020
+            }
+          },
+          "completed_at": "2026-10-20T20:24:11.993Z",
+          "commit": "487410ac8591c8468d54fe7d652a7b85e9759863",
+          "verification": {
+            "path": "artifacts/migration/verify-2026-10-20T14-02-34-985Z-5ff5b22a.json",
+            "sha256": "5d980335648f921729dfeff94bf65ee6756229290dd4d03570c8ebc60f1f9028"
           }
         }
-      ]
+      ],
+      "completed_at": "2026-10-20T20:24:11.993Z",
+      "commit": "487410ac8591c8468d54fe7d652a7b85e9759863",
+      "verification": "artifacts/migration/verify-2026-10-20T14-02-34-985Z-5ff5b22a.json",
+      "verification_sha256": "5d980335648f921729dfeff94bf65ee6756229290dd4d03570c8ebc60f1f9028",
+      "last_verification": {
+        "status": "passed",
+        "required_gates_passed": true,
+        "milestone_exit_satisfied": true,
+        "report": "artifacts/migration/verify-2026-10-20T14-02-34-985Z-5ff5b22a.json",
+        "gates": [
+          {
+            "id": "G0",
+            "status": "passed",
+            "duration_ms": 262190,
+            "proof": {
+              "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/static-results.json",
+              "sha256": "8173393dd18ca789d5afa3f49fffbf8ed041ab9d4cd102fe936cb009f35b25f4"
+            }
+          },
+          {
+            "id": "G1",
+            "status": "passed",
+            "duration_ms": 1743481,
+            "proof": {
+              "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G1/report.json",
+              "sha256": "23e4e061351305d625f3bdb5a82e41bd3d74093def96bc60c6646478a56a0313"
+            }
+          },
+          {
+            "id": "G2",
+            "status": "passed",
+            "proof": {
+              "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G2/report.json",
+              "sha256": "42cf53993fcca989b7ddd54a73cecb017b5e7ace4d860d3cce96d135328cbde8"
+            }
+          },
+          {
+            "id": "G3",
+            "status": "passed",
+            "proof": {
+              "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G3/report.json",
+              "sha256": "7c09478d89ef305061cba4aee7b37f67cb2c3bca106c3b61a58aea38f1446a4a"
+            }
+          },
+          {
+            "id": "G5",
+            "status": "passed",
+            "proof": {
+              "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G5/report.json",
+              "sha256": "f37a2f5d19e53803d1ca399fafe00b9b3c2f3ccf99bf3efda60525392b714a3b"
+            }
+          }
+        ]
+      },
+      "exit_audit": {
+        "status": "passed",
+        "native_evaluation_acceptance": true,
+        "headless_project_export_acceptance": true,
+        "models": {
+          "projects": 336,
+          "cases": 337,
+          "status": "passed"
+        },
+        "coverage": {
+          "cases": 337,
+          "samples": 23387,
+          "pixel_frames": 1819
+        },
+        "pixels": {
+          "status": "passed",
+          "frames": 1819,
+          "reviewed": 1819,
+          "input_files": 16122,
+          "evidence_files": 10918,
+          "project_corpus": {
+            "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G2/report.json",
+            "sha256": "42cf53993fcca989b7ddd54a73cecb017b5e7ace4d860d3cce96d135328cbde8"
+          }
+        },
+        "exports": {
+          "cases": 337,
+          "reviewed_native_frames": 1819
+        },
+        "export_origins": {
+          "status": "passed",
+          "cases": 337
+        },
+        "gate_reports": {
+          "G0": {
+            "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/static-results.json",
+            "sha256": "8173393dd18ca789d5afa3f49fffbf8ed041ab9d4cd102fe936cb009f35b25f4"
+          },
+          "G1": {
+            "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G1/report.json",
+            "sha256": "23e4e061351305d625f3bdb5a82e41bd3d74093def96bc60c6646478a56a0313"
+          },
+          "G2": {
+            "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G2/report.json",
+            "sha256": "42cf53993fcca989b7ddd54a73cecb017b5e7ace4d860d3cce96d135328cbde8"
+          },
+          "G3": {
+            "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G3/report.json",
+            "sha256": "7c09478d89ef305061cba4aee7b37f67cb2c3bca106c3b61a58aea38f1446a4a"
+          },
+          "G5": {
+            "path": "artifacts/migration/2026-10-20T14-02-34-985Z-5ff5b22a/G5/report.json",
+            "sha256": "f37a2f5d19e53803d1ca399fafe00b9b3c2f3ccf99bf3efda60525392b714a3b"
+          }
+        },
+        "checked_files": 1358,
+        "retained_raster_boundary": [
+          "text",
+          "svg",
+          "psd"
+        ],
+        "production_preview_acceptance": false
+      }
     },
     {
       "id": "M10",
@@ -2439168,6 +2439396,19 @@
         },
         "completed_at": "2026-10-16T03:19:49.085Z"
       }
+    },
+    {
+      "cycle": 118,
+      "time": "2026-10-20T20:24:11.993Z",
+      "milestone": "M9",
+      "task": "M9-T20",
+      "outcome": "passed",
+      "commit": "487410ac8591c8468d54fe7d652a7b85e9759863",
+      "verification": {
+        "path": "artifacts/migration/verify-2026-10-20T14-02-34-985Z-5ff5b22a.json",
+        "sha256": "5d980335648f921729dfeff94bf65ee6756229290dd4d03570c8ebc60f1f9028"
+      },
+      "milestone_exit_satisfied": true
     }
   ],
   "known_boundaries": [
@@ -2439395,7 +2439636,13 @@
     "increment": "Audit complete native evaluation and headless export coverage before M9 exit",
     "started_at": "2026-10-20T13:58:16.324Z",
     "updated_at": "2026-10-20T14:01:45.611Z",
-    "implementation_state": "implemented_pending_full_verification"
+    "implementation_state": "done",
+    "completed_at": "2026-10-20T20:24:11.993Z",
+    "latest_verification": {
+      "path": "artifacts/migration/verify-2026-10-20T14-02-34-985Z-5ff5b22a.json",
+      "sha256": "5d980335648f921729dfeff94bf65ee6756229290dd4d03570c8ebc60f1f9028"
+    },
+    "next_step": "Begin M10: read the ledger and newest verification, define bounded native text tasks, then work on the first task. Rust preview and retirement remain M11/M12."
   },
   "execution_pause": {
     "requested_by": "owner",
