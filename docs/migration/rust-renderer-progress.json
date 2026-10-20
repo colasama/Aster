@@ -364,16 +364,38 @@
   },
   "last_cycle": {
     "id": 120,
-    "time": "2026-10-20T21:17:16.700Z",
-    "updated_at": "2026-10-20T21:23:26.372Z",
+    "time": "2026-10-20T21:50:18.295Z",
+    "updated_at": "2026-10-20T21:50:18.295Z",
     "milestone": "M10",
     "task": "M10-T2",
-    "outcome": "in_progress",
-    "previous_verification": {
-      "path": "artifacts/migration/verify-2026-10-20T20-38-23-126Z-56911203.json",
-      "sha256": "1ebc0f6f0ce68c93752efcc85297ff90e9ad5fe16a6212a7c7bfcdf0b5a1062c"
+    "outcome": "passed",
+    "commit": "efd394df904f006b012b82083379689a40c44ba8",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-20T21-23-29-944Z-a8be3302.json",
+      "sha256": "a4f5e74f24512b9ada9980338841b0d09ce76017bf304ab4673909a6208d9132"
     },
-    "next_step": "Run fresh full M10 G0/G3 before committing project font resolution; production integration remains M10-T7."
+    "gates": [
+      {
+        "id": "G0",
+        "status": "passed",
+        "duration_ms": 271030,
+        "proof": {
+          "path": "artifacts/migration/2026-10-20T21-23-29-944Z-a8be3302/static-results.json",
+          "sha256": "b1a999e1daab7bb67090bc5265d86fe9b3386e833ad6013ff7715a9385c5208c"
+        }
+      },
+      {
+        "id": "G3",
+        "status": "passed",
+        "duration_ms": 1295973,
+        "proof": {
+          "path": "artifacts/migration/2026-10-20T21-23-29-944Z-a8be3302/G3/report.json",
+          "sha256": "5e14c5978b4dcd03b9dbb8acb05a5f8836aee6052fcec1a1f7c7a433f7ed4e63"
+        }
+      }
+    ],
+    "duration_ms": 1569800,
+    "next_step": "M10-T3: capture actual production TS text layout observations with font/source identity and unchanged pixels; distinguish post-shaping cluster observations from unavailable raw glyph metrics."
   },
   "milestones": [
     {
@@ -23888,7 +23910,7 @@
         {
           "id": "M10-T2",
           "title": "Resolve embedded fonts and bounded supported container decoding",
-          "status": "in_progress",
+          "status": "done",
           "scope": "Preserve authored family aliases, weight ranges, project font revision and existing schema limits. Evaluate WOFF/WOFF2 support with explicit reasons for unsupported containers instead of silently changing faces.",
           "acceptance": "Project fonts override corresponding platform faces correctly; malformed/oversized input fails atomically; current G0/G3 remain green.",
           "estimated_implementation_hours": 2,
@@ -23898,7 +23920,7 @@
           ],
           "started_at": "2026-10-20T21:17:16.700Z",
           "progress": {
-            "state": "implemented_pending_full_verification",
+            "state": "full_required_gates_passed",
             "container_policy": "Admit bounded SFNT fonts; implement bounded WOFF1 decoding using the existing zlib dependency. Keep WOFF2 and unsupported font metadata behind explicit retained-raster decisions until their decoder and layout limits are verified.",
             "features": [
               "Atomic embedded SFNT/WOFF1 admission with existing schema and aggregate byte limits",
@@ -23913,7 +23935,42 @@
               "artifacts/migration/cycle120-text-tests-final.log",
               "artifacts/migration/cycle120-clippy-final.log",
               "artifacts/migration/cycle119-m10-project-font-preparation.json"
-            ]
+            ],
+            "completed_full_run": {
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-20T21-23-29-944Z-a8be3302.json",
+                "sha256": "a4f5e74f24512b9ada9980338841b0d09ce76017bf304ab4673909a6208d9132"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 271030,
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-20T21-23-29-944Z-a8be3302/static-results.json",
+                    "sha256": "b1a999e1daab7bb67090bc5265d86fe9b3386e833ad6013ff7715a9385c5208c"
+                  }
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 1295973,
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-20T21-23-29-944Z-a8be3302/G3/report.json",
+                    "sha256": "5e14c5978b4dcd03b9dbb8acb05a5f8836aee6052fcec1a1f7c7a433f7ed4e63"
+                  }
+                }
+              ],
+              "duration_ms": 1569800,
+              "primary_pixel_frames": 1315,
+              "native_text_acceptance": false
+            }
+          },
+          "completed_at": "2026-10-20T21:50:18.295Z",
+          "commit": "efd394df904f006b012b82083379689a40c44ba8",
+          "verification": {
+            "path": "artifacts/migration/verify-2026-10-20T21-23-29-944Z-a8be3302.json",
+            "sha256": "a4f5e74f24512b9ada9980338841b0d09ce76017bf304ab4673909a6208d9132"
           }
         },
         {
@@ -23998,8 +24055,8 @@
       ],
       "started_at": "2026-10-20T20:25:14.937Z",
       "latest_verification": {
-        "path": "artifacts/migration/verify-2026-10-20T20-38-23-126Z-56911203.json",
-        "sha256": "1ebc0f6f0ce68c93752efcc85297ff90e9ad5fe16a6212a7c7bfcdf0b5a1062c"
+        "path": "artifacts/migration/verify-2026-10-20T21-23-29-944Z-a8be3302.json",
+        "sha256": "a4f5e74f24512b9ada9980338841b0d09ce76017bf304ab4673909a6208d9132"
       }
     },
     {
@@ -2439559,6 +2439616,19 @@
         "sha256": "1ebc0f6f0ce68c93752efcc85297ff90e9ad5fe16a6212a7c7bfcdf0b5a1062c"
       },
       "milestone_exit_satisfied": false
+    },
+    {
+      "cycle": 120,
+      "time": "2026-10-20T21:50:18.295Z",
+      "milestone": "M10",
+      "task": "M10-T2",
+      "outcome": "passed",
+      "commit": "efd394df904f006b012b82083379689a40c44ba8",
+      "verification": {
+        "path": "artifacts/migration/verify-2026-10-20T21-23-29-944Z-a8be3302.json",
+        "sha256": "a4f5e74f24512b9ada9980338841b0d09ce76017bf304ab4673909a6208d9132"
+      },
+      "milestone_exit_satisfied": false
     }
   ],
   "known_boundaries": [
@@ -2439785,11 +2439855,17 @@
     "task": "M10-T2",
     "increment": "Resolve embedded fonts and bounded supported container decoding",
     "started_at": "2026-10-20T21:17:16.700Z",
-    "updated_at": "2026-10-20T21:23:26.372Z",
-    "implementation_state": "implemented_pending_full_verification",
+    "updated_at": "2026-10-20T21:50:18.295Z",
+    "implementation_state": "committed",
     "previous_verification": {
       "path": "artifacts/migration/verify-2026-10-20T20-38-23-126Z-56911203.json",
       "sha256": "1ebc0f6f0ce68c93752efcc85297ff90e9ad5fe16a6212a7c7bfcdf0b5a1062c"
+    },
+    "outcome": "passed",
+    "commit": "efd394df904f006b012b82083379689a40c44ba8",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-20T21-23-29-944Z-a8be3302.json",
+      "sha256": "a4f5e74f24512b9ada9980338841b0d09ce76017bf304ab4673909a6208d9132"
     }
   },
   "execution_pause": {
