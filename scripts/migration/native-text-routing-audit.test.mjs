@@ -36,6 +36,7 @@ function fixture() {
           project_sha256: "project",
           request: { composition: "comp", layer: "layer", source_time: 1, resolution_scale: 1 },
           reason: "font unavailable",
+          fonts: [],
         },
       },
     ],
@@ -87,6 +88,11 @@ test("routing audit binds actual GPU pixels, complete requests and exact capabil
     (r) => (r.routes[0].capability.project_sha256 = "other"),
     (r) => (r.routes[0].capability.request.source_time = 2),
     (r) => (r.routes[0].capability.reason = ""),
+    (r) => delete r.routes[0].capability.fonts,
+    (r) =>
+      (r.routes[0].capability.fonts = [
+        { family: "Arial", face: { sha256: [256], index: 0 }, variations: [] },
+      ]),
     (r) => (r.pixels[0].rgba_sha256 = "canvas-pixels"),
     (r) => (r.pixels[0].bounds[0] = 1),
     (r) => (r.routes = []),

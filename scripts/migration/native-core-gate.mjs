@@ -31,6 +31,7 @@ import { nativeSceneCases, runNativeSceneBatch } from "./native-scene-batch.mjs"
 import { runNativeSceneOutputGate } from "./native-scene-output-gate.mjs";
 import { runNativeSequenceGate } from "./native-sequence-gate.mjs";
 import { runNativeSessionGate } from "./native-session-gate.mjs";
+import { runNativeTextCapabilityGate } from "./native-text-capability-gate.mjs";
 import { runNativeTextFontGate } from "./native-text-font-gate.mjs";
 import { runNativeVideoGate } from "./native-video-gate.mjs";
 
@@ -714,6 +715,15 @@ export async function runNativeCoreGate(context, execute = runStep) {
         execute,
       );
       assert.equal(report.native_text_fonts.status, "passed", "Embedded font routing failed");
+      report.native_text_capabilities = await runNativeTextCapabilityGate(
+        { ...context, output: join(context.output, "native-text-capabilities") },
+        execute,
+      );
+      assert.equal(
+        report.native_text_capabilities.status,
+        "passed",
+        "Font/script capability routing failed",
+      );
     }
     report.checked_files = await reader.stable();
     report.status = "passed";

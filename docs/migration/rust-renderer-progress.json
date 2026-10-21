@@ -24825,7 +24825,7 @@
               }
             },
             {
-              "status": "pending",
+              "status": "in_progress",
               "title": "Bind missing Agency FB and Georgia Roman-numeral fallback to exact retained-provider reasons",
               "acceptance": "Authenticate the actual font and text identity in production routing; do not substitute unverified OS fallback or apply blanket text fallback.",
               "evidence": {
@@ -24834,9 +24834,14 @@
               }
             },
             {
-              "status": "pending",
+              "status": "in_progress",
               "title": "Bind mixed bidi and embedded-font layout capabilities to verified production routing",
-              "acceptance": "Use native embedded faces where admitted; otherwise retain precise script/container/font reasons. Diagnostic system-font success does not establish embedded-font or mixed-bidi pixel acceptance."
+              "acceptance": "Use native embedded faces where admitted; otherwise retain precise script/container/font reasons. Diagnostic system-font success does not establish embedded-font or mixed-bidi pixel acceptance.",
+              "partial_evidence": {
+                "path": "artifacts/migration/cycle132-capabilities2/report.json",
+                "sha256": "2ef80a6df46fa19c0d0aa7bd9f86fdf0823ae057cf388b3831c681e78759cc63"
+              },
+              "remaining": "Mixed bidi with system and embedded fonts has exact retained routing evidence. Ordinary embedded native layout and pixel qualification remains required."
             },
             {
               "status": "pending",
@@ -25556,6 +25561,151 @@
                 "path": "artifacts/migration/cycle131-commit.log",
                 "sha256": "0021ffb2af4695cf3acc44724eaf176721204a45c58ac87e5f83838f34bd5626",
                 "reason": "First commit inherited no Corepack/pnpm PATH and frontend/typecheck pre-commit commands were unavailable; Rust checks passed. Retry uses the same environment as full verification, without bypassing hooks."
+              }
+            },
+            "font_script_routing": {
+              "status": "focused_passed_before_boxing_full_pending",
+              "evidence": {
+                "path": "artifacts/migration/cycle132-capabilities2/report.json",
+                "sha256": "2ef80a6df46fa19c0d0aa7bd9f86fdf0823ae057cf388b3831c681e78759cc63"
+              },
+              "cases": [
+                {
+                  "id": "font-unavailable",
+                  "project_sha256": "96e14a7fe4ac4d0b49d420829d046d2328e675d41f6d65f3ac4f0c535e21d92e",
+                  "frames": 68,
+                  "records": 68,
+                  "exact_pixels": 68,
+                  "capabilities": [
+                    {
+                      "layer": "653d5d15-74d1-4f68-a57d-442a3f18758c-coverage-0",
+                      "text": "Aster 123",
+                      "reason": "requested font families unavailable: Agency FB",
+                      "fonts": []
+                    }
+                  ]
+                },
+                {
+                  "id": "font-missing-glyph",
+                  "project_sha256": "552c1d0048fc66dac4cd6def45635ace128735aa36d19766387ae0801dc8ea71",
+                  "frames": 68,
+                  "records": 272,
+                  "exact_pixels": 272,
+                  "capabilities": [
+                    {
+                      "layer": "653d5d15-74d1-4f68-a57d-442a3f18758c-coverage-0",
+                      "text": "THEME Ⅱ",
+                      "reason": "no admitted fallback font covers UTF-16 interval 6..7",
+                      "fonts": [
+                        {
+                          "family": "Georgia",
+                          "sha256": "38dffcaf1fac89492f7c56c600a14daf36ae42f7c21985cd4134ae113124a58f"
+                        }
+                      ]
+                    },
+                    {
+                      "layer": "653d5d15-74d1-4f68-a57d-442a3f18758c-coverage-1",
+                      "text": "THEME II",
+                      "reason": "requested primary family and CSS family syntax require raster qualification",
+                      "fonts": [
+                        {
+                          "family": "Georgia",
+                          "sha256": "38dffcaf1fac89492f7c56c600a14daf36ae42f7c21985cd4134ae113124a58f"
+                        }
+                      ]
+                    },
+                    {
+                      "layer": "653d5d15-74d1-4f68-a57d-442a3f18758c-coverage-2",
+                      "text": "A\r\nTHEME Ⅱ",
+                      "reason": "no admitted fallback font covers UTF-16 interval 9..10",
+                      "fonts": [
+                        {
+                          "family": "Georgia",
+                          "sha256": "38dffcaf1fac89492f7c56c600a14daf36ae42f7c21985cd4134ae113124a58f"
+                        }
+                      ]
+                    },
+                    {
+                      "layer": "653d5d15-74d1-4f68-a57d-442a3f18758c-coverage-3",
+                      "text": "THEME Ⅱ",
+                      "reason": "script raster coverage requires isolated pixel qualification",
+                      "fonts": [
+                        {
+                          "family": "Georgia",
+                          "sha256": "38dffcaf1fac89492f7c56c600a14daf36ae42f7c21985cd4134ae113124a58f"
+                        },
+                        {
+                          "family": "Tahoma",
+                          "sha256": "b890858df485549d20fcb0a2c519dffe9c5c155d16b55e0b9252d6e66db555e5"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "font-mixed-bidi",
+                  "project_sha256": "fdeb50b422546775665b561235c7864ea32046eb5317936f6115fb33171d8396",
+                  "frames": 68,
+                  "records": 68,
+                  "exact_pixels": 68,
+                  "capabilities": [
+                    {
+                      "layer": "653d5d15-74d1-4f68-a57d-442a3f18758c-coverage-0",
+                      "text": "ABC אבג 123",
+                      "reason": "text requires retained rendering: bidirectional paragraph requires independently verified visual runs",
+                      "fonts": [
+                        {
+                          "family": "Arial",
+                          "sha256": "c9b76220a5be42ead4733611e417cd65c5fd8aeaa33eb56576ac378a37d130a1"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "font-embedded-bidi",
+                  "project_sha256": "e6919d799c81f0dd6d2d4c30e7a50de90bd15673f4743b679a1b63c8ed2dfe98",
+                  "frames": 68,
+                  "records": 68,
+                  "exact_pixels": 68,
+                  "capabilities": [
+                    {
+                      "layer": "653d5d15-74d1-4f68-a57d-442a3f18758c-coverage-0",
+                      "text": "ABC אבג 123",
+                      "reason": "text requires retained rendering: bidirectional paragraph requires independently verified visual runs",
+                      "fonts": [
+                        {
+                          "family": "Segoe UI",
+                          "sha256": "c9b76220a5be42ead4733611e417cd65c5fd8aeaa33eb56576ac378a37d130a1"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "failed_attempt": {
+                "path": "artifacts/migration/cycle132-capabilities1/report.json",
+                "sha256": "cc05df539949bb7eae674ab5cc385a49f1b10b38e6eca8807838acfd25147ab9",
+                "reason": "The positive fallback fixture incorrectly assumed Segoe UI Symbol covers U+2161. Actual font probing proved it unavailable and identified Tahoma glyph 4224; the corrected explicit chain passes without changing native coverage rules."
+              },
+              "font_probe": {
+                "path": "artifacts/migration/cycle132-fallback-result.json",
+                "sha256": "98a869bf95e8fbf5d78cc764673298ac84b88878b0df212e3a7c6508c77876b3"
+              },
+              "static_repair": {
+                "interrupted": {
+                  "path": "artifacts/migration/cycle132-aborted-full.json",
+                  "sha256": "9e8dfaeef08e3c022520f247ecf070054e7ba831402dda5f961f99b332d8cf3f"
+                },
+                "failure": {
+                  "path": "artifacts/migration/2026-10-21T20-51-52-854Z-ee45cedc/cargo-clippy.log",
+                  "sha256": "043d0492680c9c64acc6ffb4b6ccb50a70cd0468bd7ec06c0518166200edeb21"
+                },
+                "repair": {
+                  "path": "artifacts/migration/cycle132-clippy-repair.log",
+                  "sha256": "669834a81112ea85c0bf198a8666eb5206c9dadbcfbe69cb3e204bbe715a7985"
+                },
+                "reason": "Box the retained enum variant after adding typed font evidence. Whole-workspace Clippy passed; full current-source G0/G3 remains required. Focused pixel evidence predates this representation-only repair and is not promoted to current-source acceptance."
               }
             }
           }
@@ -2445317,23 +2445467,17 @@
     }
   ],
   "active_cycle": {
-    "id": 131,
+    "id": 132,
     "milestone": "M10",
     "task": "M10-T7",
-    "increment": "embedded-font-routing",
-    "started_at": "2026-10-21T19:46:55.852Z",
-    "implementation_state": "committed",
-    "scope": "Authenticate WOFF2 and embedded collection capability routes against equivalent TTF pixels and distinguish platform substitution; reject malformed font bytes and stale project identities at the live retained provider.",
-    "updated_at": "2026-10-21T20:36:28.204Z",
+    "increment": "font-and-script-capabilities",
+    "started_at": "2026-10-21T20:39:05.065Z",
+    "implementation_state": "full_pending_after_clippy_repair",
+    "scope": "Bind production font selection and missing-glyph/bidi capability reasons to authenticated retained requests and exact pixels, using a bounded job-local coverage cache before broad raster qualification decisions.",
+    "updated_at": "2026-10-21T20:54:39.284Z",
     "focused_evidence": {
-      "path": "artifacts/migration/cycle131-fonts2/report.json",
-      "sha256": "9e03ccae7675905f8258781742828a9dd00262c39719691197e899eebd673475"
-    },
-    "outcome": "passed",
-    "commit": "e7d919726bd4b2a766a24c0065248fd7e0a95a8c",
-    "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T19-52-37-671Z-66527c54.json",
-      "sha256": "c415ba883153f6f2628ca05b081eea53ae07fc5bf9aa143a5800544fddb37ded"
+      "path": "artifacts/migration/cycle132-capabilities2/report.json",
+      "sha256": "2ef80a6df46fa19c0d0aa7bd9f86fdf0823ae057cf388b3831c681e78759cc63"
     }
   },
   "execution_pause": {

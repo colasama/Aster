@@ -676,6 +676,13 @@ TTF controls require identical pixels and bounds; an unembedded alias control mu
 silent platform substitution observable. Live retained routing binds font bytes, project revision
 and the exact container capability reason. Malformed font data and stale project digests must fail
 provider admission before any frame receipt. Font bytes remain local verification artifacts.
+Production text routes record the resolved physical face digests, collection indices and variation
+coordinates. A bounded job-local coverage cache probes declared paragraphs before broad raster
+qualification, preserving missing-glyph UTF-16 intervals and explicit bidi limitations. Cache keys
+bind text, locale and the resolved font chain; line separators advance the authored UTF-16 offset.
+These probes allocate no glyph atlas and do not expand native raster admission. Retained-provider
+checks cover missing families, same-font valid/missing glyph controls, explicit fallback chains and
+system/embedded mixed-bidi text with exact independent pixel comparisons.
 Explicit project captures and selected export witnesses materialize resident native text outputs
 as bounded, content-addressed raster resources for external replay. They preserve `submitted.fpln`
 and its digest separately from the replay envelope, and record exact text capability decisions and

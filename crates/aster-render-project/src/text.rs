@@ -10,8 +10,11 @@ use aster_text::{
 use serde::Serialize;
 
 use crate::{
-    NativeProjectDocument, ProjectRenderError, ProjectTextPaint, text_fonts::ProjectTextFonts,
-    text_paint::TextPaintEvaluator, text_style::ProjectTextStyle,
+    NativeProjectDocument, ProjectRenderError, ProjectTextPaint, TextFontEvidence,
+    text_coverage::{TextCoverage, TextFontCoverage},
+    text_fonts::ProjectTextFonts,
+    text_paint::TextPaintEvaluator,
+    text_style::ProjectTextStyle,
 };
 
 #[derive(Clone, Debug, serde::Deserialize, Serialize)]
@@ -32,11 +35,12 @@ pub struct TextCapability {
     pub request: ProjectTextRequest,
     pub stage: String,
     pub reason: String,
+    pub fonts: Vec<TextFontEvidence>,
 }
 
 pub enum ProjectTextOutcome {
     Native(Box<PreparedProjectText>),
-    Retained(TextCapability),
+    Retained(Box<TextCapability>),
 }
 
 /// Owns the immutable atlas lease; no full-layer CPU raster is produced.
@@ -74,19 +78,23 @@ pub struct NativeProjectText {
     shaper: TextShaper,
     raster: GlyphRasterizer,
     generations: GlyphGenerations,
+    coverage: TextCoverage,
 }
 
 impl NativeProjectText {
-    pub(crate) fn unavailable_font_reason(
+    pub(crate) fn inspect_font_coverage(
         &mut self,
+        document: &NativeProjectDocument,
         style: &ProjectTextStyle,
-    ) -> Result<Option<String>, ProjectRenderError> {
+        locale: &str,
+    ) -> Result<TextFontCoverage, ProjectRenderError> {
+        if document.runtime_sha256 != self.project_sha256 {
+            return Err(ProjectRenderError::Invalid(
+                "text project revision differs".into(),
+            ));
+        }
         let chain = self.fonts.resolve(style)?;
-        Ok(if chain.fonts.is_empty() {
-            chain.deferred.clone()
-        } else {
-            None
-        })
+        self.coverage.inspect(style, locale, chain, &self.shaper)
     }
 
     pub fn new(
@@ -100,6 +108,7 @@ impl NativeProjectText {
             shaper: TextShaper::new(TextShapeConfig::default())?,
             raster: GlyphRasterizer::new(GlyphRasterConfig::default())?,
             generations: GlyphGenerations::new(GlyphGenerationConfig::default())?,
+            coverage: TextCoverage::new(Default::default())?,
         })
     }
 
@@ -227,10 +236,15 @@ impl NativeProjectText {
             Ok(prepared) => Ok(ProjectTextOutcome::Native(Box::new(prepared))),
             Err(ProjectRenderError::TextShape(
                 error @ (TextShapeError::Unsupported(_) | TextShapeError::MissingGlyph { .. }),
-            )) => Ok(ProjectTextOutcome::Retained(TextCapability {
+            )) => Ok(ProjectTextOutcome::Retained(Box::new(TextCapability {
                 project_sha256: self.project_sha256.clone(),
                 request,
                 stage: "layout".into(),
+                fonts: chain
+                    .selections
+                    .iter()
+                    .map(TextFontEvidence::from)
+                    .collect(),
                 reason: format!(
                     "{error}{}",
                     chain
@@ -238,15 +252,20 @@ impl NativeProjectText {
                         .as_ref()
                         .map_or(String::new(), |r| format!("; {r}"))
                 ),
-            })),
+            }))),
             Err(ProjectRenderError::GlyphRaster(aster_text::GlyphRasterError::Unsupported(
                 reason,
-            ))) => Ok(ProjectTextOutcome::Retained(TextCapability {
+            ))) => Ok(ProjectTextOutcome::Retained(Box::new(TextCapability {
                 project_sha256: self.project_sha256.clone(),
                 request,
                 stage: "raster".into(),
+                fonts: chain
+                    .selections
+                    .iter()
+                    .map(TextFontEvidence::from)
+                    .collect(),
                 reason: reason.into(),
-            })),
+            }))),
             Err(error) => Err(error),
         }
     }

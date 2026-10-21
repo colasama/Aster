@@ -1,6 +1,6 @@
 use crate::{
     NativeProjectDocument, NativeProjectText, PreparedProjectText, ProjectRasterFrame,
-    ProjectRenderError, ProjectTextOutcome, ProjectTextRequest, TextCapability,
+    ProjectRenderError, ProjectTextOutcome, ProjectTextRequest, TextCapability, TextFontEvidence,
     text_style::ProjectTextStyle,
 };
 use aster_eval::{
@@ -92,12 +92,12 @@ impl NativeProjectText {
                 .scene
                 .layer(&request.composition_id, &request.layer_id)?;
             let style = ProjectTextStyle::from_layer(layer)?;
-            let unavailable = self.unavailable_font_reason(&style)?;
+            let coverage = self.inspect_font_coverage(document, &style, &context.locale)?;
             let reason = if !cfg!(windows) {
                 Some("platform coverage has not been qualified on this host")
             } else if let Some(reason) = style.color_coverage_reason() {
                 Some(reason)
-            } else if let Some(reason) = &unavailable {
+            } else if let Some(reason) = &coverage.reason {
                 Some(reason.as_str())
             } else if style.stroke_width > 0. {
                 Some("stroke coverage exceeds the isolated raster alpha limit")
@@ -125,12 +125,13 @@ impl NativeProjectText {
                 None
             };
             let outcome = if let Some(reason) = reason {
-                ProjectTextOutcome::Retained(TextCapability {
+                ProjectTextOutcome::Retained(Box::new(TextCapability {
                     project_sha256: document.runtime_sha256.clone(),
                     request: text_request,
                     stage: "production-coverage".into(),
                     reason: reason.into(),
-                })
+                    fonts: coverage.fonts,
+                }))
             } else {
                 self.prepare(document, text_request)?
             };
@@ -169,6 +170,7 @@ impl NativeProjectText {
                                 request: prepared.request,
                                 stage: "production-coverage".into(),
                                 reason: reason.into(),
+                                fonts: prepared.fonts.iter().map(TextFontEvidence::from).collect(),
                             },
                         });
                         continue;
@@ -189,7 +191,7 @@ impl NativeProjectText {
                     routes.push(ProjectTextRoute {
                         instance_id: request.instance_id.clone(),
                         frame: None,
-                        capability,
+                        capability: *capability,
                     });
                 }
             }
@@ -290,6 +292,7 @@ impl ProjectTextRouting {
                     request: prepared.request.clone(),
                     stage: "native-glyph".into(),
                     reason: "ordinary outline fill through the platform glyph atlas".into(),
+                    fonts: prepared.fonts.iter().map(TextFontEvidence::from).collect(),
                 },
             });
             rasters.resources.extend([source, frame]);

@@ -77,6 +77,19 @@ export function auditTextRouting(receipt, observed, runtimeSha) {
         "Capability request time or scale differs",
       );
       assert(route.capability.reason.length > 0);
+      assert(Array.isArray(route.capability.fonts) && route.capability.fonts.length <= 16);
+      for (const font of route.capability.fonts) {
+        assert(typeof font.family === "string" && font.family.length > 0);
+        assert(Array.isArray(font.face.sha256) && font.face.sha256.length === 32);
+        assert(font.face.sha256.every((b) => Number.isInteger(b) && b >= 0 && b <= 255));
+        assert(Number.isInteger(font.face.index) && font.face.index >= 0);
+        assert(Array.isArray(font.variations) && font.variations.length <= 64);
+        for (const [tag, value] of font.variations) {
+          assert(tag.length === 4 && tag.every((b) => Number.isInteger(b) && b >= 0 && b <= 255));
+          assert(Number.isFinite(value));
+        }
+      }
+      if (route.frame !== null) assert(route.capability.fonts.length > 0);
       reasons[route.capability.reason] = (reasons[route.capability.reason] ?? 0) + 1;
     }
     if (nativeIds.has(instance)) {

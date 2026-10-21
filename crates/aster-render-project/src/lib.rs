@@ -25,6 +25,7 @@ pub use raster_provider::{NativeRasterProvider, RasterProviderOptions, RasterPro
 mod session;
 mod text;
 mod text_capture;
+mod text_coverage;
 mod text_fonts;
 mod text_paint;
 mod text_raster;
@@ -42,6 +43,7 @@ pub use text::{
     NativeProjectText, PreparedProjectText, ProjectTextOutcome, ProjectTextRequest, TextCapability,
 };
 pub use text_capture::CapturedProjectText;
+pub use text_coverage::TextFontEvidence;
 pub use text_paint::{ProjectTextPaint, TextAffine};
 pub use text_routing::{ProjectTextFrame, ProjectTextRoute};
 

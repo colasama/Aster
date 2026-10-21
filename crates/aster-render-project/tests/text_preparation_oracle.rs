@@ -124,7 +124,9 @@ fn project_text_preparation_against_canvas() -> Result<(), Box<dyn std::error::E
                     let _input = prepared.into_input(ResourceHash("1".repeat(64)), 268_435_456)?;
                     receipt
                 }
-                ProjectTextOutcome::Retained(capability) => Outcome::Retained { capability },
+                ProjectTextOutcome::Retained(capability) => Outcome::Retained {
+                    capability: *capability,
+                },
             });
         }
         receipts.push(Receipt {
