@@ -36,11 +36,13 @@ crc32fast = "=1.5.0"
 exr = { version = "1.74.2", default-features = false }
 flate2 = "=1.1.9"
 glam = { version = "0.33.5", features = ["serde"] }
+harfrust = "=0.14.0"
 indexmap = { version = "2.14.0", features = ["serde"] }
 image-webp = "=0.2.4"
 icu_collator = "=2.3.1"
 icu_casemap = "=2.3.0"
 icu_locale_core = "=2.3.0"
+icu_segmenter = "=2.3.0"
 naga = { version = "30.0.0", features = ["wgsl-in"] }
 parking_lot = "0.12.5"
 pollster = "1.0.1"

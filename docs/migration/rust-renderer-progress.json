@@ -363,39 +363,17 @@
     }
   },
   "last_cycle": {
-    "id": 121,
-    "time": "2026-10-20T22:43:47.490Z",
-    "updated_at": "2026-10-20T22:43:47.490Z",
+    "id": 122,
+    "time": "2026-10-20T22:45:03.201Z",
+    "updated_at": "2026-10-20T22:45:03.201Z",
     "milestone": "M10",
-    "task": "M10-T3",
-    "outcome": "passed",
-    "commit": "77675460262d554a89f40f8d84f08604a0930245",
-    "verification": {
+    "task": "M10-T4",
+    "outcome": "in_progress",
+    "previous_verification": {
       "path": "artifacts/migration/verify-2026-10-20T22-10-45-805Z-eb5070df.json",
       "sha256": "c33f1a5304f6ce8c8dfbaf5268a9f91751b6a14046a7cf1914c4e39ad3b7b640"
     },
-    "gates": [
-      {
-        "id": "G0",
-        "status": "passed",
-        "duration_ms": 252857,
-        "proof": {
-          "path": "artifacts/migration/2026-10-20T22-10-45-805Z-eb5070df/static-results.json",
-          "sha256": "cfed072e67ccf7adca80e6bcd53bc644d6516e8388b82bfdf4e57ba71db9c407"
-        }
-      },
-      {
-        "id": "G3",
-        "status": "passed",
-        "duration_ms": 1681829,
-        "proof": {
-          "path": "artifacts/migration/2026-10-20T22-10-45-805Z-eb5070df/G3/report.json",
-          "sha256": "656e1740cda1491926b338788848d668cf2a1b8c785e7b49f6b64c0aa69b93c6"
-        }
-      }
-    ],
-    "duration_ms": 1937366,
-    "next_step": "M10-T4: implement bounded native shaping and production-compatible segmentation/layout; use authenticated TS observations and retain explicit unsupported reasons where strict glyph evidence or layout limits cannot be satisfied."
+    "next_step": "Run full M10 G0/G3, then commit the bounded native shaping/layout increment with exact unsupported follow-ups."
   },
   "milestones": [
     {
@@ -24143,7 +24121,7 @@
         {
           "id": "M10-T4",
           "title": "Implement native shaping and production-compatible line layout",
-          "status": "pending",
+          "status": "in_progress",
           "scope": "Support bounded shaping, segmentation, direction, fallback face runs, tracking, leading and alignment; reproduce existing whitespace and wrap behavior.",
           "acceptance": "Advance and baseline deltas at most 0.5 px and exact line breaks for admitted cases; explicit unsupported reasons for cases that cannot meet the limits; G0/G3 green.",
           "estimated_implementation_hours": 2,
@@ -24155,6 +24133,121 @@
             "path": "artifacts/migration/cycle121-layout-shaping-preparation.json",
             "sha256": "33b68b260ee7b3e3f36ee76604265d8329bcc3af0fee336e93c0aed545c4415f",
             "status": "read_only_preparation; dependency admission and native implementation remain pending"
+          },
+          "started_at": "2026-10-20T22:45:03.201Z",
+          "progress": {
+            "state": "component_canary_passed_full_gates_pending",
+            "features": [
+              "Bounded pure-Rust HarfRust shaping with authenticated variable faces, UTF-16 clusters and contextual fallback runs",
+              "ICU segmentation and production-compatible whitespace, wrapping, tracking, leading and alignment",
+              "Actual production natural line origins separated from animator compensation; complete paired text observations"
+            ],
+            "acceptance_boundary": "Component shaping and layout only; strict glyph/raster acceptance, atlas composition and production routing remain later M10 tasks.",
+            "focused_validation": {
+              "text_tests": 25,
+              "verifier_tests": 2,
+              "typecheck": "passed",
+              "cargo_deny": "passed",
+              "canary": {
+                "path": "artifacts/migration/cycle122-layout-canary2/native-shaping/report.json",
+                "sha256": "e8461082719e1f246d72d91b406a8bf12c11a290bbf69f2f7a666f2c7fc602bf",
+                "coverage": {
+                  "records": 58309,
+                  "draws": 285185,
+                  "unique_requests": 1153,
+                  "native_requests": 1138,
+                  "unsupported_requests": 15
+                },
+                "shape_requests": 914,
+                "layout_requests": 224,
+                "max_advance_delta": 0.341993286132813,
+                "max_baseline_delta": 0.015625,
+                "max_line_anchor_delta": 0.000004272460955689894
+              }
+            },
+            "unsupported": [
+              {
+                "id": "d0aff3cf772f418e99ec13f7cfc9f0c9869a94be0e634e5a1c2bbba66636f013",
+                "reason": "Requested font families unavailable",
+                "uses": 5
+              },
+              {
+                "id": "ca12d43d4998307e81d3c34abcd93fcd49817dea7845a9f7c28e44dd4d3c4b45",
+                "reason": "Requested font families unavailable",
+                "uses": 10
+              },
+              {
+                "id": "b0f76d39d8e2aa7498f7e61d2a893a6c31c51cbe3936a71db655dcda7c1573a8",
+                "reason": "Requested font families unavailable",
+                "uses": 10
+              },
+              {
+                "id": "751dda82c155e0ec5abb4775d70adaf35ac6f8ec0cd0a867e2bc2f38e08ed97d",
+                "reason": "Requested font families unavailable",
+                "uses": 5
+              },
+              {
+                "id": "5db0f8f8f91e472efeec735b9f42b47ebb979f51b527b8680441d958770d0230",
+                "reason": "Requested font families unavailable",
+                "uses": 5
+              },
+              {
+                "id": "877f3bb1c4d2c6b1e81e405e364cf1aa3503416d81a9bfc8c33aae8ce319b473",
+                "reason": "Requested font families unavailable",
+                "uses": 10
+              },
+              {
+                "id": "035b82bf8c7acca94774c1430087cccd450f08315c02233ab395535003517d29",
+                "reason": "Requested font families unavailable",
+                "uses": 5
+              },
+              {
+                "id": "942473aa5753c3e2d73af20f4e727d92925c89d7db94051bbc356234b789ca2c",
+                "reason": "Requested font families unavailable",
+                "uses": 5
+              },
+              {
+                "id": "f18a565f436af6c6bc24942acbc520db210fda5bce98315d669357e37dc742f2",
+                "reason": "Requested font families unavailable",
+                "uses": 5
+              },
+              {
+                "id": "12a2b0c16b233bba9d8851bb8c50e38559d008324090ab8a2bf69a2e8456ff88",
+                "reason": "no admitted fallback font covers UTF-16 interval 0..1",
+                "uses": 345
+              },
+              {
+                "id": "5fef6647e88e0ca60939ceb617bb5b4e10a3dedb83fc2248882a75039df063de",
+                "reason": "no admitted fallback font covers UTF-16 interval 0..1",
+                "uses": 345
+              },
+              {
+                "id": "4fa96af12e8ada02d0fdba65aa01799ebbe5fb026ae5f009dc68843a946352f8",
+                "reason": "no admitted fallback font covers UTF-16 interval 0..1",
+                "uses": 48
+              },
+              {
+                "id": "c3e59593ddba91445ab4be9d5743cbe48b608319d4311f12a7e2c46e8a538973",
+                "reason": "no admitted fallback font covers UTF-16 interval 0..1",
+                "uses": 48
+              },
+              {
+                "id": "2d7dfc1ca4b8ecaac7c63e71040cbd09f7bd285ecbac6583601ddbc97fd58ae3",
+                "reason": "no admitted fallback font covers UTF-16 interval 0..1",
+                "uses": 38
+              },
+              {
+                "id": "f6e58174c4e599ca9cf5fa95dbb60ae3307b1a9be2cca61a3b18be030ca53555",
+                "reason": "no admitted fallback font covers UTF-16 interval 0..1",
+                "uses": 38
+              }
+            ],
+            "evidence": [
+              "artifacts/migration/cycle122-text-tests6.log",
+              "artifacts/migration/cycle122-typecheck2.log",
+              "artifacts/migration/cycle122-cargo-deny.log",
+              "artifacts/migration/cycle122-layout-canary1/report.json"
+            ]
           }
         },
         {
@@ -24197,6 +24290,20 @@
               "status": "pending",
               "title": "Bind WOFF2 and embedded-collection capability reasons to authenticated retained raster routing",
               "acceptance": "The selected project font id, bytes and revision remain bound to retained provider validation and pixels; malformed bytes are rejected by that provider; no platform substitution or blanket text fallback."
+            },
+            {
+              "status": "pending",
+              "title": "Bind missing Agency FB and Georgia Roman-numeral fallback to exact retained-provider reasons",
+              "acceptance": "Authenticate the actual font and text identity in production routing; do not substitute unverified OS fallback or apply blanket text fallback.",
+              "evidence": {
+                "path": "artifacts/migration/cycle122-layout-canary2/native-shaping/report.json",
+                "sha256": "e8461082719e1f246d72d91b406a8bf12c11a290bbf69f2f7a666f2c7fc602bf"
+              }
+            },
+            {
+              "status": "pending",
+              "title": "Bind mixed bidi and embedded-font layout capabilities to verified production routing",
+              "acceptance": "Use native embedded faces where admitted; otherwise retain precise script/container/font reasons. Diagnostic system-font success does not establish embedded-font or mixed-bidi pixel acceptance."
             }
           ]
         },
@@ -2440023,20 +2440130,14 @@
     }
   ],
   "active_cycle": {
-    "id": 121,
+    "id": 122,
     "milestone": "M10",
-    "task": "M10-T3",
-    "increment": "Capture production TS layout observations for native comparison",
-    "started_at": "2026-10-20T21:53:29.967Z",
-    "updated_at": "2026-10-20T22:43:47.490Z",
-    "implementation_state": "committed",
+    "task": "M10-T4",
+    "increment": "Implement native shaping and production-compatible line layout",
+    "started_at": "2026-10-20T22:45:03.201Z",
+    "updated_at": "2026-10-20T23:28:13.600Z",
+    "implementation_state": "verification_pending",
     "previous_verification": {
-      "path": "artifacts/migration/verify-2026-10-20T21-23-29-944Z-a8be3302.json",
-      "sha256": "a4f5e74f24512b9ada9980338841b0d09ce76017bf304ab4673909a6208d9132"
-    },
-    "outcome": "passed",
-    "commit": "77675460262d554a89f40f8d84f08604a0930245",
-    "verification": {
       "path": "artifacts/migration/verify-2026-10-20T22-10-45-805Z-eb5070df.json",
       "sha256": "c33f1a5304f6ce8c8dfbaf5268a9f91751b6a14046a7cf1914c4e39ad3b7b640"
     }

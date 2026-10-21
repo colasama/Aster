@@ -17,6 +17,7 @@ aster-media-native.workspace = true
 aster-video.workspace = true
 aster-render.workspace = true
 aster-encode.workspace = true
+aster-text.workspace = true
 clap.workspace = true
 serde.workspace = true
 serde_json.workspace = true

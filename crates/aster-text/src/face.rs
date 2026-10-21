@@ -5,7 +5,9 @@ use read_fonts::{FontRef, TableProvider, tables::os2::SelectionFlags, types::Nam
 
 use crate::catalog::{FontCatalogConfig, FontCatalogError};
 
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(
+    Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, serde::Serialize, serde::Deserialize,
+)]
 pub struct FontFaceId {
     pub sha256: [u8; 32],
     pub index: u32,

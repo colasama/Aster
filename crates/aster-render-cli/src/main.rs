@@ -18,6 +18,7 @@ mod render_input;
 mod render_plan;
 mod render_project;
 mod serve;
+mod text_layout;
 
 use std::process::ExitCode;
 
@@ -55,6 +56,8 @@ enum Command {
     PlanDiff(Box<plan_diff::PlanDiffArgs>),
     /// Exchange bounded controls and binary supplied-frame resources with the application host.
     Serve(Box<serve::ServeArgs>),
+    /// Observe bounded native text shaping and line layout without producing raster pixels.
+    TextLayout(Box<text_layout::TextLayoutArgs>),
 }
 
 #[derive(Serialize)]
@@ -76,6 +79,7 @@ impl Cli {
             Command::PrepareResources(arguments) => arguments.run(),
             Command::PlanDiff(arguments) => arguments.run(),
             Command::Serve(arguments) => arguments.run(),
+            Command::TextLayout(arguments) => arguments.run(),
         }
     }
 }

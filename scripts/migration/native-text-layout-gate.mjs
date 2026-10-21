@@ -6,6 +6,7 @@ import { build, preview } from "vite";
 import { decodeRgbaPng } from "../parity/png.mjs";
 import { sha256 } from "./m0-evidence.mjs";
 import { assertTextLayoutPair } from "./native-text-layout-audit.mjs";
+import { runNativeTextShapingGate } from "./native-text-shaping-gate.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile, sourceProvenance } from "./source.mjs";
@@ -205,6 +206,28 @@ export async function runNativeTextLayoutGate(context, execute = runStep, option
         },
       });
       assert.equal(await hashFile(assignment.project_path), assignment.project_sha256);
+    }
+    let nativeShaping = options.nativeShaping;
+    if (nativeShaping === undefined && context.milestone === "M10") {
+      const ledger = JSON.parse(
+        await readFile(join(context.root, "docs/migration/rust-renderer-progress.json")),
+      );
+      nativeShaping =
+        ledger.milestones.find((m) => m.id === "M10").tasks.find((t) => t.id === "M10-T4")
+          ?.status !== "pending";
+    }
+    if (nativeShaping) {
+      report.native_shaping = await runNativeTextShapingGate(
+        { ...context, output: join(context.output, "native-shaping") },
+        context.output,
+        execute,
+        options.binary,
+      );
+      assert.equal(
+        report.native_shaping.status,
+        "passed",
+        "Native text layout component comparison failed",
+      );
     }
     report.source_after = await sourceProvenance(context.root);
     assert.equal(report.source_after.source_sha256, report.source.source_sha256);

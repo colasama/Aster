@@ -579,6 +579,21 @@ spans and selection geometry, not raw glyph identities. These observations suppo
 layout comparisons but cannot by themselves establish per-glyph or native text pixel acceptance.
 Original reference rasters remain unchanged.
 
+Native text layout uses HarfRust behind `aster-text`, with authenticated physical faces and complete
+variation locations. Shaping returns UTF-16 cluster spans, glyph IDs, advances and offsets; ordered
+fallback faces are selected at grapheme boundaries. ICU4X supplies word and grapheme segmentation.
+Line layout preserves the existing first-token overflow, whitespace trimming, tracking, alignment,
+leading and per-grapheme draw rules. Typographic line metrics determine the normalized Canvas middle
+baseline. Codepoint, glyph-expansion, font-chain, measurement-work and output limits reject incomplete
+results before publication. Homogeneous RTL runs are supported; mixed bidi and unverified implicit
+platform fallback have explicit retained-renderer reasons.
+The `text-layout` diagnostic compares this component against actual Canvas observations, including
+wrapped lines and observed natural line anchors before animator compensation, including empty lines.
+Its system-font inventory keeps only requested families resident.
+Embedded font sets can supply the same immutable native face interface; the diagnostic currently
+rejects embedded-project comparisons instead of substituting system fonts. Component metric success
+does not establish raw browser glyph identity, native raster pixels or production text routing.
+
 ## Pi agent runtime
 
 The desktop host runs Pi in an Electron utility process. Pi receives only Aster-owned meta-tools by

@@ -11,6 +11,8 @@ mod face;
 mod project_font_input;
 mod project_fonts;
 mod selection;
+mod shaping;
+mod text_layout;
 mod woff;
 
 #[cfg(test)]
@@ -19,6 +21,8 @@ mod catalog_test_font;
 mod catalog_tests;
 #[cfg(test)]
 mod project_font_tests;
+#[cfg(test)]
+mod shaping_tests;
 
 pub use atlas::{
     AtlasConfig, AtlasFormat, AtlasLimits, AtlasRect, GlyphAtlas, GlyphAtlasDescriptor,
@@ -33,3 +37,8 @@ pub use face::{FontAxis, FontFaceId, FontFaceMetadata, FontStyle};
 pub use project_font_input::ProjectFontConfig;
 pub use project_fonts::{ProjectFontFallback, ProjectFontResolution, ProjectFontSet};
 pub use selection::{FontRequest, FontSelection};
+pub use shaping::{
+    NativeFont, PositionedGlyph, ShapedText, TextDirection, TextShapeConfig, TextShapeError,
+    TextShaper,
+};
+pub use text_layout::{LayoutLine, TextAlignment, TextLayout, TextLayoutRequest, TextLayoutResult};

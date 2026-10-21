@@ -77,6 +77,7 @@ export function observeTextRaster(
     {
       draws: TextDrawObservation[];
       measures: { text: string; font: string; width: number }[];
+      lineOrigins: number[][];
     }
   >();
   let calls = 0;
@@ -94,6 +95,7 @@ export function observeTextRaster(
     const record = {
       draws: [] as TextDrawObservation[],
       measures: [] as { text: string; font: string; width: number }[],
+      lineOrigins: [] as number[][],
     };
     observations.set(this, record);
     let depth = 0;
@@ -152,8 +154,10 @@ export function observeTextRaster(
           }
           if (property === "save") depth += 1;
           if (property === "restore") depth -= 1;
-          if (property === "translate" && depth === 1)
+          if (property === "translate" && depth === 1) {
             lineTransform = Array.from(object.getTransform().toFloat64Array());
+            record.lineOrigins.push([Number(parameters[0]), Number(parameters[1])]);
+          }
           return result;
         };
       },
@@ -176,6 +180,7 @@ export function observeTextRaster(
   const actualScale = raster.width / raster.bounds.width;
   context.save();
   context.font = `${style.fontStyle ?? "normal"} ${style.fontWeight} ${style.fontSize * actualScale}px ${cssFontFamily(style.fontFamily)}`;
+  const layoutFont = context.font;
   const lines = breakTextLines(
     layer.text ?? layer.name,
     layer.size[0] * actualScale * 0.94,
@@ -183,6 +188,10 @@ export function observeTextRaster(
     style.tracking * actualScale,
   );
   context.restore();
+  // Animated lines translate once for natural layout and again for animator compensation.
+  const originStride = layer.textAnimator?.enabled ? 2 : 1;
+  if (record.lineOrigins.length !== lines.length * originStride)
+    throw new Error("Production line-origin observation coverage changed");
   return {
     raster,
     observations: {
@@ -191,6 +200,20 @@ export function observeTextRaster(
       wrapped_lines: lines,
       scale: actualScale,
       requested_scale: scale,
+      layout_font: layoutFont,
+      layout_origins: record.lineOrigins.filter((_, index) => index % originStride === 0),
+      layout_input: {
+        text: layer.text ?? layer.name,
+        width: layer.size[0] * actualScale,
+        height: layer.size[1] * actualScale,
+        font_size: style.fontSize * actualScale,
+        tracking: style.tracking * actualScale,
+        leading: style.leading * actualScale,
+        alignment: style.alignment,
+        direction: "left_to_right",
+        language: new Intl.Segmenter().resolvedOptions().locale,
+        per_grapheme: Boolean(layer.textAnimator?.enabled),
+      },
       draw_mode:
         layer.textAnimator?.enabled || Math.abs(style.tracking * actualScale) >= 0.000_01
           ? "per-grapheme"

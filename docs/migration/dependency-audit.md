@@ -2,6 +2,17 @@
 
 ## Native font catalog dependencies
 
+Native shaping adds HarfRust 0.14.0 (MIT), the maintained pure-Rust HarfBuzz port, and reuses the
+already locked `read-fonts` 0.45.1 parser. ICU4X `icu_segmenter` and `icu_segmenter_data` 2.3.0
+(Unicode-3.0) supply word and grapheme segmentation; `core_maths` 0.1.1 (MIT OR Apache-2.0)
+reuses the existing `libm`. The lockfile adds exactly these four packages and changes no existing
+package version. No native C/C++ library or project-format change is introduced. HarfRust forbids
+unsafe code and exposes an allocation/operation-success flag that Aster checks in addition to the
+shaping result. Input bounds also limit its internal expansion and operation budgets.
+`cargo deny check` passes advisories, bans, licenses and sources; evidence is retained in
+`artifacts/migration/cycle122-cargo-deny.log`. The previously recorded unavailable `cargo audit`
+command remains a release-audit limitation. This component increment is not a release.
+
 The native font catalog adds `read-fonts` 0.45.1 and its `font-types` 0.12.7 dependency
 (MIT OR Apache-2.0), maintained in Google's Fontations project. Table parsing stays behind
 `aster-text` interfaces and bounds face counts, resident bytes, family names and variation axes.
