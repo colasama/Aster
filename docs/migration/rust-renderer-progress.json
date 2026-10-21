@@ -370,40 +370,40 @@
     }
   },
   "last_cycle": {
-    "id": 129,
-    "time": "2026-10-21T18:10:35.335Z",
-    "updated_at": "2026-10-21T18:10:35.335Z",
+    "id": 130,
+    "time": "2026-10-21T19:42:11.884Z",
+    "updated_at": "2026-10-21T19:42:11.884Z",
     "milestone": "M10",
     "task": "M10-T7",
     "increment": "production-routing",
     "outcome": "passed",
-    "commit": "cb18e0874f6837ab8240589fa167bb7c4dcf7025",
+    "commit": "dcf5d043eb101155e6cfb9837336f25990a427c3",
     "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T17-24-03-056Z-2b047559.json",
-      "sha256": "84ac2e02212d0f1b515d1e0d8f067a1dcc68535a330293ac6e8ae6af5c496365"
+      "path": "artifacts/migration/verify-2026-10-21T18-48-59-272Z-5bc5b7bd.json",
+      "sha256": "c901f25b767cbeed5fa6d2e94fcc302e8adde51962675f3212b1fe5f5b97e6e1"
     },
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 319977,
+        "duration_ms": 313079,
         "proof": {
-          "path": "artifacts/migration/2026-10-21T17-24-03-056Z-2b047559/static-results.json",
-          "sha256": "765d5d3f4548eb8e48abe596ac8ad5aced28548df827bbe61868870f24e76ad5"
+          "path": "artifacts/migration/2026-10-21T18-48-59-272Z-5bc5b7bd/static-results.json",
+          "sha256": "b789785093079a2bea802ae0004be7c3a3dd933860a8422ee3c2420877761043"
         }
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 2441350,
+        "duration_ms": 2857418,
         "proof": {
-          "path": "artifacts/migration/2026-10-21T17-24-03-056Z-2b047559/G3/report.json",
-          "sha256": "8ff20123c8948c4973cbf00e7e4f6662eb4b4da342ebb716854c1868d8132c5e"
+          "path": "artifacts/migration/2026-10-21T18-48-59-272Z-5bc5b7bd/G3/report.json",
+          "sha256": "48c0f85519b17cc80179ca8d1f9d73b7cde4d3d7cb1fe61fad0fb12cbe9bafac"
         }
       }
     ],
-    "duration_ms": 2763982,
-    "next_step": "Continue M10-T7 with complete production capability audit for corpus and owner/nested text; authenticate exact native substitutions and retained reasons without weakening general plan comparison, then complete M10-T8 exit audit."
+    "duration_ms": 3173202,
+    "next_step": "Continue M10-T7 with authenticated embedded-container, font/script and color/blur capability follow-ups; complete temporal shared-union acceptance where applicable, then finish the M10-T8 exit audit."
   },
   "milestones": [
     {
@@ -24844,9 +24844,9 @@
             }
           ],
           "preparation": {
-            "path": "artifacts/migration/cycle129-next-preparation.json",
-            "sha256": "c9e1c9fea6438a1a0c18395b908b4981e28752eb41e2adee51aebadabf6eba7a",
-            "status": "read_only_preparation"
+            "path": "artifacts/migration/cycle130-next-preparation.json",
+            "sha256": "9054e4242850cc6e0c1055befe6093e4b48b116e6b09753260e2c15927810b82",
+            "status": "preparation_only"
           },
           "progress": {
             "state": "qualified_fill_production_routing_verified_remaining_capabilities_pending",
@@ -24903,11 +24903,111 @@
                 "status": "in_progress",
                 "scope": "Partition authenticated retained requests and route native text through project sessions and export. Verify actual TS raster omission and full project pixel/layout acceptance.",
                 "latest_verified_partial": {
-                  "cycle": 129,
-                  "commit": "cb18e0874f6837ab8240589fa167bb7c4dcf7025",
+                  "cycle": 130,
+                  "commit": "dcf5d043eb101155e6cfb9837336f25990a427c3",
                   "verification": {
-                    "path": "artifacts/migration/verify-2026-10-21T17-24-03-056Z-2b047559.json",
-                    "sha256": "84ac2e02212d0f1b515d1e0d8f067a1dcc68535a330293ac6e8ae6af5c496365"
+                    "path": "artifacts/migration/verify-2026-10-21T18-48-59-272Z-5bc5b7bd.json",
+                    "sha256": "c901f25b767cbeed5fa6d2e94fcc302e8adde51962675f3212b1fe5f5b97e6e1"
+                  },
+                  "production_capability_audit": {
+                    "cycle": 130,
+                    "status": "passed",
+                    "evidence": {
+                      "path": "artifacts/migration/2026-10-21T18-48-59-272Z-5bc5b7bd/G3/native-text-layout/native-text-routing/report.json",
+                      "sha256": "326d4e2d838288360689f706bc89fe978ca8ba235aca47ed203404656cdf926b"
+                    },
+                    "cases": [
+                      {
+                        "id": "enchanted-love",
+                        "frames": 206,
+                        "records": 14,
+                        "native": 0,
+                        "retained": 14,
+                        "exact_pixels": 14,
+                        "temporal_samples": 0,
+                        "reasons": {
+                          "extended-range text color requires raster qualification": 4,
+                          "requested font families unavailable: Agency FB": 5,
+                          "requested primary family and CSS family syntax require raster qualification": 5
+                        }
+                      },
+                      {
+                        "id": "owner-opening",
+                        "frames": 378,
+                        "records": 9635,
+                        "native": 0,
+                        "retained": 9635,
+                        "exact_pixels": 9635,
+                        "temporal_samples": 0,
+                        "reasons": {
+                          "per-character paint and affine coverage require pixel qualification": 9611,
+                          "stroke coverage exceeds the isolated raster alpha limit": 24
+                        }
+                      },
+                      {
+                        "id": "owner-main",
+                        "frames": 674,
+                        "records": 48450,
+                        "native": 0,
+                        "retained": 48450,
+                        "exact_pixels": 48450,
+                        "temporal_samples": 0,
+                        "reasons": {
+                          "per-character paint and affine coverage require pixel qualification": 48426,
+                          "stroke coverage exceeds the isolated raster alpha limit": 24
+                        }
+                      },
+                      {
+                        "id": "layer-text",
+                        "frames": 70,
+                        "records": 70,
+                        "native": 0,
+                        "retained": 70,
+                        "exact_pixels": 70,
+                        "temporal_samples": 0,
+                        "reasons": {
+                          "stroke coverage exceeds the isolated raster alpha limit": 70
+                        }
+                      },
+                      {
+                        "id": "scene-motion-blur",
+                        "frames": 70,
+                        "records": 70,
+                        "native": 70,
+                        "retained": 0,
+                        "exact_pixels": 0,
+                        "temporal_samples": 0,
+                        "reasons": {
+                          "ordinary outline fill through the platform glyph atlas": 70
+                        }
+                      },
+                      {
+                        "id": "scene-text-animators",
+                        "frames": 70,
+                        "records": 70,
+                        "native": 0,
+                        "retained": 70,
+                        "exact_pixels": 70,
+                        "temporal_samples": 0,
+                        "reasons": {
+                          "stroke coverage exceeds the isolated raster alpha limit": 70
+                        }
+                      }
+                    ],
+                    "native_text_acceptance": false,
+                    "scope": "All six text-bearing corpus/owner cases with 1468 frames and 58309 observations. Seventy previously qualified native instances; exact independently sampled retained output. No new native capability or temporal-union pixel acceptance."
+                  },
+                  "production": {
+                    "evidence": "artifacts/migration/2026-10-21T16-36-34-937Z-47dca48d/G3/native-text-layout/native-project-session/report.json",
+                    "sha256": "168bb37665986f3fca9fc2b0a240757279a954c20fd9c4cd84c46c676b3545d3",
+                    "status": "passed",
+                    "native_samples": 70,
+                    "isolated_pixel_pairs": 1,
+                    "frozen_frame_pairs": 4,
+                    "retained_text_requests": 0,
+                    "maximum_channel_error": 1,
+                    "scope": "Windows ordinary ASCII Arial/Segoe UI outline fills at unit density; other exact capabilities remain retained.",
+                    "retained_stroke_sessions_exact": 4
                   },
                   "capture_replay": {
                     "cycle": 129,
@@ -24921,18 +25021,6 @@
                     "exact_replay": true,
                     "submitted_plan_preserved": true,
                     "scope": "Explicit diagnostics only; ordinary production and export remain GPU-resident. Remaining text capability coverage and M10 exit are pending."
-                  },
-                  "production": {
-                    "evidence": "artifacts/migration/2026-10-21T16-36-34-937Z-47dca48d/G3/native-text-layout/native-project-session/report.json",
-                    "sha256": "168bb37665986f3fca9fc2b0a240757279a954c20fd9c4cd84c46c676b3545d3",
-                    "status": "passed",
-                    "native_samples": 70,
-                    "isolated_pixel_pairs": 1,
-                    "frozen_frame_pairs": 4,
-                    "retained_text_requests": 0,
-                    "maximum_channel_error": 1,
-                    "scope": "Windows ordinary ASCII Arial/Segoe UI outline fills at unit density; other exact capabilities remain retained.",
-                    "retained_stroke_sessions_exact": 4
                   }
                 }
               }
@@ -24980,45 +25068,120 @@
               "status": "recovered_without_source_or_evidence_changes"
             },
             "latest_verified_increment": {
-              "cycle": 129,
-              "commit": "cb18e0874f6837ab8240589fa167bb7c4dcf7025",
+              "cycle": 130,
+              "commit": "dcf5d043eb101155e6cfb9837336f25990a427c3",
               "verification": {
-                "path": "artifacts/migration/verify-2026-10-21T17-24-03-056Z-2b047559.json",
-                "sha256": "84ac2e02212d0f1b515d1e0d8f067a1dcc68535a330293ac6e8ae6af5c496365"
+                "path": "artifacts/migration/verify-2026-10-21T18-48-59-272Z-5bc5b7bd.json",
+                "sha256": "c901f25b767cbeed5fa6d2e94fcc302e8adde51962675f3212b1fe5f5b97e6e1"
               },
               "gates": [
                 {
                   "id": "G0",
                   "status": "passed",
-                  "duration_ms": 319977,
+                  "duration_ms": 313079,
                   "proof": {
-                    "path": "artifacts/migration/2026-10-21T17-24-03-056Z-2b047559/static-results.json",
-                    "sha256": "765d5d3f4548eb8e48abe596ac8ad5aced28548df827bbe61868870f24e76ad5"
+                    "path": "artifacts/migration/2026-10-21T18-48-59-272Z-5bc5b7bd/static-results.json",
+                    "sha256": "b789785093079a2bea802ae0004be7c3a3dd933860a8422ee3c2420877761043"
                   }
                 },
                 {
                   "id": "G3",
                   "status": "passed",
-                  "duration_ms": 2441350,
+                  "duration_ms": 2857418,
                   "proof": {
-                    "path": "artifacts/migration/2026-10-21T17-24-03-056Z-2b047559/G3/report.json",
-                    "sha256": "8ff20123c8948c4973cbf00e7e4f6662eb4b4da342ebb716854c1868d8132c5e"
+                    "path": "artifacts/migration/2026-10-21T18-48-59-272Z-5bc5b7bd/G3/report.json",
+                    "sha256": "48c0f85519b17cc80179ca8d1f9d73b7cde4d3d7cb1fe61fad0fb12cbe9bafac"
                   }
                 }
               ],
-              "duration_ms": 2763982,
-              "capture_replay": {
-                "cycle": 129,
+              "duration_ms": 3173202,
+              "production_capability_audit": {
+                "cycle": 130,
                 "status": "passed",
                 "evidence": {
-                  "path": "artifacts/migration/2026-10-21T17-24-03-056Z-2b047559/G3/native-text-layout/native-project-session/capture-replay/report.json",
-                  "sha256": "5a8e61b04e80edee05e5d6de99952db6541fa2e48094d8743b279a4bd4bd992e"
+                  "path": "artifacts/migration/2026-10-21T18-48-59-272Z-5bc5b7bd/G3/native-text-layout/native-text-routing/report.json",
+                  "sha256": "326d4e2d838288360689f706bc89fe978ca8ba235aca47ed203404656cdf926b"
                 },
-                "session_samples": 70,
-                "independent_cli_frames": 4,
-                "exact_replay": true,
-                "submitted_plan_preserved": true,
-                "scope": "Explicit diagnostics only; ordinary production and export remain GPU-resident. Remaining text capability coverage and M10 exit are pending."
+                "cases": [
+                  {
+                    "id": "enchanted-love",
+                    "frames": 206,
+                    "records": 14,
+                    "native": 0,
+                    "retained": 14,
+                    "exact_pixels": 14,
+                    "temporal_samples": 0,
+                    "reasons": {
+                      "extended-range text color requires raster qualification": 4,
+                      "requested font families unavailable: Agency FB": 5,
+                      "requested primary family and CSS family syntax require raster qualification": 5
+                    }
+                  },
+                  {
+                    "id": "owner-opening",
+                    "frames": 378,
+                    "records": 9635,
+                    "native": 0,
+                    "retained": 9635,
+                    "exact_pixels": 9635,
+                    "temporal_samples": 0,
+                    "reasons": {
+                      "per-character paint and affine coverage require pixel qualification": 9611,
+                      "stroke coverage exceeds the isolated raster alpha limit": 24
+                    }
+                  },
+                  {
+                    "id": "owner-main",
+                    "frames": 674,
+                    "records": 48450,
+                    "native": 0,
+                    "retained": 48450,
+                    "exact_pixels": 48450,
+                    "temporal_samples": 0,
+                    "reasons": {
+                      "per-character paint and affine coverage require pixel qualification": 48426,
+                      "stroke coverage exceeds the isolated raster alpha limit": 24
+                    }
+                  },
+                  {
+                    "id": "layer-text",
+                    "frames": 70,
+                    "records": 70,
+                    "native": 0,
+                    "retained": 70,
+                    "exact_pixels": 70,
+                    "temporal_samples": 0,
+                    "reasons": {
+                      "stroke coverage exceeds the isolated raster alpha limit": 70
+                    }
+                  },
+                  {
+                    "id": "scene-motion-blur",
+                    "frames": 70,
+                    "records": 70,
+                    "native": 70,
+                    "retained": 0,
+                    "exact_pixels": 0,
+                    "temporal_samples": 0,
+                    "reasons": {
+                      "ordinary outline fill through the platform glyph atlas": 70
+                    }
+                  },
+                  {
+                    "id": "scene-text-animators",
+                    "frames": 70,
+                    "records": 70,
+                    "native": 0,
+                    "retained": 70,
+                    "exact_pixels": 70,
+                    "temporal_samples": 0,
+                    "reasons": {
+                      "stroke coverage exceeds the isolated raster alpha limit": 70
+                    }
+                  }
+                ],
+                "native_text_acceptance": false,
+                "scope": "All six text-bearing corpus/owner cases with 1468 frames and 58309 observations. Seventy previously qualified native instances; exact independently sampled retained output. No new native capability or temporal-union pixel acceptance."
               },
               "milestone_exit_satisfied": false
             },
@@ -25057,9 +25220,9 @@
               "sha256": "f10e51dc949f7bdacdbb830f8a4dee5b0cbda75f9f09bdfb7e94c8a5cbb13ee6"
             },
             "quota_observation": {
-              "path": "artifacts/migration/cycle129-quota-observation.json",
-              "sha256": "dcb9dfbee6e196e6f6c9f9a56445de2f6b3497f748b0d5adc56b9054d28c72b0",
-              "remaining_percent": 43
+              "path": "artifacts/migration/cycle130-quota-observation-1931.json",
+              "sha256": "fe5ae52b011ec032995753422c39f49bf44b9840292f5ef9ba9e955fa3a7af1d",
+              "remaining_percent": 40
             },
             "authored_pixel_qualification": {
               "evidence": "artifacts/migration/2026-10-21T06-26-35-910Z-a3ad85b3/G3/native-text-layout/native-project-pixels/report.json",
@@ -25191,6 +25354,15 @@
                 "capability": "color glyphs and non-Windows platform coverage",
                 "reason": "platform/color raster qualification pending",
                 "status": "retained"
+              },
+              {
+                "capability": "extended-range text color",
+                "reason": "native coverage unqualified; exact M5 output authenticated",
+                "status": "retained",
+                "evidence": {
+                  "path": "artifacts/migration/2026-10-21T18-48-59-272Z-5bc5b7bd/G3/native-text-layout/native-text-routing/report.json",
+                  "sha256": "326d4e2d838288360689f706bc89fe978ca8ba235aca47ed203404656cdf926b"
+                }
               }
             ],
             "production_routing": {
@@ -25220,7 +25392,7 @@
             },
             "complete_production_routing_check": {
               "cycle": 130,
-              "status": "focused_passed_full_gates_pending",
+              "status": "focused_passed_full_gates_passed",
               "evidence": {
                 "path": "artifacts/migration/cycle130-routing5/report.json",
                 "sha256": "07f3208b26bd30b2b064ef3426e0f751425fb2048e2ea53e1ea664f812bdbea4"
@@ -25319,6 +25491,94 @@
                   "reason": "Exact-time observations differ from production frame-rate sampled animation; retain layout evidence and add independently acquired production references, with exact frame-rate binding."
                 }
               ]
+            },
+            "production_capability_audit": {
+              "cycle": 130,
+              "status": "passed",
+              "evidence": {
+                "path": "artifacts/migration/2026-10-21T18-48-59-272Z-5bc5b7bd/G3/native-text-layout/native-text-routing/report.json",
+                "sha256": "326d4e2d838288360689f706bc89fe978ca8ba235aca47ed203404656cdf926b"
+              },
+              "cases": [
+                {
+                  "id": "enchanted-love",
+                  "frames": 206,
+                  "records": 14,
+                  "native": 0,
+                  "retained": 14,
+                  "exact_pixels": 14,
+                  "temporal_samples": 0,
+                  "reasons": {
+                    "extended-range text color requires raster qualification": 4,
+                    "requested font families unavailable: Agency FB": 5,
+                    "requested primary family and CSS family syntax require raster qualification": 5
+                  }
+                },
+                {
+                  "id": "owner-opening",
+                  "frames": 378,
+                  "records": 9635,
+                  "native": 0,
+                  "retained": 9635,
+                  "exact_pixels": 9635,
+                  "temporal_samples": 0,
+                  "reasons": {
+                    "per-character paint and affine coverage require pixel qualification": 9611,
+                    "stroke coverage exceeds the isolated raster alpha limit": 24
+                  }
+                },
+                {
+                  "id": "owner-main",
+                  "frames": 674,
+                  "records": 48450,
+                  "native": 0,
+                  "retained": 48450,
+                  "exact_pixels": 48450,
+                  "temporal_samples": 0,
+                  "reasons": {
+                    "per-character paint and affine coverage require pixel qualification": 48426,
+                    "stroke coverage exceeds the isolated raster alpha limit": 24
+                  }
+                },
+                {
+                  "id": "layer-text",
+                  "frames": 70,
+                  "records": 70,
+                  "native": 0,
+                  "retained": 70,
+                  "exact_pixels": 70,
+                  "temporal_samples": 0,
+                  "reasons": {
+                    "stroke coverage exceeds the isolated raster alpha limit": 70
+                  }
+                },
+                {
+                  "id": "scene-motion-blur",
+                  "frames": 70,
+                  "records": 70,
+                  "native": 70,
+                  "retained": 0,
+                  "exact_pixels": 0,
+                  "temporal_samples": 0,
+                  "reasons": {
+                    "ordinary outline fill through the platform glyph atlas": 70
+                  }
+                },
+                {
+                  "id": "scene-text-animators",
+                  "frames": 70,
+                  "records": 70,
+                  "native": 0,
+                  "retained": 70,
+                  "exact_pixels": 70,
+                  "temporal_samples": 0,
+                  "reasons": {
+                    "stroke coverage exceeds the isolated raster alpha limit": 70
+                  }
+                }
+              ],
+              "native_text_acceptance": false,
+              "scope": "All six text-bearing corpus/owner cases with 1468 frames and 58309 observations. Seventy previously qualified native instances; exact independently sampled retained output. No new native capability or temporal-union pixel acceptance."
             }
           }
         },
@@ -25337,8 +25597,8 @@
       ],
       "started_at": "2026-10-20T20:25:14.937Z",
       "latest_verification": {
-        "path": "artifacts/migration/verify-2026-10-21T17-24-03-056Z-2b047559.json",
-        "sha256": "84ac2e02212d0f1b515d1e0d8f067a1dcc68535a330293ac6e8ae6af5c496365"
+        "path": "artifacts/migration/verify-2026-10-21T18-48-59-272Z-5bc5b7bd.json",
+        "sha256": "c901f25b767cbeed5fa6d2e94fcc302e8adde51962675f3212b1fe5f5b97e6e1"
       }
     },
     {
@@ -2444830,6 +2445090,20 @@
         "sha256": "84ac2e02212d0f1b515d1e0d8f067a1dcc68535a330293ac6e8ae6af5c496365"
       },
       "milestone_exit_satisfied": false
+    },
+    {
+      "cycle": 130,
+      "time": "2026-10-21T19:42:11.884Z",
+      "milestone": "M10",
+      "task": "M10-T7",
+      "increment": "production-routing",
+      "outcome": "passed",
+      "commit": "dcf5d043eb101155e6cfb9837336f25990a427c3",
+      "verification": {
+        "path": "artifacts/migration/verify-2026-10-21T18-48-59-272Z-5bc5b7bd.json",
+        "sha256": "c901f25b767cbeed5fa6d2e94fcc302e8adde51962675f3212b1fe5f5b97e6e1"
+      },
+      "milestone_exit_satisfied": false
     }
   ],
   "known_boundaries": [
@@ -2445056,12 +2445330,18 @@
     "task": "M10-T7",
     "increment": "production-routing",
     "started_at": "2026-10-21T18:13:41.455Z",
-    "implementation_state": "verification_pending",
+    "implementation_state": "committed",
     "scope": "Audit complete production text request partition and authenticated retained output for all corpus, owner and nested layout samples; preserve exact font unavailability and temporal coverage boundaries.",
-    "updated_at": "2026-10-21T18:48:52.332Z",
+    "updated_at": "2026-10-21T19:42:11.884Z",
     "focused_evidence": {
       "path": "artifacts/migration/cycle130-routing5/report.json",
       "sha256": "07f3208b26bd30b2b064ef3426e0f751425fb2048e2ea53e1ea664f812bdbea4"
+    },
+    "outcome": "passed",
+    "commit": "dcf5d043eb101155e6cfb9837336f25990a427c3",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-21T18-48-59-272Z-5bc5b7bd.json",
+      "sha256": "c901f25b767cbeed5fa6d2e94fcc302e8adde51962675f3212b1fe5f5b97e6e1"
     }
   },
   "execution_pause": {
