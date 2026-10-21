@@ -208,12 +208,16 @@ export async function runNativeTextLayoutGate(context, execute = runStep, option
       assert.equal(await hashFile(assignment.project_path), assignment.project_sha256);
     }
     let nativeShaping = options.nativeShaping;
+    let nativeRaster = options.nativeRaster;
     if (nativeShaping === undefined && context.milestone === "M10") {
       const ledger = JSON.parse(
         await readFile(join(context.root, "docs/migration/rust-renderer-progress.json")),
       );
       nativeShaping =
         ledger.milestones.find((m) => m.id === "M10").tasks.find((t) => t.id === "M10-T4")
+          ?.status !== "pending";
+      nativeRaster ??=
+        ledger.milestones.find((m) => m.id === "M10").tasks.find((t) => t.id === "M10-T5")
           ?.status !== "pending";
     }
     if (nativeShaping) {
@@ -222,6 +226,7 @@ export async function runNativeTextLayoutGate(context, execute = runStep, option
         context.output,
         execute,
         options.binary,
+        nativeRaster,
       );
       assert.equal(
         report.native_shaping.status,

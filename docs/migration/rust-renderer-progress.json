@@ -363,39 +363,17 @@
     }
   },
   "last_cycle": {
-    "id": 122,
-    "time": "2026-10-21T00:09:53.019Z",
-    "updated_at": "2026-10-21T00:09:53.019Z",
+    "id": 123,
+    "time": "2026-10-21T00:10:49.577Z",
+    "updated_at": "2026-10-21T00:10:49.577Z",
     "milestone": "M10",
-    "task": "M10-T4",
-    "outcome": "passed",
-    "commit": "85434121a0894b9aaf1884601dac45a134f57c6b",
-    "verification": {
+    "task": "M10-T5",
+    "outcome": "in_progress",
+    "previous_verification": {
       "path": "artifacts/migration/verify-2026-10-20T23-28-15-458Z-86c04618.json",
       "sha256": "136f46cc11ca0bd3801ccd6b81a210e27d067ddb92db5ad4ad489ef86f8132fa"
     },
-    "gates": [
-      {
-        "id": "G0",
-        "status": "passed",
-        "duration_ms": 298861,
-        "proof": {
-          "path": "artifacts/migration/2026-10-20T23-28-15-458Z-86c04618/static-results.json",
-          "sha256": "dea9610f4951e91a7b20813cfd8dc0ea322dfb60fed8869f2f7d7d9438237bef"
-        }
-      },
-      {
-        "id": "G3",
-        "status": "passed",
-        "duration_ms": 2157299,
-        "proof": {
-          "path": "artifacts/migration/2026-10-20T23-28-15-458Z-86c04618/G3/report.json",
-          "sha256": "ac5de8b390d6a8eb1332a4368c7a6945ff22f395cf06092979ea221ada5ec7af"
-        }
-      }
-    ],
-    "duration_ms": 2458866,
-    "next_step": "M10-T5: rasterize supported glyphs into a bounded atlas with complete font, variation, fractional-origin and generation identities. Preserve explicit unsupported capabilities; native GPU composition, production routing and strict text pixel acceptance remain pending."
+    "next_step": "Run complete current-source M10 G0/G3 with fresh text observations and independent raster/atlas audit, then commit the verified glyph raster component."
   },
   "milestones": [
     {
@@ -24403,7 +24381,7 @@
         {
           "id": "M10-T5",
           "title": "Rasterize glyphs into a bounded atlas with complete generation keys",
-          "status": "pending",
+          "status": "in_progress",
           "scope": "Rasterize supported outline/bitmap glyphs with correct fractional origin, size, variation, color, stroke and hinting identity. Preserve whitespace advances without empty atlas uploads.",
           "acceptance": "Coverage/color format and limits verified, cache invalidation follows font and raster changes, no live frame atlas coordinates can be evicted; G0/G3 green.",
           "estimated_implementation_hours": 2,
@@ -24415,6 +24393,50 @@
             "path": "artifacts/migration/cycle122-atlas-preparation.json",
             "sha256": "f5d0933fed96f7e0632d9207d2e848a7e70bd54fdfa1ec7927b59ae075cbdba7",
             "status": "read_only_preparation; rasterizer admission and atlas lifetime implementation remain pending"
+          },
+          "started_at": "2026-10-21T00:10:49.577Z",
+          "progress": {
+            "state": "raster_component_probe_passed_full_gates_pending",
+            "features": [
+              "Bounded Skrifa/Zeno outline fill, round stroke and vertical embedded hinting with complete physical-font and raster keys",
+              "Bounded embedded mask/BGRA/PNG decode and premultiplied color resampling; empty glyph metrics without uploads",
+              "Immutable padded atlas generations and leases counted in cache budgets; independent byte and placement reconstruction"
+            ],
+            "acceptance_boundary": "Raster and atlas components only. Native GPU composition, production capability routing and final text pixel/per-glyph acceptance remain later tasks.",
+            "focused_validation": {
+              "text_tests": 29,
+              "verifier_negative_controls": "passed",
+              "clippy": "passed",
+              "cargo_deny": "passed",
+              "probe": {
+                "path": "artifacts/migration/cycle123-raster-probe1/report.json",
+                "sha256": "8d723d95ccbc02263ce4a4ebc3513c0c310e81ae5a18c2b2624bd09c71e777f8",
+                "status": "passed",
+                "glyphs": 2787,
+                "queries": 8376,
+                "completed_queries": 8376,
+                "unsupported": [],
+                "pages": 5,
+                "native_pixel_acceptance": false
+              }
+            },
+            "visual_inspection": {
+              "evidence": "artifacts/migration/cycle123-atlas-alpha-views.json",
+              "pages": [
+                0,
+                1,
+                2,
+                3,
+                4
+              ],
+              "result": "All five coverage views inspected: upright glyphs, distinct fill/stroke/hint variants, no visible clipped cells or atlas corruption. This is component inspection, not TS/native pixel acceptance."
+            },
+            "evidence": [
+              "artifacts/migration/cycle123-raster-tests2.log",
+              "artifacts/migration/cycle123-raster-audit-tests.log",
+              "artifacts/migration/cycle123-clippy3.log",
+              "artifacts/migration/cycle123-cargo-deny.log"
+            ]
           }
         },
         {
@@ -24459,6 +24481,11 @@
               "status": "pending",
               "title": "Bind mixed bidi and embedded-font layout capabilities to verified production routing",
               "acceptance": "Use native embedded faces where admitted; otherwise retain precise script/container/font reasons. Diagnostic system-font success does not establish embedded-font or mixed-bidi pixel acceptance."
+            },
+            {
+              "status": "pending",
+              "title": "Route layered color paint graphs and bitmap strokes through exact capability decisions",
+              "acceptance": "The native rasterizer reports explicit unsupported reasons for unimplemented color paint graphs and bitmap strokes. Bind those reasons to the selected font/glyph and authenticated M5 output, or implement and verify them before native routing; no blanket text fallback."
             }
           ]
         },
@@ -2440298,20 +2440325,14 @@
     }
   ],
   "active_cycle": {
-    "id": 122,
+    "id": 123,
     "milestone": "M10",
-    "task": "M10-T4",
-    "increment": "Implement native shaping and production-compatible line layout",
-    "started_at": "2026-10-20T22:45:03.201Z",
-    "updated_at": "2026-10-21T00:09:53.019Z",
-    "implementation_state": "committed",
+    "task": "M10-T5",
+    "increment": "Rasterize glyphs into a bounded atlas with complete generation keys",
+    "started_at": "2026-10-21T00:10:49.577Z",
+    "updated_at": "2026-10-21T00:33:12.109Z",
+    "implementation_state": "verification_pending",
     "previous_verification": {
-      "path": "artifacts/migration/verify-2026-10-20T22-10-45-805Z-eb5070df.json",
-      "sha256": "c33f1a5304f6ce8c8dfbaf5268a9f91751b6a14046a7cf1914c4e39ad3b7b640"
-    },
-    "outcome": "passed",
-    "commit": "85434121a0894b9aaf1884601dac45a134f57c6b",
-    "verification": {
       "path": "artifacts/migration/verify-2026-10-20T23-28-15-458Z-86c04618.json",
       "sha256": "136f46cc11ca0bd3801ccd6b81a210e27d067ddb92db5ad4ad489ef86f8132fa"
     }

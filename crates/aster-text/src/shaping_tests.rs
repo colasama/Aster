@@ -6,9 +6,9 @@ use crate::{
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, sync::Arc};
 
-struct ShapingFixture;
+pub(super) struct ShapingFixture;
 impl ShapingFixture {
-    fn font(
+    pub(super) fn font(
         family: &str,
         mappings: &[(u32, u32)],
     ) -> Result<NativeFont, Box<dyn std::error::Error>> {
@@ -34,6 +34,30 @@ impl ShapingFixture {
             hmtx.extend(0_i16.to_be_bytes());
         }
         tables.insert(*b"hmtx", hmtx);
+        let mut maxp = vec![0; 32];
+        maxp[..4].copy_from_slice(&0x0001_0000_u32.to_be_bytes());
+        for (offset, value) in [(4, 10_u16), (6, 4), (8, 1), (14, 1)] {
+            maxp[offset..offset + 2].copy_from_slice(&value.to_be_bytes());
+        }
+        tables.insert(*b"maxp", maxp);
+        let mut glyf = Vec::new();
+        let mut loca = Vec::new();
+        for id in 0..10 {
+            loca.extend(((glyf.len() / 2) as u16).to_be_bytes());
+            if id < 2 {
+                continue;
+            }
+            for value in [1_i16, 0, 0, 500, 700, 3, 0] {
+                glyf.extend(value.to_be_bytes());
+            }
+            glyf.extend([1_u8; 4]);
+            for value in [0_i16, 500, 0, -500, 0, 0, 700, 0] {
+                glyf.extend(value.to_be_bytes());
+            }
+        }
+        loca.extend(((glyf.len() / 2) as u16).to_be_bytes());
+        tables.insert(*b"glyf", glyf);
+        tables.insert(*b"loca", loca);
         let os2 = tables.get_mut(b"OS/2").ok_or("OS/2 missing")?;
         os2[68..70].copy_from_slice(&800_i16.to_be_bytes());
         os2[70..72].copy_from_slice(&(-200_i16).to_be_bytes());

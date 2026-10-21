@@ -9,7 +9,10 @@ use clap::Args;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::ir::IrArgs;
+use crate::{
+    ir::IrArgs,
+    text_raster::{RasterAudit, RasterReport},
+};
 
 #[derive(Debug, Args)]
 pub(crate) struct TextLayoutArgs {
@@ -29,6 +32,12 @@ pub(crate) struct TextLayoutArgs {
     catalog: FontCatalogConfig,
     #[command(flatten)]
     shaping: TextShapeConfig,
+    #[arg(long)]
+    rasterize: bool,
+    #[command(flatten)]
+    raster: aster_text::GlyphRasterConfig,
+    #[command(flatten)]
+    atlas: aster_text::GlyphGenerationConfig,
 }
 
 #[derive(Clone, Deserialize)]
@@ -84,6 +93,7 @@ struct LayoutReport {
     fonts: Vec<FontEvidence>,
     results: Vec<LayoutOutput>,
     native_raster: bool,
+    raster_components: Option<RasterReport>,
 }
 
 impl TextLayoutArgs {
@@ -158,6 +168,18 @@ impl TextLayoutArgs {
         }
         let shaper = TextShaper::new(self.shaping.clone())?;
         let layout = TextLayout::new(self.shaping)?;
+        let mut raster = if self.rasterize {
+            Some(RasterAudit::new(
+                self.out
+                    .parent()
+                    .ok_or("Raster output parent missing")?
+                    .join("glyph-rasters"),
+                self.raster,
+                self.atlas,
+            )?)
+        } else {
+            None
+        };
         let mut cache: BTreeMap<(Vec<String>, u16, bool), Vec<NativeFont>> = BTreeMap::new();
         let mut results = Vec::with_capacity(inputs.len());
         let mut output_bytes = 0_usize;
@@ -196,11 +218,30 @@ impl TextLayoutArgs {
                         direction,
                         language,
                     } => match shaper.shape(&text, size, direction, &language, fonts) {
-                        Ok(value) => output.shaped = Some(value),
+                        Ok(value) => {
+                            if let Some(raster) = &mut raster {
+                                raster.observe(&output.id, &value, size as f32, fonts)?;
+                            }
+                            output.shaped = Some(value);
+                        }
                         Err(error) => output.error = Some(error.to_string()),
                     },
                     LayoutQuery::Layout { request } => match layout.evaluate(&request, fonts) {
-                        Ok(value) => output.layout = Some(value),
+                        Ok(value) => {
+                            if let Some(raster) = &mut raster {
+                                for (line, row) in value.lines.iter().enumerate() {
+                                    for (fragment, run) in row.fragments.iter().enumerate() {
+                                        raster.observe(
+                                            &format!("{}:{line}:{fragment}", output.id),
+                                            &run.shaped,
+                                            request.font_size as f32,
+                                            fonts,
+                                        )?;
+                                    }
+                                }
+                            }
+                            output.layout = Some(value);
+                        }
                         Err(error) => output.error = Some(error.to_string()),
                     },
                 }
@@ -217,6 +258,7 @@ impl TextLayoutArgs {
             fonts: evidence,
             results,
             native_raster: false,
+            raster_components: raster.map(RasterAudit::finish).transpose()?,
         };
         let json = serde_json::to_vec(&report)?;
         if json.len() > self.max_output_bytes {

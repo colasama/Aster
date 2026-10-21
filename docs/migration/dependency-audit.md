@@ -2,6 +2,22 @@
 
 ## Native font catalog dependencies
 
+Glyph rasterization adds Skrifa 0.48.0, Zeno 0.3.3 and PNG 0.18.1, all MIT OR Apache-2.0.
+PNG adds `fdeflate` 0.3.7 under the same license and reuses the locked compression packages.
+The graph adds exactly four packages and changes no existing version. Skrifa reuses `read-fonts`
+0.45.1 instead of introducing a second font parser version. Outline interpretation, hinting,
+coverage rasterization and checked PNG decoding are complex maintenance/security boundaries that
+remain behind Aster-owned limits and typed interfaces. No native C/C++ dependency is added.
+`cargo deny check` passes advisories, bans, licenses and sources; see
+`artifacts/migration/cycle123-cargo-deny.log`. This component increment is not a release.
+
+Swash 0.2.10 was reviewed but not added: its current Skrifa range would introduce an older parser
+graph, and its high-level image renderer allocates before Aster can enforce exact raster bounds.
+Direct Skrifa outline emission and Zeno sizing allow bounded command collection, scratch and image
+allocation before publication. The maintained APIs are documented in
+[Skrifa](https://docs.rs/skrifa/0.48.0/skrifa/), [Zeno](https://docs.rs/zeno/0.3.3/zeno/) and
+[PNG](https://docs.rs/png/0.18.1/png/).
+
 Native shaping adds HarfRust 0.14.0 (MIT), the maintained pure-Rust HarfBuzz port, and reuses the
 already locked `read-fonts` 0.45.1 parser. ICU4X `icu_segmenter` and `icu_segmenter_data` 2.3.0
 (Unicode-3.0) supply word and grapheme segmentation; `core_maths` 0.1.1 (MIT OR Apache-2.0)

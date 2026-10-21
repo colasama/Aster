@@ -59,9 +59,20 @@ pub enum TextDirection {
 pub struct NativeFont {
     pub(crate) selection: FontSelection,
     pub(crate) font: Font,
+    pub(crate) data: Arc<[u8]>,
 }
 
 impl NativeFont {
+    pub fn matches_glyph(&self, glyph: &PositionedGlyph) -> bool {
+        self.selection.face == glyph.face
+            && self
+                .selection
+                .variations
+                .iter()
+                .map(|(tag, value)| (*tag, *value))
+                .eq(glyph.variations.iter().copied())
+    }
+
     pub fn new(selection: FontSelection, bytes: LoadedFont) -> Result<Self, TextShapeError> {
         let hash: [u8; 32] = Sha256::digest(&bytes.data).into();
         if hash != bytes.sha256
@@ -92,7 +103,8 @@ impl NativeFont {
                 return Err(TextShapeError::Invalid("variation coordinate outside axis"));
             }
         }
-        let source: Arc<dyn AsRef<[u8]> + Send + Sync> = Arc::new(bytes.data);
+        let data = bytes.data;
+        let source: Arc<dyn AsRef<[u8]> + Send + Sync> = Arc::new(Arc::clone(&data));
         let base =
             Font::new(source, selection.face.index).ok_or(TextShapeError::Invalid("font model"))?;
         let font = base
@@ -107,7 +119,11 @@ impl NativeFont {
         if !(16..=16_384).contains(&font.units_per_em()) || font.num_glyphs() == 0 {
             return Err(TextShapeError::Invalid("font metrics"));
         }
-        Ok(Self { selection, font })
+        Ok(Self {
+            selection,
+            font,
+            data,
+        })
     }
 
     /// Canvas middle aligns the normalized typographic em box, quantized to layout units.

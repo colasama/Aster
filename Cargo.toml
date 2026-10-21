@@ -46,6 +46,7 @@ icu_segmenter = "=2.3.0"
 naga = { version = "30.0.0", features = ["wgsl-in"] }
 parking_lot = "0.12.5"
 pollster = "1.0.1"
+png = "=0.18.1"
 read-fonts = "=0.45.1"
 rustfft = "=6.4.1"
 ryu-js = "=1.0.3"
@@ -53,7 +54,9 @@ schemars = { version = "1.2.2", features = ["uuid1"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.149", features = ["float_roundtrip"] }
 sha2 = "0.10.9"
+skrifa = { version = "=0.48.0", default-features = false, features = ["std"] }
 thiserror = "2.0.20"
+zeno = "=0.3.3"
 toml = "1.1.4"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }

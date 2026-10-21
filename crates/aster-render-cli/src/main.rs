@@ -19,6 +19,7 @@ mod render_plan;
 mod render_project;
 mod serve;
 mod text_layout;
+mod text_raster;
 
 use std::process::ExitCode;
 

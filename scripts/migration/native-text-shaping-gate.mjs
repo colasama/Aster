@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { sha256 } from "./m0-evidence.mjs";
+import { auditNativeTextRasters } from "./native-text-raster-audit.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile } from "./source.mjs";
@@ -96,6 +97,7 @@ export async function runNativeTextShapingGate(
   observationRoot,
   execute = runStep,
   binaryOverride,
+  rasterize = false,
 ) {
   const report = {
     status: "failed",
@@ -199,6 +201,7 @@ export async function runNativeTextShapingGate(
           output,
           "--max-catalog-bytes",
           "1073741824",
+          ...(rasterize ? ["--rasterize"] : []),
         ],
         timeout_ms: 600_000,
       },
@@ -253,6 +256,13 @@ export async function runNativeTextShapingGate(
       unsupported_requests: report.unsupported.length,
     };
     report.native_output = { path: local(output), sha256: await hashFile(output) };
+    if (rasterize)
+      report.raster_components = await auditNativeTextRasters(
+        context.output,
+        native.raster_components,
+        [...entries.values()],
+        native.results,
+      );
     assert(report.queries.length > 0);
     assert(
       report.queries.every((q) => q.passed),

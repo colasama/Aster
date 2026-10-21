@@ -594,6 +594,22 @@ Embedded font sets can supply the same immutable native face interface; the diag
 rejects embedded-project comparisons instead of substituting system fonts. Component metric success
 does not establish raw browser glyph identity, native raster pixels or production text routing.
 
+Glyph rasterization uses Skrifa's shared Fontations parser and Zeno coverage rasterization behind
+`aster-text`. Scalable outlines support fractional baseline phase, fill, round-joined stroke and
+optional vertical embedded hinting with linear advances preserved. Embedded mask, BGRA and PNG
+strikes decode under dimension and memory limits; color resampling uses premultiplied sRGB bytes.
+Whitespace retains its advance without an image or upload. Layered color paint graphs and bitmap
+strokes return explicit unsupported reasons until verified implementations are available.
+
+Raster identities include complete face hashes and indices, variation coordinates, glyph IDs,
+sizes, both fractional coordinates, paint, foreground color, bitmap policy and hinting mode.
+Glyph caches account for externally leased images. Immutable atlas generations pack coverage and
+color into separate padded pages; a held generation cannot be evicted or have its coordinates
+reused. Consumers must retain its lease until all corresponding GPU work retires. The diagnostic
+publishes authenticated glyph and atlas images and independently reconstructs every atlas cell,
+including empty padding, without claiming production text pixel acceptance. GPU composition and
+production capability routing remain separate integration requirements.
+
 ## Pi agent runtime
 
 The desktop host runs Pi in an Electron utility process. Pi receives only Aster-owned meta-tools by
