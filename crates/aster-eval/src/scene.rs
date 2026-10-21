@@ -152,6 +152,24 @@ struct CompiledLayer {
 }
 
 impl SceneProject {
+    /// Authored text and embedded fonts share the same compiled project revision.
+    pub fn text_sources(&self) -> (Vec<&Layer>, &[aster_types::editor::ProjectFont]) {
+        let layers = self
+            .project
+            .compositions
+            .iter()
+            .flat_map(|c| &c.layers)
+            .filter(|layer| layer.kind == "text")
+            .collect();
+        let fonts = self
+            .project
+            .fonts
+            .value()
+            .map(Vec::as_slice)
+            .unwrap_or_default();
+        (layers, fonts)
+    }
+
     pub fn composition(
         &self,
         id: &str,

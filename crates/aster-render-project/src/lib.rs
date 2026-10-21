@@ -23,6 +23,12 @@ mod raster_provider;
 mod raster_transport;
 pub use raster_provider::{NativeRasterProvider, RasterProviderOptions, RasterProviderReady};
 mod session;
+mod text;
+mod text_fonts;
+mod text_paint;
+mod text_raster;
+mod text_style;
+mod text_units;
 pub use document::{NativeProjectDocument, ProjectRenderLimits};
 pub use file_media::{NativeProjectFileMedia, ProjectFileMediaFrame};
 pub use generators::NativeProjectGenerators;
@@ -30,9 +36,21 @@ pub use gpu::NativeProjectGpu;
 pub use materials::{DecodedMaterialPixels, NativeProjectMaterials, ProjectMaterialFrame};
 pub use raster_frame::ProjectRasterFrame;
 pub use session::{NativeProjectSession, PreparedProjectFrame, ProjectFrameSettings};
+pub use text::{
+    NativeProjectText, PreparedProjectText, ProjectTextOutcome, ProjectTextRequest, TextCapability,
+};
+pub use text_paint::{ProjectTextPaint, TextAffine};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ProjectRenderError {
+    #[error(transparent)]
+    Font(#[from] aster_text::FontCatalogError),
+    #[error(transparent)]
+    FontDiscovery(#[from] aster_text::FontDiscoveryError),
+    #[error(transparent)]
+    TextShape(#[from] aster_text::TextShapeError),
+    #[error(transparent)]
+    GlyphRaster(#[from] aster_text::GlyphRasterError),
     #[error(transparent)]
     Encode(#[from] aster_encode::EncodeError),
     #[error(transparent)]

@@ -630,8 +630,21 @@ the same complete frame closure checks, including nested scenes and temporal sam
 The renderer reserves atlas pages, composition targets and draw uniforms within the frame budget,
 retires obsolete generations before allocation, and retains unchanged GPU outputs across frames.
 Glyph composition precedes temporal accumulation and scene draws in one command submission. Native
-text outputs bypass full-frame CPU pixel upload. Authored-project font selection, capability routing
-and final text pixel acceptance remain required before switching production text acquisition.
+text outputs bypass full-frame CPU pixel upload.
+
+`NativeProjectText` binds embedded font inventory and authored text to the same compiled project
+revision. Its job-local platform catalog and bounded face-chain cache feed native line layout,
+UTF-16 selector domains, time-addressable text animation, ink measurement and immutable atlas recipes.
+Paint runs preserve replacement-character advances, tracking compensation, line spacing, projected
+transforms, CSS color quantization and stroke-before-fill order. Raster density is recomputed from
+the measured bounds, including the independent ceiling of each output dimension; temporal callers
+may supply a containing union without changing each sample's evaluation time. Translated glyphs
+carry their fractional baseline in the raster key exactly once.
+Unsupported font containers, missing glyphs, synthetic styles and unavailable raster features
+produce request-scoped capability evidence; malformed inputs and resource exhaustion remain errors.
+Preparation emits no full-layer CPU image. Production session acquisition still uses its retained
+provider until complete native text pixel acceptance and capability routing are verified. Actual
+Canvas observations validate authored preparation geometry independently of atlas compositor tests.
 
 ## Pi agent runtime
 

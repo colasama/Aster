@@ -63,6 +63,34 @@ pub struct NativeFont {
 }
 
 impl NativeFont {
+    /// Unhinted ink bounds relative to the alphabetic baseline, with screen-space Y.
+    pub fn glyph_bounds(&self, glyph_id: u32, size: f32) -> Result<[f64; 4], TextShapeError> {
+        use skrifa::{MetadataProvider, instance::Size, raw::types::GlyphId};
+        if !size.is_finite() || size <= 0.0 || size > 4096.0 || glyph_id >= self.font.num_glyphs() {
+            return Err(TextShapeError::Invalid("glyph metric input"));
+        }
+        let face = skrifa::FontRef::from_index(&self.data, self.selection.face.index)
+            .map_err(|_| TextShapeError::Invalid("glyph metric face"))?;
+        let location = face.axes().location(
+            self.selection
+                .variations
+                .iter()
+                .map(|(tag, value)| (skrifa::raw::types::Tag::new(tag), *value)),
+        );
+        let bounds = face
+            .glyph_metrics(Size::new(size), &location)
+            .bounds(GlyphId::new(glyph_id))
+            .ok_or(TextShapeError::Unsupported(
+                "glyph has no verified outline ink bounds",
+            ))?;
+        Ok([
+            bounds.x_min as f64,
+            -bounds.y_max as f64,
+            bounds.x_max as f64,
+            -bounds.y_min as f64,
+        ])
+    }
+
     pub fn matches_glyph(&self, glyph: &PositionedGlyph) -> bool {
         self.selection.face == glyph.face
             && self

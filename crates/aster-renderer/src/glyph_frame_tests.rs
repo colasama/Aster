@@ -248,7 +248,7 @@ impl RoutingFixture {
 
 #[test]
 #[ignore = "requires GPU"]
-fn native_glyph_frame_routing_without_cpu_rasters() -> Result<(), Box<dyn std::error::Error>> {
+fn glyph_frame_routing_without_cpu_rasters() -> Result<(), Box<dyn std::error::Error>> {
     let fixture = RoutingFixture::new()?;
     let mut renderer = NativeRenderer::new(NativeOptions {
         backend: if cfg!(windows) {

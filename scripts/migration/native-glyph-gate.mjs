@@ -63,7 +63,7 @@ export async function runNativeGlyphGate(context, binary, execute = runStep) {
           "test",
           "-p",
           "aster-renderer",
-          "native_glyph_frame_routing_without_cpu_rasters",
+          "glyph_frame_routing_without_cpu_rasters",
           "--",
           "--ignored",
         ],

@@ -370,40 +370,14 @@
     }
   },
   "last_cycle": {
-    "id": 125,
-    "time": "2026-10-21T03:28:19.661Z",
-    "updated_at": "2026-10-21T03:28:19.661Z",
+    "id": 126,
+    "time": "2026-10-21T03:32:57.147Z",
+    "updated_at": "2026-10-21T03:51:02.841Z",
     "milestone": "M10",
     "task": "M10-T7",
-    "increment": "gpu-frame-admission",
-    "outcome": "passed",
-    "commit": "c23947bff8641f05010525465b77407b213d170c",
-    "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T02-41-29-264Z-471eaeed.json",
-      "sha256": "ab96ba53ce9e057825931395e0bf68dcb6e2bd23d8048e181c83f8ce63b76d51"
-    },
-    "gates": [
-      {
-        "id": "G0",
-        "status": "passed",
-        "duration_ms": 319685,
-        "proof": {
-          "path": "artifacts/migration/2026-10-21T02-41-29-264Z-471eaeed/static-results.json",
-          "sha256": "79408918d295d72b45cc1b3efcaf94016f6c90059a426dcfb0d42a43e3a15924"
-        }
-      },
-      {
-        "id": "G3",
-        "status": "passed",
-        "duration_ms": 2339703,
-        "proof": {
-          "path": "artifacts/migration/2026-10-21T02-41-29-264Z-471eaeed/G3/report.json",
-          "sha256": "2a1b5ed7cbd4a2ac855cbb821b653f9a776fb6e8aa90a13310879d14ccabe039"
-        }
-      }
-    ],
-    "duration_ms": 2662292,
-    "next_step": "Continue M10-T7: prepare authored fonts, native layout/styles/bounds and precise retained capability decisions, then partition project-session acquisition and connect native recipes. Do not mark production text routing or M10 complete from component tests."
+    "increment": "project-text-preparation",
+    "outcome": "in_progress",
+    "next_step": "Run complete current-source M10 G0/G3, including 210 actual authored text recipe comparisons. Then commit this preparation increment while keeping production routing and full native text pixel acceptance open."
   },
   "milestones": [
     {
@@ -24849,7 +24823,7 @@
             "status": "read_only_preparation; authored-project native text acquisition remains pending"
           },
           "progress": {
-            "state": "gpu_frame_admission_verified_project_preparation_pending",
+            "state": "verifying_project_text_preparation",
             "increments": [
               {
                 "id": "gpu-frame-admission",
@@ -24864,7 +24838,7 @@
               },
               {
                 "id": "project-text-preparation",
-                "status": "pending",
+                "status": "in_progress",
                 "scope": "Resolve authored project fonts, layout, styles and animated text bounds into native glyph recipes with exact retained capability reasons."
               },
               {
@@ -24988,7 +24962,31 @@
                   "sha256": "331e6faf8e89e6a6ffd2a15c36f5fe6158a28d0c226cb889243e7d7a66262867"
                 }
               }
-            }
+            },
+            "storage_preflight": {
+              "cycle": 126,
+              "removed_scope": "git-ignored target/debug/deps regular files, exact non-redirected directory verified",
+              "removed_files": 7745,
+              "logical_bytes": 24875292022,
+              "free_bytes_after_cleanup": 10733195264,
+              "preserved": "source, executable outputs, references, verification artifacts; active compiler intermediates remain on C:"
+            },
+            "focused_project_preparation": {
+              "path": "artifacts/migration/cycle126-text-canary3/report.json",
+              "sha256": "a1223caf6120b592c83572a6d0a58e1ace79c3b12dc9549333bf383a6fcf5729",
+              "requests": 210,
+              "maximum_advance_delta": 0,
+              "maximum_baseline_delta": 0,
+              "maximum_transform_delta": 0.000007533039678264686,
+              "bounds": "exact",
+              "native_text_pixel_acceptance": false
+            },
+            "features": [
+              "Immutable native GPU frame admission verified",
+              "Authored project text preparation binds fonts, layout, selector units, evaluated styles, ink bounds and atlas recipes",
+              "Precise retained capability reasons and fatal resource/input limits",
+              "Production provider partition and final native text pixels remain pending"
+            ]
           }
         },
         {
@@ -2441810,18 +2441808,12 @@
     }
   ],
   "active_cycle": {
-    "id": 125,
+    "id": 126,
     "milestone": "M10",
     "task": "M10-T7",
-    "started_at": "2026-10-21T02:27:09.843Z",
-    "updated_at": "2026-10-21T03:28:19.661Z",
-    "implementation_state": "committed",
-    "outcome": "passed",
-    "commit": "c23947bff8641f05010525465b77407b213d170c",
-    "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T02-41-29-264Z-471eaeed.json",
-      "sha256": "ab96ba53ce9e057825931395e0bf68dcb6e2bd23d8048e181c83f8ce63b76d51"
-    }
+    "started_at": "2026-10-21T03:32:57.147Z",
+    "updated_at": "2026-10-21T03:51:02.841Z",
+    "implementation_state": "verifying"
   },
   "execution_pause": {
     "requested_by": "owner",
