@@ -97,7 +97,16 @@ impl GlyphTextPipeline {
         plan: &GlyphTextPlan,
         budget: u64,
     ) -> Result<GlyphTextPass, RenderError> {
-        let generation = plan.validate(device, &atlas, budget)?;
+        let limits = device.limits();
+        let generation = plan.validate(
+            (
+                &atlas.identity,
+                atlas.generation.placements.len(),
+                &atlas.config,
+            ),
+            (limits.max_texture_dimension_2d, limits.max_buffer_size),
+            budget,
+        )?;
         let bytes = plan.required_bytes()?;
         let mut uniforms = vec![0; plan.draws.len() * 256];
         for (index, draw) in plan.draws.iter().enumerate() {

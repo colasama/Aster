@@ -1,5 +1,5 @@
 use std::{
-    sync::{Arc, Weak, mpsc},
+    sync::{Arc, Weak},
     time::Duration,
 };
 
@@ -8,6 +8,9 @@ use aster_render_ir::{AntiAliasing, Extent2d};
 use aster_shaders::ShaderCatalog;
 
 use crate::{RenderError, SuppliedFrame, output::OutputPipelines, scene::ScenePipelines};
+
+#[path = "diagnostic_readback.rs"]
+mod diagnostic_readback;
 
 #[path = "project_allocation.rs"]
 mod project_allocation;
@@ -26,6 +29,9 @@ mod shared_nv12_output;
 #[path = "shared_nv12_tests.rs"]
 mod shared_nv12_tests;
 
+#[cfg(test)]
+#[path = "glyph_frame_tests.rs"]
+mod glyph_frame_tests;
 #[cfg(test)]
 #[path = "glyph_text_tests.rs"]
 mod glyph_text_tests;
@@ -101,6 +107,7 @@ pub struct NativeRenderer {
     surfaces: crate::surface_cache::SurfaceCache,
     layer_cache: crate::layer_cache::LayerCache,
     temporal: crate::temporal_cache::TemporalCache,
+    glyphs: crate::glyph_cache::GlyphCache,
     motion_output: Option<crate::motion_output::MotionOutput>,
     nv12: Option<crate::nv12::Nv12Converter>,
     gpu_profiler: Option<crate::gpu_profile::GpuProfiler>,
@@ -292,6 +299,7 @@ impl NativeRenderer {
             surfaces: Default::default(),
             layer_cache: Default::default(),
             temporal: Default::default(),
+            glyphs: Default::default(),
             motion_output: None,
             nv12: None,
             gpu_profiler,
@@ -389,6 +397,9 @@ impl NativeRenderer {
         frame: &SuppliedFrame,
         registry: &aster_render_ir::ResourceRegistry,
     ) -> Result<RenderedFrame, RenderError> {
+        for input in frame.glyphs.inputs.values() {
+            input.validate_device(&self.device.limits())?;
+        }
         if self.output_lease.upgrade().is_some() {
             return Err(RenderError::Invalid(
                 "previous output frame is still leased".into(),
@@ -458,7 +469,13 @@ impl NativeRenderer {
                 .iter()
                 .map(|t| t.scene.transient_bytes())
                 .sum::<u64>();
-        if bytes + surface_bytes + lut_bytes > self.options.gpu_budget_bytes
+        let bytes = bytes
+            .checked_add(frame.glyphs.bytes)
+            .ok_or_else(|| RenderError::Invalid("frame GPU byte overflow".into()))?;
+        if bytes
+            .checked_add(surface_bytes)
+            .and_then(|n| n.checked_add(lut_bytes))
+            .is_none_or(|n| n > self.options.gpu_budget_bytes)
             || [
                 render_size.width,
                 render_size.height,
@@ -472,6 +489,15 @@ impl NativeRenderer {
                 "frame exceeds GPU allocation budget or dimensions".into(),
             ));
         }
+        self.images.clear_derived();
+        self.temporal.retire(
+            &self.device,
+            &frame.temporal,
+            frame.temporal.required_bytes(),
+            self.options.timeout,
+        )?;
+        self.glyphs
+            .retire(&self.device, &frame.glyphs, self.options.timeout)?;
         let memory = self.device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
         let internal = self.device.push_error_scope(wgpu::ErrorFilter::Internal);
         let validation = self.device.push_error_scope(wgpu::ErrorFilter::Validation);
@@ -528,7 +554,7 @@ impl NativeRenderer {
             self.targets = None;
         }
         let required_images = frame
-            .images
+            .uploads
             .values()
             .map(|image| {
                 u64::from(image.width)
@@ -556,13 +582,6 @@ impl NativeRenderer {
         if let Some(depth) = &mut self.depth_output {
             depth.retire(&self.device, frame.depth.as_ref(), self.options.timeout)?;
         }
-        self.images.clear_derived();
-        self.temporal.retire(
-            &self.device,
-            &frame.temporal,
-            frame.temporal.required_bytes(),
-            self.options.timeout,
-        )?;
         let scenes = std::iter::once(&frame.scene)
             .chain(frame.surfaces.targets.iter().map(|surface| &surface.scene))
             .collect::<Vec<_>>();
@@ -583,11 +602,13 @@ impl NativeRenderer {
         )?;
         self.images.prepare(
             (&self.device, &self.queue),
-            &frame.images,
+            &frame.uploads,
             registry,
             self.options.gpu_budget_bytes - bytes - surface_bytes - lut_bytes - cache_reserved,
             self.options.timeout,
         )?;
+        self.glyphs
+            .prepare((&self.device, &self.queue), &frame.glyphs, &mut self.images)?;
         self.temporal.prepare(
             &self.device,
             &frame.temporal,
@@ -648,6 +669,7 @@ impl NativeRenderer {
             profile.reset_frame();
             profile.mark(&mut encoder, 0);
         }
+        self.glyphs.record(&mut encoder);
         self.temporal.record(&mut encoder, &frame.temporal)?;
         if let Some(profile) = &self.gpu_profiler {
             profile.mark(&mut encoder, 1);
@@ -802,6 +824,7 @@ impl NativeRenderer {
             self.layer_cache.invalidate();
             self.images.invalidate();
             self.temporal.invalidate();
+            self.glyphs.invalidate();
             self.motion_output = None;
             self.depth_output = None;
             self.surfaces.invalidate();
@@ -835,66 +858,6 @@ impl NativeRenderer {
                 .map_or_else(Default::default, |d| d.statistics),
             _lease: lease,
         })
-    }
-
-    /// Explicit diagnostic readback. Preview and encoder integrations consume the texture directly.
-    pub fn read_rgba(&self, frame: &RenderedFrame) -> Result<Vec<u8>, RenderError> {
-        let row = frame.size.width * 4;
-        let padded = row.div_ceil(256) * 256;
-        let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Diagnostic RGBA readback"),
-            size: u64::from(padded) * u64::from(frame.size.height),
-            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
-            mapped_at_creation: false,
-        });
-        let mut encoder = self.device.create_command_encoder(&Default::default());
-        encoder.copy_texture_to_buffer(
-            frame.texture.as_image_copy(),
-            wgpu::TexelCopyBufferInfo {
-                buffer: &buffer,
-                layout: wgpu::TexelCopyBufferLayout {
-                    offset: 0,
-                    bytes_per_row: Some(padded),
-                    rows_per_image: Some(frame.size.height),
-                },
-            },
-            wgpu::Extent3d {
-                width: frame.size.width,
-                height: frame.size.height,
-                depth_or_array_layers: 1,
-            },
-        );
-        let submission = self.queue.submit([encoder.finish()]);
-        let (sender, receiver) = mpsc::sync_channel(1);
-        buffer
-            .slice(..)
-            .map_async(wgpu::MapMode::Read, move |result| {
-                let _ = sender.send(result);
-            });
-        self.device
-            .poll(wgpu::PollType::Wait {
-                submission_index: Some(submission),
-                timeout: Some(self.options.timeout),
-            })
-            .map_err(|error| RenderError::Gpu(error.to_string()))?;
-        receiver
-            .recv_timeout(self.options.timeout)
-            .map_err(|error| RenderError::Gpu(error.to_string()))?
-            .map_err(|error| RenderError::Gpu(error.to_string()))?;
-        let mut pixels = Vec::with_capacity(row as usize * frame.size.height as usize);
-        {
-            let mapped = buffer
-                .slice(..)
-                .get_mapped_range()
-                .map_err(|error| RenderError::Gpu(error.to_string()))?;
-            for bytes in mapped.chunks_exact(padded as usize) {
-                for bgra in bytes[..row as usize].chunks_exact(4) {
-                    pixels.extend([bgra[2], bgra[1], bgra[0], bgra[3]]);
-                }
-            }
-        }
-        buffer.unmap();
-        Ok(pixels)
     }
 }
 

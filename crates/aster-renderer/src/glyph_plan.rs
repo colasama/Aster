@@ -2,7 +2,7 @@ use aster_render_ir::{Extent2d, ResourceHash};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::{GlyphTextAtlas, RenderError};
+use crate::{GlyphTextConfig, RenderError};
 
 /// A draw selects a raster variant (fill or stroke) and applies its evaluated style in order.
 /// Baseline coordinates exclude the fractional phase already baked into the glyph image.
@@ -16,6 +16,7 @@ pub struct GlyphTextDraw {
 }
 
 /// Internal native composition input, independent of project serialization and frame-plan ABI.
+#[derive(Clone)]
 pub struct GlyphTextPlan {
     pub size: Extent2d,
     pub draws: Vec<GlyphTextDraw>,
@@ -32,22 +33,22 @@ impl GlyphTextPlan {
 
     pub(crate) fn validate(
         &self,
-        device: &wgpu::Device,
-        atlas: &GlyphTextAtlas,
+        atlas: (&ResourceHash, usize, &GlyphTextConfig),
+        limits: (u32, u64),
         budget: u64,
     ) -> Result<ResourceHash, RenderError> {
         if self.size.width == 0
             || self.size.height == 0
-            || self.size.width > device.limits().max_texture_dimension_2d
-            || self.size.height > device.limits().max_texture_dimension_2d
-            || self.draws.len() > atlas.config.max_glyph_draws
+            || self.size.width > limits.0
+            || self.size.height > limits.0
+            || self.draws.len() > atlas.2.max_glyph_draws
             || self.required_bytes()? > budget
-            || self.draws.len() as u64 * 256 > device.limits().max_buffer_size
+            || self.draws.len() as u64 * 256 > limits.1
         {
             return Err(RenderError::Invalid("glyph output budget or extent".into()));
         }
         for draw in &self.draws {
-            if draw.placement >= atlas.generation.placements.len()
+            if draw.placement >= atlas.1
                 || draw
                     .baseline
                     .iter()
@@ -71,7 +72,7 @@ impl GlyphTextPlan {
         }
         let mut hash = Sha256::new();
         hash.update(b"aster.gpu-glyph-output.v1");
-        hash.update(atlas.identity.0.as_bytes());
+        hash.update(atlas.0.0.as_bytes());
         hash.update(self.size.width.to_le_bytes());
         hash.update(self.size.height.to_le_bytes());
         hash.update(

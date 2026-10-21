@@ -28,11 +28,15 @@ impl SceneInput {
             &[aster_render_ir::PrecompositionGeneratorRecord],
         ),
         pixels: &[PrecompositionMediaPixels],
-        resources: (&ResourceRegistry, &BTreeMap<ResourceHash, ImageInput>),
+        resources: (
+            &ResourceRegistry,
+            &BTreeMap<ResourceHash, ImageInput>,
+            &BTreeMap<ResourceHash, ImageInput>,
+        ),
         plans: &crate::frame_plans::FramePlans,
         nested: bool,
     ) -> Result<Self, RenderError> {
-        let (registry, decoded_textures) = resources;
+        let (registry, decoded_textures, native_images) = resources;
         let (effects, generator_records) = programs;
         if scene.metadata.contract_level != ContractLevel::SceneBuffersSliceV1
             || root.metadata.contract_level != ContractLevel::RootSceneCommandsSliceV1
@@ -61,8 +65,13 @@ impl SceneInput {
         let Some(PlanSlice::RootSceneCommands(commands)) = root.metadata.slices.first() else {
             return Err(RenderError::Invalid("root commands required".into()));
         };
-        let mut images =
-            crate::image_input::ImageInput::collect(pixels, scene_slice, commands, registry)?;
+        let mut images = crate::image_input::ImageInput::collect(
+            pixels,
+            scene_slice,
+            commands,
+            registry,
+            native_images,
+        )?;
         let materials =
             crate::material_input::MaterialInput::collect(root, registry, decoded_textures)?;
         for image in materials

@@ -33,13 +33,12 @@ pub struct GlyphTextAtlas {
 }
 
 impl GlyphTextAtlas {
-    pub fn upload(
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        generation: Arc<GlyphGeneration>,
-        config: GlyphTextConfig,
+    pub(crate) fn validate(
+        generation: &GlyphGeneration,
+        config: &GlyphTextConfig,
+        max_dimension: u32,
         budget: u64,
-    ) -> Result<Arc<Self>, RenderError> {
+    ) -> Result<(ResourceHash, u64), RenderError> {
         if config.max_glyph_draws == 0
             || config.max_glyph_draws > 65_536
             || config.max_gpu_glyph_pages == 0
@@ -66,7 +65,7 @@ impl GlyphTextAtlas {
             let length = u64::from(page.dimension) * u64::from(page.dimension) * channels;
             if page.dimension == 0
                 || page.dimension > 4096
-                || page.dimension > device.limits().max_texture_dimension_2d
+                || page.dimension > max_dimension
                 || u64::from(page.bytes_per_row) != u64::from(page.dimension) * channels
                 || page.data.len() as u64 != length
                 || (channels == 4
@@ -117,6 +116,22 @@ impl GlyphTextAtlas {
         }
         // Hash actual page bytes and coordinates, rather than trusting a caller-supplied identity.
         let identity = ResourceHash(format!("{:x}", hash.finalize()));
+        Ok((identity, bytes))
+    }
+
+    pub fn upload(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        generation: Arc<GlyphGeneration>,
+        config: GlyphTextConfig,
+        budget: u64,
+    ) -> Result<Arc<Self>, RenderError> {
+        let (identity, bytes) = Self::validate(
+            &generation,
+            &config,
+            device.limits().max_texture_dimension_2d,
+            budget,
+        )?;
         let mut pages = Vec::with_capacity(generation.pages.len());
         for page in &generation.pages {
             let texture = device.create_texture(&wgpu::TextureDescriptor {

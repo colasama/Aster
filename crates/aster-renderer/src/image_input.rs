@@ -103,6 +103,7 @@ impl ImageInput {
         scene: &SceneBuffersSlice,
         root: &RootSceneCommandsSlice,
         registry: &ResourceRegistry,
+        native: &BTreeMap<ResourceHash, Self>,
     ) -> Result<BTreeMap<ResourceHash, Self>, RenderError> {
         let mut images = BTreeMap::new();
         for record in records {
@@ -111,12 +112,25 @@ impl ImageInput {
                 return Err(RenderError::Invalid("duplicate image frame".into()));
             }
         }
+        let supplied = images.keys().cloned().collect::<BTreeSet<_>>();
         let mut required = BTreeSet::new();
         for media in &scene.media_bindings {
             let MediaDrawBinding::Frame { hash } = &media.binding else {
                 return Err(RenderError::Unsupported("pending media sample".into()));
             };
             required.insert(hash.clone());
+            if let Some(input) = native.get(hash) {
+                if images
+                    .get(hash)
+                    .is_some_and(|old| old.pixels != input.pixels)
+                    || supplied.contains(hash)
+                {
+                    return Err(RenderError::Invalid(
+                        "native and supplied pixels overlap".into(),
+                    ));
+                }
+                images.insert(hash.clone(), input.clone());
+            }
             if !images.contains_key(hash) {
                 return Err(RenderError::Invalid("image pixel generation absent".into()));
             }

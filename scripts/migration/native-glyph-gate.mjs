@@ -55,6 +55,22 @@ export async function runNativeGlyphGate(context, binary, execute = runStep) {
       context,
     );
     assert.equal(report.gpu.status, "passed");
+    report.frame_routing = await execute(
+      {
+        id: "native-glyph-frame-routing",
+        file: "cargo",
+        args: [
+          "test",
+          "-p",
+          "aster-renderer",
+          "native_glyph_frame_routing_without_cpu_rasters",
+          "--",
+          "--ignored",
+        ],
+      },
+      context,
+    );
+    assert.equal(report.frame_routing.status, "passed");
     for (const item of manifest.cases) {
       const raw = await reader.bytes(local(join(context.output, item.path)));
       assert.equal(raw.bytes.length, fixture.width * fixture.height * 4);

@@ -6,6 +6,7 @@ use crate::RenderError;
 
 /// Validated, owned execution inputs. No project evaluation or filesystem access occurs here.
 pub struct SuppliedFrame {
+    pub(crate) glyphs: crate::glyph_frame::GlyphFrame,
     pub(crate) generator_audio: Option<std::sync::Arc<[u8]>>,
     pub(crate) visualizer: Option<crate::frame_visualizer::FrameVisualizer>,
     pub(crate) depth: Option<crate::frame_depth::FrameDepth>,
@@ -19,6 +20,8 @@ pub struct SuppliedFrame {
         std::collections::BTreeMap<aster_render_ir::ResourceHash, crate::lut_cache::LutInput>,
     pub(crate) output_clear: wgpu::Color,
     pub(crate) images:
+        std::collections::BTreeMap<aster_render_ir::ResourceHash, crate::image_input::ImageInput>,
+    pub(crate) uploads:
         std::collections::BTreeMap<aster_render_ir::ResourceHash, crate::image_input::ImageInput>,
 }
 
@@ -39,6 +42,26 @@ impl SuppliedFrame {
         decoded_images: &[aster_render_ir::PrecompositionMediaPixels],
         decoded_textures: &[crate::DecodedTexturePixels],
     ) -> Result<Self, RenderError> {
+        Self::with_native_glyphs(
+            plan,
+            registry,
+            limits,
+            decoded_images,
+            decoded_textures,
+            Vec::new(),
+        )
+    }
+
+    /// Internal native recipes are explicit; the external plan/resource protocol remains unchanged.
+    pub fn with_native_glyphs(
+        plan: OwnedFpln,
+        registry: &ResourceRegistry,
+        limits: &DecodeLimits,
+        decoded_images: &[aster_render_ir::PrecompositionMediaPixels],
+        decoded_textures: &[crate::DecodedTexturePixels],
+        glyphs: Vec<crate::NativeGlyphInput>,
+    ) -> Result<Self, RenderError> {
+        let glyphs = crate::glyph_frame::GlyphFrame::collect(glyphs, registry)?;
         let textures = crate::DecodedTexturePixels::collect(decoded_textures, registry)?;
         let Some(PlanSlice::FrameBundle(bundle)) = plan.metadata.slices.first() else {
             return Err(RenderError::Invalid("complete root bundle required".into()));
@@ -124,6 +147,13 @@ impl SuppliedFrame {
                 ));
             }
         }
+        for (hash, image) in &glyphs.images {
+            if images.insert(hash.clone(), image.clone()).is_some() {
+                return Err(RenderError::Invalid(
+                    "native and supplied pixels overlap".into(),
+                ));
+            }
+        }
         let Some(PlanSlice::SceneBuffers(geometry)) = scene.metadata.slices.first() else {
             return Err(RenderError::Invalid("root geometry absent".into()));
         };
@@ -145,7 +175,7 @@ impl SuppliedFrame {
             &root,
             (&bundle.effects, &bundle.generators),
             &root_pixels,
-            (registry, &textures),
+            (registry, &textures, &glyphs.images),
             &plans,
             false,
         )?;
@@ -156,7 +186,7 @@ impl SuppliedFrame {
             registry,
             &plans,
             pixels,
-            &textures,
+            (&textures, &glyphs.images),
         )?;
         let generator_audio = crate::generator_input::GeneratorInput::shared_audio(
             std::iter::once(&scene)
@@ -207,6 +237,15 @@ impl SuppliedFrame {
             .chain(temporal.resources.iter())
             .cloned()
             .collect::<std::collections::BTreeSet<_>>();
+        if glyphs
+            .inputs
+            .keys()
+            .any(|hash| temporal.passes.contains_key(hash))
+        {
+            return Err(RenderError::Invalid(
+                "native glyphs alias temporal outputs".into(),
+            ));
+        }
         if required != images.keys().cloned().collect()
             || textures.keys().any(|hash| !required.contains(hash))
         {
@@ -219,6 +258,11 @@ impl SuppliedFrame {
             temporal.resolve_generations(&mut surface.scene.images);
         }
         images.retain(|hash, _| !temporal.passes.contains_key(hash));
+        let uploads = images
+            .iter()
+            .filter(|(hash, _)| !glyphs.inputs.contains_key(*hash))
+            .map(|(hash, image)| (hash.clone(), image.clone()))
+            .collect();
         let mut luts = std::collections::BTreeMap::new();
         for scene in std::iter::once(&scene).chain(surfaces.targets.iter().map(|s| &s.scene)) {
             for hash in scene.layers.values().filter_map(|layer| layer.lut.as_ref()) {
@@ -239,6 +283,7 @@ impl SuppliedFrame {
             ));
         }
         Ok(Self {
+            glyphs,
             generator_audio,
             visualizer,
             depth,
@@ -249,6 +294,7 @@ impl SuppliedFrame {
             surfaces,
             post: post.blob(0)?.to_vec(),
             images,
+            uploads,
             luts,
             output_clear: wgpu::Color {
                 r: clear[0],

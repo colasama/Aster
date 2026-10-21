@@ -622,6 +622,17 @@ without replacing each other, and clears them once at frame admission. Frozen in
 component captures cover overlap, stroke, transforms, clipping, color and fractional sampling;
 production project routing and full text raster acceptance remain separate integration requirements.
 
+Native frame admission accepts an explicit `NativeGlyphInput` alongside the existing validated
+resource bundle. Its private recipe binds atlas bytes, coordinates, ordered styles and output extent;
+the media descriptor must identify a text raster with matching dimensions and format. External
+bundles still require pixel payloads. Missing, duplicate, unused or overlapping native inputs fail
+the same complete frame closure checks, including nested scenes and temporal samples.
+The renderer reserves atlas pages, composition targets and draw uniforms within the frame budget,
+retires obsolete generations before allocation, and retains unchanged GPU outputs across frames.
+Glyph composition precedes temporal accumulation and scene draws in one command submission. Native
+text outputs bypass full-frame CPU pixel upload. Authored-project font selection, capability routing
+and final text pixel acceptance remain required before switching production text acquisition.
+
 ## Pi agent runtime
 
 The desktop host runs Pi in an Electron utility process. Pi receives only Aster-owned meta-tools by

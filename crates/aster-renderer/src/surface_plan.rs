@@ -31,7 +31,10 @@ impl SurfacePlan {
         registry: &ResourceRegistry,
         plans: &crate::frame_plans::FramePlans,
         frame_pixels: &[aster_render_ir::PrecompositionMediaPixels],
-        decoded_textures: &BTreeMap<ResourceHash, crate::image_input::ImageInput>,
+        images: (
+            &BTreeMap<ResourceHash, crate::image_input::ImageInput>,
+            &BTreeMap<ResourceHash, crate::image_input::ImageInput>,
+        ),
     ) -> Result<Self, RenderError> {
         let mut result = Self::default();
         let Some(hash) = hash else {
@@ -114,7 +117,7 @@ impl SurfacePlan {
                 &commands,
                 (&record.effects, &record.generators),
                 &pixels,
-                (registry, decoded_textures),
+                (registry, images.0, images.1),
                 plans,
                 true,
             )?;

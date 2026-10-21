@@ -370,39 +370,13 @@
     }
   },
   "last_cycle": {
-    "id": 124,
-    "time": "2026-10-21T02:24:37.243Z",
-    "updated_at": "2026-10-21T02:24:37.243Z",
+    "id": 125,
+    "time": "2026-10-21T02:27:09.843Z",
+    "updated_at": "2026-10-21T02:27:09.843Z",
     "milestone": "M10",
-    "task": "M10-T6",
-    "outcome": "passed",
-    "commit": "f6232766f7531ec82b4d646217a35f0d3c007d1c",
-    "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T01-40-40-517Z-2d2ed2e6.json",
-      "sha256": "2357fb71bf8cebf6443ad58bef99341202f301423d341dee6d101fbc96d02cb4"
-    },
-    "gates": [
-      {
-        "id": "G0",
-        "status": "passed",
-        "duration_ms": 243866,
-        "proof": {
-          "path": "artifacts/migration/2026-10-21T01-40-40-517Z-2d2ed2e6/static-results.json",
-          "sha256": "7cede598c94c67b9d2515fd517670739b7f0a29748827074adaa1ca029ece0cb"
-        }
-      },
-      {
-        "id": "G3",
-        "status": "passed",
-        "duration_ms": 2357839,
-        "proof": {
-          "path": "artifacts/migration/2026-10-21T01-40-40-517Z-2d2ed2e6/G3/report.json",
-          "sha256": "304f10f8bc5b3446e8468914fd6de77690ebcd088c5ed75c509f381a932d10a2"
-        }
-      }
-    ],
-    "duration_ms": 2604459,
-    "next_step": "M10-T7: route supported authored text through native layout, raster and GPU composition; preserve exact authenticated capability reasons for retained fonts/scripts/features. Then complete full production text pixel/layout acceptance."
+    "task": "M10-T7",
+    "outcome": "in_progress",
+    "next_step": "Implement GPU-native frame admission, then continue authored-project text preparation and production routing; T7 remains open until production acceptance."
   },
   "milestones": [
     {
@@ -24803,7 +24777,7 @@
         {
           "id": "M10-T7",
           "title": "Use native text in authored-project rendering with explicit capability routing",
-          "status": "pending",
+          "status": "in_progress",
           "scope": "Wire native layout and GPU glyph output through project sessions and headless exports. Keep only documented unsupported fonts/scripts/features on the M5 raster service, with ledger follow-ups.",
           "acceptance": "Supported text actually uses native output in the production project path; unsupported cases have exact reasons and preserved rendering; G0/G3 green.",
           "estimated_implementation_hours": 2,
@@ -24846,6 +24820,63 @@
             "path": "artifacts/migration/cycle124-native-text-routing-preparation.json",
             "sha256": "61269dbd10b5625043f55a67bf8db02c370038fd99ea830d582b1dedbc33049f",
             "status": "read_only_preparation; production native text routing remains pending"
+          },
+          "progress": {
+            "state": "full_verification_pending",
+            "increments": [
+              {
+                "id": "gpu-frame-admission",
+                "status": "in_progress",
+                "scope": "Admit validated native glyph recipes without CPU raster payloads; account immutable atlases and output targets in frame GPU budgets; render before temporal and scene passes, including nested surfaces."
+              },
+              {
+                "id": "project-text-preparation",
+                "status": "pending",
+                "scope": "Resolve authored project fonts, layout, styles and animated text bounds into native glyph recipes with exact retained capability reasons."
+              },
+              {
+                "id": "production-routing",
+                "status": "pending",
+                "scope": "Partition authenticated retained requests and route native text through project sessions and export. Verify actual TS raster omission and full project pixel/layout acceptance."
+              }
+            ],
+            "focused_evidence": [
+              {
+                "path": "artifacts/migration/cycle125-routing-test.log",
+                "sha256": "8a2b4046ec5391f1f13c69b79a8675d5092863876e803bf8e9d36acf71b6a2a1"
+              },
+              {
+                "path": "artifacts/migration/cycle125-routing-test2.log",
+                "sha256": "1653cbf0ca6c86a407fc7f841f1895be899f55c7c85dad35a3c88bc5feb2cc0c"
+              },
+              {
+                "path": "artifacts/migration/cycle125-routing-test3.log",
+                "sha256": "07b8777b0e004b2f2e0f9469f07798d7468f4e7047bed8e156c2f69efded780d"
+              },
+              {
+                "path": "artifacts/migration/cycle125-clippy.log",
+                "sha256": "f883887b72e098457c633cd05c696e3b918afc12b33dd6547dfdb5f06ff20254"
+              }
+            ],
+            "attempts": [
+              {
+                "attempt": 1,
+                "outcome": "failed",
+                "reason": "Synthetic test fixture omitted frame-bundle payload count updates after changing media records; runtime correctly rejected inconsistent fixture.",
+                "resolution": "Re-encode consistent typed frame-bundle counts; no runtime acceptance rule changed."
+              },
+              {
+                "attempt": 2,
+                "outcome": "passed",
+                "duration_seconds": 116.01
+              },
+              {
+                "attempt": 3,
+                "outcome": "passed",
+                "duration_seconds": 115.54,
+                "improvement": "Exercise consecutive native generations without switching back to CPU input."
+              }
+            ]
           }
         },
         {
@@ -2441653,23 +2441684,12 @@
     }
   ],
   "active_cycle": {
-    "id": 124,
+    "id": 125,
     "milestone": "M10",
-    "task": "M10-T6",
-    "increment": "Compose native text from the glyph atlas on the GPU",
-    "started_at": "2026-10-21T01:18:07.341Z",
-    "updated_at": "2026-10-21T02:24:37.243Z",
-    "implementation_state": "committed",
-    "previous_verification": {
-      "path": "artifacts/migration/verify-2026-10-21T00-33-13-252Z-2843cddb.json",
-      "sha256": "8b3f7609e6463323110a3ac1edff1f9deafd6a41ac6ecf5a186a4e637bbd6494"
-    },
-    "outcome": "passed",
-    "commit": "f6232766f7531ec82b4d646217a35f0d3c007d1c",
-    "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T01-40-40-517Z-2d2ed2e6.json",
-      "sha256": "2357fb71bf8cebf6443ad58bef99341202f301423d341dee6d101fbc96d02cb4"
-    }
+    "task": "M10-T7",
+    "started_at": "2026-10-21T02:27:09.843Z",
+    "updated_at": "2026-10-21T02:41:25.611Z",
+    "implementation_state": "verification_pending"
   },
   "execution_pause": {
     "requested_by": "owner",
