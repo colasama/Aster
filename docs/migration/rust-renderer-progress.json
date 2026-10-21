@@ -371,13 +371,39 @@
   },
   "last_cycle": {
     "id": 126,
-    "time": "2026-10-21T03:32:57.147Z",
-    "updated_at": "2026-10-21T03:51:02.841Z",
+    "time": "2026-10-21T04:46:09.532Z",
+    "updated_at": "2026-10-21T04:46:09.532Z",
     "milestone": "M10",
     "task": "M10-T7",
     "increment": "project-text-preparation",
-    "outcome": "in_progress",
-    "next_step": "Run complete current-source M10 G0/G3, including 210 actual authored text recipe comparisons. Then commit this preparation increment while keeping production routing and full native text pixel acceptance open."
+    "outcome": "passed",
+    "commit": "79402fe0902f1ae866b477cdd7d5fe8e438b220d",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-21T03-51-05-370Z-3258a27d.json",
+      "sha256": "1b56cbe5e13b480f71125d8cd89e4edc3671aed48c3ac5dff480ae661f4b4cfa"
+    },
+    "gates": [
+      {
+        "id": "G0",
+        "status": "passed",
+        "duration_ms": 405660,
+        "proof": {
+          "path": "artifacts/migration/2026-10-21T03-51-05-370Z-3258a27d/static-results.json",
+          "sha256": "66702a594e2fd1ce572cc3288b816f2d78c5fbed177df0e703fad75cc11fb2dc"
+        }
+      },
+      {
+        "id": "G3",
+        "status": "passed",
+        "duration_ms": 2676261,
+        "proof": {
+          "path": "artifacts/migration/2026-10-21T03-51-05-370Z-3258a27d/G3/report.json",
+          "sha256": "1c18fcfd34dea74114e555a03c351757aa378753684654fe9215b495a636a143"
+        }
+      }
+    ],
+    "duration_ms": 3084507,
+    "next_step": "Continue M10-T7 with actual native text pixel comparison and capability-routed project-session acquisition. Partition exact retained requests, bind native descriptors and selector layouts, preserve temporal sample/union semantics. Do not claim final native text parity from geometry preparation."
   },
   "milestones": [
     {
@@ -24818,12 +24844,12 @@
             }
           ],
           "preparation": {
-            "path": "artifacts/migration/cycle125-project-text-preparation.json",
-            "sha256": "5d36c1cf53feacecfc41791f7ec3ddd02db50f39dcf5f7ccf6b510a8ccaf3671",
-            "status": "read_only_preparation; authored-project native text acquisition remains pending"
+            "path": "artifacts/migration/cycle126-routing-preparation.json",
+            "sha256": "9d9f5109dbc12efd81948a512df10a04377d4cf861b15c7648cd4d5c29f2f0f1",
+            "status": "read_only_preparation; actual native text pixel acceptance and production acquisition remain pending"
           },
           "progress": {
-            "state": "verifying_project_text_preparation",
+            "state": "project_text_preparation_verified_production_routing_pending",
             "increments": [
               {
                 "id": "gpu-frame-admission",
@@ -24838,8 +24864,14 @@
               },
               {
                 "id": "project-text-preparation",
-                "status": "in_progress",
-                "scope": "Resolve authored project fonts, layout, styles and animated text bounds into native glyph recipes with exact retained capability reasons."
+                "status": "done",
+                "scope": "Resolve authored project fonts, layout, styles and animated text bounds into native glyph recipes with exact retained capability reasons.",
+                "completed_at": "2026-10-21T04:46:09.532Z",
+                "commit": "79402fe0902f1ae866b477cdd7d5fe8e438b220d",
+                "verification": {
+                  "path": "artifacts/migration/verify-2026-10-21T03-51-05-370Z-3258a27d.json",
+                  "sha256": "1b56cbe5e13b480f71125d8cd89e4edc3671aed48c3ac5dff480ae661f4b4cfa"
+                }
               },
               {
                 "id": "production-routing",
@@ -24890,77 +24922,69 @@
               "status": "recovered_without_source_or_evidence_changes"
             },
             "latest_verified_increment": {
-              "cycle": 125,
-              "commit": "c23947bff8641f05010525465b77407b213d170c",
+              "cycle": 126,
+              "commit": "79402fe0902f1ae866b477cdd7d5fe8e438b220d",
               "verification": {
-                "path": "artifacts/migration/verify-2026-10-21T02-41-29-264Z-471eaeed.json",
-                "sha256": "ab96ba53ce9e057825931395e0bf68dcb6e2bd23d8048e181c83f8ce63b76d51"
+                "path": "artifacts/migration/verify-2026-10-21T03-51-05-370Z-3258a27d.json",
+                "sha256": "1b56cbe5e13b480f71125d8cd89e4edc3671aed48c3ac5dff480ae661f4b4cfa"
               },
               "gates": [
                 {
                   "id": "G0",
                   "status": "passed",
-                  "duration_ms": 319685,
+                  "duration_ms": 405660,
                   "proof": {
-                    "path": "artifacts/migration/2026-10-21T02-41-29-264Z-471eaeed/static-results.json",
-                    "sha256": "79408918d295d72b45cc1b3efcaf94016f6c90059a426dcfb0d42a43e3a15924"
+                    "path": "artifacts/migration/2026-10-21T03-51-05-370Z-3258a27d/static-results.json",
+                    "sha256": "66702a594e2fd1ce572cc3288b816f2d78c5fbed177df0e703fad75cc11fb2dc"
                   }
                 },
                 {
                   "id": "G3",
                   "status": "passed",
-                  "duration_ms": 2339703,
+                  "duration_ms": 2676261,
                   "proof": {
-                    "path": "artifacts/migration/2026-10-21T02-41-29-264Z-471eaeed/G3/report.json",
-                    "sha256": "2a1b5ed7cbd4a2ac855cbb821b653f9a776fb6e8aa90a13310879d14ccabe039"
+                    "path": "artifacts/migration/2026-10-21T03-51-05-370Z-3258a27d/G3/report.json",
+                    "sha256": "1c18fcfd34dea74114e555a03c351757aa378753684654fe9215b495a636a143"
                   }
                 }
               ],
-              "duration_ms": 2662292,
+              "duration_ms": 3084507,
               "primary_pixel_frames": 1315,
-              "frame_routing": {
+              "project_text_preparation": {
                 "status": "passed",
-                "step": {
-                  "id": "native-glyph-frame-routing",
-                  "command": [
-                    "cargo",
-                    "test",
-                    "-p",
-                    "aster-renderer",
-                    "native_glyph_frame_routing_without_cpu_rasters",
-                    "--",
-                    "--ignored"
-                  ],
-                  "started_at": "2026-10-21T03:23:45.640Z",
-                  "log": "artifacts/migration/2026-10-21T02-41-29-264Z-471eaeed/G3/native-glyph-composite/native-glyph-frame-routing.log",
-                  "status": "passed",
-                  "exit_code": 0,
-                  "signal": null,
-                  "finished_at": "2026-10-21T03:25:42.507Z",
-                  "duration_ms": 116867
-                },
-                "scenarios": 8,
-                "comparison": "byte-exact complete frame output against independently supplied synthetic CPU rasters",
-                "coverage": [
-                  "root and nested scenes",
-                  "direct and temporal text",
-                  "consecutive red/blue native generations",
-                  "unchanged GPU output reuse",
-                  "missing CPU raster payloads",
-                  "zero native text CPU image uploads",
-                  "duplicate and incomplete input rejection",
-                  "budget failure and recovery"
+                "cases": [
+                  {
+                    "id": "layer-text",
+                    "project_sha256": "23c131a111c534019f5f5ce6579ff02a5a18c6900eba10d7dfc4ffcec2fe01ef",
+                    "requests": 70
+                  },
+                  {
+                    "id": "scene-motion-blur",
+                    "project_sha256": "3ed366ab49fea7c1c2c3ce5e5f0be662a6156e354dfe208192afbae4040cc9b7",
+                    "requests": 70
+                  },
+                  {
+                    "id": "scene-text-animators",
+                    "project_sha256": "0b5900c0ce12b71fb5a18d953da995704f8f8838c9843c483e6a11159936cdb0",
+                    "requests": 70
+                  }
                 ],
-                "production_authored_text_routing": false
+                "comparisons": 210,
+                "maxima": {
+                  "advance": 0,
+                  "baseline": 0,
+                  "transform": 0.000007533039678264686
+                },
+                "report": {
+                  "path": "artifacts/migration/2026-10-21T03-51-05-370Z-3258a27d/G3/native-text-layout/native-project-preparation/report.json",
+                  "sha256": "a76d052549af413e68f8464a1a9a8502eb278ed973b3e6401d8f0682e95dfbbc"
+                },
+                "native_text_pixel_acceptance": false,
+                "production_routing": false
               },
               "glyph_composite": {
                 "status": "passed",
-                "frames": 6,
-                "native_text_acceptance": false,
-                "report": {
-                  "path": "artifacts/migration/2026-10-21T02-41-29-264Z-471eaeed/G3/native-glyph-composite/report.json",
-                  "sha256": "331e6faf8e89e6a6ffd2a15c36f5fe6158a28d0c226cb889243e7d7a66262867"
-                }
+                "frames": 6
               }
             },
             "storage_preflight": {
@@ -24979,14 +25003,29 @@
               "maximum_baseline_delta": 0,
               "maximum_transform_delta": 0.000007533039678264686,
               "bounds": "exact",
-              "native_text_pixel_acceptance": false
+              "native_text_pixel_acceptance": false,
+              "attempt_logs": [
+                "artifacts/migration/cycle126-check1.log",
+                "artifacts/migration/cycle126-text-canary1/native-project-text-preparation.log",
+                "artifacts/migration/cycle126-text-canary2/native-project-text-preparation.log",
+                "artifacts/migration/cycle126-text-canary3/native-project-text-preparation.log"
+              ]
             },
             "features": [
               "Immutable native GPU frame admission verified",
               "Authored project text preparation binds fonts, layout, selector units, evaluated styles, ink bounds and atlas recipes",
               "Precise retained capability reasons and fatal resource/input limits",
               "Production provider partition and final native text pixels remain pending"
-            ]
+            ],
+            "latest_glyph_self_review": {
+              "path": "artifacts/migration/cycle126-self-review.json",
+              "sha256": "f10e51dc949f7bdacdbb830f8a4dee5b0cbda75f9f09bdfb7e94c8a5cbb13ee6"
+            },
+            "quota_observation": {
+              "path": "artifacts/migration/cycle126-quota-observation.json",
+              "sha256": "5d7b2f532d31fe8245a02ea93ebb43a6055902c3477c36816a6e490e7f502dca",
+              "remaining_percent": 56
+            }
           }
         },
         {
@@ -25004,8 +25043,8 @@
       ],
       "started_at": "2026-10-20T20:25:14.937Z",
       "latest_verification": {
-        "path": "artifacts/migration/verify-2026-10-21T02-41-29-264Z-471eaeed.json",
-        "sha256": "ab96ba53ce9e057825931395e0bf68dcb6e2bd23d8048e181c83f8ce63b76d51"
+        "path": "artifacts/migration/verify-2026-10-21T03-51-05-370Z-3258a27d.json",
+        "sha256": "1b56cbe5e13b480f71125d8cd89e4edc3671aed48c3ac5dff480ae661f4b4cfa"
       }
     },
     {
@@ -2441587,6 +2441626,20 @@
         "sha256": "ab96ba53ce9e057825931395e0bf68dcb6e2bd23d8048e181c83f8ce63b76d51"
       },
       "milestone_exit_satisfied": false
+    },
+    {
+      "cycle": 126,
+      "time": "2026-10-21T04:46:09.532Z",
+      "milestone": "M10",
+      "task": "M10-T7",
+      "increment": "project-text-preparation",
+      "outcome": "passed",
+      "commit": "79402fe0902f1ae866b477cdd7d5fe8e438b220d",
+      "verification": {
+        "path": "artifacts/migration/verify-2026-10-21T03-51-05-370Z-3258a27d.json",
+        "sha256": "1b56cbe5e13b480f71125d8cd89e4edc3671aed48c3ac5dff480ae661f4b4cfa"
+      },
+      "milestone_exit_satisfied": false
     }
   ],
   "known_boundaries": [
@@ -2441812,8 +2441865,14 @@
     "milestone": "M10",
     "task": "M10-T7",
     "started_at": "2026-10-21T03:32:57.147Z",
-    "updated_at": "2026-10-21T03:51:02.841Z",
-    "implementation_state": "verifying"
+    "updated_at": "2026-10-21T04:46:09.532Z",
+    "implementation_state": "committed",
+    "outcome": "passed",
+    "commit": "79402fe0902f1ae866b477cdd7d5fe8e438b220d",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-21T03-51-05-370Z-3258a27d.json",
+      "sha256": "1b56cbe5e13b480f71125d8cd89e4edc3671aed48c3ac5dff480ae661f4b4cfa"
+    }
   },
   "execution_pause": {
     "requested_by": "owner",
