@@ -8,6 +8,7 @@ import { sha256 } from "./m0-evidence.mjs";
 import { runNativeProjectTextGate } from "./native-project-text-gate.mjs";
 import { runNativeProjectTextPixels } from "./native-project-text-pixels.mjs";
 import { assertTextLayoutPair } from "./native-text-layout-audit.mjs";
+import { runNativeTextSessionGate } from "./native-text-session-gate.mjs";
 import { runNativeTextShapingGate } from "./native-text-shaping-gate.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
@@ -259,6 +260,18 @@ export async function runNativeTextLayoutGate(context, execute = runStep, option
         report.native_project_pixels.status,
         "passed",
         "Authored text pixel qualification failed",
+      );
+    }
+    if (context.milestone === "M10" && !options.cases) {
+      report.native_project_session = await runNativeTextSessionGate(
+        { ...context, output: join(context.output, "native-project-session") },
+        context.output,
+        execute,
+      );
+      assert.equal(
+        report.native_project_session.status,
+        "passed",
+        "Production native text routing failed",
       );
     }
     report.source_after = await sourceProvenance(context.root);

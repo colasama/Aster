@@ -29,6 +29,9 @@ pub struct PreparedProjectFrame {
     pub frame: SuppliedFrame,
     pub registry: ResourceRegistry,
     pub decoded_images: Vec<PrecompositionMediaPixels>,
+    pub text_routes: Vec<crate::ProjectTextRoute>,
+    /// Immutable recipes for explicit diagnostics; ordinary execution remains GPU-resident.
+    pub native_text: Vec<aster_renderer::NativeGlyphInput>,
     generation: u64,
     owner: Arc<()>,
 }
@@ -43,6 +46,7 @@ pub struct NativeProjectSession {
     pending: Option<u64>,
     poisoned: bool,
     owner: Arc<()>,
+    text: Option<crate::NativeProjectText>,
 }
 
 impl NativeProjectSession {
@@ -68,6 +72,7 @@ impl NativeProjectSession {
             pending: None,
             poisoned: false,
             owner: Arc::new(()),
+            text: None,
         })
     }
 
@@ -126,9 +131,33 @@ impl NativeProjectSession {
             context.visualization = self.gpu.configure_visualization(context.visualization)?;
         }
         let mut files = self.files.acquire(frame, &context, true, cancellation)?;
-        let rasters = acquire_rasters(&files.requests)?;
         let limits = self.files.document.limits.clone();
-        rasters.validate(&files.requests, limits.render_project_pixel_bytes)?;
+        let has_text = files.requests.operations.iter().any(|operation| {
+            matches!(operation,
+            aster_eval::ResourcePreparationOperation::Raster { request }
+                if matches!(request.raster, aster_eval::RetainedRasterKind::Text { .. }))
+        });
+        let (rasters, native_text, text_routes) = if has_text {
+            if self.text.is_none() {
+                let fonts = crate::NativeProjectText::discover_platform(
+                    &self.files.document,
+                    &Default::default(),
+                    Default::default(),
+                )?;
+                self.text = Some(crate::NativeProjectText::new(&self.files.document, fonts)?);
+            }
+            let text = self
+                .text
+                .as_mut()
+                .ok_or_else(|| ProjectRenderError::Invalid("native text session absent".into()))?;
+            let routing = text.partition(&self.files.document, &files.requests, &context)?;
+            let rasters = acquire_rasters(&routing.retained)?;
+            routing.merge(rasters, limits.render_project_pixel_bytes)?
+        } else {
+            let rasters = acquire_rasters(&files.requests)?;
+            rasters.validate(&files.requests, limits.render_project_pixel_bytes)?;
+            (rasters, Vec::new(), Vec::new())
+        };
         let materials = self.materials.acquire(
             &self.files.document,
             &frame.composition_id,
@@ -282,12 +311,13 @@ impl NativeProjectSession {
         }
         let decode_limits = DecodeLimits::default();
         let plan = FplnCodec::decode(bundle.plan.encode(&decode_limits)?, &decode_limits)?;
-        let supplied = SuppliedFrame::with_textures(
+        let supplied = SuppliedFrame::with_native_glyphs(
             plan,
             &registry,
             &decode_limits,
             &decoded_images,
             &decoded,
+            native_text.clone(),
         )?;
         if cancellation.is_cancelled() {
             return Err(aster_video::FfmpegError::Cancelled.into());
@@ -300,6 +330,8 @@ impl NativeProjectSession {
             frame: supplied,
             registry,
             decoded_images,
+            text_routes,
+            native_text,
             generation: self.generation,
             owner: Arc::clone(&self.owner),
         })

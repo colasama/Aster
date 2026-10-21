@@ -6,28 +6,47 @@ use crate::RenderError;
 impl NativeRenderer {
     /// Explicit diagnostic readback. Preview and encoder integrations consume the texture directly.
     pub fn read_rgba(&self, frame: &RenderedFrame) -> Result<Vec<u8>, RenderError> {
-        let row = frame.size.width * 4;
+        self.read_texture_rgba(&frame.texture, frame.size, true)
+    }
+
+    /// Read an already admitted glyph generation, independently of scene padding or compositing.
+    /// This diagnostic never renders a recipe or substitutes a CPU layer raster.
+    pub fn read_native_glyph_rgba(
+        &self,
+        input: &crate::NativeGlyphInput,
+    ) -> Result<Vec<u8>, RenderError> {
+        let texture = self.glyphs.diagnostic_output(input)?;
+        self.read_texture_rgba(texture, input.plan.size, false)
+    }
+
+    fn read_texture_rgba(
+        &self,
+        texture: &wgpu::Texture,
+        size: aster_render_ir::Extent2d,
+        bgra: bool,
+    ) -> Result<Vec<u8>, RenderError> {
+        let row = size.width * 4;
         let padded = row.div_ceil(256) * 256;
         let buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Diagnostic RGBA readback"),
-            size: u64::from(padded) * u64::from(frame.size.height),
+            size: u64::from(padded) * u64::from(size.height),
             usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
             mapped_at_creation: false,
         });
         let mut encoder = self.device.create_command_encoder(&Default::default());
         encoder.copy_texture_to_buffer(
-            frame.texture.as_image_copy(),
+            texture.as_image_copy(),
             wgpu::TexelCopyBufferInfo {
                 buffer: &buffer,
                 layout: wgpu::TexelCopyBufferLayout {
                     offset: 0,
                     bytes_per_row: Some(padded),
-                    rows_per_image: Some(frame.size.height),
+                    rows_per_image: Some(size.height),
                 },
             },
             wgpu::Extent3d {
-                width: frame.size.width,
-                height: frame.size.height,
+                width: size.width,
+                height: size.height,
                 depth_or_array_layers: 1,
             },
         );
@@ -48,15 +67,19 @@ impl NativeRenderer {
             .recv_timeout(self.options.timeout)
             .map_err(|error| RenderError::Gpu(error.to_string()))?
             .map_err(|error| RenderError::Gpu(error.to_string()))?;
-        let mut pixels = Vec::with_capacity(row as usize * frame.size.height as usize);
+        let mut pixels = Vec::with_capacity(row as usize * size.height as usize);
         {
             let mapped = buffer
                 .slice(..)
                 .get_mapped_range()
                 .map_err(|error| RenderError::Gpu(error.to_string()))?;
             for bytes in mapped.chunks_exact(padded as usize) {
-                for bgra in bytes[..row as usize].chunks_exact(4) {
-                    pixels.extend([bgra[2], bgra[1], bgra[0], bgra[3]]);
+                for pixel in bytes[..row as usize].chunks_exact(4) {
+                    if bgra {
+                        pixels.extend([pixel[2], pixel[1], pixel[0], pixel[3]]);
+                    } else {
+                        pixels.extend_from_slice(pixel);
+                    }
                 }
             }
         }

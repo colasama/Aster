@@ -163,6 +163,11 @@ export async function runNativeProjectTextPixels(
       assert.deepEqual(receipt.request, job.request);
 
       assert.equal(receipt.removed_cpu_rasters, 1);
+      assert.equal(receipt.retained_session_exact, true);
+      assert.equal(
+        receipt.retained_reason,
+        "stroke coverage exceeds the isolated raster alpha limit",
+      );
       assert(receipt.glyph_draws > 0 && receipt.atlas_bytes > 0);
       assert.deepEqual([receipt.width, receipt.height], [320, 180]);
       const candidate = await reader.bytes(local(job.output), receipt.native_rgba_sha256);

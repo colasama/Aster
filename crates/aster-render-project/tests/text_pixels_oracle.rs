@@ -3,8 +3,10 @@ use aster_render_ir::{
     ResourceKind, ResourceMessage, ResourceRegistry,
 };
 use aster_render_project::{
-    NativeProjectDocument, NativeProjectText, ProjectRenderLimits, ProjectTextOutcome,
-    ProjectTextRequest,
+    NativeProjectAudio, NativeProjectDocument, NativeProjectFileMedia, NativeProjectGenerators,
+    NativeProjectGpu, NativeProjectMaterials, NativeProjectSession, NativeProjectText,
+    ProjectAudioLimits, ProjectFrameSettings, ProjectRasterFrame, ProjectRenderLimits,
+    ProjectTextOutcome, ProjectTextRequest,
 };
 use aster_renderer::{NativeOptions, NativeRenderer, SuppliedFrame};
 use aster_text::{FontCatalogConfig, FontDiscoveryConfig};
@@ -23,6 +25,14 @@ use std::{
 struct Options {
     #[command(flatten)]
     limits: ProjectRenderLimits,
+    #[command(flatten)]
+    media: aster_media_native::ProjectMediaLimits,
+    #[command(flatten)]
+    audio: ProjectAudioLimits,
+    #[command(flatten)]
+    textures: aster_media_native::TextureLimits,
+    #[command(flatten)]
+    radiance: aster_media_native::RadianceLimits,
 }
 #[derive(Deserialize)]
 struct PixelCase {
@@ -48,6 +58,8 @@ struct PixelReceipt {
     removed_cpu_rasters: usize,
     glyph_draws: usize,
     atlas_bytes: usize,
+    retained_session_exact: bool,
+    retained_reason: String,
 }
 
 #[test]
@@ -137,6 +149,7 @@ fn authored_text_pixels_from_native_recipes() -> Result<(), Box<dyn std::error::
         let reference_rgba = renderer.read_rgba(&reference_frame)?;
         drop(reference_frame);
         drop(reference);
+        let header = plan.metadata.header.clone();
         let Some(PlanSlice::FrameBundle(bundle)) = plan.metadata.slices.first_mut() else {
             return Err("complete frame required".into());
         };
@@ -167,6 +180,10 @@ fn authored_text_pixels_from_native_recipes() -> Result<(), Box<dyn std::error::
             serde_json::to_value(&case.request.layer)?
         );
         let layer_rgba_sha256 = format!("{:x}", Sha256::digest(registry.resolve(&record.pixels)?));
+
+        let (next_renderer, retained_reason) =
+            case.retained_session(renderer, &header, &registry, record, &reference_rgba)?;
+        renderer = next_renderer;
 
         let input = prepared.into_input(record.frame.clone(), 256 * 1024 * 1024)?;
         bundle.media_pixels.retain(|p| p.frame != record.frame);
@@ -234,6 +251,8 @@ fn authored_text_pixels_from_native_recipes() -> Result<(), Box<dyn std::error::
             removed_cpu_rasters: 1,
             glyph_draws,
             atlas_bytes,
+            retained_session_exact: true,
+            retained_reason,
         });
     }
     PixelReceipt::publish(
@@ -241,6 +260,160 @@ fn authored_text_pixels_from_native_recipes() -> Result<(), Box<dyn std::error::
         &serde_json::to_vec(&receipts)?,
     )?;
     Ok(())
+}
+
+impl PixelCase {
+    fn retained_session(
+        &self,
+        renderer: NativeRenderer,
+        header: &aster_render_ir::FrameHeaderSlice,
+        registry: &ResourceRegistry,
+        record: &aster_render_ir::PrecompositionMediaPixels,
+        expected: &[u8],
+    ) -> Result<(NativeRenderer, String), Box<dyn std::error::Error>> {
+        use aster_eval::{
+            BufferVisualization, FramePlanRequest, ResourceRequestContext, SurfaceRequest,
+        };
+        use aster_render_ir::{CompositionIdentity, VerifiedResource};
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../..")
+            .canonicalize()?;
+        let options = Options::try_parse_from(["retained-text"])?;
+        let cancellation = aster_video::CancellationToken::default();
+        let tools = || aster_media_native::ProjectMediaTools {
+            ffmpeg: root.join("build/ffmpeg/ffmpeg.exe"),
+            ffprobe: root.join("build/ffmpeg/ffprobe.exe"),
+        };
+        let CompositionIdentity::Unicode(composition) = &header.composition_id else {
+            return Err("composition identity absent".into());
+        };
+        let request = FramePlanRequest {
+            snapshot_scope: header.snapshot_scope.clone(),
+            project_revision: header.project_revision,
+            composition_id: composition.clone(),
+            time: header.time.to_f64()?,
+            target: header.target,
+            render_target: header.render_target,
+            anti_aliasing: header.aa,
+            shadows_enabled: true,
+        };
+        let settings = ProjectFrameSettings {
+            resources: ResourceRequestContext {
+                visualization: BufferVisualization::Beauty,
+                locale: self.request.locale.clone(),
+                layouts: Default::default(),
+                surface: SurfaceRequest {
+                    revision: 1,
+                    max_texture_dimension: 4096,
+                    memory_budget_mb: Some(256.),
+                    render_scale: 1.,
+                },
+                maximum_raster_dimension: 4096,
+                maximum_raster_pixels: 67_108_864,
+            },
+            selected_layer_id: None,
+            shadow_map_size: 1024,
+        };
+        let document = NativeProjectDocument::open(&self.project, options.limits.clone())?;
+        let audio = NativeProjectAudio::new(
+            &document,
+            composition,
+            tools(),
+            options.audio,
+            &cancellation,
+        )?;
+        let files = NativeProjectFileMedia::new(
+            document,
+            std::slice::from_ref(&request),
+            &settings.resources,
+            tools(),
+            options.media,
+            &cancellation,
+        )?;
+        let materials = NativeProjectMaterials::new(
+            root.join("build/ffmpeg/ffmpeg.exe"),
+            options.textures,
+            options.radiance,
+        )?;
+        let catalog = NativeProjectGenerators::catalog(Vec::new(), options.limits.bundle)?;
+        let mut session = NativeProjectSession::new(
+            files,
+            materials,
+            audio,
+            NativeProjectGpu::new(renderer),
+            catalog,
+        )?;
+        let ResourceDescriptor::MediaFrame(frame) = registry.descriptor(&record.frame)? else {
+            return Err("frame absent".into());
+        };
+        let MediaSample::Raster(sample) = &frame.sample else {
+            return Err("sample absent".into());
+        };
+        let [x, y, width, height] = sample.bounds()?;
+        let prepared = session.prepare(&request, &settings, &cancellation, |requests| {
+            let text = requests
+                .operations
+                .iter()
+                .filter_map(|operation| match operation {
+                    aster_eval::ResourcePreparationOperation::Raster { request } => Some(request),
+                    _ => None,
+                })
+                .collect::<Vec<_>>();
+            assert_eq!(text.len(), 1);
+            assert_eq!(text[0].layer_id, self.request.layer);
+            let pixels = VerifiedResource::new(
+                ResourceKind::Buffer,
+                registry.descriptor(&record.pixels)?.clone(),
+                registry.resolve(&record.pixels)?.to_vec(),
+            )?;
+            Ok(ProjectRasterFrame {
+                request_sha256: Some(format!(
+                    "{:x}",
+                    Sha256::digest(serde_json::to_vec(requests)?)
+                )),
+                bindings: [(text[0].instance_id.clone(), Some(record.frame.clone()))].into(),
+                resources: vec![
+                    VerifiedResource::new(
+                        ResourceKind::MediaSource,
+                        registry.descriptor(&frame.source)?.clone(),
+                        Vec::new(),
+                    )?,
+                    VerifiedResource::new(
+                        ResourceKind::MediaFrame,
+                        ResourceDescriptor::MediaFrame(frame.clone()),
+                        Vec::new(),
+                    )?,
+                ],
+                pixels: vec![aster_eval::BundleMediaPixels {
+                    frame: record.frame.clone(),
+                    pixels,
+                }],
+                text_bounds: [(
+                    text[0].instance_id.clone(),
+                    aster_eval::TextGeometryBounds {
+                        x,
+                        y,
+                        width,
+                        height,
+                    },
+                )]
+                .into(),
+                ..Default::default()
+            })
+        })?;
+        assert!(prepared.native_text.is_empty());
+        assert_eq!(prepared.text_routes.len(), 1);
+        assert!(prepared.text_routes[0].frame.is_none());
+        let reason = prepared.text_routes[0].capability.reason.clone();
+        assert_eq!(
+            reason,
+            "stroke coverage exceeds the isolated raster alpha limit"
+        );
+        let rendered = session.render(&prepared, &cancellation)?;
+        assert_eq!(session.gpu.renderer.read_rgba(&rendered)?, expected);
+        drop(rendered);
+        Ok((session.gpu.renderer, reason))
+    }
 }
 
 impl PixelReceipt {

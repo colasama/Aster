@@ -27,6 +27,7 @@ mod text;
 mod text_fonts;
 mod text_paint;
 mod text_raster;
+mod text_routing;
 mod text_style;
 mod text_units;
 pub use document::{NativeProjectDocument, ProjectRenderLimits};
@@ -40,6 +41,7 @@ pub use text::{
     NativeProjectText, PreparedProjectText, ProjectTextOutcome, ProjectTextRequest, TextCapability,
 };
 pub use text_paint::{ProjectTextPaint, TextAffine};
+pub use text_routing::ProjectTextRoute;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ProjectRenderError {

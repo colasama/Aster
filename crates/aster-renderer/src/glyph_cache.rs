@@ -19,6 +19,16 @@ pub(crate) struct GlyphCache {
 }
 
 impl GlyphCache {
+    pub fn diagnostic_output(
+        &self,
+        input: &crate::NativeGlyphInput,
+    ) -> Result<&wgpu::Texture, RenderError> {
+        self.outputs
+            .get(&input.generation)
+            .map(|output| &output.output)
+            .ok_or_else(|| RenderError::Invalid("native glyph generation is not resident".into()))
+    }
+
     pub fn retire(
         &mut self,
         device: &wgpu::Device,

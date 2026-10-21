@@ -649,9 +649,18 @@ use Canvas quarter-pixel horizontal and integer vertical cache phases. Quoted fa
 literal identity separately from CSS generic names, with ECMAScript whitespace normalization.
 Unsupported font containers, missing glyphs, synthetic styles and unavailable raster features
 produce request-scoped capability evidence; malformed inputs and resource exhaustion remain errors.
-Preparation emits no full-layer CPU image. Production session acquisition still uses its retained
-provider until complete native text pixel acceptance and capability routing are verified. Actual
-Canvas observations validate authored preparation geometry independently of atlas compositor tests.
+Preparation emits no full-layer CPU image. Production sessions partition ordered raster requests:
+qualified Windows outline fills use native atlas recipes, while request-scoped capability reasons
+retain unqualified strokes, animated/temporal text, scripts, densities and font selection paths.
+Initial coverage admits ordinary ASCII Arial/Segoe UI fills at unit raster density with translated
+glyphs; quoted/escaped CSS family syntax and color glyphs remain retained. The retained response
+must authenticate the exact remaining request digest before native descriptors and bounds merge;
+no synthetic CPU raster or substituted response digest grants native admission. Cloner instances
+preserve last-write ownership, and a retained occurrence retains that instance's complete sequence.
+Actual Canvas observations validate authored preparation geometry independently of atlas tests.
+Production tests prove retained text request omission, stale-frame rejection and actual GPU glyph
+layer pixels. Explicit diagnostic readback resolves a resident immutable generation; normal preview
+and export remain GPU-resident. This limited capability does not complete the text milestone.
 The authored-pixel diagnostic removes the supplied CPU text raster and renders the native recipe
 against authenticated frozen plans. It compares both the complete frame and an isolated text crop,
 checking that the latter retains the original raster alpha and only GPU premultiplication rounding.

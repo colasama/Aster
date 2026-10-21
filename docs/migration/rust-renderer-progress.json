@@ -24889,7 +24889,7 @@
               },
               {
                 "id": "production-routing",
-                "status": "pending",
+                "status": "in_progress",
                 "scope": "Partition authenticated retained requests and route native text through project sessions and export. Verify actual TS raster omission and full project pixel/layout acceptance."
               }
             ],
@@ -25153,6 +25153,45 @@
                   "status": "passed",
                   "pixel_pairs": 8
                 }
+              },
+              {
+                "cycle": 128,
+                "status": "failed_full_then_focused_passed",
+                "evidence": "artifacts/migration/cycle128-generator-investigation.json",
+                "sha256": "d72f8908bd650c8d579298ecd618b7a8bb21106f329dcadac3043bc40570540b",
+                "reason": "Single-pixel generator cache-equivalence mismatch; not reproduced; full rerun required."
+              }
+            ],
+            "production_capability_followups": [
+              {
+                "capability": "stroke",
+                "reason": "isolated alpha coverage rejected",
+                "status": "retained"
+              },
+              {
+                "capability": "per-character animation and temporal text",
+                "reason": "production selector layouts, shared unions and sample routing still need qualification",
+                "status": "retained"
+              },
+              {
+                "capability": "non-ASCII scripts",
+                "reason": "font/script-specific raster qualification pending",
+                "status": "retained"
+              },
+              {
+                "capability": "scaled density and nontranslation glyph transforms",
+                "reason": "isolated pixel qualification pending",
+                "status": "retained"
+              },
+              {
+                "capability": "other primary families and quoted/escaped CSS font syntax",
+                "reason": "selection and syntax qualification pending",
+                "status": "retained"
+              },
+              {
+                "capability": "color glyphs and non-Windows platform coverage",
+                "reason": "platform/color raster qualification pending",
+                "status": "retained"
               }
             ]
           }
@@ -2388781,6 +2388820,898 @@
         "heatmap": "artifacts/migration/cycle127-qualification4/59-raster/heatmap.png",
         "heatmap_sha256": "dcc3844e40f99801cb620c14a5a63c08a94ff659ff042dcf309e9aadd793f148"
       }
+    },
+    {
+      "case_id": "native-production-text-layer",
+      "frame": 0,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-21T07:25:45.162Z",
+      "reference_rgba_sha256": "be0cc11a8899f1a29cc58cdb59c0ce6aeaec63b4b2fe1932da963977034a5958",
+      "candidate_rgba_sha256": "f6b92d6e9482e3e1c58fb2f68405081be56494679e33e42b2003e4edf5048d15",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 7920,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.000505050505050505,
+        "mean_squared_error": 0.000505050505050505,
+        "rgb_mean_squared_error": 0.0006734006734006734,
+        "psnr": {
+          "kind": "finite",
+          "db": 79.84806814521141
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 81.09745551129441
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "ssim": {
+        "channels": [
+          0.9999998953041166,
+          0.9999999396164211,
+          1,
+          1
+        ],
+        "mean": 0.9999999449735126,
+        "rgba_mean": 0.9999999587301345,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 7920,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -0.001388888888888889,
+          -0.0006313131313131314,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 44,
+            "min_y": 9,
+            "max_x": 136,
+            "max_y": 29
+          },
+          "candidate": {
+            "min_x": 44,
+            "min_y": 9,
+            "max_x": 136,
+            "max_y": 29
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.3416488445185842,
+          "candidate_rms": 0.3416441489088889,
+          "reference_axis_ratio": 0.4353264789791713,
+          "candidate_axis_ratio": 0.43532043864010433,
+          "reference_window_energy_fraction": 0.9696805825369607,
+          "candidate_window_energy_fraction": 0.9696805985896246,
+          "active_frequencies": 7851,
+          "spectral_bins": 65536,
+          "peak_ratio": 7.481082784352878,
+          "peak_to_sidelobe_ratio": 165.92705051387762,
+          "peak_coherence": 0.9999999966058238,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 4794368
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected actual GPU layer contact sheet and heatmap directly. Alpha, glyph shapes, baselines and bounds match; isolated RGB residuals are at most one quantization level. The identical authenticated pair covers all 70 production samples, each with zero retained text requests.",
+      "evidence": {
+        "report": "artifacts/migration/cycle128-session-gate2/native-production-text-layer-0/report.json",
+        "sha256": "f173c0439193f2483d312feef73e36bf1059d7c8620ed2ac30d2ef1f7695a708",
+        "contact_sheet": "artifacts/migration/cycle128-session-gate2/native-production-text-layer-0/contact-sheet.png",
+        "contact_sheet_sha256": "61f7bb4d1fa40bb41bffcf181a2378e8355923ebe474c90a31a71f7b1bd41f22",
+        "heatmap": "artifacts/migration/cycle128-session-gate2/native-production-text-layer-0/heatmap.png",
+        "heatmap_sha256": "8be6e700c5c84d2d70e9f7f593f095be27dd48aa79aa863840e083c6d393dfaa"
+      }
+    },
+    {
+      "case_id": "native-production-text-frame",
+      "frame": 5,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-21T07:25:45.166Z",
+      "reference_rgba_sha256": "4bd1298e3b29eacf8e4a5d782a8244fcf2fad5a81a638f566d65b72ee4ec522e",
+      "candidate_rgba_sha256": "b19c193f28fcf8dee70bdeef3ecc810986c7425be56e1f368eb1f7744455428c",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00008246527777777778,
+        "mean_squared_error": 0.00008246527777777778,
+        "rgb_mean_squared_error": 0.0001099537037037037,
+        "psnr": {
+          "kind": "finite",
+          "db": 87.71870498057956
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 88.96809234666256
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "ssim": {
+        "channels": [
+          0.9999999848007362,
+          0.9999999798493893,
+          1,
+          1
+        ],
+        "mean": 0.9999999882167084,
+        "rgba_mean": 0.9999999911625314,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -0.0001388888888888889,
+          -0.00012152777777777777,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 31,
+            "min_y": 35,
+            "max_x": 265,
+            "max_y": 142
+          },
+          "candidate": {
+            "min_x": 31,
+            "min_y": 35,
+            "max_x": 265,
+            "max_y": 142
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.18216728157883827,
+          "candidate_rms": 0.18216634054638303,
+          "reference_axis_ratio": 0.39372128695537123,
+          "candidate_axis_ratio": 0.39372267457624893,
+          "reference_window_energy_fraction": 0.9915627995933854,
+          "candidate_window_energy_fraction": 0.9915628209314504,
+          "active_frequencies": 18342,
+          "spectral_bins": 524288,
+          "peak_ratio": 6.202812772388221,
+          "peak_to_sidelobe_ratio": 221.09924743920425,
+          "peak_coherence": 0.9999999992006398,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected frozen-reference scene contact sheet and heatmap directly. Text, moving geometry, overlap and alpha agree; sparse RGB differences are at most one quantization level. No missing elements, shifted contours, color bias or alpha spread.",
+      "evidence": {
+        "report": "artifacts/migration/cycle128-session-gate2/native-production-text-frame-5/report.json",
+        "sha256": "a14de5b56a88031c0288c73a3747ba7e70145bdd6d7726c506aac9f48fbcf510",
+        "contact_sheet": "artifacts/migration/cycle128-session-gate2/native-production-text-frame-5/contact-sheet.png",
+        "contact_sheet_sha256": "e2cfb7f6bd418bfa0863cb9e00a5671a2d8620b6077e9f3ffc348a0ee96025e8",
+        "heatmap": "artifacts/migration/cycle128-session-gate2/native-production-text-frame-5/heatmap.png",
+        "heatmap_sha256": "611d153990f4628f9f1b71ad5c05a307a7be516df31496d3ad13b623a6a9614e"
+      }
+    },
+    {
+      "case_id": "native-production-text-frame",
+      "frame": 15,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-21T07:25:45.168Z",
+      "reference_rgba_sha256": "1563c7d6f3259de90efa70471c1dae840ed393c2bd50e4d19a8b9bbd5474f5ef",
+      "candidate_rgba_sha256": "6344b7dfd09991376df357b08c486dab50ddf69524e9b50479f5d9e97f2eae5d",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00004340277777777778,
+        "mean_squared_error": 0.00004340277777777778,
+        "rgb_mean_squared_error": 0.00005787037037037037,
+        "psnr": {
+          "kind": "finite",
+          "db": 90.50624099010784
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 91.75562835619084
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "ssim": {
+        "channels": [
+          0.9999999872607702,
+          0.9999999967758851,
+          1,
+          1
+        ],
+        "mean": 0.9999999946788852,
+        "rgba_mean": 0.9999999960091639,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -0.0001388888888888889,
+          -0.00003472222222222222,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 82,
+            "min_y": 32,
+            "max_x": 242,
+            "max_y": 142
+          },
+          "candidate": {
+            "min_x": 82,
+            "min_y": 32,
+            "max_x": 242,
+            "max_y": 142
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.1842581474296302,
+          "candidate_rms": 0.18425757921952543,
+          "reference_axis_ratio": 0.4345532375331816,
+          "candidate_axis_ratio": 0.43455433741494803,
+          "reference_window_energy_fraction": 0.9915432074794247,
+          "candidate_window_energy_fraction": 0.9915432299168031,
+          "active_frequencies": 18302,
+          "spectral_bins": 524288,
+          "peak_ratio": 5.48793847051376,
+          "peak_to_sidelobe_ratio": 219.75958953350238,
+          "peak_coherence": 0.9999999997054625,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected frozen-reference scene contact sheet and heatmap directly. Text, moving geometry, overlap and alpha agree; sparse RGB differences are at most one quantization level. No missing elements, shifted contours, color bias or alpha spread.",
+      "evidence": {
+        "report": "artifacts/migration/cycle128-session-gate2/native-production-text-frame-15/report.json",
+        "sha256": "e2dbd600ecc1ced4444d8d4787d5b81df4601c89323ae5a7429b4e964ac7dfa1",
+        "contact_sheet": "artifacts/migration/cycle128-session-gate2/native-production-text-frame-15/contact-sheet.png",
+        "contact_sheet_sha256": "c7fb2e2368cda21b287277ac204dfa7062eb35d16e13261020004a6bbe27786b",
+        "heatmap": "artifacts/migration/cycle128-session-gate2/native-production-text-frame-15/heatmap.png",
+        "heatmap_sha256": "aa3d1986088e929bb52fdf08ca6d68000be0b191ba83290fbf774a5e94c4f3cb"
+      }
+    },
+    {
+      "case_id": "native-production-text-frame",
+      "frame": 30,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-21T07:25:45.169Z",
+      "reference_rgba_sha256": "ccc37633abcbc7b42acc7d8239e94d1f4a1e59d9a9590a04f45e42dc3c86f954",
+      "candidate_rgba_sha256": "55d0b466c06284b7499ecbfa28435f4d1cf00dea44751a7afe003b21e357131b",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00005208333333333334,
+        "mean_squared_error": 0.00005208333333333334,
+        "rgb_mean_squared_error": 0.00006944444444444444,
+        "psnr": {
+          "kind": "finite",
+          "db": 89.71442852963159
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 90.96381589571459
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "ssim": {
+        "channels": [
+          0.99999982254127,
+          0.9999999521353586,
+          1,
+          1
+        ],
+        "mean": 0.9999999248922095,
+        "rgba_mean": 0.9999999436691571,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -0.0001388888888888889,
+          -0.00006944444444444444,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 113,
+            "min_y": 32,
+            "max_x": 207,
+            "max_y": 142
+          },
+          "candidate": {
+            "min_x": 113,
+            "min_y": 32,
+            "max_x": 207,
+            "max_y": 142
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.18162648943893753,
+          "candidate_rms": 0.18162570000041595,
+          "reference_axis_ratio": 0.43169730920297555,
+          "candidate_axis_ratio": 0.43169686556973375,
+          "reference_window_energy_fraction": 0.9919620113324461,
+          "candidate_window_energy_fraction": 0.9919620280634749,
+          "active_frequencies": 11340,
+          "spectral_bins": 524288,
+          "peak_ratio": 5.255728435048221,
+          "peak_to_sidelobe_ratio": 154.81151323105354,
+          "peak_coherence": 0.9999999997276117,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected frozen-reference scene contact sheet and heatmap directly. Text, moving geometry, overlap and alpha agree; sparse RGB differences are at most one quantization level. No missing elements, shifted contours, color bias or alpha spread.",
+      "evidence": {
+        "report": "artifacts/migration/cycle128-session-gate2/native-production-text-frame-30/report.json",
+        "sha256": "191484ef72f6686fdcccf5402c964a47d8bd9e764a39c98d77569d2e8a966fdb",
+        "contact_sheet": "artifacts/migration/cycle128-session-gate2/native-production-text-frame-30/contact-sheet.png",
+        "contact_sheet_sha256": "30865e3cc8f406f28c05dfa7775bea431062f16203b368c2f3f95bf81e5972ce",
+        "heatmap": "artifacts/migration/cycle128-session-gate2/native-production-text-frame-30/heatmap.png",
+        "heatmap_sha256": "93ddb23b3839f75c4cbbe3c2e39863b15d2364d80c0dd1a64a4199cd50b4df14"
+      }
+    },
+    {
+      "case_id": "native-production-text-frame",
+      "frame": 54,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-21T07:25:45.170Z",
+      "reference_rgba_sha256": "821f59dd4d3f1574466ed55ac0777e543f5e06099f118e8c29ee7e43bbbc5780",
+      "candidate_rgba_sha256": "990b7e977d0e64d3550313085ae2f2d4d58c396614c4e21b8d88d3c6ad569788",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00004340277777777778,
+        "mean_squared_error": 0.00004340277777777778,
+        "rgb_mean_squared_error": 0.00005787037037037037,
+        "psnr": {
+          "kind": "finite",
+          "db": 90.50624099010784
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 91.75562835619084
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "ssim": {
+        "channels": [
+          0.9999999872607702,
+          0.9999999967758851,
+          1,
+          1
+        ],
+        "mean": 0.9999999946788852,
+        "rgba_mean": 0.9999999960091639,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -0.0001388888888888889,
+          -0.00003472222222222222,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 57,
+            "min_y": 46,
+            "max_x": 298,
+            "max_y": 142
+          },
+          "candidate": {
+            "min_x": 57,
+            "min_y": 46,
+            "max_x": 298,
+            "max_y": 142
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.18375383839031492,
+          "candidate_rms": 0.1837532680988603,
+          "reference_axis_ratio": 0.3283226560500815,
+          "candidate_axis_ratio": 0.328321441730305,
+          "reference_window_energy_fraction": 0.9916851855526734,
+          "candidate_window_energy_fraction": 0.9916852080550859,
+          "active_frequencies": 15006,
+          "spectral_bins": 524288,
+          "peak_ratio": 5.725313600184234,
+          "peak_to_sidelobe_ratio": 190.10512061096463,
+          "peak_coherence": 0.9999999997821006,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected frozen-reference scene contact sheet and heatmap directly. Text, moving geometry, overlap and alpha agree; sparse RGB differences are at most one quantization level. No missing elements, shifted contours, color bias or alpha spread.",
+      "evidence": {
+        "report": "artifacts/migration/cycle128-session-gate2/native-production-text-frame-54/report.json",
+        "sha256": "eec4afb20f334835696c303613ed3d8e07eb128ca6c47337911e4e605602dfae",
+        "contact_sheet": "artifacts/migration/cycle128-session-gate2/native-production-text-frame-54/contact-sheet.png",
+        "contact_sheet_sha256": "b6f57fac415a361040abc88452dd1a21cb6bd5d143ab86f0be763358f175089c",
+        "heatmap": "artifacts/migration/cycle128-session-gate2/native-production-text-frame-54/heatmap.png",
+        "heatmap_sha256": "23771462458ef4f737d3ce9bb63444391ba9d858130974f96725e12d7ad3fcb5"
+      }
+    },
+    {
+      "case_id": "native-generator-cache-mesh-ssaa2x-worldPosition",
+      "frame": 0,
+      "profile": "gpu",
+      "verdict": "rejected",
+      "residual_class": "structural",
+      "reviewed_at": "2026-10-21T16:36:32.282Z",
+      "reference_rgba_sha256": "d69bbe448dcbae64787f94602eb3fe4831e8cdbf2fd00db4c4b1791155659c96",
+      "candidate_rgba_sha256": "66759805404bbfe7add8bb43891c279ec6fc7af552ca33f012eaa737b16232de",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 43,
+        "mean_abs_error": 0.0004861111111111111,
+        "mean_squared_error": 0.01837673611111111,
+        "rgb_mean_squared_error": 0.024502314814814814,
+        "psnr": {
+          "kind": "finite",
+          "db": 64.23873245327391
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 65.48811981935691
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 1
+      },
+      "ssim": {
+        "channels": [
+          0.9999944836245372,
+          0.9999945002259453,
+          0.9999945970659185,
+          0.9999999999999756
+        ],
+        "mean": 0.9999945269721336,
+        "rgba_mean": 0.9999958952290942,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 1,
+        "error_component_count": 1,
+        "signed_bias": [
+          -0.0007465277777777778,
+          -0.000625,
+          -0.0005729166666666667,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "candidate": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.1381967358699118,
+          "candidate_rms": 0.1381924584021762,
+          "reference_axis_ratio": 0.3950624079804128,
+          "candidate_axis_ratio": 0.3952469023551183,
+          "reference_window_energy_fraction": 0.983757837441238,
+          "candidate_window_energy_fraction": 0.9837584525434023,
+          "active_frequencies": 6906,
+          "spectral_bins": 524288,
+          "peak_ratio": 7.52833276250167,
+          "peak_to_sidelobe_ratio": 117.69092571340988,
+          "peak_coherence": 0.9999995741884881,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "checks": [
+        {
+          "id": "max_abs_channel_error",
+          "passed": false
+        },
+        {
+          "id": "mean_abs_error",
+          "passed": true
+        },
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected contact sheet and heatmap directly. One pixel differs at a mesh overlap; maximum channel difference 43 exceeds the GPU hard limit and exact cache equivalence. Reject. Both receipts report zero layer-cache operations. No source fix or tolerance adjustment is inferred from later successful repeats; preserve this unexplained intermittent output as diagnostic evidence.",
+      "evidence": {
+        "report": "artifacts/migration/cycle128-generator-difference/report.json",
+        "sha256": "6b4b476acaf5883120b576a51fb9352e8fdfe5bf2aafdf7a5c1634d242149b4b",
+        "contact_sheet": "artifacts/migration/cycle128-generator-difference/contact-sheet.png",
+        "contact_sheet_sha256": "91ee0daadd0572fcc1f384f347610504df06239e83833f6b988b5545bd5e9fcd",
+        "heatmap": "artifacts/migration/cycle128-generator-difference/heatmap.png",
+        "heatmap_sha256": "73ce0c0d625aff316f4a46944339d6b4249e8887a3796f3e7b51b59d7dd475de"
+      }
     }
   ],
   "history": [
@@ -2443966,18 +2444897,13 @@
     }
   ],
   "active_cycle": {
-    "id": 127,
+    "id": 128,
     "milestone": "M10",
     "task": "M10-T7",
-    "started_at": "2026-10-21T04:47:06.964Z",
-    "updated_at": "2026-10-21T07:02:13.102Z",
-    "implementation_state": "committed",
-    "outcome": "passed",
-    "commit": "323af2e059024cebd3e6c81016d7bd92c24668c6",
-    "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T06-26-35-910Z-a3ad85b3.json",
-      "sha256": "4a4a382290e4e0c91cbbf5ff0827870e17a98e414a655ae02610d0d19132f22f"
-    }
+    "started_at": "2026-10-21T07:07:36.998Z",
+    "implementation_state": "in_progress",
+    "increment": "production-routing",
+    "scope": "Qualify direct GPU glyph layer pixels and partition production retained raster requests with exact capabilities; preserve authored clocks and temporal unions."
   },
   "execution_pause": {
     "requested_by": "owner",
