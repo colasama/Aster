@@ -371,16 +371,38 @@
   },
   "last_cycle": {
     "id": 124,
-    "time": "2026-10-21T01:18:07.341Z",
-    "updated_at": "2026-10-21T01:33:15.064Z",
+    "time": "2026-10-21T02:24:37.243Z",
+    "updated_at": "2026-10-21T02:24:37.243Z",
     "milestone": "M10",
     "task": "M10-T6",
-    "outcome": "in_progress",
-    "previous_verification": {
-      "path": "artifacts/migration/verify-2026-10-21T00-33-13-252Z-2843cddb.json",
-      "sha256": "8b3f7609e6463323110a3ac1edff1f9deafd6a41ac6ecf5a186a4e637bbd6494"
+    "outcome": "passed",
+    "commit": "f6232766f7531ec82b4d646217a35f0d3c007d1c",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-21T01-40-40-517Z-2d2ed2e6.json",
+      "sha256": "2357fb71bf8cebf6443ad58bef99341202f301423d341dee6d101fbc96d02cb4"
     },
-    "next_step": "Run full current-source M10 G0/G3, then commit GPU glyph composition and close its ledger task. Production native text routing remains M10-T7."
+    "gates": [
+      {
+        "id": "G0",
+        "status": "passed",
+        "duration_ms": 243866,
+        "proof": {
+          "path": "artifacts/migration/2026-10-21T01-40-40-517Z-2d2ed2e6/static-results.json",
+          "sha256": "7cede598c94c67b9d2515fd517670739b7f0a29748827074adaa1ca029ece0cb"
+        }
+      },
+      {
+        "id": "G3",
+        "status": "passed",
+        "duration_ms": 2357839,
+        "proof": {
+          "path": "artifacts/migration/2026-10-21T01-40-40-517Z-2d2ed2e6/G3/report.json",
+          "sha256": "304f10f8bc5b3446e8468914fd6de77690ebcd088c5ed75c509f381a932d10a2"
+        }
+      }
+    ],
+    "duration_ms": 2604459,
+    "next_step": "M10-T7: route supported authored text through native layout, raster and GPU composition; preserve exact authenticated capability reasons for retained fonts/scripts/features. Then complete full production text pixel/layout acceptance."
   },
   "milestones": [
     {
@@ -24500,7 +24522,7 @@
         {
           "id": "M10-T6",
           "title": "Compose native text from the glyph atlas on the GPU",
-          "status": "in_progress",
+          "status": "done",
           "scope": "Add budgeted native glyph outputs coordinated with temporal derived textures and renderer generation lifetime. Preserve fill/stroke, animator transforms, clipping and motion samples.",
           "acceptance": "No CPU readback required for normal native text composition; temporal sampling sees the correct generation; G0/G3 green.",
           "estimated_implementation_hours": 2,
@@ -24515,7 +24537,7 @@
           },
           "started_at": "2026-10-21T01:18:07.341Z",
           "progress": {
-            "state": "focused_gates_passed_full_verification_pending",
+            "state": "full_required_gates_passed",
             "acceptance_boundary": "GPU glyph composition, generation ownership and temporal compatibility. Production project routing and final text raster parity remain subsequent tasks.",
             "features": [
               "Budgeted GPU coverage/color atlas uploads and ordered affine/clipped fill/stroke composition",
@@ -24551,7 +24573,231 @@
                 "fix": "Update the explicit inventory assertion for the new glyph compositor; no tolerance or coverage reduction.",
                 "evidence": "artifacts/migration/cycle124-aborted-run.json"
               }
-            ]
+            ],
+            "completed_full_run": {
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-21T01-40-40-517Z-2d2ed2e6.json",
+                "sha256": "2357fb71bf8cebf6443ad58bef99341202f301423d341dee6d101fbc96d02cb4"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 243866,
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-21T01-40-40-517Z-2d2ed2e6/static-results.json",
+                    "sha256": "7cede598c94c67b9d2515fd517670739b7f0a29748827074adaa1ca029ece0cb"
+                  }
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 2357839,
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-21T01-40-40-517Z-2d2ed2e6/G3/report.json",
+                    "sha256": "304f10f8bc5b3446e8468914fd6de77690ebcd088c5ed75c509f381a932d10a2"
+                  }
+                }
+              ],
+              "duration_ms": 2604459,
+              "primary_pixel_frames": 1315,
+              "native_text_acceptance": false,
+              "native_shape_coverage": {
+                "records": 58309,
+                "draws": 285185,
+                "unique_requests": 1153,
+                "native_requests": 1138,
+                "unsupported_requests": 15
+              },
+              "raster_components": {
+                "status": "passed",
+                "glyphs": 2787,
+                "queries": 8376,
+                "completed_queries": 8376,
+                "unsupported": [],
+                "pages": 5,
+                "native_pixel_acceptance": false
+              },
+              "glyph_composite": {
+                "status": "passed",
+                "gpu": {
+                  "id": "native-glyph-gpu",
+                  "command": [
+                    "cargo",
+                    "test",
+                    "-p",
+                    "aster-renderer",
+                    "native_glyph_gpu_composition_and_lifetimes",
+                    "--",
+                    "--ignored"
+                  ],
+                  "started_at": "2026-10-21T02:22:54.220Z",
+                  "log": "artifacts/migration/2026-10-21T01-40-40-517Z-2d2ed2e6/G3/native-glyph-composite/native-glyph-gpu.log",
+                  "status": "passed",
+                  "exit_code": 0,
+                  "signal": null,
+                  "finished_at": "2026-10-21T02:23:29.851Z",
+                  "duration_ms": 35631
+                },
+                "frames": [
+                  {
+                    "case_id": "native-glyph-fill",
+                    "reference_rgba_sha256": "2fa1d80b2fb2c06efa4981068919cd7a161538cb39ee6ed6c57505591d60b7eb",
+                    "candidate_rgba_sha256": "33fbd4aab04b47acc5b79de6da47e8a89eaa53d931774e96cabd4af444c70e8d",
+                    "metrics": {
+                      "exact": false,
+                      "pixel_count": 3072,
+                      "max_abs_channel_error": 1,
+                      "mean_abs_error": 0.001953125,
+                      "mean_squared_error": 0.001953125,
+                      "rgb_mean_squared_error": 0,
+                      "psnr": {
+                        "kind": "infinite"
+                      },
+                      "rgba_psnr": {
+                        "kind": "finite",
+                        "db": 75.22350321843741
+                      },
+                      "channel_tolerance": 2,
+                      "pixels_above_tolerance": 0
+                    },
+                    "registration": "measured",
+                    "passed": true
+                  },
+                  {
+                    "case_id": "native-glyph-overlap",
+                    "reference_rgba_sha256": "e3265c549a02475cfa782dea863c520692359b209502b03d2ec16885d840336d",
+                    "candidate_rgba_sha256": "5760902285dc6245f2f4e8205bbd2db56cc191ad6f18e08d924c13eda67a740a",
+                    "metrics": {
+                      "exact": false,
+                      "pixel_count": 3072,
+                      "max_abs_channel_error": 1,
+                      "mean_abs_error": 0.00341796875,
+                      "mean_squared_error": 0.00341796875,
+                      "rgb_mean_squared_error": 0.0022786458333333335,
+                      "psnr": {
+                        "kind": "finite",
+                        "db": 74.55403532213128
+                      },
+                      "rgba_psnr": {
+                        "kind": "finite",
+                        "db": 72.79312273157447
+                      },
+                      "channel_tolerance": 2,
+                      "pixels_above_tolerance": 0
+                    },
+                    "registration": "measured",
+                    "passed": true
+                  },
+                  {
+                    "case_id": "native-glyph-transforms",
+                    "reference_rgba_sha256": "36bee4a916fcebce9a5fe68dbc1884eb410fc4ba8b287be906d64fa08e3db431",
+                    "candidate_rgba_sha256": "a9fe7a77c3d941847349818361820598cfe5b8e4e4a437515e9af18ce957dd26",
+                    "metrics": {
+                      "exact": false,
+                      "pixel_count": 3072,
+                      "max_abs_channel_error": 1,
+                      "mean_abs_error": 0.00016276041666666666,
+                      "mean_squared_error": 0.00016276041666666666,
+                      "rgb_mean_squared_error": 0.00021701388888888888,
+                      "psnr": {
+                        "kind": "finite",
+                        "db": 84.76592831283065
+                      },
+                      "rgba_psnr": {
+                        "kind": "finite",
+                        "db": 86.01531567891365
+                      },
+                      "channel_tolerance": 2,
+                      "pixels_above_tolerance": 0
+                    },
+                    "registration": "measured",
+                    "passed": true
+                  },
+                  {
+                    "case_id": "native-glyph-stroke",
+                    "reference_rgba_sha256": "a1b64d379b8c1fc0fd272723f1ac02e10972216aa00ffee8c946f25af8e71482",
+                    "candidate_rgba_sha256": "a1b64d379b8c1fc0fd272723f1ac02e10972216aa00ffee8c946f25af8e71482",
+                    "metrics": {
+                      "exact": true,
+                      "pixel_count": 3072,
+                      "max_abs_channel_error": 0,
+                      "mean_abs_error": 0,
+                      "mean_squared_error": 0,
+                      "rgb_mean_squared_error": 0,
+                      "psnr": {
+                        "kind": "infinite"
+                      },
+                      "rgba_psnr": {
+                        "kind": "infinite"
+                      },
+                      "channel_tolerance": 2,
+                      "pixels_above_tolerance": 0
+                    },
+                    "registration": "exact_identity",
+                    "passed": true
+                  },
+                  {
+                    "case_id": "native-glyph-color",
+                    "reference_rgba_sha256": "0dce19f1f5219be82f6216f5311697b4c4977d823d6218f46ca119e0852aa230",
+                    "candidate_rgba_sha256": "0b6e167bc271d5de28a0856a52223d9238973ccc9b42744f281bd7b278547a95",
+                    "metrics": {
+                      "exact": false,
+                      "pixel_count": 3072,
+                      "max_abs_channel_error": 1,
+                      "mean_abs_error": 0.0029296875,
+                      "mean_squared_error": 0.0029296875,
+                      "rgb_mean_squared_error": 0.0016276041666666667,
+                      "psnr": {
+                        "kind": "finite",
+                        "db": 76.01531567891365
+                      },
+                      "rgba_psnr": {
+                        "kind": "finite",
+                        "db": 73.4625906278806
+                      },
+                      "channel_tolerance": 2,
+                      "pixels_above_tolerance": 0
+                    },
+                    "registration": "measured",
+                    "passed": true
+                  },
+                  {
+                    "case_id": "native-glyph-fractional",
+                    "reference_rgba_sha256": "3b7a668d966f5efaecc1366ee2282b6934d371d8bf93f145b6c3e2951c24fba5",
+                    "candidate_rgba_sha256": "3b7a668d966f5efaecc1366ee2282b6934d371d8bf93f145b6c3e2951c24fba5",
+                    "metrics": {
+                      "exact": true,
+                      "pixel_count": 3072,
+                      "max_abs_channel_error": 0,
+                      "mean_abs_error": 0,
+                      "mean_squared_error": 0,
+                      "rgb_mean_squared_error": 0,
+                      "psnr": {
+                        "kind": "infinite"
+                      },
+                      "rgba_psnr": {
+                        "kind": "infinite"
+                      },
+                      "channel_tolerance": 2,
+                      "pixels_above_tolerance": 0
+                    },
+                    "registration": "exact_identity",
+                    "passed": true
+                  }
+                ],
+                "report": {
+                  "path": "artifacts/migration/2026-10-21T01-40-40-517Z-2d2ed2e6/G3/native-glyph-composite/report.json",
+                  "sha256": "eb8f9f1b95e9319da1a1a2b38c86a4b04e9f92f65203040d8bade6b8a5c43dfe"
+                }
+              }
+            }
+          },
+          "completed_at": "2026-10-21T02:24:37.243Z",
+          "commit": "f6232766f7531ec82b4d646217a35f0d3c007d1c",
+          "verification": {
+            "path": "artifacts/migration/verify-2026-10-21T01-40-40-517Z-2d2ed2e6.json",
+            "sha256": "2357fb71bf8cebf6443ad58bef99341202f301423d341dee6d101fbc96d02cb4"
           }
         },
         {
@@ -24589,8 +24835,18 @@
               "status": "pending",
               "title": "Route layered color paint graphs and bitmap strokes through exact capability decisions",
               "acceptance": "The native rasterizer reports explicit unsupported reasons for unimplemented color paint graphs and bitmap strokes. Bind those reasons to the selected font/glyph and authenticated M5 output, or implement and verify them before native routing; no blanket text fallback."
+            },
+            {
+              "status": "pending",
+              "title": "Preserve nonzero per-character blur in native text routing",
+              "acceptance": "Implement and verify the existing Canvas filter behavior or retain the exact affected capability through authenticated M5 output; never silently omit blur. GPU affine composition alone does not establish this behavior."
             }
-          ]
+          ],
+          "preparation": {
+            "path": "artifacts/migration/cycle124-native-text-routing-preparation.json",
+            "sha256": "61269dbd10b5625043f55a67bf8db02c370038fd99ea830d582b1dedbc33049f",
+            "status": "read_only_preparation; production native text routing remains pending"
+          }
         },
         {
           "id": "M10-T8",
@@ -24607,8 +24863,8 @@
       ],
       "started_at": "2026-10-20T20:25:14.937Z",
       "latest_verification": {
-        "path": "artifacts/migration/verify-2026-10-21T00-33-13-252Z-2843cddb.json",
-        "sha256": "8b3f7609e6463323110a3ac1edff1f9deafd6a41ac6ecf5a186a4e637bbd6494"
+        "path": "artifacts/migration/verify-2026-10-21T01-40-40-517Z-2d2ed2e6.json",
+        "sha256": "2357fb71bf8cebf6443ad58bef99341202f301423d341dee6d101fbc96d02cb4"
       }
     },
     {
@@ -2441163,6 +2441419,19 @@
         "sha256": "8b3f7609e6463323110a3ac1edff1f9deafd6a41ac6ecf5a186a4e637bbd6494"
       },
       "milestone_exit_satisfied": false
+    },
+    {
+      "cycle": 124,
+      "time": "2026-10-21T02:24:37.243Z",
+      "milestone": "M10",
+      "task": "M10-T6",
+      "outcome": "passed",
+      "commit": "f6232766f7531ec82b4d646217a35f0d3c007d1c",
+      "verification": {
+        "path": "artifacts/migration/verify-2026-10-21T01-40-40-517Z-2d2ed2e6.json",
+        "sha256": "2357fb71bf8cebf6443ad58bef99341202f301423d341dee6d101fbc96d02cb4"
+      },
+      "milestone_exit_satisfied": false
     }
   ],
   "known_boundaries": [
@@ -2441389,11 +2441658,17 @@
     "task": "M10-T6",
     "increment": "Compose native text from the glyph atlas on the GPU",
     "started_at": "2026-10-21T01:18:07.341Z",
-    "updated_at": "2026-10-21T01:33:15.064Z",
-    "implementation_state": "verification_pending",
+    "updated_at": "2026-10-21T02:24:37.243Z",
+    "implementation_state": "committed",
     "previous_verification": {
       "path": "artifacts/migration/verify-2026-10-21T00-33-13-252Z-2843cddb.json",
       "sha256": "8b3f7609e6463323110a3ac1edff1f9deafd6a41ac6ecf5a186a4e637bbd6494"
+    },
+    "outcome": "passed",
+    "commit": "f6232766f7531ec82b4d646217a35f0d3c007d1c",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-21T01-40-40-517Z-2d2ed2e6.json",
+      "sha256": "2357fb71bf8cebf6443ad58bef99341202f301423d341dee6d101fbc96d02cb4"
     }
   },
   "execution_pause": {
