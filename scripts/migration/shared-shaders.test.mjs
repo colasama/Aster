@@ -34,7 +34,7 @@ test("audits the full current src tree and the actual shared manifest", async ()
   assert.equal(report.inline_wgsl_count, 0);
   assert.equal(report.source_files.length, report.file_count);
   assert(report.shader_files.length > 50);
-  assert.equal(report.manifest.program_count, 28);
+  assert.equal(report.manifest.program_count, 29);
   assert.match(report.source_sha256, /^[a-f0-9]{64}$/);
 });
 

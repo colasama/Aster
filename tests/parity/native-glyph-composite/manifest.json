@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "producer": "Electron Canvas2D",
+  "electron": "43.5.0",
+  "chrome": "150.0.7871.250",
+  "capture_sha256": "adc748234c91590c769e7084718152b1218dff8d05f6d2ceec88dd4a51b1de1e",
+  "fixture_sha256": "518811bb1299ee4f3d38ae535e1e2e3b706fe8766b941b243f3f1077db0bc2d9",
+  "color_probe": [127, 0, 128, 255],
+  "context": {
+    "alpha": true,
+    "colorSpace": "srgb",
+    "colorType": "unorm8",
+    "desynchronized": false,
+    "toneMapping": {
+      "mode": "standard"
+    },
+    "willReadFrequently": false
+  },
+  "cases": [
+    {
+      "id": "fill",
+      "path": "fill.rgba",
+      "sha256": "2fa1d80b2fb2c06efa4981068919cd7a161538cb39ee6ed6c57505591d60b7eb"
+    },
+    {
+      "id": "overlap",
+      "path": "overlap.rgba",
+      "sha256": "e3265c549a02475cfa782dea863c520692359b209502b03d2ec16885d840336d"
+    },
+    {
+      "id": "transforms",
+      "path": "transforms.rgba",
+      "sha256": "36bee4a916fcebce9a5fe68dbc1884eb410fc4ba8b287be906d64fa08e3db431"
+    },
+    {
+      "id": "stroke",
+      "path": "stroke.rgba",
+      "sha256": "a1b64d379b8c1fc0fd272723f1ac02e10972216aa00ffee8c946f25af8e71482"
+    },
+    {
+      "id": "color",
+      "path": "color.rgba",
+      "sha256": "0dce19f1f5219be82f6216f5311697b4c4977d823d6218f46ca119e0852aa230"
+    },
+    {
+      "id": "fractional",
+      "path": "fractional.rgba",
+      "sha256": "3b7a668d966f5efaecc1366ee2282b6934d371d8bf93f145b6c3e2951c24fba5"
+    }
+  ]
+}

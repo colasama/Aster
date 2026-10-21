@@ -25,11 +25,16 @@ struct CachedImage {
     last_used: u64,
 }
 
+struct DerivedImage {
+    texture: wgpu::Texture,
+    binding: wgpu::BindGroup,
+}
+
 pub(crate) struct ImageCache {
     pub layout: wgpu::BindGroupLayout,
     sampler: wgpu::Sampler,
     entries: BTreeMap<ImageKey, CachedImage>,
-    derived: BTreeMap<ImageKey, wgpu::BindGroup>,
+    derived: BTreeMap<ImageKey, DerivedImage>,
     epoch: u64,
     pub statistics: ImageCacheStatistics,
 }
@@ -187,7 +192,7 @@ impl ImageCache {
             .derived
             .get(&(image.frame.clone(), image.pixels.clone()))
         {
-            return Ok(binding);
+            return Ok(&binding.binding);
         }
         self.entries
             .get(&(image.frame.clone(), image.pixels.clone()))
@@ -244,6 +249,12 @@ impl ImageCache {
     }
 
     pub fn texture(&self, image: &ImageInput) -> Result<&wgpu::Texture, RenderError> {
+        if let Some(derived) = self
+            .derived
+            .get(&(image.frame.clone(), image.pixels.clone()))
+        {
+            return Ok(&derived.texture);
+        }
         self.entries
             .get(&(image.frame.clone(), image.pixels.clone()))
             .map(|entry| &entry._texture)
@@ -254,8 +265,16 @@ impl ImageCache {
         &mut self,
         device: &wgpu::Device,
         inputs: Vec<(ResourceHash, ResourceHash, wgpu::Texture)>,
-    ) {
-        self.derived.clear();
+    ) -> Result<(), RenderError> {
+        let mut keys = BTreeSet::new();
+        for (frame, generation, _) in &inputs {
+            let key = (frame.clone(), generation.clone());
+            if self.derived.contains_key(&key) || !keys.insert(key) {
+                return Err(RenderError::Invalid(
+                    "duplicate derived image generation".into(),
+                ));
+            }
+        }
         for (frame, generation, texture) in inputs {
             let binding = device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: Some("Derived raster scene binding"),
@@ -273,7 +292,14 @@ impl ImageCache {
                     },
                 ],
             });
-            self.derived.insert((frame, generation), binding);
+            self.derived
+                .insert((frame, generation), DerivedImage { texture, binding });
         }
+        Ok(())
+    }
+
+    /// Begin frame admission once, before installing glyph outputs and then temporal outputs.
+    pub fn clear_derived(&mut self) {
+        self.derived.clear();
     }
 }

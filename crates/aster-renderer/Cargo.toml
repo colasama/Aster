@@ -9,6 +9,9 @@ rust-version.workspace = true
 aster-render.workspace = true
 aster-render-ir.workspace = true
 aster-shaders.workspace = true
+aster-text.workspace = true
+clap.workspace = true
+sha2.workspace = true
 pollster.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -22,7 +25,6 @@ windows = { version = "=0.62.2", features = ["Win32_Graphics_Direct3D12", "Win32
 aster-media-native.workspace = true
 aster-video.workspace = true
 exr.workspace = true
-sha2.workspace = true
 uuid.workspace = true
 
 [target.'cfg(windows)'.dev-dependencies]

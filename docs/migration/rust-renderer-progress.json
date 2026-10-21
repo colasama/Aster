@@ -360,42 +360,27 @@
         "path": "artifacts/migration/cycle114-negative-inputs.json",
         "sha256": "387092cd80ea85a301aa323f42b2b8f2338373585b24361490a889b00c7f0e93"
       }
+    },
+    "native_glyph_composite": {
+      "path": "tests/parity/native-glyph-composite/manifest.json",
+      "sha256": "c4d6c5fd2eece41f868ba0c74b62f5a249989e4033ebce058000b526a04b3d58",
+      "capture": "artifacts/migration/cycle124-canvas-capture2",
+      "scope": "Independent Canvas2D atlas-composition component oracle; no production text acceptance",
+      "reproduction": "Six original component references reproduced byte exactly after capture source formatting; original manifest and fixture retained in cycle124 artifacts."
     }
   },
   "last_cycle": {
-    "id": 123,
-    "time": "2026-10-21T01:17:19.031Z",
-    "updated_at": "2026-10-21T01:17:19.031Z",
+    "id": 124,
+    "time": "2026-10-21T01:18:07.341Z",
+    "updated_at": "2026-10-21T01:33:15.064Z",
     "milestone": "M10",
-    "task": "M10-T5",
-    "outcome": "passed",
-    "commit": "88bf4808a69dd826d55a5cbd7377c80af5f4949f",
-    "verification": {
+    "task": "M10-T6",
+    "outcome": "in_progress",
+    "previous_verification": {
       "path": "artifacts/migration/verify-2026-10-21T00-33-13-252Z-2843cddb.json",
       "sha256": "8b3f7609e6463323110a3ac1edff1f9deafd6a41ac6ecf5a186a4e637bbd6494"
     },
-    "gates": [
-      {
-        "id": "G0",
-        "status": "passed",
-        "duration_ms": 394578,
-        "proof": {
-          "path": "artifacts/migration/2026-10-21T00-33-13-252Z-2843cddb/static-results.json",
-          "sha256": "e23aad1874e64992e6b66d87018352a13cbecb46338f954f0b41a1015df01727"
-        }
-      },
-      {
-        "id": "G3",
-        "status": "passed",
-        "duration_ms": 2187599,
-        "proof": {
-          "path": "artifacts/migration/2026-10-21T00-33-13-252Z-2843cddb/G3/report.json",
-          "sha256": "7580f1db00f8efa5d7faba54db352893a4f7524a514ef036400a2c4c6ff585ef"
-        }
-      }
-    ],
-    "duration_ms": 2584954,
-    "next_step": "M10-T6: compose native text from immutable glyph atlas generations on the GPU with bounded resources, correct color and alpha handling, transforms, clipping and temporal generation ownership. Production capability routing and strict text pixel acceptance remain pending."
+    "next_step": "Run full current-source M10 G0/G3, then commit GPU glyph composition and close its ledger task. Production native text routing remains M10-T7."
   },
   "milestones": [
     {
@@ -24515,7 +24500,7 @@
         {
           "id": "M10-T6",
           "title": "Compose native text from the glyph atlas on the GPU",
-          "status": "pending",
+          "status": "in_progress",
           "scope": "Add budgeted native glyph outputs coordinated with temporal derived textures and renderer generation lifetime. Preserve fill/stroke, animator transforms, clipping and motion samples.",
           "acceptance": "No CPU readback required for normal native text composition; temporal sampling sees the correct generation; G0/G3 green.",
           "estimated_implementation_hours": 2,
@@ -24527,6 +24512,46 @@
             "path": "artifacts/migration/cycle123-gpu-text-preparation.json",
             "sha256": "53f1770a42d0fc4622b1d1a913ace267f86965a8e52424f22e0d7a2a054b82bd",
             "status": "read_only_preparation; GPU composition and production integration remain pending"
+          },
+          "started_at": "2026-10-21T01:18:07.341Z",
+          "progress": {
+            "state": "focused_gates_passed_full_verification_pending",
+            "acceptance_boundary": "GPU glyph composition, generation ownership and temporal compatibility. Production project routing and final text raster parity remain subsequent tasks.",
+            "features": [
+              "Budgeted GPU coverage/color atlas uploads and ordered affine/clipped fill/stroke composition",
+              "Encoded-sRGB source-over and straight-alpha resolve matching independent Canvas references",
+              "Immutable generation leases and composable derived textures consumed directly by temporal accumulation"
+            ],
+            "focused_validation": {
+              "gpu_controls": "passed",
+              "canvas_cases": 6,
+              "exact_cases": 2,
+              "max_channel_error": 1,
+              "max_mean_error": 0.00341796875,
+              "clippy": "passed",
+              "glyph_gate": {
+                "path": "artifacts/migration/cycle124-glyph-canary/report.json",
+                "sha256": "b02d4fd81e0fbd63d957e5ab0603f92c0aeddf4281cd6d4610ace948ef3f6b8d",
+                "status": "passed",
+                "cases": 6
+              }
+            },
+            "evidence": [
+              "artifacts/migration/cycle124-gpu-tests2.log",
+              "artifacts/migration/cycle124-gpu-compare2/summary.json",
+              "artifacts/migration/cycle124-glyph-review.png",
+              "artifacts/migration/cycle124-clippy1.log"
+            ],
+            "attempts": [
+              {
+                "run": "2026-10-21T01-33-17-589Z-ed9a8057",
+                "gate": "G0",
+                "result": "failed",
+                "cause": "Stale shared shader program count: 28 versus 29",
+                "fix": "Update the explicit inventory assertion for the new glyph compositor; no tolerance or coverage reduction.",
+                "evidence": "artifacts/migration/cycle124-aborted-run.json"
+              }
+            ]
           }
         },
         {
@@ -2385286,6 +2385311,949 @@
           "passed": false
         }
       ]
+    },
+    {
+      "case_id": "native-glyph-fill",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "Independent Canvas2D glyph atlas composition component",
+      "reviewed_at": "2026-10-21T01:31:02.402Z",
+      "reference_rgba_sha256": "2fa1d80b2fb2c06efa4981068919cd7a161538cb39ee6ed6c57505591d60b7eb",
+      "candidate_rgba_sha256": "33fbd4aab04b47acc5b79de6da47e8a89eaa53d931774e96cabd4af444c70e8d",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 3072,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.001953125,
+        "mean_squared_error": 0.001953125,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 75.22350321843741
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          1,
+          1,
+          1,
+          0.9999951041724455
+        ],
+        "mean": 1,
+        "rgba_mean": 0.9999987760431114,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 3072,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0,
+          0,
+          0,
+          -0.0078125
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 7,
+            "min_y": 7,
+            "max_x": 38,
+            "max_y": 18
+          },
+          "candidate": {
+            "min_x": 7,
+            "min_y": 7,
+            "max_x": 38,
+            "max_y": 18
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.14452965506190082,
+          "candidate_rms": 0.14452273951924058,
+          "reference_axis_ratio": 0.3655558746107756,
+          "candidate_axis_ratio": 0.3654835933485815,
+          "reference_window_energy_fraction": 0.9934395404484605,
+          "candidate_window_energy_fraction": 0.9934437181515412,
+          "active_frequencies": 6663,
+          "spectral_bins": 16384,
+          "peak_ratio": 7.1508991808888815,
+          "peak_to_sidelobe_ratio": 195.19509476795173,
+          "peak_coherence": 0.9999994468394114,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 1445888
+        }
+      },
+      "sequence": null,
+      "checks": [
+        {
+          "id": "max_abs_channel_error",
+          "passed": true
+        },
+        {
+          "id": "mean_abs_error",
+          "passed": true
+        },
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "inspection": "Directly inspected contact sheet and heatmap in the six-case montage. Red and blue coverage glyphs, fractional opacity and alpha silhouettes match. Maximum residual is at most one code value from unorm blending/alpha rounding; no missing shape, shifted edge or color bias. Component acceptance only; production text remains pending.",
+      "evidence": {
+        "report": "artifacts/migration/cycle124-gpu-compare2/fill/report.json",
+        "report_sha256": "f8576956e692926328790189751d78b4f41a6924cdcb2bdf5e1e96d25d3b0228",
+        "contact_sheet": "artifacts/migration/cycle124-gpu-compare2/fill/contact-sheet.png",
+        "contact_sheet_sha256": "1312ec10d4686f3d1a6aa68a6dbf528ecc240c0820adef6c0958e63ba4ea44ec",
+        "heatmap": "artifacts/migration/cycle124-gpu-compare2/fill/heatmap.png",
+        "heatmap_sha256": "f1c8e6661e907b7d2bd6e59627b1fb5bc8b06645084080054be6bd2da8810e4f",
+        "presentation": {
+          "path": "artifacts/migration/cycle124-glyph-review.png",
+          "sha256": "5006e757dc5f32d023e4658376922eaf1a280fc4ff63274e173458bf5d934f03"
+        }
+      }
+    },
+    {
+      "case_id": "native-glyph-overlap",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "Independent Canvas2D glyph atlas composition component",
+      "reviewed_at": "2026-10-21T01:31:02.406Z",
+      "reference_rgba_sha256": "e3265c549a02475cfa782dea863c520692359b209502b03d2ec16885d840336d",
+      "candidate_rgba_sha256": "5760902285dc6245f2f4e8205bbd2db56cc191ad6f18e08d924c13eda67a740a",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 3072,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00341796875,
+        "mean_squared_error": 0.00341796875,
+        "rgb_mean_squared_error": 0.0022786458333333335,
+        "psnr": {
+          "kind": "finite",
+          "db": 74.55403532213128
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 72.79312273157447
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          0.9999995423637303,
+          1,
+          0.9999995540428953,
+          0.9999968928340689
+        ],
+        "mean": 0.9999996988022085,
+        "rgba_mean": 0.9999989973101736,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 3072,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0.005859375,
+          0,
+          -0.0009765625,
+          -0.0068359375
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 7,
+            "min_y": 7,
+            "max_x": 23,
+            "max_y": 22
+          },
+          "candidate": {
+            "min_x": 7,
+            "min_y": 7,
+            "max_x": 23,
+            "max_y": 22
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.13661972735236488,
+          "candidate_rms": 0.13663271819822173,
+          "reference_axis_ratio": 0.35101018209626395,
+          "candidate_axis_ratio": 0.3509857454403705,
+          "reference_window_energy_fraction": 0.9938385592482842,
+          "candidate_window_energy_fraction": 0.9938416781864328,
+          "active_frequencies": 7273,
+          "spectral_bins": 16384,
+          "peak_ratio": 8.834348761921122,
+          "peak_to_sidelobe_ratio": 207.72077247778768,
+          "peak_coherence": 0.9999989988152248,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 1445888
+        }
+      },
+      "sequence": null,
+      "checks": [
+        {
+          "id": "max_abs_channel_error",
+          "passed": true
+        },
+        {
+          "id": "mean_abs_error",
+          "passed": true
+        },
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "inspection": "Directly inspected contact sheet and heatmap in the six-case montage. Ordered red/blue overlap, intersection colors and alpha coverage match. Maximum residual is at most one code value from unorm blending/alpha rounding; no missing shape, shifted edge or color bias. Component acceptance only; production text remains pending.",
+      "evidence": {
+        "report": "artifacts/migration/cycle124-gpu-compare2/overlap/report.json",
+        "report_sha256": "9fcedb3665de9e56222e59d3c296fce55bcf5cbc1348f71d01484b45dfa77efa",
+        "contact_sheet": "artifacts/migration/cycle124-gpu-compare2/overlap/contact-sheet.png",
+        "contact_sheet_sha256": "03e45e24d266ea2da6976fe21c7f1ef54a5e9059ca2baeba7a97ef488bd011b8",
+        "heatmap": "artifacts/migration/cycle124-gpu-compare2/overlap/heatmap.png",
+        "heatmap_sha256": "6d8062b51ccecffa6840fa606ad7206baa3143f0ce00d0e55a465e5dde1a9454",
+        "presentation": {
+          "path": "artifacts/migration/cycle124-glyph-review.png",
+          "sha256": "5006e757dc5f32d023e4658376922eaf1a280fc4ff63274e173458bf5d934f03"
+        }
+      }
+    },
+    {
+      "case_id": "native-glyph-transforms",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "Independent Canvas2D glyph atlas composition component",
+      "reviewed_at": "2026-10-21T01:31:02.407Z",
+      "reference_rgba_sha256": "36bee4a916fcebce9a5fe68dbc1884eb410fc4ba8b287be906d64fa08e3db431",
+      "candidate_rgba_sha256": "a9fe7a77c3d941847349818361820598cfe5b8e4e4a437515e9af18ce957dd26",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 3072,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00016276041666666666,
+        "mean_squared_error": 0.00016276041666666666,
+        "rgb_mean_squared_error": 0.00021701388888888888,
+        "psnr": {
+          "kind": "finite",
+          "db": 84.76592831283065
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 86.01531567891365
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          0.9999999104386834,
+          1,
+          0.9999999104386834,
+          1
+        ],
+        "mean": 0.9999999402924556,
+        "rgba_mean": 0.9999999552193417,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 3072,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -0.0003255208333333333,
+          0,
+          -0.0003255208333333333,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 21,
+            "min_y": 7,
+            "max_x": 44,
+            "max_y": 34
+          },
+          "candidate": {
+            "min_x": 21,
+            "min_y": 7,
+            "max_x": 44,
+            "max_y": 34
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.24098371161713994,
+          "candidate_rms": 0.2409830993325164,
+          "reference_axis_ratio": 0.46400427011528395,
+          "candidate_axis_ratio": 0.4639949464185026,
+          "reference_window_energy_fraction": 0.9768081726474048,
+          "candidate_window_energy_fraction": 0.9768081414793435,
+          "active_frequencies": 4060,
+          "spectral_bins": 16384,
+          "peak_ratio": 6.43160103816333,
+          "peak_to_sidelobe_ratio": 150.5949123037986,
+          "peak_coherence": 0.9999999907468757,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 1445888
+        }
+      },
+      "sequence": null,
+      "checks": [
+        {
+          "id": "max_abs_channel_error",
+          "passed": true
+        },
+        {
+          "id": "mean_abs_error",
+          "passed": true
+        },
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "inspection": "Directly inspected contact sheet and heatmap in the six-case montage. Rotated and reflected/scaled glyphs retain the same clipped edges and overlap. Maximum residual is at most one code value from unorm blending/alpha rounding; no missing shape, shifted edge or color bias. Component acceptance only; production text remains pending.",
+      "evidence": {
+        "report": "artifacts/migration/cycle124-gpu-compare2/transforms/report.json",
+        "report_sha256": "bee843646b93167e5d96f4d36d686eebd391f876ae20bf9446f5a7fda14c1c7f",
+        "contact_sheet": "artifacts/migration/cycle124-gpu-compare2/transforms/contact-sheet.png",
+        "contact_sheet_sha256": "b53e884f76abbc360224c0f5e30b12947f7e36413bef053717990536c18607be",
+        "heatmap": "artifacts/migration/cycle124-gpu-compare2/transforms/heatmap.png",
+        "heatmap_sha256": "1aac3b963602b1745985874653268e2385478c337f72cfd6bdb2a2bd005cae82",
+        "presentation": {
+          "path": "artifacts/migration/cycle124-glyph-review.png",
+          "sha256": "5006e757dc5f32d023e4658376922eaf1a280fc4ff63274e173458bf5d934f03"
+        }
+      }
+    },
+    {
+      "case_id": "native-glyph-stroke",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "Independent Canvas2D glyph atlas composition component",
+      "reviewed_at": "2026-10-21T01:31:02.408Z",
+      "reference_rgba_sha256": "a1b64d379b8c1fc0fd272723f1ac02e10972216aa00ffee8c946f25af8e71482",
+      "candidate_rgba_sha256": "a1b64d379b8c1fc0fd272723f1ac02e10972216aa00ffee8c946f25af8e71482",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 3072,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 3072,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 6,
+            "min_y": 6,
+            "max_x": 19,
+            "max_y": 19
+          },
+          "candidate": {
+            "min_x": 6,
+            "min_y": 6,
+            "max_x": 19,
+            "max_y": 19
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "checks": [
+        {
+          "id": "max_abs_channel_error",
+          "passed": true
+        },
+        {
+          "id": "mean_abs_error",
+          "passed": true
+        },
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "residual_class": "exact",
+      "verdict": "accepted",
+      "inspection": "Directly inspected contact sheet and heatmap in the six-case montage. Hollow green stroke and white interior draw match byte exactly. Maximum residual is at most one code value from unorm blending/alpha rounding; no missing shape, shifted edge or color bias. Component acceptance only; production text remains pending.",
+      "evidence": {
+        "report": "artifacts/migration/cycle124-gpu-compare2/stroke/report.json",
+        "report_sha256": "baaeb24271c556e4826bdefe4604bc7d8499604592e3ec47ace4924bcdea892e",
+        "contact_sheet": "artifacts/migration/cycle124-gpu-compare2/stroke/contact-sheet.png",
+        "contact_sheet_sha256": "36a8907d13aac27b558450655d4ce8e32a557ea4d60c4e4c2c5c8e3da8cd1953",
+        "heatmap": "artifacts/migration/cycle124-gpu-compare2/stroke/heatmap.png",
+        "heatmap_sha256": "b0181511b3a26a776bb822caa6fc88859821b421954a7bd76c213d6b18ad96ab",
+        "presentation": {
+          "path": "artifacts/migration/cycle124-glyph-review.png",
+          "sha256": "5006e757dc5f32d023e4658376922eaf1a280fc4ff63274e173458bf5d934f03"
+        }
+      }
+    },
+    {
+      "case_id": "native-glyph-color",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "Independent Canvas2D glyph atlas composition component",
+      "reviewed_at": "2026-10-21T01:31:02.409Z",
+      "reference_rgba_sha256": "0dce19f1f5219be82f6216f5311697b4c4977d823d6218f46ca119e0852aa230",
+      "candidate_rgba_sha256": "0b6e167bc271d5de28a0856a52223d9238973ccc9b42744f281bd7b278547a95",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 3072,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.0029296875,
+        "mean_squared_error": 0.0029296875,
+        "rgb_mean_squared_error": 0.0016276041666666667,
+        "psnr": {
+          "kind": "finite",
+          "db": 76.01531567891365
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 73.4625906278806
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          0.9999994872945166,
+          0.9999994876197951,
+          0.9999998942864442,
+          0.9999976840945856
+        ],
+        "mean": 0.9999996230669187,
+        "rgba_mean": 0.9999991383238354,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 3072,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -0.001953125,
+          -0.001953125,
+          -0.0009765625,
+          -0.0068359375
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 5,
+            "min_y": 5,
+            "max_x": 35,
+            "max_y": 20
+          },
+          "candidate": {
+            "min_x": 5,
+            "min_y": 5,
+            "max_x": 35,
+            "max_y": 20
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.21184132017970633,
+          "candidate_rms": 0.2118323831164311,
+          "reference_axis_ratio": 0.4403624258126442,
+          "candidate_axis_ratio": 0.4401442270270673,
+          "reference_window_energy_fraction": 0.9878714867396636,
+          "candidate_window_energy_fraction": 0.9878758513614476,
+          "active_frequencies": 3773,
+          "spectral_bins": 16384,
+          "peak_ratio": 6.100340395832786,
+          "peak_to_sidelobe_ratio": 131.62757916337253,
+          "peak_coherence": 0.9999999179650906,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 1445888
+        }
+      },
+      "sequence": null,
+      "checks": [
+        {
+          "id": "max_abs_channel_error",
+          "passed": true
+        },
+        {
+          "id": "mean_abs_error",
+          "passed": true
+        },
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "inspection": "Directly inspected contact sheet and heatmap in the six-case montage. Scaled premultiplied color cells and reduced-opacity copy retain matching edges and color transitions. Maximum residual is at most one code value from unorm blending/alpha rounding; no missing shape, shifted edge or color bias. Component acceptance only; production text remains pending.",
+      "evidence": {
+        "report": "artifacts/migration/cycle124-gpu-compare2/color/report.json",
+        "report_sha256": "af71b6a56a7ad7ab955be2d93ffc7194323e121843a31f432d8da67efed0e45a",
+        "contact_sheet": "artifacts/migration/cycle124-gpu-compare2/color/contact-sheet.png",
+        "contact_sheet_sha256": "066607d386e7cbfdd79a44b1949427583aa1503e268f9cc7a94216266bef4d21",
+        "heatmap": "artifacts/migration/cycle124-gpu-compare2/color/heatmap.png",
+        "heatmap_sha256": "abb3e4c723429da6fbbee68a6fb33c3c77c9de1ac549ee5667e239a6fb737810",
+        "presentation": {
+          "path": "artifacts/migration/cycle124-glyph-review.png",
+          "sha256": "5006e757dc5f32d023e4658376922eaf1a280fc4ff63274e173458bf5d934f03"
+        }
+      }
+    },
+    {
+      "case_id": "native-glyph-fractional",
+      "frame": 0,
+      "profile": "gpu",
+      "purpose": "Independent Canvas2D glyph atlas composition component",
+      "reviewed_at": "2026-10-21T01:31:02.410Z",
+      "reference_rgba_sha256": "3b7a668d966f5efaecc1366ee2282b6934d371d8bf93f145b6c3e2951c24fba5",
+      "candidate_rgba_sha256": "3b7a668d966f5efaecc1366ee2282b6934d371d8bf93f145b6c3e2951c24fba5",
+      "metrics": {
+        "exact": true,
+        "pixel_count": 3072,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 3072,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 7,
+            "min_y": 7,
+            "max_x": 19,
+            "max_y": 19
+          },
+          "candidate": {
+            "min_x": 7,
+            "min_y": 7,
+            "max_x": 19,
+            "max_y": 19
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": null,
+      "checks": [
+        {
+          "id": "max_abs_channel_error",
+          "passed": true
+        },
+        {
+          "id": "mean_abs_error",
+          "passed": true
+        },
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "residual_class": "exact",
+      "verdict": "accepted",
+      "inspection": "Directly inspected contact sheet and heatmap in the six-case montage. Fractional translated coverage matches byte exactly, with identical antialiased edge locations. Maximum residual is at most one code value from unorm blending/alpha rounding; no missing shape, shifted edge or color bias. Component acceptance only; production text remains pending.",
+      "evidence": {
+        "report": "artifacts/migration/cycle124-gpu-compare2/fractional/report.json",
+        "report_sha256": "af8471294c36874948180cb1a74d26d4004722ef0900c323907670be2d807327",
+        "contact_sheet": "artifacts/migration/cycle124-gpu-compare2/fractional/contact-sheet.png",
+        "contact_sheet_sha256": "88346e54d5e86fe8239d11b4624704ed6e95b5d263b740f9d5cd716aabdd2b60",
+        "heatmap": "artifacts/migration/cycle124-gpu-compare2/fractional/heatmap.png",
+        "heatmap_sha256": "b0181511b3a26a776bb822caa6fc88859821b421954a7bd76c213d6b18ad96ab",
+        "presentation": {
+          "path": "artifacts/migration/cycle124-glyph-review.png",
+          "sha256": "5006e757dc5f32d023e4658376922eaf1a280fc4ff63274e173458bf5d934f03"
+        }
+      }
     }
   ],
   "history": [
@@ -2440416,20 +2441384,14 @@
     }
   ],
   "active_cycle": {
-    "id": 123,
+    "id": 124,
     "milestone": "M10",
-    "task": "M10-T5",
-    "increment": "Rasterize glyphs into a bounded atlas with complete generation keys",
-    "started_at": "2026-10-21T00:10:49.577Z",
-    "updated_at": "2026-10-21T01:17:19.031Z",
-    "implementation_state": "committed",
+    "task": "M10-T6",
+    "increment": "Compose native text from the glyph atlas on the GPU",
+    "started_at": "2026-10-21T01:18:07.341Z",
+    "updated_at": "2026-10-21T01:33:15.064Z",
+    "implementation_state": "verification_pending",
     "previous_verification": {
-      "path": "artifacts/migration/verify-2026-10-20T23-28-15-458Z-86c04618.json",
-      "sha256": "136f46cc11ca0bd3801ccd6b81a210e27d067ddb92db5ad4ad489ef86f8132fa"
-    },
-    "outcome": "passed",
-    "commit": "88bf4808a69dd826d55a5cbd7377c80af5f4949f",
-    "verification": {
       "path": "artifacts/migration/verify-2026-10-21T00-33-13-252Z-2843cddb.json",
       "sha256": "8b3f7609e6463323110a3ac1edff1f9deafd6a41ac6ecf5a186a4e637bbd6494"
     }

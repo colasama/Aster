@@ -27,6 +27,9 @@ mod shared_nv12_output;
 mod shared_nv12_tests;
 
 #[cfg(test)]
+#[path = "glyph_text_tests.rs"]
+mod glyph_text_tests;
+#[cfg(test)]
 #[path = "hdr_image_tests.rs"]
 mod hdr_image_tests;
 #[cfg(test)]
@@ -553,7 +556,7 @@ impl NativeRenderer {
         if let Some(depth) = &mut self.depth_output {
             depth.retire(&self.device, frame.depth.as_ref(), self.options.timeout)?;
         }
-        self.images.install_derived(&self.device, Vec::new());
+        self.images.clear_derived();
         self.temporal.retire(
             &self.device,
             &frame.temporal,

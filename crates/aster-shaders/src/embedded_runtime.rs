@@ -46,6 +46,10 @@ impl ShaderCatalog {
                 include_str!("../../../shaders/text/motion-blur-raster.wgsl"),
             ),
             (
+                "text/glyph-composite.wgsl",
+                include_str!("../../../shaders/text/glyph-composite.wgsl"),
+            ),
+            (
                 "diagnostics/fullscreen-vertex.wgsl",
                 include_str!("../../../shaders/diagnostics/fullscreen-vertex.wgsl"),
             ),

@@ -607,8 +607,20 @@ Glyph caches account for externally leased images. Immutable atlas generations p
 color into separate padded pages; a held generation cannot be evicted or have its coordinates
 reused. Consumers must retain its lease until all corresponding GPU work retires. The diagnostic
 publishes authenticated glyph and atlas images and independently reconstructs every atlas cell,
-including empty padding, without claiming production text pixel acceptance. GPU composition and
-production capability routing remain separate integration requirements.
+including empty padding, without claiming production text pixel acceptance.
+
+`GlyphTextPipeline` composites the immutable atlas on the GPU using ordered fill/stroke draws,
+evaluated affine transforms, color/opacity and output-space clips. Coverage pages use R8 unorm;
+color pages retain premultiplied encoded sRGB. Source-over blending matches the default Canvas2D
+encoded-sRGB convention. A GPU resolve produces straight encoded bytes through an unorm view of an
+sRGB output texture, so downstream effects and temporal accumulation decode exactly once.
+Atlas uploads validate complete page bytes and placements before allocation. Output preparation
+bounds draw counts, dimensions, uniforms and both targets before allocating; prepared passes retain
+the atlas generation and clear targets on every recording. No normal-path CPU readback is needed.
+The image cache retains derived textures as well as bindings, installs glyph and temporal generations
+without replacing each other, and clears them once at frame admission. Frozen independent Canvas
+component captures cover overlap, stroke, transforms, clipping, color and fractional sampling;
+production project routing and full text raster acceptance remain separate integration requirements.
 
 ## Pi agent runtime
 

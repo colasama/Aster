@@ -141,7 +141,7 @@ impl TemporalCache {
                     )
                 })
                 .collect(),
-        );
+        )?;
         Ok(())
     }
 

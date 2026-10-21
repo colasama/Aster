@@ -78,6 +78,7 @@
     "particle-render-layout": "scene/particle-render-layout.wgsl",
     "particle-render-functions": "scene/particle-render-functions.wgsl",
     "text-motion-blur-raster": "text/motion-blur-raster.wgsl",
+    "text-glyph-composite": "text/glyph-composite.wgsl",
     "diagnostic-fullscreen-vertex": "diagnostics/fullscreen-vertex.wgsl",
     "diagnostic-scene-fragment": "diagnostics/scene-fragment.wgsl",
     "diagnostic-float-fragment": "diagnostics/float-fragment.wgsl",
@@ -561,6 +562,16 @@
           "name": "resolve_fragment",
           "stage": "fragment"
         }
+      ],
+      "overrides": {}
+    },
+    "text-glyph-composite": {
+      "fragments": ["text-glyph-composite"],
+      "entry_points": [
+        { "name": "glyph_vertex", "stage": "vertex" },
+        { "name": "glyph_fragment", "stage": "fragment" },
+        { "name": "resolve_vertex", "stage": "vertex" },
+        { "name": "resolve_fragment", "stage": "fragment" }
       ],
       "overrides": {}
     },

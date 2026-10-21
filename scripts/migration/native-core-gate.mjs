@@ -21,6 +21,7 @@ import { runNativeExportStreamGate } from "./native-export-stream-gate.mjs";
 import { runNativeGeneratorAudioGate } from "./native-generator-audio-gate.mjs";
 import { runNativeGeneratorOutputGate } from "./native-generator-output-gate.mjs";
 import { runNativeGeneratorSurfaceGate } from "./native-generator-surface-gate.mjs";
+import { runNativeGlyphGate } from "./native-glyph-gate.mjs";
 import { runNativeMaterialGate } from "./native-material-gate.mjs";
 import { runNativeMediaFrameGate } from "./native-media-frame-gate.mjs";
 import { runNativeMotionFrameGate } from "./native-motion-frame-gate.mjs";
@@ -684,6 +685,23 @@ export async function runNativeCoreGate(context, execute = runStep) {
         "passed",
         "Production text layout observations failed",
       );
+    }
+    if (
+      context.milestone === "M10" &&
+      ledger.milestones.find((m) => m.id === "M10").tasks.find((t) => t.id === "M10-T6")?.status !==
+        "pending"
+    ) {
+      report.native_glyph_composite = await runNativeGlyphGate(
+        { ...context, output: join(context.output, "native-glyph-composite") },
+        binary,
+        execute,
+      );
+      assert.equal(
+        report.native_glyph_composite.status,
+        "passed",
+        "Native glyph GPU composition failed",
+      );
+      assert.equal(report.native_glyph_composite.binary.sha256, report.binary.sha256);
     }
     report.checked_files = await reader.stable();
     report.status = "passed";
