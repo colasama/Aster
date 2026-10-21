@@ -370,40 +370,40 @@
     }
   },
   "last_cycle": {
-    "id": 127,
-    "time": "2026-10-21T07:02:13.102Z",
-    "updated_at": "2026-10-21T07:02:13.102Z",
+    "id": 128,
+    "time": "2026-10-21T17:13:07.448Z",
+    "updated_at": "2026-10-21T17:13:07.448Z",
     "milestone": "M10",
     "task": "M10-T7",
-    "increment": "authored-text-pixels",
+    "increment": "production-routing",
     "outcome": "passed",
-    "commit": "323af2e059024cebd3e6c81016d7bd92c24668c6",
+    "commit": "5bac7d0fa99ebb37a1be2eead14346968e91cecc",
     "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T06-26-35-910Z-a3ad85b3.json",
-      "sha256": "4a4a382290e4e0c91cbbf5ff0827870e17a98e414a655ae02610d0d19132f22f"
+      "path": "artifacts/migration/verify-2026-10-21T16-36-34-937Z-47dca48d.json",
+      "sha256": "9a0e34deaa9b0f8cc1d45174f6d26ce3b23683dfd0bd2d9aadd141078879b43c"
     },
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 257488,
+        "duration_ms": 244506,
         "proof": {
-          "path": "artifacts/migration/2026-10-21T06-26-35-910Z-a3ad85b3/static-results.json",
-          "sha256": "63f51dd88c8f9f24ef0d283ec39d316aa895dfe8d2b55b612825f99f28fffc10"
+          "path": "artifacts/migration/2026-10-21T16-36-34-937Z-47dca48d/static-results.json",
+          "sha256": "07ee65f73603fd0e25b428e9bd890cd9138b37b0dcf6e7d26e0ac6025db8e489"
         }
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 1840178,
+        "duration_ms": 1909076,
         "proof": {
-          "path": "artifacts/migration/2026-10-21T06-26-35-910Z-a3ad85b3/G3/report.json",
-          "sha256": "0ff32a15ed79258bc2a57493c79505a3b66c2ae3b6571166438cb3045b9accff"
+          "path": "artifacts/migration/2026-10-21T16-36-34-937Z-47dca48d/G3/report.json",
+          "sha256": "7e5a00c90f617ebc0676c1efccddb2dffd248d5a5e05d69e97cf430918ae4beb"
         }
       }
     ],
-    "duration_ms": 2100344,
-    "next_step": "Continue M10-T7 with actual GPU layer output qualification for fill-only text and exact retained stroke/affine capability. Partition retained requests only after native acceptance; keep temporal sample, union-bounds and selector-layout identities."
+    "duration_ms": 2156179,
+    "next_step": "Continue M10-T7: qualify additional font/script/density coverage, bind retained capability audit to production export, and preserve native selector layouts and temporal sample unions before M10-T8 exit audit."
   },
   "milestones": [
     {
@@ -24844,12 +24844,12 @@
             }
           ],
           "preparation": {
-            "path": "artifacts/migration/cycle127-routing-preparation.json",
-            "sha256": "c2f0194fa015debb718db82c17be304e1c0ac925c31203c29c84f629c21af522",
-            "status": "read_only_preparation; production routing remains pending"
+            "path": "artifacts/migration/cycle128-next-preparation.json",
+            "sha256": "14d6832bc45e7368b6f401443904be2941c74a510cf8d6f18d0072d1ae533cc1",
+            "status": "read_only_preparation"
           },
           "progress": {
-            "state": "authored_pixel_diagnostic_verified_native_admission_pending",
+            "state": "qualified_fill_production_routing_verified_remaining_capabilities_pending",
             "increments": [
               {
                 "id": "gpu-frame-admission",
@@ -24878,19 +24878,50 @@
                 "status": "in_progress",
                 "scope": "Render actual authored text through native glyph recipes without CPU text pixels, compare with authenticated frozen TS output, and resolve raster differences before production admission.",
                 "latest_verified_partial": {
-                  "cycle": 127,
-                  "scope": "Bounded Windows fill coverage and authenticated authored frame/raster qualification; isolated stroke coverage remains rejected.",
-                  "commit": "323af2e059024cebd3e6c81016d7bd92c24668c6",
+                  "cycle": 128,
+                  "commit": "5bac7d0fa99ebb37a1be2eead14346968e91cecc",
                   "verification": {
-                    "path": "artifacts/migration/verify-2026-10-21T06-26-35-910Z-a3ad85b3.json",
-                    "sha256": "4a4a382290e4e0c91cbbf5ff0827870e17a98e414a655ae02610d0d19132f22f"
+                    "path": "artifacts/migration/verify-2026-10-21T16-36-34-937Z-47dca48d.json",
+                    "sha256": "9a0e34deaa9b0f8cc1d45174f6d26ce3b23683dfd0bd2d9aadd141078879b43c"
+                  },
+                  "production": {
+                    "evidence": "artifacts/migration/2026-10-21T16-36-34-937Z-47dca48d/G3/native-text-layout/native-project-session/report.json",
+                    "sha256": "168bb37665986f3fca9fc2b0a240757279a954c20fd9c4cd84c46c676b3545d3",
+                    "status": "passed",
+                    "native_samples": 70,
+                    "isolated_pixel_pairs": 1,
+                    "frozen_frame_pairs": 4,
+                    "retained_text_requests": 0,
+                    "maximum_channel_error": 1,
+                    "scope": "Windows ordinary ASCII Arial/Segoe UI outline fills at unit density; other exact capabilities remain retained.",
+                    "retained_stroke_sessions_exact": 4
                   }
                 }
               },
               {
                 "id": "production-routing",
                 "status": "in_progress",
-                "scope": "Partition authenticated retained requests and route native text through project sessions and export. Verify actual TS raster omission and full project pixel/layout acceptance."
+                "scope": "Partition authenticated retained requests and route native text through project sessions and export. Verify actual TS raster omission and full project pixel/layout acceptance.",
+                "latest_verified_partial": {
+                  "cycle": 128,
+                  "commit": "5bac7d0fa99ebb37a1be2eead14346968e91cecc",
+                  "verification": {
+                    "path": "artifacts/migration/verify-2026-10-21T16-36-34-937Z-47dca48d.json",
+                    "sha256": "9a0e34deaa9b0f8cc1d45174f6d26ce3b23683dfd0bd2d9aadd141078879b43c"
+                  },
+                  "production": {
+                    "evidence": "artifacts/migration/2026-10-21T16-36-34-937Z-47dca48d/G3/native-text-layout/native-project-session/report.json",
+                    "sha256": "168bb37665986f3fca9fc2b0a240757279a954c20fd9c4cd84c46c676b3545d3",
+                    "status": "passed",
+                    "native_samples": 70,
+                    "isolated_pixel_pairs": 1,
+                    "frozen_frame_pairs": 4,
+                    "retained_text_requests": 0,
+                    "maximum_channel_error": 1,
+                    "scope": "Windows ordinary ASCII Arial/Segoe UI outline fills at unit density; other exact capabilities remain retained.",
+                    "retained_stroke_sessions_exact": 4
+                  }
+                }
               }
             ],
             "focused_evidence": [
@@ -24936,101 +24967,46 @@
               "status": "recovered_without_source_or_evidence_changes"
             },
             "latest_verified_increment": {
-              "cycle": 127,
-              "commit": "323af2e059024cebd3e6c81016d7bd92c24668c6",
+              "cycle": 128,
+              "commit": "5bac7d0fa99ebb37a1be2eead14346968e91cecc",
               "verification": {
-                "path": "artifacts/migration/verify-2026-10-21T06-26-35-910Z-a3ad85b3.json",
-                "sha256": "4a4a382290e4e0c91cbbf5ff0827870e17a98e414a655ae02610d0d19132f22f"
+                "path": "artifacts/migration/verify-2026-10-21T16-36-34-937Z-47dca48d.json",
+                "sha256": "9a0e34deaa9b0f8cc1d45174f6d26ce3b23683dfd0bd2d9aadd141078879b43c"
               },
               "gates": [
                 {
                   "id": "G0",
                   "status": "passed",
-                  "duration_ms": 257488,
+                  "duration_ms": 244506,
                   "proof": {
-                    "path": "artifacts/migration/2026-10-21T06-26-35-910Z-a3ad85b3/static-results.json",
-                    "sha256": "63f51dd88c8f9f24ef0d283ec39d316aa895dfe8d2b55b612825f99f28fffc10"
+                    "path": "artifacts/migration/2026-10-21T16-36-34-937Z-47dca48d/static-results.json",
+                    "sha256": "07ee65f73603fd0e25b428e9bd890cd9138b37b0dcf6e7d26e0ac6025db8e489"
                   }
                 },
                 {
                   "id": "G3",
                   "status": "passed",
-                  "duration_ms": 1840178,
+                  "duration_ms": 1909076,
                   "proof": {
-                    "path": "artifacts/migration/2026-10-21T06-26-35-910Z-a3ad85b3/G3/report.json",
-                    "sha256": "0ff32a15ed79258bc2a57493c79505a3b66c2ae3b6571166438cb3045b9accff"
+                    "path": "artifacts/migration/2026-10-21T16-36-34-937Z-47dca48d/G3/report.json",
+                    "sha256": "7e5a00c90f617ebc0676c1efccddb2dffd248d5a5e05d69e97cf430918ae4beb"
                   }
                 }
               ],
-              "duration_ms": 2100344,
-              "primary_pixel_frames": 1315,
-              "project_text_preparation": {
-                "comparisons": 210,
-                "maxima": {
-                  "advance": 0,
-                  "baseline": 0,
-                  "transform": 0.000007533039678264686
-                }
+              "duration_ms": 2156179,
+              "production": {
+                "evidence": "artifacts/migration/2026-10-21T16-36-34-937Z-47dca48d/G3/native-text-layout/native-project-session/report.json",
+                "sha256": "168bb37665986f3fca9fc2b0a240757279a954c20fd9c4cd84c46c676b3545d3",
+                "status": "passed",
+                "native_samples": 70,
+                "isolated_pixel_pairs": 1,
+                "frozen_frame_pairs": 4,
+                "retained_text_requests": 0,
+                "maximum_channel_error": 1,
+                "scope": "Windows ordinary ASCII Arial/Segoe UI outline fills at unit density; other exact capabilities remain retained.",
+                "retained_stroke_sessions_exact": 4
               },
-              "authored_text_pixels": {
-                "comparisons": 8,
-                "accepted_frames": 4,
-                "rejected_isolated_rasters": 4,
-                "qualified": false,
-                "report": {
-                  "evidence": "artifacts/migration/2026-10-21T06-26-35-910Z-a3ad85b3/G3/native-text-layout/native-project-pixels/report.json",
-                  "sha256": "ea0f4f784f6b3ece1b114ff630b98d1d95561b69067526ce0ee3ff8dfa9bc0c9",
-                  "evidence_status": "passed",
-                  "frame_pairs": 4,
-                  "isolated_raster_pairs": 4,
-                  "qualified": false,
-                  "native_text_acceptance": false,
-                  "retained_requirements": [
-                    {
-                      "composition": "cbecb430-111c-47f0-a78d-4f90b7a201eb",
-                      "layer": "f6bd3659-66bc-49d0-a30b-c2779bc8fa7b",
-                      "frame": 0,
-                      "scope": "raster",
-                      "failed_checks": [
-                        "alpha_coverage"
-                      ],
-                      "reason": "Authored raster pixel qualification failed; production must retain TS text for this capability."
-                    },
-                    {
-                      "composition": "cbecb430-111c-47f0-a78d-4f90b7a201eb",
-                      "layer": "f6bd3659-66bc-49d0-a30b-c2779bc8fa7b",
-                      "frame": 15,
-                      "scope": "raster",
-                      "failed_checks": [
-                        "alpha_coverage"
-                      ],
-                      "reason": "Authored raster pixel qualification failed; production must retain TS text for this capability."
-                    },
-                    {
-                      "composition": "cbecb430-111c-47f0-a78d-4f90b7a201eb",
-                      "layer": "f6bd3659-66bc-49d0-a30b-c2779bc8fa7b",
-                      "frame": 30,
-                      "scope": "raster",
-                      "failed_checks": [
-                        "alpha_coverage"
-                      ],
-                      "reason": "Authored raster pixel qualification failed; production must retain TS text for this capability."
-                    },
-                    {
-                      "composition": "cbecb430-111c-47f0-a78d-4f90b7a201eb",
-                      "layer": "f6bd3659-66bc-49d0-a30b-c2779bc8fa7b",
-                      "frame": 59,
-                      "scope": "raster",
-                      "failed_checks": [
-                        "alpha_coverage"
-                      ],
-                      "reason": "Authored raster pixel qualification failed; production must retain TS text for this capability."
-                    }
-                  ],
-                  "next_step": "Qualify fill-only native GPU layer outputs and enforce retained stroke/affine capability before production routing."
-                }
-              },
-              "production_routing": false
+              "milestone_exit_satisfied": false
             },
             "storage_preflight": {
               "cycle": 126,
@@ -25067,9 +25043,9 @@
               "sha256": "f10e51dc949f7bdacdbb830f8a4dee5b0cbda75f9f09bdfb7e94c8a5cbb13ee6"
             },
             "quota_observation": {
-              "path": "artifacts/migration/cycle127-quota-observation-0700.json",
-              "sha256": "dc7d2bec29e02fc35a477454069d2528adad903498dde6a889718ec364d5cb18",
-              "remaining_percent": 48
+              "path": "artifacts/migration/cycle128-quota-observation-1634.json",
+              "sha256": "1e601745af2c9657284a12d34e929d2b9671375294574401fdddf512dbae8411",
+              "remaining_percent": 45
             },
             "authored_pixel_qualification": {
               "evidence": "artifacts/migration/2026-10-21T06-26-35-910Z-a3ad85b3/G3/native-text-layout/native-project-pixels/report.json",
@@ -25159,7 +25135,16 @@
                 "status": "failed_full_then_focused_passed",
                 "evidence": "artifacts/migration/cycle128-generator-investigation.json",
                 "sha256": "d72f8908bd650c8d579298ecd618b7a8bb21106f329dcadac3043bc40570540b",
-                "reason": "Single-pixel generator cache-equivalence mismatch; not reproduced; full rerun required."
+                "reason": "Single-pixel generator cache-equivalence mismatch; not reproduced; full rerun required.",
+                "full_rerun": {
+                  "status": "passed",
+                  "verification": {
+                    "path": "artifacts/migration/verify-2026-10-21T16-36-34-937Z-47dca48d.json",
+                    "sha256": "9a0e34deaa9b0f8cc1d45174f6d26ce3b23683dfd0bd2d9aadd141078879b43c"
+                  },
+                  "cache_comparisons": 216,
+                  "interpretation": "No recurrence in the full rerun; original rejection remains preserved and no runtime fix or tolerance change is claimed."
+                }
               }
             ],
             "production_capability_followups": [
@@ -25193,7 +25178,19 @@
                 "reason": "platform/color raster qualification pending",
                 "status": "retained"
               }
-            ]
+            ],
+            "production_routing": {
+              "evidence": "artifacts/migration/2026-10-21T16-36-34-937Z-47dca48d/G3/native-text-layout/native-project-session/report.json",
+              "sha256": "168bb37665986f3fca9fc2b0a240757279a954c20fd9c4cd84c46c676b3545d3",
+              "status": "passed",
+              "native_samples": 70,
+              "isolated_pixel_pairs": 1,
+              "frozen_frame_pairs": 4,
+              "retained_text_requests": 0,
+              "maximum_channel_error": 1,
+              "scope": "Windows ordinary ASCII Arial/Segoe UI outline fills at unit density; other exact capabilities remain retained.",
+              "retained_stroke_sessions_exact": 4
+            }
           }
         },
         {
@@ -25211,8 +25208,8 @@
       ],
       "started_at": "2026-10-20T20:25:14.937Z",
       "latest_verification": {
-        "path": "artifacts/migration/verify-2026-10-21T06-26-35-910Z-a3ad85b3.json",
-        "sha256": "4a4a382290e4e0c91cbbf5ff0827870e17a98e414a655ae02610d0d19132f22f"
+        "path": "artifacts/migration/verify-2026-10-21T16-36-34-937Z-47dca48d.json",
+        "sha256": "9a0e34deaa9b0f8cc1d45174f6d26ce3b23683dfd0bd2d9aadd141078879b43c"
       }
     },
     {
@@ -2444676,6 +2444673,20 @@
         "sha256": "4a4a382290e4e0c91cbbf5ff0827870e17a98e414a655ae02610d0d19132f22f"
       },
       "milestone_exit_satisfied": false
+    },
+    {
+      "cycle": 128,
+      "time": "2026-10-21T17:13:07.448Z",
+      "milestone": "M10",
+      "task": "M10-T7",
+      "increment": "production-routing",
+      "outcome": "passed",
+      "commit": "5bac7d0fa99ebb37a1be2eead14346968e91cecc",
+      "verification": {
+        "path": "artifacts/migration/verify-2026-10-21T16-36-34-937Z-47dca48d.json",
+        "sha256": "9a0e34deaa9b0f8cc1d45174f6d26ce3b23683dfd0bd2d9aadd141078879b43c"
+      },
+      "milestone_exit_satisfied": false
     }
   ],
   "known_boundaries": [
@@ -2444901,9 +2444912,16 @@
     "milestone": "M10",
     "task": "M10-T7",
     "started_at": "2026-10-21T07:07:36.998Z",
-    "implementation_state": "in_progress",
+    "implementation_state": "committed",
     "increment": "production-routing",
-    "scope": "Qualify direct GPU glyph layer pixels and partition production retained raster requests with exact capabilities; preserve authored clocks and temporal unions."
+    "scope": "Qualify direct GPU glyph layer pixels and partition production retained raster requests with exact capabilities; preserve authored clocks and temporal unions.",
+    "updated_at": "2026-10-21T17:13:07.448Z",
+    "outcome": "passed",
+    "commit": "5bac7d0fa99ebb37a1be2eead14346968e91cecc",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-21T16-36-34-937Z-47dca48d.json",
+      "sha256": "9a0e34deaa9b0f8cc1d45174f6d26ce3b23683dfd0bd2d9aadd141078879b43c"
+    }
   },
   "execution_pause": {
     "requested_by": "owner",
