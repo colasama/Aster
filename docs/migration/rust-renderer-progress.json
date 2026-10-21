@@ -371,12 +371,39 @@
   },
   "last_cycle": {
     "id": 125,
-    "time": "2026-10-21T02:27:09.843Z",
-    "updated_at": "2026-10-21T02:27:09.843Z",
+    "time": "2026-10-21T03:28:19.661Z",
+    "updated_at": "2026-10-21T03:28:19.661Z",
     "milestone": "M10",
     "task": "M10-T7",
-    "outcome": "in_progress",
-    "next_step": "Implement GPU-native frame admission, then continue authored-project text preparation and production routing; T7 remains open until production acceptance."
+    "increment": "gpu-frame-admission",
+    "outcome": "passed",
+    "commit": "c23947bff8641f05010525465b77407b213d170c",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-21T02-41-29-264Z-471eaeed.json",
+      "sha256": "ab96ba53ce9e057825931395e0bf68dcb6e2bd23d8048e181c83f8ce63b76d51"
+    },
+    "gates": [
+      {
+        "id": "G0",
+        "status": "passed",
+        "duration_ms": 319685,
+        "proof": {
+          "path": "artifacts/migration/2026-10-21T02-41-29-264Z-471eaeed/static-results.json",
+          "sha256": "79408918d295d72b45cc1b3efcaf94016f6c90059a426dcfb0d42a43e3a15924"
+        }
+      },
+      {
+        "id": "G3",
+        "status": "passed",
+        "duration_ms": 2339703,
+        "proof": {
+          "path": "artifacts/migration/2026-10-21T02-41-29-264Z-471eaeed/G3/report.json",
+          "sha256": "2a1b5ed7cbd4a2ac855cbb821b653f9a776fb6e8aa90a13310879d14ccabe039"
+        }
+      }
+    ],
+    "duration_ms": 2662292,
+    "next_step": "Continue M10-T7: prepare authored fonts, native layout/styles/bounds and precise retained capability decisions, then partition project-session acquisition and connect native recipes. Do not mark production text routing or M10 complete from component tests."
   },
   "milestones": [
     {
@@ -24817,17 +24844,23 @@
             }
           ],
           "preparation": {
-            "path": "artifacts/migration/cycle124-native-text-routing-preparation.json",
-            "sha256": "61269dbd10b5625043f55a67bf8db02c370038fd99ea830d582b1dedbc33049f",
-            "status": "read_only_preparation; production native text routing remains pending"
+            "path": "artifacts/migration/cycle125-project-text-preparation.json",
+            "sha256": "5d36c1cf53feacecfc41791f7ec3ddd02db50f39dcf5f7ccf6b510a8ccaf3671",
+            "status": "read_only_preparation; authored-project native text acquisition remains pending"
           },
           "progress": {
-            "state": "full_verification_pending",
+            "state": "gpu_frame_admission_verified_project_preparation_pending",
             "increments": [
               {
                 "id": "gpu-frame-admission",
-                "status": "in_progress",
-                "scope": "Admit validated native glyph recipes without CPU raster payloads; account immutable atlases and output targets in frame GPU budgets; render before temporal and scene passes, including nested surfaces."
+                "status": "done",
+                "scope": "Admit validated native glyph recipes without CPU raster payloads; account immutable atlases and output targets in frame GPU budgets; render before temporal and scene passes, including nested surfaces.",
+                "completed_at": "2026-10-21T03:28:19.661Z",
+                "commit": "c23947bff8641f05010525465b77407b213d170c",
+                "verification": {
+                  "path": "artifacts/migration/verify-2026-10-21T02-41-29-264Z-471eaeed.json",
+                  "sha256": "ab96ba53ce9e057825931395e0bf68dcb6e2bd23d8048e181c83f8ce63b76d51"
+                }
               },
               {
                 "id": "project-text-preparation",
@@ -24876,7 +24909,86 @@
                 "duration_seconds": 115.54,
                 "improvement": "Exercise consecutive native generations without switching back to CPU input."
               }
-            ]
+            ],
+            "storage_recovery": {
+              "path": "artifacts/migration/cycle125-storage-recovery.json",
+              "sha256": "45e79d81e28c3740bdc29c13b116ea5e6fef0ca0cd308646a78937775ff93987",
+              "status": "recovered_without_source_or_evidence_changes"
+            },
+            "latest_verified_increment": {
+              "cycle": 125,
+              "commit": "c23947bff8641f05010525465b77407b213d170c",
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-21T02-41-29-264Z-471eaeed.json",
+                "sha256": "ab96ba53ce9e057825931395e0bf68dcb6e2bd23d8048e181c83f8ce63b76d51"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 319685,
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-21T02-41-29-264Z-471eaeed/static-results.json",
+                    "sha256": "79408918d295d72b45cc1b3efcaf94016f6c90059a426dcfb0d42a43e3a15924"
+                  }
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 2339703,
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-21T02-41-29-264Z-471eaeed/G3/report.json",
+                    "sha256": "2a1b5ed7cbd4a2ac855cbb821b653f9a776fb6e8aa90a13310879d14ccabe039"
+                  }
+                }
+              ],
+              "duration_ms": 2662292,
+              "primary_pixel_frames": 1315,
+              "frame_routing": {
+                "status": "passed",
+                "step": {
+                  "id": "native-glyph-frame-routing",
+                  "command": [
+                    "cargo",
+                    "test",
+                    "-p",
+                    "aster-renderer",
+                    "native_glyph_frame_routing_without_cpu_rasters",
+                    "--",
+                    "--ignored"
+                  ],
+                  "started_at": "2026-10-21T03:23:45.640Z",
+                  "log": "artifacts/migration/2026-10-21T02-41-29-264Z-471eaeed/G3/native-glyph-composite/native-glyph-frame-routing.log",
+                  "status": "passed",
+                  "exit_code": 0,
+                  "signal": null,
+                  "finished_at": "2026-10-21T03:25:42.507Z",
+                  "duration_ms": 116867
+                },
+                "scenarios": 8,
+                "comparison": "byte-exact complete frame output against independently supplied synthetic CPU rasters",
+                "coverage": [
+                  "root and nested scenes",
+                  "direct and temporal text",
+                  "consecutive red/blue native generations",
+                  "unchanged GPU output reuse",
+                  "missing CPU raster payloads",
+                  "zero native text CPU image uploads",
+                  "duplicate and incomplete input rejection",
+                  "budget failure and recovery"
+                ],
+                "production_authored_text_routing": false
+              },
+              "glyph_composite": {
+                "status": "passed",
+                "frames": 6,
+                "native_text_acceptance": false,
+                "report": {
+                  "path": "artifacts/migration/2026-10-21T02-41-29-264Z-471eaeed/G3/native-glyph-composite/report.json",
+                  "sha256": "331e6faf8e89e6a6ffd2a15c36f5fe6158a28d0c226cb889243e7d7a66262867"
+                }
+              }
+            }
           }
         },
         {
@@ -24894,8 +25006,8 @@
       ],
       "started_at": "2026-10-20T20:25:14.937Z",
       "latest_verification": {
-        "path": "artifacts/migration/verify-2026-10-21T01-40-40-517Z-2d2ed2e6.json",
-        "sha256": "2357fb71bf8cebf6443ad58bef99341202f301423d341dee6d101fbc96d02cb4"
+        "path": "artifacts/migration/verify-2026-10-21T02-41-29-264Z-471eaeed.json",
+        "sha256": "ab96ba53ce9e057825931395e0bf68dcb6e2bd23d8048e181c83f8ce63b76d51"
       }
     },
     {
@@ -2441463,6 +2441575,20 @@
         "sha256": "2357fb71bf8cebf6443ad58bef99341202f301423d341dee6d101fbc96d02cb4"
       },
       "milestone_exit_satisfied": false
+    },
+    {
+      "cycle": 125,
+      "time": "2026-10-21T03:28:19.661Z",
+      "milestone": "M10",
+      "task": "M10-T7",
+      "increment": "gpu-frame-admission",
+      "outcome": "passed",
+      "commit": "c23947bff8641f05010525465b77407b213d170c",
+      "verification": {
+        "path": "artifacts/migration/verify-2026-10-21T02-41-29-264Z-471eaeed.json",
+        "sha256": "ab96ba53ce9e057825931395e0bf68dcb6e2bd23d8048e181c83f8ce63b76d51"
+      },
+      "milestone_exit_satisfied": false
     }
   ],
   "known_boundaries": [
@@ -2441688,8 +2441814,14 @@
     "milestone": "M10",
     "task": "M10-T7",
     "started_at": "2026-10-21T02:27:09.843Z",
-    "updated_at": "2026-10-21T02:41:25.611Z",
-    "implementation_state": "verification_pending"
+    "updated_at": "2026-10-21T03:28:19.661Z",
+    "implementation_state": "committed",
+    "outcome": "passed",
+    "commit": "c23947bff8641f05010525465b77407b213d170c",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-21T02-41-29-264Z-471eaeed.json",
+      "sha256": "ab96ba53ce9e057825931395e0bf68dcb6e2bd23d8048e181c83f8ce63b76d51"
+    }
   },
   "execution_pause": {
     "requested_by": "owner",
