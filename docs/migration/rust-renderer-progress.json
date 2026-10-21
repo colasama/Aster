@@ -25217,6 +25217,108 @@
               "exact_replay": true,
               "submitted_plan_preserved": true,
               "scope": "Explicit diagnostics only; ordinary production and export remain GPU-resident. Remaining text capability coverage and M10 exit are pending."
+            },
+            "complete_production_routing_check": {
+              "cycle": 130,
+              "status": "focused_passed_full_gates_pending",
+              "evidence": {
+                "path": "artifacts/migration/cycle130-routing5/report.json",
+                "sha256": "07f3208b26bd30b2b064ef3426e0f751425fb2048e2ea53e1ea664f812bdbea4"
+              },
+              "cases": [
+                {
+                  "id": "enchanted-love",
+                  "frames": 206,
+                  "records": 14,
+                  "native": 0,
+                  "retained": 14,
+                  "exact_pixels": 14,
+                  "temporal_samples": 0,
+                  "reasons": {
+                    "extended-range text color requires raster qualification": 4,
+                    "requested font families unavailable: Agency FB": 5,
+                    "requested primary family and CSS family syntax require raster qualification": 5
+                  }
+                },
+                {
+                  "id": "owner-opening",
+                  "frames": 378,
+                  "records": 9635,
+                  "native": 0,
+                  "retained": 9635,
+                  "exact_pixels": 9635,
+                  "temporal_samples": 0,
+                  "reasons": {
+                    "per-character paint and affine coverage require pixel qualification": 9611,
+                    "stroke coverage exceeds the isolated raster alpha limit": 24
+                  }
+                },
+                {
+                  "id": "owner-main",
+                  "frames": 674,
+                  "records": 48450,
+                  "native": 0,
+                  "retained": 48450,
+                  "exact_pixels": 48450,
+                  "temporal_samples": 0,
+                  "reasons": {
+                    "per-character paint and affine coverage require pixel qualification": 48426,
+                    "stroke coverage exceeds the isolated raster alpha limit": 24
+                  }
+                },
+                {
+                  "id": "layer-text",
+                  "frames": 70,
+                  "records": 70,
+                  "native": 0,
+                  "retained": 70,
+                  "exact_pixels": 70,
+                  "temporal_samples": 0,
+                  "reasons": {
+                    "stroke coverage exceeds the isolated raster alpha limit": 70
+                  }
+                },
+                {
+                  "id": "scene-motion-blur",
+                  "frames": 70,
+                  "records": 70,
+                  "native": 70,
+                  "retained": 0,
+                  "exact_pixels": 0,
+                  "temporal_samples": 0,
+                  "reasons": {
+                    "ordinary outline fill through the platform glyph atlas": 70
+                  }
+                },
+                {
+                  "id": "scene-text-animators",
+                  "frames": 70,
+                  "records": 70,
+                  "native": 0,
+                  "retained": 70,
+                  "exact_pixels": 70,
+                  "temporal_samples": 0,
+                  "reasons": {
+                    "stroke coverage exceeds the isolated raster alpha limit": 70
+                  }
+                }
+              ],
+              "native_text_acceptance": false,
+              "scope": "Complete corpus and owner/nested text routing with independent production-sampled GPU retained references. No new native capability admission or temporal shared-union pixel acceptance.",
+              "repairs": [
+                {
+                  "evidence": "artifacts/migration/cycle130-routing1/report.json",
+                  "reason": "Raw Canvas and uploaded RGBA8 GPU representations have distinct rounding; retain both and compare the actual texture boundary."
+                },
+                {
+                  "evidence": "artifacts/migration/cycle130-routing3/report.json",
+                  "reason": "Valid authored extended-range paint invalidated font discovery; discover family names independently and retain exact unsupported paint capability."
+                },
+                {
+                  "evidence": "artifacts/migration/cycle130-routing4/report.json",
+                  "reason": "Exact-time observations differ from production frame-rate sampled animation; retain layout evidence and add independently acquired production references, with exact frame-rate binding."
+                }
+              ]
             }
           }
         },
@@ -2444949,19 +2445051,17 @@
     }
   ],
   "active_cycle": {
-    "id": 129,
+    "id": 130,
     "milestone": "M10",
     "task": "M10-T7",
     "increment": "production-routing",
-    "started_at": "2026-10-21T17:17:22.380817+00:00",
-    "implementation_state": "committed",
-    "scope": "Materialize actual GPU glyph output only for bounded diagnostic captures, preserve submitted plan and exact text capability receipts, and prove independent supplied-plan replay.",
-    "updated_at": "2026-10-21T18:10:35.335Z",
-    "outcome": "passed",
-    "commit": "cb18e0874f6837ab8240589fa167bb7c4dcf7025",
-    "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T17-24-03-056Z-2b047559.json",
-      "sha256": "84ac2e02212d0f1b515d1e0d8f067a1dcc68535a330293ac6e8ae6af5c496365"
+    "started_at": "2026-10-21T18:13:41.455Z",
+    "implementation_state": "verification_pending",
+    "scope": "Audit complete production text request partition and authenticated retained output for all corpus, owner and nested layout samples; preserve exact font unavailability and temporal coverage boundaries.",
+    "updated_at": "2026-10-21T18:48:52.332Z",
+    "focused_evidence": {
+      "path": "artifacts/migration/cycle130-routing5/report.json",
+      "sha256": "07f3208b26bd30b2b064ef3426e0f751425fb2048e2ea53e1ea664f812bdbea4"
     }
   },
   "execution_pause": {

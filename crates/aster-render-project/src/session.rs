@@ -150,9 +150,14 @@ impl NativeProjectSession {
                 .text
                 .as_mut()
                 .ok_or_else(|| ProjectRenderError::Invalid("native text session absent".into()))?;
-            let routing = text.partition(&self.files.document, &files.requests, &context)?;
-            let rasters = acquire_rasters(&routing.retained)?;
-            routing.merge(rasters, limits.render_project_pixel_bytes)?
+            let prepared = text.acquire(
+                &self.files.document,
+                &files.requests,
+                &context,
+                limits.render_project_pixel_bytes,
+                acquire_rasters,
+            )?;
+            (prepared.rasters, prepared.native, prepared.routes)
         } else {
             let rasters = acquire_rasters(&files.requests)?;
             rasters.validate(&files.requests, limits.render_project_pixel_bytes)?;

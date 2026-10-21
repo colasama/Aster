@@ -24,6 +24,12 @@ pub struct ProjectTextRoute {
     pub capability: TextCapability,
 }
 
+pub struct ProjectTextFrame {
+    pub rasters: ProjectRasterFrame,
+    pub native: Vec<NativeGlyphInput>,
+    pub routes: Vec<ProjectTextRoute>,
+}
+
 /// A retained response is authenticated against its exact subset before native resources merge.
 pub(crate) struct ProjectTextRouting {
     pub retained: ProjectResourceRequests,
@@ -32,6 +38,25 @@ pub(crate) struct ProjectTextRouting {
 }
 
 impl NativeProjectText {
+    /// Authenticate the retained subset before merging descriptor-only native glyph resources.
+    pub fn acquire(
+        &mut self,
+        document: &NativeProjectDocument,
+        requests: &ProjectResourceRequests,
+        context: &ResourceRequestContext,
+        pixel_budget: usize,
+        acquire: impl FnOnce(&ProjectResourceRequests) -> Result<ProjectRasterFrame, ProjectRenderError>,
+    ) -> Result<ProjectTextFrame, ProjectRenderError> {
+        let routing = self.partition(document, requests, context)?;
+        let retained = acquire(&routing.retained)?;
+        let (rasters, native, routes) = routing.merge(retained, pixel_budget)?;
+        Ok(ProjectTextFrame {
+            rasters,
+            native,
+            routes,
+        })
+    }
+
     pub(crate) fn partition(
         &mut self,
         document: &NativeProjectDocument,
@@ -67,8 +92,13 @@ impl NativeProjectText {
                 .scene
                 .layer(&request.composition_id, &request.layer_id)?;
             let style = ProjectTextStyle::from_layer(layer)?;
+            let unavailable = self.unavailable_font_reason(&style)?;
             let reason = if !cfg!(windows) {
                 Some("platform coverage has not been qualified on this host")
+            } else if let Some(reason) = style.color_coverage_reason() {
+                Some(reason)
+            } else if let Some(reason) = &unavailable {
+                Some(reason.as_str())
             } else if style.stroke_width > 0. {
                 Some("stroke coverage exceeds the isolated raster alpha limit")
             } else if style.animated {

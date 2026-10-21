@@ -12,6 +12,7 @@ import {
   transformedTextRasterScale,
 } from "../../../src/renderer/text/text-rasterizer";
 import { captureFontFingerprint } from "../capture-fonts";
+import { TextGpuReference } from "./gpu-reference";
 import { observeTextRaster } from "./observer";
 
 interface LayoutSample {
@@ -27,6 +28,7 @@ interface LayoutAssignment {
 }
 let project: Project;
 let projectFonts = "";
+const gpuReference = new TextGpuReference();
 
 async function digest(bytes: ArrayBuffer) {
   return Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), (b) =>
@@ -93,6 +95,7 @@ async function capture(sample: LayoutSample, extended: boolean) {
     layer: Composition["layers"][number];
     instance: string;
     localTime: number;
+    frameRate: number;
     scale: number;
     temporal: boolean;
     ancestry: string[];
@@ -128,6 +131,7 @@ async function capture(sample: LayoutSample, extended: boolean) {
           layer: scene.layer,
           instance: scene.resourceInstanceId,
           localTime,
+          frameRate: composition.frameRate.numerator / composition.frameRate.denominator,
           scale: transformedTextRasterScale(scale, scene.transform.scale),
           temporal: Boolean(temporal),
           ancestry: path,
@@ -171,6 +175,15 @@ async function capture(sample: LayoutSample, extended: boolean) {
       height: plain.height,
       bounds: plain.bounds,
       rgba_sha256: originalHash,
+      gpu_rgba_sha256: await gpuReference.capture(plain.canvas, originalHash),
+      retained_reference: request.temporal
+        ? null
+        : await gpuReference.retained(
+            request.layer,
+            request.localTime,
+            request.frameRate,
+            request.scale,
+          ),
       observation_neutral: true,
       project_fonts_sha256: projectFonts,
       ...observed.observations,

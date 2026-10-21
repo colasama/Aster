@@ -661,6 +661,15 @@ Actual Canvas observations validate authored preparation geometry independently 
 Production tests prove retained text request omission, stale-frame rejection and actual GPU glyph
 layer pixels. Explicit diagnostic readback resolves a resident immutable generation; normal preview
 and export remain GPU-resident. This limited capability does not complete the text milestone.
+The same acquisition boundary audits native request partitioning and authenticated retained-provider
+replies across corpus, owner and nested text samples. Unavailable font chains retain their concrete
+reason before broader raster qualification decisions. Independent Canvas observations also capture
+the actual RGBA8 GPU upload boundary: Canvas readback and uploaded texture bytes can differ in
+rounding, so exact retained-pixel checks compare the same representation. Fresh retained references
+also use production frame-rate sampling independently of exact-time layout observations. Font
+discovery reads family names without requiring native paint support; extended-range colors retain
+the M5 path with a specific capability reason. Temporal audits preserve
+sample order, weights and resource closure; they do not substitute for shared-union pixel acceptance.
 Explicit project captures and selected export witnesses materialize resident native text outputs
 as bounded, content-addressed raster resources for external replay. They preserve `submitted.fpln`
 and its digest separately from the replay envelope, and record exact text capability decisions and

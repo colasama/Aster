@@ -8,6 +8,7 @@ import { sha256 } from "./m0-evidence.mjs";
 import { runNativeProjectTextGate } from "./native-project-text-gate.mjs";
 import { runNativeProjectTextPixels } from "./native-project-text-pixels.mjs";
 import { assertTextLayoutPair } from "./native-text-layout-audit.mjs";
+import { runNativeTextRoutingGate } from "./native-text-routing-gate.mjs";
 import { runNativeTextSessionGate } from "./native-text-session-gate.mjs";
 import { runNativeTextShapingGate } from "./native-text-shaping-gate.mjs";
 import { runStep } from "./process.mjs";
@@ -273,6 +274,19 @@ export async function runNativeTextLayoutGate(context, execute = runStep, option
         "passed",
         "Production native text routing failed",
       );
+    }
+    if (context.milestone === "M10" && !options.cases) {
+      report.native_text_routing = await runNativeTextRoutingGate(
+        { ...context, output: join(context.output, "native-text-routing") },
+        context.output,
+        execute,
+      );
+      assert.equal(
+        report.native_text_routing.status,
+        "passed",
+        "Complete text routing audit failed",
+      );
+      assert.equal(report.native_text_routing.full_coverage, true);
     }
     report.source_after = await sourceProvenance(context.root);
     assert.equal(report.source_after.source_sha256, report.source.source_sha256);

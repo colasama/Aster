@@ -77,6 +77,18 @@ pub struct NativeProjectText {
 }
 
 impl NativeProjectText {
+    pub(crate) fn unavailable_font_reason(
+        &mut self,
+        style: &ProjectTextStyle,
+    ) -> Result<Option<String>, ProjectRenderError> {
+        let chain = self.fonts.resolve(style)?;
+        Ok(if chain.fonts.is_empty() {
+            chain.deferred.clone()
+        } else {
+            None
+        })
+    }
+
     pub fn new(
         document: &NativeProjectDocument,
         platform: FontCatalog,
@@ -123,6 +135,11 @@ impl NativeProjectText {
         )?;
         let chain = self.fonts.resolve(&style)?;
         let result = (|| {
+            if let Some(reason) = style.color_coverage_reason() {
+                return Err(ProjectRenderError::TextShape(TextShapeError::Unsupported(
+                    reason,
+                )));
+            }
             if chain.fonts.is_empty() {
                 return Err(ProjectRenderError::TextShape(TextShapeError::Unsupported(
                     "requested fonts unavailable",

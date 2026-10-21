@@ -77,17 +77,25 @@ impl ProjectTextStyle {
             || !(1.0..=1000.0).contains(&result.weight)
             || result.font_size <= 0.
             || result.stroke_width < 0.
-            || result
-                .fill
-                .iter()
-                .chain(&result.stroke)
-                .any(|n| !(0.0..=1.0).contains(n))
         {
             return Err(ProjectRenderError::Invalid(
                 "native text style bounds".into(),
             ));
         }
         Ok(result)
+    }
+
+    pub fn color_coverage_reason(&self) -> Option<&'static str> {
+        if self
+            .fill
+            .iter()
+            .chain(&self.stroke)
+            .any(|n| !(0.0..=1.0).contains(n))
+        {
+            Some("extended-range text color requires raster qualification")
+        } else {
+            None
+        }
     }
 
     pub fn font_style(&self) -> Option<FontStyle> {

@@ -43,7 +43,7 @@ pub use text::{
 };
 pub use text_capture::CapturedProjectText;
 pub use text_paint::{ProjectTextPaint, TextAffine};
-pub use text_routing::ProjectTextRoute;
+pub use text_routing::{ProjectTextFrame, ProjectTextRoute};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ProjectRenderError {

@@ -43,7 +43,13 @@ impl ProjectTextFonts {
     ) -> Result<FontCatalog, ProjectRenderError> {
         let mut names = BTreeSet::new();
         for layer in document.scene.text_sources().0 {
-            for family in ProjectTextStyle::from_layer(layer)?.families {
+            let families = layer
+                .text_style
+                .value()
+                .map_or("Inter, \"Segoe UI\", sans-serif", |style| {
+                    style.font_family.as_str()
+                });
+            for family in ProjectTextStyle::families(families)? {
                 if let Ok(name) = Self::platform_name(&family) {
                     names.insert(name);
                 }
