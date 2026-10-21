@@ -370,40 +370,40 @@
     }
   },
   "last_cycle": {
-    "id": 130,
-    "time": "2026-10-21T19:42:11.884Z",
-    "updated_at": "2026-10-21T19:42:11.884Z",
+    "id": 131,
+    "time": "2026-10-21T20:36:28.204Z",
+    "updated_at": "2026-10-21T20:36:28.204Z",
     "milestone": "M10",
     "task": "M10-T7",
-    "increment": "production-routing",
+    "increment": "embedded-font-routing",
     "outcome": "passed",
-    "commit": "dcf5d043eb101155e6cfb9837336f25990a427c3",
+    "commit": "e7d919726bd4b2a766a24c0065248fd7e0a95a8c",
     "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T18-48-59-272Z-5bc5b7bd.json",
-      "sha256": "c901f25b767cbeed5fa6d2e94fcc302e8adde51962675f3212b1fe5f5b97e6e1"
+      "path": "artifacts/migration/verify-2026-10-21T19-52-37-671Z-66527c54.json",
+      "sha256": "c415ba883153f6f2628ca05b081eea53ae07fc5bf9aa143a5800544fddb37ded"
     },
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 313079,
+        "duration_ms": 292629,
         "proof": {
-          "path": "artifacts/migration/2026-10-21T18-48-59-272Z-5bc5b7bd/static-results.json",
-          "sha256": "b789785093079a2bea802ae0004be7c3a3dd933860a8422ee3c2420877761043"
+          "path": "artifacts/migration/2026-10-21T19-52-37-671Z-66527c54/static-results.json",
+          "sha256": "b298413067c3df65dafc0e7614706b306820301b27df8b8b84257147740ac1d9"
         }
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 2857418,
+        "duration_ms": 2226539,
         "proof": {
-          "path": "artifacts/migration/2026-10-21T18-48-59-272Z-5bc5b7bd/G3/report.json",
-          "sha256": "48c0f85519b17cc80179ca8d1f9d73b7cde4d3d7cb1fe61fad0fb12cbe9bafac"
+          "path": "artifacts/migration/2026-10-21T19-52-37-671Z-66527c54/G3/report.json",
+          "sha256": "45258eb1da7caeef9b64ecc5669f9eeabac1c146651f720d3fe328029f627da6"
         }
       }
     ],
-    "duration_ms": 3173202,
-    "next_step": "Continue M10-T7 with authenticated embedded-container, font/script and color/blur capability follow-ups; complete temporal shared-union acceptance where applicable, then finish the M10-T8 exit audit."
+    "duration_ms": 2521784,
+    "next_step": "Continue M10-T7 with exact Agency FB/Georgia glyph capability reasons, mixed bidi and embedded-font layouts, color/bitmap and per-character blur routing; then complete M10-T8 exit audit."
   },
   "milestones": [
     {
@@ -24814,9 +24814,15 @@
           ],
           "required_followups": [
             {
-              "status": "in_progress",
+              "status": "done",
               "title": "Bind WOFF2 and embedded-collection capability reasons to authenticated retained raster routing",
-              "acceptance": "The selected project font id, bytes and revision remain bound to retained provider validation and pixels; malformed bytes are rejected by that provider; no platform substitution or blanket text fallback."
+              "acceptance": "The selected project font id, bytes and revision remain bound to retained provider validation and pixels; malformed bytes are rejected by that provider; no platform substitution or blanket text fallback.",
+              "cycle": 131,
+              "commit": "e7d919726bd4b2a766a24c0065248fd7e0a95a8c",
+              "evidence": {
+                "path": "artifacts/migration/2026-10-21T19-52-37-671Z-66527c54/G3/native-text-fonts/report.json",
+                "sha256": "5060f06fd007d954688ef20c653ebe303a0b12ad12a04ab9206d58e7fa636d8b"
+              }
             },
             {
               "status": "pending",
@@ -24844,8 +24850,8 @@
             }
           ],
           "preparation": {
-            "path": "artifacts/migration/cycle130-next-preparation.json",
-            "sha256": "9054e4242850cc6e0c1055befe6093e4b48b116e6b09753260e2c15927810b82",
+            "path": "artifacts/migration/cycle131-next-preparation.json",
+            "sha256": "9442a51182f885f81484f9e17e8f81f5d52e809b15344cf6a05a1bfcb0777ada",
             "status": "preparation_only"
           },
           "progress": {
@@ -25068,120 +25074,36 @@
               "status": "recovered_without_source_or_evidence_changes"
             },
             "latest_verified_increment": {
-              "cycle": 130,
-              "commit": "dcf5d043eb101155e6cfb9837336f25990a427c3",
+              "cycle": 131,
+              "commit": "e7d919726bd4b2a766a24c0065248fd7e0a95a8c",
               "verification": {
-                "path": "artifacts/migration/verify-2026-10-21T18-48-59-272Z-5bc5b7bd.json",
-                "sha256": "c901f25b767cbeed5fa6d2e94fcc302e8adde51962675f3212b1fe5f5b97e6e1"
+                "path": "artifacts/migration/verify-2026-10-21T19-52-37-671Z-66527c54.json",
+                "sha256": "c415ba883153f6f2628ca05b081eea53ae07fc5bf9aa143a5800544fddb37ded"
               },
               "gates": [
                 {
                   "id": "G0",
                   "status": "passed",
-                  "duration_ms": 313079,
+                  "duration_ms": 292629,
                   "proof": {
-                    "path": "artifacts/migration/2026-10-21T18-48-59-272Z-5bc5b7bd/static-results.json",
-                    "sha256": "b789785093079a2bea802ae0004be7c3a3dd933860a8422ee3c2420877761043"
+                    "path": "artifacts/migration/2026-10-21T19-52-37-671Z-66527c54/static-results.json",
+                    "sha256": "b298413067c3df65dafc0e7614706b306820301b27df8b8b84257147740ac1d9"
                   }
                 },
                 {
                   "id": "G3",
                   "status": "passed",
-                  "duration_ms": 2857418,
+                  "duration_ms": 2226539,
                   "proof": {
-                    "path": "artifacts/migration/2026-10-21T18-48-59-272Z-5bc5b7bd/G3/report.json",
-                    "sha256": "48c0f85519b17cc80179ca8d1f9d73b7cde4d3d7cb1fe61fad0fb12cbe9bafac"
+                    "path": "artifacts/migration/2026-10-21T19-52-37-671Z-66527c54/G3/report.json",
+                    "sha256": "45258eb1da7caeef9b64ecc5669f9eeabac1c146651f720d3fe328029f627da6"
                   }
                 }
               ],
-              "duration_ms": 3173202,
-              "production_capability_audit": {
-                "cycle": 130,
-                "status": "passed",
-                "evidence": {
-                  "path": "artifacts/migration/2026-10-21T18-48-59-272Z-5bc5b7bd/G3/native-text-layout/native-text-routing/report.json",
-                  "sha256": "326d4e2d838288360689f706bc89fe978ca8ba235aca47ed203404656cdf926b"
-                },
-                "cases": [
-                  {
-                    "id": "enchanted-love",
-                    "frames": 206,
-                    "records": 14,
-                    "native": 0,
-                    "retained": 14,
-                    "exact_pixels": 14,
-                    "temporal_samples": 0,
-                    "reasons": {
-                      "extended-range text color requires raster qualification": 4,
-                      "requested font families unavailable: Agency FB": 5,
-                      "requested primary family and CSS family syntax require raster qualification": 5
-                    }
-                  },
-                  {
-                    "id": "owner-opening",
-                    "frames": 378,
-                    "records": 9635,
-                    "native": 0,
-                    "retained": 9635,
-                    "exact_pixels": 9635,
-                    "temporal_samples": 0,
-                    "reasons": {
-                      "per-character paint and affine coverage require pixel qualification": 9611,
-                      "stroke coverage exceeds the isolated raster alpha limit": 24
-                    }
-                  },
-                  {
-                    "id": "owner-main",
-                    "frames": 674,
-                    "records": 48450,
-                    "native": 0,
-                    "retained": 48450,
-                    "exact_pixels": 48450,
-                    "temporal_samples": 0,
-                    "reasons": {
-                      "per-character paint and affine coverage require pixel qualification": 48426,
-                      "stroke coverage exceeds the isolated raster alpha limit": 24
-                    }
-                  },
-                  {
-                    "id": "layer-text",
-                    "frames": 70,
-                    "records": 70,
-                    "native": 0,
-                    "retained": 70,
-                    "exact_pixels": 70,
-                    "temporal_samples": 0,
-                    "reasons": {
-                      "stroke coverage exceeds the isolated raster alpha limit": 70
-                    }
-                  },
-                  {
-                    "id": "scene-motion-blur",
-                    "frames": 70,
-                    "records": 70,
-                    "native": 70,
-                    "retained": 0,
-                    "exact_pixels": 0,
-                    "temporal_samples": 0,
-                    "reasons": {
-                      "ordinary outline fill through the platform glyph atlas": 70
-                    }
-                  },
-                  {
-                    "id": "scene-text-animators",
-                    "frames": 70,
-                    "records": 70,
-                    "native": 0,
-                    "retained": 70,
-                    "exact_pixels": 70,
-                    "temporal_samples": 0,
-                    "reasons": {
-                      "stroke coverage exceeds the isolated raster alpha limit": 70
-                    }
-                  }
-                ],
-                "native_text_acceptance": false,
-                "scope": "All six text-bearing corpus/owner cases with 1468 frames and 58309 observations. Seventy previously qualified native instances; exact independently sampled retained output. No new native capability or temporal-union pixel acceptance."
+              "duration_ms": 2521784,
+              "embedded_font_routing": {
+                "path": "artifacts/migration/2026-10-21T19-52-37-671Z-66527c54/G3/native-text-fonts/report.json",
+                "sha256": "5060f06fd007d954688ef20c653ebe303a0b12ad12a04ab9206d58e7fa636d8b"
               },
               "milestone_exit_satisfied": false
             },
@@ -25220,9 +25142,9 @@
               "sha256": "f10e51dc949f7bdacdbb830f8a4dee5b0cbda75f9f09bdfb7e94c8a5cbb13ee6"
             },
             "quota_observation": {
-              "path": "artifacts/migration/cycle130-quota-observation-1931.json",
-              "sha256": "fe5ae52b011ec032995753422c39f49bf44b9840292f5ef9ba9e955fa3a7af1d",
-              "remaining_percent": 40
+              "path": "artifacts/migration/cycle131-quota-observation-2030.json",
+              "sha256": "747e1ed6385011f47a1cec95c74773a789ce9784b2ae9e1ae65ac3ac4e19c767",
+              "remaining_percent": 38
             },
             "authored_pixel_qualification": {
               "evidence": "artifacts/migration/2026-10-21T06-26-35-910Z-a3ad85b3/G3/native-text-layout/native-project-pixels/report.json",
@@ -25581,10 +25503,10 @@
               "scope": "All six text-bearing corpus/owner cases with 1468 frames and 58309 observations. Seventy previously qualified native instances; exact independently sampled retained output. No new native capability or temporal-union pixel acceptance."
             },
             "embedded_font_routing": {
-              "status": "focused_passed_full_pending",
+              "status": "focused_passed_full_gates_passed",
               "evidence": {
-                "path": "artifacts/migration/cycle131-fonts2/report.json",
-                "sha256": "9e03ccae7675905f8258781742828a9dd00262c39719691197e899eebd673475"
+                "path": "artifacts/migration/2026-10-21T19-52-37-671Z-66527c54/G3/native-text-fonts/report.json",
+                "sha256": "5060f06fd007d954688ef20c653ebe303a0b12ad12a04ab9206d58e7fa636d8b"
               },
               "cases": [
                 {
@@ -25613,7 +25535,7 @@
                   "id": "malformed-font",
                   "authored_sha256": "dd0ad1049017993c3813bfb1d1c8f4ffa8a36670010fd52286dd42115ee257ec",
                   "frames": 0,
-                  "rejection": "Error: Cannot decode project font: Embedded invalid-woff2\n    at file:///D:/code/Aster/artifacts/migration/cycle131-fonts2/routing/runtime/web/assets/native-raster-CDs37In2.js:1:17405"
+                  "rejection": "Error: Cannot decode project font: Embedded invalid-woff2\n    at file:///D:/code/Aster/artifacts/migration/2026-10-21T19-52-37-671Z-66527c54/G3/native-text-fonts/routing/runtime/web/assets/native-raster-CDs37In2.js:1:17405"
                 },
                 {
                   "id": "stale-font-revision",
@@ -25627,6 +25549,13 @@
                 "path": "artifacts/migration/cycle131-fonts1/report.json",
                 "sha256": "5ca705a4383c39fa2a3314e06eb560c6ac875e9a19707c50e7fbd465c19eda41",
                 "reason": "Stale-revision production rejection succeeded; the diagnostic expected-phrase minimum length rejected its own short phrase. Corrected expected phrase without changing acceptance."
+              },
+              "cycle": 131,
+              "commit": "e7d919726bd4b2a766a24c0065248fd7e0a95a8c",
+              "commit_retry": {
+                "path": "artifacts/migration/cycle131-commit.log",
+                "sha256": "0021ffb2af4695cf3acc44724eaf176721204a45c58ac87e5f83838f34bd5626",
+                "reason": "First commit inherited no Corepack/pnpm PATH and frontend/typecheck pre-commit commands were unavailable; Rust checks passed. Retry uses the same environment as full verification, without bypassing hooks."
               }
             }
           }
@@ -25646,8 +25575,8 @@
       ],
       "started_at": "2026-10-20T20:25:14.937Z",
       "latest_verification": {
-        "path": "artifacts/migration/verify-2026-10-21T18-48-59-272Z-5bc5b7bd.json",
-        "sha256": "c901f25b767cbeed5fa6d2e94fcc302e8adde51962675f3212b1fe5f5b97e6e1"
+        "path": "artifacts/migration/verify-2026-10-21T19-52-37-671Z-66527c54.json",
+        "sha256": "c415ba883153f6f2628ca05b081eea53ae07fc5bf9aa143a5800544fddb37ded"
       }
     },
     {
@@ -2445153,6 +2445082,20 @@
         "sha256": "c901f25b767cbeed5fa6d2e94fcc302e8adde51962675f3212b1fe5f5b97e6e1"
       },
       "milestone_exit_satisfied": false
+    },
+    {
+      "cycle": 131,
+      "time": "2026-10-21T20:36:28.204Z",
+      "milestone": "M10",
+      "task": "M10-T7",
+      "increment": "embedded-font-routing",
+      "outcome": "passed",
+      "commit": "e7d919726bd4b2a766a24c0065248fd7e0a95a8c",
+      "verification": {
+        "path": "artifacts/migration/verify-2026-10-21T19-52-37-671Z-66527c54.json",
+        "sha256": "c415ba883153f6f2628ca05b081eea53ae07fc5bf9aa143a5800544fddb37ded"
+      },
+      "milestone_exit_satisfied": false
     }
   ],
   "known_boundaries": [
@@ -2445379,12 +2445322,18 @@
     "task": "M10-T7",
     "increment": "embedded-font-routing",
     "started_at": "2026-10-21T19:46:55.852Z",
-    "implementation_state": "focused_passed_full_pending",
+    "implementation_state": "committed",
     "scope": "Authenticate WOFF2 and embedded collection capability routes against equivalent TTF pixels and distinguish platform substitution; reject malformed font bytes and stale project identities at the live retained provider.",
-    "updated_at": "2026-10-21T19:52:35.774Z",
+    "updated_at": "2026-10-21T20:36:28.204Z",
     "focused_evidence": {
       "path": "artifacts/migration/cycle131-fonts2/report.json",
       "sha256": "9e03ccae7675905f8258781742828a9dd00262c39719691197e899eebd673475"
+    },
+    "outcome": "passed",
+    "commit": "e7d919726bd4b2a766a24c0065248fd7e0a95a8c",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-21T19-52-37-671Z-66527c54.json",
+      "sha256": "c415ba883153f6f2628ca05b081eea53ae07fc5bf9aa143a5800544fddb37ded"
     }
   },
   "execution_pause": {
