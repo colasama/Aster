@@ -4,12 +4,18 @@ import { join, posix, relative, resolve } from "node:path";
 import { encodeRgbaPng } from "../parity/png.mjs";
 import { M0Evidence, sha256 } from "./m0-evidence.mjs";
 import { runNativeTextCaptureGate } from "./native-text-capture-gate.mjs";
+import { auditEmbeddedTextFixture } from "./native-text-embedded-fixture.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile } from "./source.mjs";
 
 /** Production session requests must omit supported text; compare its actual GPU layer output. */
-export async function runNativeTextSessionGate(context, observationsRoot, execute = runStep) {
+export async function runNativeTextSessionGate(
+  context,
+  observationsRoot,
+  execute = runStep,
+  options = {},
+) {
   const report = {
     status: "failed",
     scope: "ordinary-outline-fill-production-v1",
@@ -34,13 +40,35 @@ export async function runNativeTextSessionGate(context, observationsRoot, execut
     const captured = manifest.cases.find((c) => c.case_id === assignment.id);
     const capture = await reader.json(`${base}/${captured.path}`, captured.capture_sha256);
     assert.deepEqual(capture.inputs.case, assignment);
-    const source = observations.cases.find((c) => c.id === assignment.id);
-    const images = extended.cases.find((c) => c.id === assignment.id);
-    const projectPath = assignment.project.endsWith(".json")
-      ? assignment.project
-      : `${assignment.project}/project.json`;
+    const equivalent = options.fixtureManifest
+      ? await auditEmbeddedTextFixture(
+          reader,
+          context,
+          options.fixtureManifest,
+          observationsRoot,
+          observations,
+          capture,
+        )
+      : null;
+    const target = equivalent?.assignment ?? assignment;
+    if (equivalent) {
+      report.scope = "embedded-outline-fill-production-v1";
+      report.equivalence = {
+        font: equivalent.font,
+        exact_samples: equivalent.exact_samples,
+        system_substitution_differences: equivalent.system_substitution_differences,
+      };
+    }
+    const source = observations.cases.find((c) => c.id === target.id);
+    const images = extended.cases.find((c) => c.id === target.id);
+    const projectPath = target.project.endsWith(".json")
+      ? target.project
+      : `${target.project}/project.json`;
     const project = await reader.json(projectPath, source.project_sha256);
-    assert.equal(source.project_sha256, capture.inputs.project_sha256);
+    assert.equal(
+      source.project_sha256,
+      equivalent ? target.project_sha256 : capture.inputs.project_sha256,
+    );
     const composition = project.compositions.find((c) => c.id === assignment.composition);
     const records = [];
     assert.equal(source.samples.length, source.observations.length);
@@ -172,6 +200,14 @@ export async function runNativeTextSessionGate(context, observationsRoot, execut
       assert.equal(receipt.source_sha256, source.project_sha256);
       assert.equal(receipt.routes.length, 1);
       assert(receipt.routes[0].frame);
+      if (equivalent) {
+        const fonts = receipt.routes[0].capability.fonts;
+        assert.equal(fonts.length, 1);
+        assert.equal(fonts[0].family, "Arial");
+        assert.equal(Buffer.from(fonts[0].face.sha256).toString("hex"), equivalent.font.sha256);
+        assert.equal(fonts[0].face.index, 0);
+        assert.deepEqual(fonts[0].variations, []);
+      }
       const request = receipt.routes[0].capability.request;
       assert.equal(request.composition, record.composition);
       assert.equal(request.layer, record.layer);

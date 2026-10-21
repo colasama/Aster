@@ -89,7 +89,8 @@ impl TextCoverage {
                 &style.text,
                 locale,
                 &fonts,
-                &chain.deferred
+                &chain.deferred,
+                &chain.raster_reason
             ))?)
         );
         if !self.reasons.contains_key(&key) {
@@ -133,9 +134,14 @@ impl TextCoverage {
         }
         Ok(TextFontCoverage {
             fonts,
-            reason: self.reasons.get(&key).cloned().ok_or_else(|| {
-                ProjectRenderError::Invalid("font coverage cache entry absent".into())
-            })?,
+            reason: self
+                .reasons
+                .get(&key)
+                .cloned()
+                .ok_or_else(|| {
+                    ProjectRenderError::Invalid("font coverage cache entry absent".into())
+                })?
+                .or_else(|| chain.raster_reason.clone()),
         })
     }
 }

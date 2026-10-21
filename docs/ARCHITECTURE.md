@@ -683,6 +683,17 @@ bind text, locale and the resolved font chain; line separators advance the autho
 These probes allocate no glyph atlas and do not expand native raster admission. Retained-provider
 checks cover missing families, same-font valid/missing glyph controls, explicit fallback chains and
 system/embedded mixed-bidi text with exact independent pixel comparisons.
+Ordinary embedded outlines are qualified through the production project shaper and GPU session.
+An installed face is embedded under a different installed family alias; independent TS observations
+must match the original physical face exactly, while the unembedded alias must differ. The project
+diff is restricted to font delivery and family selection. Native per-glyph advances, baselines and
+line breaks are checked against embedded-font Canvas observations, and selected physical face digests
+must match the embedded bytes. Full frames remain bound to the equivalent frozen scene; isolated
+GPU pixels, stale-frame rejection and independent capture/replay remain required.
+An embedded alias alone cannot confer native raster qualification: its physical face must match
+an installed face from the qualified outline families. Other embedded faces retain their exact
+font identity and an explicit qualification reason. An unrelated physical font embedded under the
+same alias is checked through real retained routing and exact independent pixels.
 Explicit project captures and selected export witnesses materialize resident native text outputs
 as bounded, content-addressed raster resources for external replay. They preserve `submitted.fpln`
 and its digest separately from the replay envelope, and record exact text capability decisions and

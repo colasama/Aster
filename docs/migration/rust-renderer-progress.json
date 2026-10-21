@@ -25713,6 +25713,29 @@
               },
               "cycle": 132,
               "commit": "d1ca0549090cc587b2d23b24d9705ea8ea45c131"
+            },
+            "embedded_native_outline": {
+              "status": "focused_passed_full_pending",
+              "evidence": {
+                "path": "artifacts/migration/cycle133-embedded2/report.json",
+                "sha256": "ffc878123c1aeb467f21941d0def3313ca3a7437e262f50d22461d8198b9caa3"
+              },
+              "native_samples": 70,
+              "system_substitution_differences": 70,
+              "layout_maxima": {
+                "advance": 0,
+                "baseline": 0,
+                "transform": 7.105427357601002e-15,
+                "cluster_advance": 0,
+                "cluster_position": 0
+              },
+              "reviewed_pairs": 5,
+              "note": "Current-source focused verification passes after adding physical-face admission and an unrelated embedded-font negative control. Full current-source G0/G3 is still required.",
+              "unqualified_face_exact_retained": 70,
+              "interrupted_attempt": {
+                "path": "artifacts/migration/cycle133-aborted-full.json",
+                "sha256": "bb0a4bb5ea5ed402eab20f2c4af6b4b3892c60757f12d0ac1b68b80950616796"
+              }
             }
           }
         },
@@ -2390232,6 +2390255,1496 @@
         "heatmap": "artifacts/migration/cycle128-generator-difference/heatmap.png",
         "heatmap_sha256": "73ce0c0d625aff316f4a46944339d6b4249e8887a3796f3e7b51b59d7dd475de"
       }
+    },
+    {
+      "case_id": "native-production-text-layer",
+      "frame": 0,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-21T21:52:30.046Z",
+      "scope": "embedded-outline-fill-production-v1",
+      "reference_rgba_sha256": "be0cc11a8899f1a29cc58cdb59c0ce6aeaec63b4b2fe1932da963977034a5958",
+      "candidate_rgba_sha256": "f6b92d6e9482e3e1c58fb2f68405081be56494679e33e42b2003e4edf5048d15",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 7920,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.000505050505050505,
+        "mean_squared_error": 0.000505050505050505,
+        "rgb_mean_squared_error": 0.0006734006734006734,
+        "psnr": {
+          "kind": "finite",
+          "db": 79.84806814521141
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 81.09745551129441
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "ssim": {
+        "channels": [
+          0.9999998953041166,
+          0.9999999396164211,
+          1,
+          1
+        ],
+        "mean": 0.9999999449735126,
+        "rgba_mean": 0.9999999587301345,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 7920,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -0.001388888888888889,
+          -0.0006313131313131314,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 44,
+            "min_y": 9,
+            "max_x": 136,
+            "max_y": 29
+          },
+          "candidate": {
+            "min_x": 44,
+            "min_y": 9,
+            "max_x": 136,
+            "max_y": 29
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.3416488445185842,
+          "candidate_rms": 0.3416441489088889,
+          "reference_axis_ratio": 0.4353264789791713,
+          "candidate_axis_ratio": 0.43532043864010433,
+          "reference_window_energy_fraction": 0.9696805825369607,
+          "candidate_window_energy_fraction": 0.9696805985896246,
+          "active_frequencies": 7851,
+          "spectral_bins": 65536,
+          "peak_ratio": 7.481082784352878,
+          "peak_to_sidelobe_ratio": 165.92705051387762,
+          "peak_coherence": 0.9999999966058238,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 4794368
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected all five actual contact sheets and heatmaps directly. Embedded glyph shapes, spacing, baselines, layer positions, overlap and alpha match. Residuals are isolated RGB quantization differences of at most one code value, with no visible missing glyph or displaced structure. Font identity is the embedded Segoe UI Bold file under Arial alias; all 70 unembedded alias controls differ. The identical isolated pair covers all 70 native production samples.",
+      "evidence": {
+        "report": "artifacts/migration/cycle133-embedded1/session/native-production-text-layer-0/report.json",
+        "sha256": "33aadbc24d2e803dee0bacc37325ee8347f05270645f7498ddf5a951b4194913",
+        "contact_sheet": "artifacts/migration/cycle133-embedded1/session/native-production-text-layer-0/contact-sheet.png",
+        "contact_sheet_sha256": "61f7bb4d1fa40bb41bffcf181a2378e8355923ebe474c90a31a71f7b1bd41f22",
+        "heatmap": "artifacts/migration/cycle133-embedded1/session/native-production-text-layer-0/heatmap.png",
+        "heatmap_sha256": "8be6e700c5c84d2d70e9f7f593f095be27dd48aa79aa863840e083c6d393dfaa"
+      }
+    },
+    {
+      "case_id": "native-production-text-frame",
+      "frame": 5,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-21T21:52:30.050Z",
+      "scope": "embedded-outline-fill-production-v1",
+      "reference_rgba_sha256": "4bd1298e3b29eacf8e4a5d782a8244fcf2fad5a81a638f566d65b72ee4ec522e",
+      "candidate_rgba_sha256": "b19c193f28fcf8dee70bdeef3ecc810986c7425be56e1f368eb1f7744455428c",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00008246527777777778,
+        "mean_squared_error": 0.00008246527777777778,
+        "rgb_mean_squared_error": 0.0001099537037037037,
+        "psnr": {
+          "kind": "finite",
+          "db": 87.71870498057956
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 88.96809234666256
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "ssim": {
+        "channels": [
+          0.9999999848007362,
+          0.9999999798493893,
+          1,
+          1
+        ],
+        "mean": 0.9999999882167084,
+        "rgba_mean": 0.9999999911625314,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -0.0001388888888888889,
+          -0.00012152777777777777,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 31,
+            "min_y": 35,
+            "max_x": 265,
+            "max_y": 142
+          },
+          "candidate": {
+            "min_x": 31,
+            "min_y": 35,
+            "max_x": 265,
+            "max_y": 142
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.18216728157883827,
+          "candidate_rms": 0.18216634054638303,
+          "reference_axis_ratio": 0.39372128695537123,
+          "candidate_axis_ratio": 0.39372267457624893,
+          "reference_window_energy_fraction": 0.9915627995933854,
+          "candidate_window_energy_fraction": 0.9915628209314504,
+          "active_frequencies": 18342,
+          "spectral_bins": 524288,
+          "peak_ratio": 6.202812772388221,
+          "peak_to_sidelobe_ratio": 221.09924743920425,
+          "peak_coherence": 0.9999999992006398,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected all five actual contact sheets and heatmaps directly. Embedded glyph shapes, spacing, baselines, layer positions, overlap and alpha match. Residuals are isolated RGB quantization differences of at most one code value, with no visible missing glyph or displaced structure. Font identity is the embedded Segoe UI Bold file under Arial alias; all 70 unembedded alias controls differ. The identical isolated pair covers all 70 native production samples.",
+      "evidence": {
+        "report": "artifacts/migration/cycle133-embedded1/session/native-production-text-frame-5/report.json",
+        "sha256": "b7b63118859175ee18c570b2a8e5c3f7751220f8976a3480a8b14440ac701eda",
+        "contact_sheet": "artifacts/migration/cycle133-embedded1/session/native-production-text-frame-5/contact-sheet.png",
+        "contact_sheet_sha256": "e2cfb7f6bd418bfa0863cb9e00a5671a2d8620b6077e9f3ffc348a0ee96025e8",
+        "heatmap": "artifacts/migration/cycle133-embedded1/session/native-production-text-frame-5/heatmap.png",
+        "heatmap_sha256": "611d153990f4628f9f1b71ad5c05a307a7be516df31496d3ad13b623a6a9614e"
+      }
+    },
+    {
+      "case_id": "native-production-text-frame",
+      "frame": 15,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-21T21:52:30.050Z",
+      "scope": "embedded-outline-fill-production-v1",
+      "reference_rgba_sha256": "1563c7d6f3259de90efa70471c1dae840ed393c2bd50e4d19a8b9bbd5474f5ef",
+      "candidate_rgba_sha256": "6344b7dfd09991376df357b08c486dab50ddf69524e9b50479f5d9e97f2eae5d",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00004340277777777778,
+        "mean_squared_error": 0.00004340277777777778,
+        "rgb_mean_squared_error": 0.00005787037037037037,
+        "psnr": {
+          "kind": "finite",
+          "db": 90.50624099010784
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 91.75562835619084
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "ssim": {
+        "channels": [
+          0.9999999872607702,
+          0.9999999967758851,
+          1,
+          1
+        ],
+        "mean": 0.9999999946788852,
+        "rgba_mean": 0.9999999960091639,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -0.0001388888888888889,
+          -0.00003472222222222222,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 82,
+            "min_y": 32,
+            "max_x": 242,
+            "max_y": 142
+          },
+          "candidate": {
+            "min_x": 82,
+            "min_y": 32,
+            "max_x": 242,
+            "max_y": 142
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.1842581474296302,
+          "candidate_rms": 0.18425757921952543,
+          "reference_axis_ratio": 0.4345532375331816,
+          "candidate_axis_ratio": 0.43455433741494803,
+          "reference_window_energy_fraction": 0.9915432074794247,
+          "candidate_window_energy_fraction": 0.9915432299168031,
+          "active_frequencies": 18302,
+          "spectral_bins": 524288,
+          "peak_ratio": 5.48793847051376,
+          "peak_to_sidelobe_ratio": 219.75958953350238,
+          "peak_coherence": 0.9999999997054625,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected all five actual contact sheets and heatmaps directly. Embedded glyph shapes, spacing, baselines, layer positions, overlap and alpha match. Residuals are isolated RGB quantization differences of at most one code value, with no visible missing glyph or displaced structure. Font identity is the embedded Segoe UI Bold file under Arial alias; all 70 unembedded alias controls differ. The identical isolated pair covers all 70 native production samples.",
+      "evidence": {
+        "report": "artifacts/migration/cycle133-embedded1/session/native-production-text-frame-15/report.json",
+        "sha256": "13390cb0208a48ae5550fda4ce016c20495f9912a8aa2939893cec08424f924e",
+        "contact_sheet": "artifacts/migration/cycle133-embedded1/session/native-production-text-frame-15/contact-sheet.png",
+        "contact_sheet_sha256": "c7fb2e2368cda21b287277ac204dfa7062eb35d16e13261020004a6bbe27786b",
+        "heatmap": "artifacts/migration/cycle133-embedded1/session/native-production-text-frame-15/heatmap.png",
+        "heatmap_sha256": "aa3d1986088e929bb52fdf08ca6d68000be0b191ba83290fbf774a5e94c4f3cb"
+      }
+    },
+    {
+      "case_id": "native-production-text-frame",
+      "frame": 30,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-21T21:52:30.052Z",
+      "scope": "embedded-outline-fill-production-v1",
+      "reference_rgba_sha256": "ccc37633abcbc7b42acc7d8239e94d1f4a1e59d9a9590a04f45e42dc3c86f954",
+      "candidate_rgba_sha256": "55d0b466c06284b7499ecbfa28435f4d1cf00dea44751a7afe003b21e357131b",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00005208333333333334,
+        "mean_squared_error": 0.00005208333333333334,
+        "rgb_mean_squared_error": 0.00006944444444444444,
+        "psnr": {
+          "kind": "finite",
+          "db": 89.71442852963159
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 90.96381589571459
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "ssim": {
+        "channels": [
+          0.99999982254127,
+          0.9999999521353586,
+          1,
+          1
+        ],
+        "mean": 0.9999999248922095,
+        "rgba_mean": 0.9999999436691571,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -0.0001388888888888889,
+          -0.00006944444444444444,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 113,
+            "min_y": 32,
+            "max_x": 207,
+            "max_y": 142
+          },
+          "candidate": {
+            "min_x": 113,
+            "min_y": 32,
+            "max_x": 207,
+            "max_y": 142
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.18162648943893753,
+          "candidate_rms": 0.18162570000041595,
+          "reference_axis_ratio": 0.43169730920297555,
+          "candidate_axis_ratio": 0.43169686556973375,
+          "reference_window_energy_fraction": 0.9919620113324461,
+          "candidate_window_energy_fraction": 0.9919620280634749,
+          "active_frequencies": 11340,
+          "spectral_bins": 524288,
+          "peak_ratio": 5.255728435048221,
+          "peak_to_sidelobe_ratio": 154.81151323105354,
+          "peak_coherence": 0.9999999997276117,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected all five actual contact sheets and heatmaps directly. Embedded glyph shapes, spacing, baselines, layer positions, overlap and alpha match. Residuals are isolated RGB quantization differences of at most one code value, with no visible missing glyph or displaced structure. Font identity is the embedded Segoe UI Bold file under Arial alias; all 70 unembedded alias controls differ. The identical isolated pair covers all 70 native production samples.",
+      "evidence": {
+        "report": "artifacts/migration/cycle133-embedded1/session/native-production-text-frame-30/report.json",
+        "sha256": "41abc71a04c370cfa6b8b22d995412f4625c04211afc503b58ffbac956de82c2",
+        "contact_sheet": "artifacts/migration/cycle133-embedded1/session/native-production-text-frame-30/contact-sheet.png",
+        "contact_sheet_sha256": "30865e3cc8f406f28c05dfa7775bea431062f16203b368c2f3f95bf81e5972ce",
+        "heatmap": "artifacts/migration/cycle133-embedded1/session/native-production-text-frame-30/heatmap.png",
+        "heatmap_sha256": "93ddb23b3839f75c4cbbe3c2e39863b15d2364d80c0dd1a64a4199cd50b4df14"
+      }
+    },
+    {
+      "case_id": "native-production-text-frame",
+      "frame": 54,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-21T21:52:30.054Z",
+      "scope": "embedded-outline-fill-production-v1",
+      "reference_rgba_sha256": "821f59dd4d3f1574466ed55ac0777e543f5e06099f118e8c29ee7e43bbbc5780",
+      "candidate_rgba_sha256": "990b7e977d0e64d3550313085ae2f2d4d58c396614c4e21b8d88d3c6ad569788",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00004340277777777778,
+        "mean_squared_error": 0.00004340277777777778,
+        "rgb_mean_squared_error": 0.00005787037037037037,
+        "psnr": {
+          "kind": "finite",
+          "db": 90.50624099010784
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 91.75562835619084
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "ssim": {
+        "channels": [
+          0.9999999872607702,
+          0.9999999967758851,
+          1,
+          1
+        ],
+        "mean": 0.9999999946788852,
+        "rgba_mean": 0.9999999960091639,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -0.0001388888888888889,
+          -0.00003472222222222222,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 57,
+            "min_y": 46,
+            "max_x": 298,
+            "max_y": 142
+          },
+          "candidate": {
+            "min_x": 57,
+            "min_y": 46,
+            "max_x": 298,
+            "max_y": 142
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.18375383839031492,
+          "candidate_rms": 0.1837532680988603,
+          "reference_axis_ratio": 0.3283226560500815,
+          "candidate_axis_ratio": 0.328321441730305,
+          "reference_window_energy_fraction": 0.9916851855526734,
+          "candidate_window_energy_fraction": 0.9916852080550859,
+          "active_frequencies": 15006,
+          "spectral_bins": 524288,
+          "peak_ratio": 5.725313600184234,
+          "peak_to_sidelobe_ratio": 190.10512061096463,
+          "peak_coherence": 0.9999999997821006,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected all five actual contact sheets and heatmaps directly. Embedded glyph shapes, spacing, baselines, layer positions, overlap and alpha match. Residuals are isolated RGB quantization differences of at most one code value, with no visible missing glyph or displaced structure. Font identity is the embedded Segoe UI Bold file under Arial alias; all 70 unembedded alias controls differ. The identical isolated pair covers all 70 native production samples.",
+      "evidence": {
+        "report": "artifacts/migration/cycle133-embedded1/session/native-production-text-frame-54/report.json",
+        "sha256": "361fd12adce4dc2a07c9a175e5a60ffe71ad9299f2566f8646d81924a14417b8",
+        "contact_sheet": "artifacts/migration/cycle133-embedded1/session/native-production-text-frame-54/contact-sheet.png",
+        "contact_sheet_sha256": "b6f57fac415a361040abc88452dd1a21cb6bd5d143ab86f0be763358f175089c",
+        "heatmap": "artifacts/migration/cycle133-embedded1/session/native-production-text-frame-54/heatmap.png",
+        "heatmap_sha256": "23771462458ef4f737d3ce9bb63444391ba9d858130974f96725e12d7ad3fcb5"
+      }
+    },
+    {
+      "case_id": "native-production-text-layer",
+      "frame": 0,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-21T22:03:13.267Z",
+      "scope": "embedded-outline-fill-production-v1",
+      "reference_rgba_sha256": "be0cc11a8899f1a29cc58cdb59c0ce6aeaec63b4b2fe1932da963977034a5958",
+      "candidate_rgba_sha256": "f6b92d6e9482e3e1c58fb2f68405081be56494679e33e42b2003e4edf5048d15",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 7920,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.000505050505050505,
+        "mean_squared_error": 0.000505050505050505,
+        "rgb_mean_squared_error": 0.0006734006734006734,
+        "psnr": {
+          "kind": "finite",
+          "db": 79.84806814521141
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 81.09745551129441
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "ssim": {
+        "channels": [
+          0.9999998953041166,
+          0.9999999396164211,
+          1,
+          1
+        ],
+        "mean": 0.9999999449735126,
+        "rgba_mean": 0.9999999587301345,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 7920,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -0.001388888888888889,
+          -0.0006313131313131314,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 44,
+            "min_y": 9,
+            "max_x": 136,
+            "max_y": 29
+          },
+          "candidate": {
+            "min_x": 44,
+            "min_y": 9,
+            "max_x": 136,
+            "max_y": 29
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.3416488445185842,
+          "candidate_rms": 0.3416441489088889,
+          "reference_axis_ratio": 0.4353264789791713,
+          "candidate_axis_ratio": 0.43532043864010433,
+          "reference_window_energy_fraction": 0.9696805825369607,
+          "candidate_window_energy_fraction": 0.9696805985896246,
+          "active_frequencies": 7851,
+          "spectral_bins": 65536,
+          "peak_ratio": 7.481082784352878,
+          "peak_to_sidelobe_ratio": 165.92705051387762,
+          "peak_coherence": 0.9999999966058238,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 4794368
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected all five actual contact sheets and heatmaps directly. Embedded glyph shapes, spacing, baselines, layer positions, overlap and alpha match. Residuals are isolated RGB quantization differences of at most one code value, with no visible missing glyph or displaced structure. Font identity is the embedded Segoe UI Bold file under Arial alias; all 70 unembedded alias controls differ. The identical isolated pair covers all 70 native production samples. After the physical-face admission fix, the newly rendered reference/candidate pixels, contact sheets and heatmaps have identical authenticated digests to those directly inspected. Numerical and structural checks passed again.",
+      "evidence": {
+        "report": "artifacts/migration/cycle133-embedded2/session/native-production-text-layer-0/report.json",
+        "sha256": "26438139e5cd2f1e31fb2eb01fe8190d73100c14a5a795f4be68dacfd222a3b8",
+        "contact_sheet": "artifacts/migration/cycle133-embedded2/session/native-production-text-layer-0/contact-sheet.png",
+        "contact_sheet_sha256": "61f7bb4d1fa40bb41bffcf181a2378e8355923ebe474c90a31a71f7b1bd41f22",
+        "heatmap": "artifacts/migration/cycle133-embedded2/session/native-production-text-layer-0/heatmap.png",
+        "heatmap_sha256": "8be6e700c5c84d2d70e9f7f593f095be27dd48aa79aa863840e083c6d393dfaa"
+      }
+    },
+    {
+      "case_id": "native-production-text-frame",
+      "frame": 5,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-21T22:03:13.269Z",
+      "scope": "embedded-outline-fill-production-v1",
+      "reference_rgba_sha256": "4bd1298e3b29eacf8e4a5d782a8244fcf2fad5a81a638f566d65b72ee4ec522e",
+      "candidate_rgba_sha256": "b19c193f28fcf8dee70bdeef3ecc810986c7425be56e1f368eb1f7744455428c",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00008246527777777778,
+        "mean_squared_error": 0.00008246527777777778,
+        "rgb_mean_squared_error": 0.0001099537037037037,
+        "psnr": {
+          "kind": "finite",
+          "db": 87.71870498057956
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 88.96809234666256
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "ssim": {
+        "channels": [
+          0.9999999848007362,
+          0.9999999798493893,
+          1,
+          1
+        ],
+        "mean": 0.9999999882167084,
+        "rgba_mean": 0.9999999911625314,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -0.0001388888888888889,
+          -0.00012152777777777777,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 31,
+            "min_y": 35,
+            "max_x": 265,
+            "max_y": 142
+          },
+          "candidate": {
+            "min_x": 31,
+            "min_y": 35,
+            "max_x": 265,
+            "max_y": 142
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.18216728157883827,
+          "candidate_rms": 0.18216634054638303,
+          "reference_axis_ratio": 0.39372128695537123,
+          "candidate_axis_ratio": 0.39372267457624893,
+          "reference_window_energy_fraction": 0.9915627995933854,
+          "candidate_window_energy_fraction": 0.9915628209314504,
+          "active_frequencies": 18342,
+          "spectral_bins": 524288,
+          "peak_ratio": 6.202812772388221,
+          "peak_to_sidelobe_ratio": 221.09924743920425,
+          "peak_coherence": 0.9999999992006398,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected all five actual contact sheets and heatmaps directly. Embedded glyph shapes, spacing, baselines, layer positions, overlap and alpha match. Residuals are isolated RGB quantization differences of at most one code value, with no visible missing glyph or displaced structure. Font identity is the embedded Segoe UI Bold file under Arial alias; all 70 unembedded alias controls differ. The identical isolated pair covers all 70 native production samples. After the physical-face admission fix, the newly rendered reference/candidate pixels, contact sheets and heatmaps have identical authenticated digests to those directly inspected. Numerical and structural checks passed again.",
+      "evidence": {
+        "report": "artifacts/migration/cycle133-embedded2/session/native-production-text-frame-5/report.json",
+        "sha256": "3372c9b342a1f09c415f9790fd95b342cea6024eb54b461f7d80e80f4f9a2a7b",
+        "contact_sheet": "artifacts/migration/cycle133-embedded2/session/native-production-text-frame-5/contact-sheet.png",
+        "contact_sheet_sha256": "e2cfb7f6bd418bfa0863cb9e00a5671a2d8620b6077e9f3ffc348a0ee96025e8",
+        "heatmap": "artifacts/migration/cycle133-embedded2/session/native-production-text-frame-5/heatmap.png",
+        "heatmap_sha256": "611d153990f4628f9f1b71ad5c05a307a7be516df31496d3ad13b623a6a9614e"
+      }
+    },
+    {
+      "case_id": "native-production-text-frame",
+      "frame": 15,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-21T22:03:13.270Z",
+      "scope": "embedded-outline-fill-production-v1",
+      "reference_rgba_sha256": "1563c7d6f3259de90efa70471c1dae840ed393c2bd50e4d19a8b9bbd5474f5ef",
+      "candidate_rgba_sha256": "6344b7dfd09991376df357b08c486dab50ddf69524e9b50479f5d9e97f2eae5d",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00004340277777777778,
+        "mean_squared_error": 0.00004340277777777778,
+        "rgb_mean_squared_error": 0.00005787037037037037,
+        "psnr": {
+          "kind": "finite",
+          "db": 90.50624099010784
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 91.75562835619084
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "ssim": {
+        "channels": [
+          0.9999999872607702,
+          0.9999999967758851,
+          1,
+          1
+        ],
+        "mean": 0.9999999946788852,
+        "rgba_mean": 0.9999999960091639,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -0.0001388888888888889,
+          -0.00003472222222222222,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 82,
+            "min_y": 32,
+            "max_x": 242,
+            "max_y": 142
+          },
+          "candidate": {
+            "min_x": 82,
+            "min_y": 32,
+            "max_x": 242,
+            "max_y": 142
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.1842581474296302,
+          "candidate_rms": 0.18425757921952543,
+          "reference_axis_ratio": 0.4345532375331816,
+          "candidate_axis_ratio": 0.43455433741494803,
+          "reference_window_energy_fraction": 0.9915432074794247,
+          "candidate_window_energy_fraction": 0.9915432299168031,
+          "active_frequencies": 18302,
+          "spectral_bins": 524288,
+          "peak_ratio": 5.48793847051376,
+          "peak_to_sidelobe_ratio": 219.75958953350238,
+          "peak_coherence": 0.9999999997054625,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected all five actual contact sheets and heatmaps directly. Embedded glyph shapes, spacing, baselines, layer positions, overlap and alpha match. Residuals are isolated RGB quantization differences of at most one code value, with no visible missing glyph or displaced structure. Font identity is the embedded Segoe UI Bold file under Arial alias; all 70 unembedded alias controls differ. The identical isolated pair covers all 70 native production samples. After the physical-face admission fix, the newly rendered reference/candidate pixels, contact sheets and heatmaps have identical authenticated digests to those directly inspected. Numerical and structural checks passed again.",
+      "evidence": {
+        "report": "artifacts/migration/cycle133-embedded2/session/native-production-text-frame-15/report.json",
+        "sha256": "1d6346c6c0f0772bb5cf5042012b7ae10b54702bdc29e35afa94283be68c0a32",
+        "contact_sheet": "artifacts/migration/cycle133-embedded2/session/native-production-text-frame-15/contact-sheet.png",
+        "contact_sheet_sha256": "c7fb2e2368cda21b287277ac204dfa7062eb35d16e13261020004a6bbe27786b",
+        "heatmap": "artifacts/migration/cycle133-embedded2/session/native-production-text-frame-15/heatmap.png",
+        "heatmap_sha256": "aa3d1986088e929bb52fdf08ca6d68000be0b191ba83290fbf774a5e94c4f3cb"
+      }
+    },
+    {
+      "case_id": "native-production-text-frame",
+      "frame": 30,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-21T22:03:13.271Z",
+      "scope": "embedded-outline-fill-production-v1",
+      "reference_rgba_sha256": "ccc37633abcbc7b42acc7d8239e94d1f4a1e59d9a9590a04f45e42dc3c86f954",
+      "candidate_rgba_sha256": "55d0b466c06284b7499ecbfa28435f4d1cf00dea44751a7afe003b21e357131b",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00005208333333333334,
+        "mean_squared_error": 0.00005208333333333334,
+        "rgb_mean_squared_error": 0.00006944444444444444,
+        "psnr": {
+          "kind": "finite",
+          "db": 89.71442852963159
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 90.96381589571459
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "ssim": {
+        "channels": [
+          0.99999982254127,
+          0.9999999521353586,
+          1,
+          1
+        ],
+        "mean": 0.9999999248922095,
+        "rgba_mean": 0.9999999436691571,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -0.0001388888888888889,
+          -0.00006944444444444444,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 113,
+            "min_y": 32,
+            "max_x": 207,
+            "max_y": 142
+          },
+          "candidate": {
+            "min_x": 113,
+            "min_y": 32,
+            "max_x": 207,
+            "max_y": 142
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.18162648943893753,
+          "candidate_rms": 0.18162570000041595,
+          "reference_axis_ratio": 0.43169730920297555,
+          "candidate_axis_ratio": 0.43169686556973375,
+          "reference_window_energy_fraction": 0.9919620113324461,
+          "candidate_window_energy_fraction": 0.9919620280634749,
+          "active_frequencies": 11340,
+          "spectral_bins": 524288,
+          "peak_ratio": 5.255728435048221,
+          "peak_to_sidelobe_ratio": 154.81151323105354,
+          "peak_coherence": 0.9999999997276117,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected all five actual contact sheets and heatmaps directly. Embedded glyph shapes, spacing, baselines, layer positions, overlap and alpha match. Residuals are isolated RGB quantization differences of at most one code value, with no visible missing glyph or displaced structure. Font identity is the embedded Segoe UI Bold file under Arial alias; all 70 unembedded alias controls differ. The identical isolated pair covers all 70 native production samples. After the physical-face admission fix, the newly rendered reference/candidate pixels, contact sheets and heatmaps have identical authenticated digests to those directly inspected. Numerical and structural checks passed again.",
+      "evidence": {
+        "report": "artifacts/migration/cycle133-embedded2/session/native-production-text-frame-30/report.json",
+        "sha256": "b4ae048a5c948975c6292b7193f66a16f63906f784b83c85a8893120b9dfa75d",
+        "contact_sheet": "artifacts/migration/cycle133-embedded2/session/native-production-text-frame-30/contact-sheet.png",
+        "contact_sheet_sha256": "30865e3cc8f406f28c05dfa7775bea431062f16203b368c2f3f95bf81e5972ce",
+        "heatmap": "artifacts/migration/cycle133-embedded2/session/native-production-text-frame-30/heatmap.png",
+        "heatmap_sha256": "93ddb23b3839f75c4cbbe3c2e39863b15d2364d80c0dd1a64a4199cd50b4df14"
+      }
+    },
+    {
+      "case_id": "native-production-text-frame",
+      "frame": 54,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-21T22:03:13.272Z",
+      "scope": "embedded-outline-fill-production-v1",
+      "reference_rgba_sha256": "821f59dd4d3f1574466ed55ac0777e543f5e06099f118e8c29ee7e43bbbc5780",
+      "candidate_rgba_sha256": "990b7e977d0e64d3550313085ae2f2d4d58c396614c4e21b8d88d3c6ad569788",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 1,
+        "mean_abs_error": 0.00004340277777777778,
+        "mean_squared_error": 0.00004340277777777778,
+        "rgb_mean_squared_error": 0.00005787037037037037,
+        "psnr": {
+          "kind": "finite",
+          "db": 90.50624099010784
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 91.75562835619084
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "ssim": {
+        "channels": [
+          0.9999999872607702,
+          0.9999999967758851,
+          1,
+          1
+        ],
+        "mean": 0.9999999946788852,
+        "rgba_mean": 0.9999999960091639,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          -0.0001388888888888889,
+          -0.00003472222222222222,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 57,
+            "min_y": 46,
+            "max_x": 298,
+            "max_y": 142
+          },
+          "candidate": {
+            "min_x": 57,
+            "min_y": 46,
+            "max_x": 298,
+            "max_y": 142
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.18375383839031492,
+          "candidate_rms": 0.1837532680988603,
+          "reference_axis_ratio": 0.3283226560500815,
+          "candidate_axis_ratio": 0.328321441730305,
+          "reference_window_energy_fraction": 0.9916851855526734,
+          "candidate_window_energy_fraction": 0.9916852080550859,
+          "active_frequencies": 15006,
+          "spectral_bins": 524288,
+          "peak_ratio": 5.725313600184234,
+          "peak_to_sidelobe_ratio": 190.10512061096463,
+          "peak_coherence": 0.9999999997821006,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected all five actual contact sheets and heatmaps directly. Embedded glyph shapes, spacing, baselines, layer positions, overlap and alpha match. Residuals are isolated RGB quantization differences of at most one code value, with no visible missing glyph or displaced structure. Font identity is the embedded Segoe UI Bold file under Arial alias; all 70 unembedded alias controls differ. The identical isolated pair covers all 70 native production samples. After the physical-face admission fix, the newly rendered reference/candidate pixels, contact sheets and heatmaps have identical authenticated digests to those directly inspected. Numerical and structural checks passed again.",
+      "evidence": {
+        "report": "artifacts/migration/cycle133-embedded2/session/native-production-text-frame-54/report.json",
+        "sha256": "71ea6d8e5e614be0023926ac26309f37e98aa3ec7f11951165396514e4129270",
+        "contact_sheet": "artifacts/migration/cycle133-embedded2/session/native-production-text-frame-54/contact-sheet.png",
+        "contact_sheet_sha256": "b6f57fac415a361040abc88452dd1a21cb6bd5d143ab86f0be763358f175089c",
+        "heatmap": "artifacts/migration/cycle133-embedded2/session/native-production-text-frame-54/heatmap.png",
+        "heatmap_sha256": "23771462458ef4f737d3ce9bb63444391ba9d858130974f96725e12d7ad3fcb5"
+      }
     }
   ],
   "history": [
@@ -2445487,23 +2447000,17 @@
     }
   ],
   "active_cycle": {
-    "id": 132,
+    "id": 133,
     "milestone": "M10",
     "task": "M10-T7",
-    "increment": "font-and-script-capabilities",
-    "started_at": "2026-10-21T20:39:05.065Z",
-    "implementation_state": "committed",
-    "scope": "Bind production font selection and missing-glyph/bidi capability reasons to authenticated retained requests and exact pixels, using a bounded job-local coverage cache before broad raster qualification decisions.",
-    "updated_at": "2026-10-21T21:47:32.071Z",
+    "increment": "embedded-native-text-qualification",
+    "started_at": "2026-10-21T21:48:49.112Z",
+    "implementation_state": "focused_passed_full_pending",
+    "scope": "Qualify an ordinary embedded outline face through independent layout observations, physical font identities, exact equivalent-font controls, production GPU output and capture/replay.",
+    "updated_at": "2026-10-21T22:03:13.273Z",
     "focused_evidence": {
-      "path": "artifacts/migration/cycle132-capabilities2/report.json",
-      "sha256": "2ef80a6df46fa19c0d0aa7bd9f86fdf0823ae057cf388b3831c681e78759cc63"
-    },
-    "outcome": "passed",
-    "commit": "d1ca0549090cc587b2d23b24d9705ea8ea45c131",
-    "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T20-54-40-497Z-e556a3f4.json",
-      "sha256": "7d3d2b85e9219461405c21179cfe5922edeb6c4e8a0644e332a59004678edb7f"
+      "path": "artifacts/migration/cycle133-embedded2/report.json",
+      "sha256": "ffc878123c1aeb467f21941d0def3313ca3a7437e262f50d22461d8198b9caa3"
     }
   },
   "execution_pause": {

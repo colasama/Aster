@@ -14,6 +14,7 @@ pub(crate) struct TextFontChain {
     pub fonts: Vec<NativeFont>,
     pub selections: Vec<FontSelection>,
     pub deferred: Option<String>,
+    pub raster_reason: Option<String>,
 }
 
 pub(crate) struct ProjectTextFonts {
@@ -59,6 +60,10 @@ impl ProjectTextFonts {
             return Err(ProjectRenderError::Invalid(
                 "requested text families exceed budget".into(),
             ));
+        }
+        // Embedded aliases may reuse qualified physical faces from either installed family.
+        if !names.is_empty() {
+            names.extend(["Arial".to_owned(), "Segoe UI".to_owned()]);
         }
         let probe = FontRequest {
             families: names.into_iter().collect(),
@@ -107,6 +112,7 @@ impl ProjectTextFonts {
                 fonts: Vec::new(),
                 selections: Vec::new(),
                 deferred: None,
+                raster_reason: None,
             };
             if let Some(font_style) = style.font_style() {
                 for family in &style.families {
@@ -123,41 +129,53 @@ impl ProjectTextFonts {
                         width_percent: 100.,
                         style: font_style,
                     };
-                    let (selection, bytes) =
-                        match self.embedded.resolve(&request, &self.platform)? {
-                            ProjectFontResolution::Native { selection, .. } => {
-                                let bytes = self
-                                    .embedded
-                                    .face(selection.face)
-                                    .ok_or_else(|| {
-                                        ProjectRenderError::Invalid(
-                                            "embedded text face disappeared".into(),
-                                        )
-                                    })?
-                                    .1;
-                                (selection, bytes)
+                    let (selection, bytes) = match self
+                        .embedded
+                        .resolve(&request, &self.platform)?
+                    {
+                        ProjectFontResolution::Native {
+                            selection, font_id, ..
+                        } => {
+                            if !self.platform.face(selection.face).is_some_and(|(face, _)| {
+                                face.families
+                                    .values()
+                                    .any(|family| matches!(family.as_str(), "Arial" | "Segoe UI"))
+                            }) {
+                                chain.raster_reason = Some(format!(
+                                    "embedded font {font_id} physical face requires raster qualification"
+                                ));
                             }
-                            ProjectFontResolution::Platform(selection) => {
-                                let bytes = self
-                                    .platform
-                                    .face(selection.face)
-                                    .ok_or_else(|| {
-                                        ProjectRenderError::Invalid(
-                                            "platform text face disappeared".into(),
-                                        )
-                                    })?
-                                    .1;
-                                (selection, bytes)
-                            }
-                            ProjectFontResolution::RetainedRaster {
-                                font_id, reason, ..
-                            } => {
-                                chain.deferred =
-                                    Some(format!("embedded font {font_id}: {reason:?}"));
-                                break;
-                            }
-                            ProjectFontResolution::Missing => continue,
-                        };
+                            let bytes = self
+                                .embedded
+                                .face(selection.face)
+                                .ok_or_else(|| {
+                                    ProjectRenderError::Invalid(
+                                        "embedded text face disappeared".into(),
+                                    )
+                                })?
+                                .1;
+                            (selection, bytes)
+                        }
+                        ProjectFontResolution::Platform(selection) => {
+                            let bytes = self
+                                .platform
+                                .face(selection.face)
+                                .ok_or_else(|| {
+                                    ProjectRenderError::Invalid(
+                                        "platform text face disappeared".into(),
+                                    )
+                                })?
+                                .1;
+                            (selection, bytes)
+                        }
+                        ProjectFontResolution::RetainedRaster {
+                            font_id, reason, ..
+                        } => {
+                            chain.deferred = Some(format!("embedded font {font_id}: {reason:?}"));
+                            break;
+                        }
+                        ProjectFontResolution::Missing => continue,
+                    };
                     if (font_style != FontStyle::Normal && selection.style == FontStyle::Normal)
                         || (style.weight >= 600. && selection.weight < 600.)
                     {

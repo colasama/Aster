@@ -54,6 +54,7 @@ import { runNativeSurfaceFrameGate } from "./native-surface-frame-gate.mjs";
 import { runNativeSurfacePostGate } from "./native-surface-post-gate.mjs";
 import { runNativeTemporalFrameGate } from "./native-temporal-frame-gate.mjs";
 import { runNativeTemporalGate } from "./native-temporal-gate.mjs";
+import { runNativeEmbeddedTextGate } from "./native-text-embedded-gate.mjs";
 import { runNativeTextLayoutGate } from "./native-text-layout-gate.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
@@ -723,6 +724,15 @@ export async function runNativeCoreGate(context, execute = runStep) {
         report.native_text_capabilities.status,
         "passed",
         "Font/script capability routing failed",
+      );
+      report.native_text_embedded = await runNativeEmbeddedTextGate(
+        { ...context, output: join(context.output, "native-text-embedded") },
+        execute,
+      );
+      assert.equal(
+        report.native_text_embedded.status,
+        "passed",
+        "Native embedded text qualification failed",
       );
     }
     report.checked_files = await reader.stable();
