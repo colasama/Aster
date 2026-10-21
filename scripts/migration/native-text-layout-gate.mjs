@@ -29,7 +29,12 @@ export async function runNativeTextLayoutGate(context, execute = runStep, option
   const local = (path) => relative(context.root, path).replaceAll("\\", "/");
   try {
     report.source = await sourceProvenance(context.root);
-    const corpusPath = join(context.root, "tests/parity/corpus.json");
+    const corpusPath = options.fixtureManifest ?? join(context.root, "tests/parity/corpus.json");
+    if (options.fixtureManifest) {
+      assert(options.cases?.length > 0, "Fixture observations require explicit case scope");
+      report.scope = "production-text-capability-fixtures-v1";
+      report.fixture_manifest = local(corpusPath);
+    }
     report.corpus_sha256 = await hashFile(corpusPath);
     const corpus = JSON.parse(await readFile(corpusPath));
     const assignments = [];

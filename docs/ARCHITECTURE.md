@@ -670,6 +670,12 @@ also use production frame-rate sampling independently of exact-time layout obser
 discovery reads family names without requiring native paint support; extended-range colors retain
 the M5 path with a specific capability reason. Temporal audits preserve
 sample order, weights and resource closure; they do not substitute for shared-union pixel acceptance.
+Embedded-container qualification uses locally wrapped WOFF2 and single-face collections of the
+same installed outline font, with a different installed family as the project alias. Independent
+TTF controls require identical pixels and bounds; an unembedded alias control must differ, making
+silent platform substitution observable. Live retained routing binds font bytes, project revision
+and the exact container capability reason. Malformed font data and stale project digests must fail
+provider admission before any frame receipt. Font bytes remain local verification artifacts.
 Explicit project captures and selected export witnesses materialize resident native text outputs
 as bounded, content-addressed raster resources for external replay. They preserve `submitted.fpln`
 and its digest separately from the replay envelope, and record exact text capability decisions and

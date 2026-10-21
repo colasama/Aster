@@ -1,8 +1,8 @@
 use aster_eval::{FramePlanRequest, ProjectResourceRequests, ResourceRequestContext};
 use aster_render_ir::{MediaSample, ResourceDescriptor, ResourceHash};
 use aster_render_project::{
-    NativeProjectDocument, NativeProjectText, NativeRasterProvider, ProjectRenderLimits,
-    ProjectTextRoute, RasterProviderOptions,
+    NativeProjectDocument, NativeProjectText, NativeRasterProvider, ProjectRenderError,
+    ProjectRenderLimits, ProjectTextRoute, RasterProviderOptions,
 };
 use aster_text::{FontCatalogConfig, FontDiscoveryConfig};
 use aster_video::CancellationToken;
@@ -34,6 +34,9 @@ struct Case {
     project_sha256: String,
     context: ResourceRequestContext,
     frames: Vec<FramePlanRequest>,
+    #[serde(default)]
+    rejection_contains: Vec<String>,
+    provider_project_sha256: Option<String>,
 }
 #[derive(Serialize)]
 struct Pixels {
@@ -74,6 +77,8 @@ struct CaseReceipt {
     runtime_sha256: String,
     locale: String,
     frames: Vec<Member>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    rejection: Option<String>,
 }
 
 #[test]
@@ -99,13 +104,40 @@ fn complete_project_text_routing() -> Result<(), Box<dyn std::error::Error>> {
         let document = NativeProjectDocument::open(&case.project, limits.clone())?;
         assert_eq!(document.authored_sha256, case.project_sha256);
         let cancel = CancellationToken::default();
-        let mut provider = NativeRasterProvider::start(
+        let provider = NativeRasterProvider::start(
             input.provider.clone(),
             &case.project,
-            &document.authored_sha256,
+            case.provider_project_sha256
+                .as_deref()
+                .map_or(document.authored_sha256.as_str(), |value| value),
             limits.clone(),
             &cancel,
-        )?;
+        );
+        if !case.rejection_contains.is_empty() {
+            assert!(case.rejection_contains.len() <= 4);
+            let message = match provider {
+                Err(ProjectRenderError::Invalid(message)) => message,
+                Err(error) => return Err(error.into()),
+                Ok(_) => return Err("invalid font/project unexpectedly admitted".into()),
+            };
+            for expected in &case.rejection_contains {
+                assert!(
+                    expected.len() >= 16 && message.contains(expected),
+                    "unexpected rejection: {message}"
+                );
+            }
+            report.push(CaseReceipt {
+                id: case.id,
+                authored_sha256: document.authored_sha256,
+                runtime_sha256: document.runtime_sha256,
+                locale: case.context.locale,
+                frames: Vec::new(),
+                rejection: Some(message),
+            });
+            continue;
+        }
+        assert!(case.provider_project_sha256.is_none());
+        let mut provider = provider?;
         let fonts = NativeProjectText::discover_platform(
             &document,
             &FontDiscoveryConfig::default(),
@@ -200,6 +232,7 @@ fn complete_project_text_routing() -> Result<(), Box<dyn std::error::Error>> {
             runtime_sha256: document.runtime_sha256,
             locale: context.locale,
             frames: members,
+            rejection: None,
         });
     }
     let mut file = File::options()

@@ -24814,7 +24814,7 @@
           ],
           "required_followups": [
             {
-              "status": "pending",
+              "status": "in_progress",
               "title": "Bind WOFF2 and embedded-collection capability reasons to authenticated retained raster routing",
               "acceptance": "The selected project font id, bytes and revision remain bound to retained provider validation and pixels; malformed bytes are rejected by that provider; no platform substitution or blanket text fallback."
             },
@@ -25579,6 +25579,55 @@
               ],
               "native_text_acceptance": false,
               "scope": "All six text-bearing corpus/owner cases with 1468 frames and 58309 observations. Seventy previously qualified native instances; exact independently sampled retained output. No new native capability or temporal-union pixel acceptance."
+            },
+            "embedded_font_routing": {
+              "status": "focused_passed_full_pending",
+              "evidence": {
+                "path": "artifacts/migration/cycle131-fonts2/report.json",
+                "sha256": "9e03ccae7675905f8258781742828a9dd00262c39719691197e899eebd673475"
+              },
+              "cases": [
+                {
+                  "id": "font-woff2",
+                  "project_sha256": "dcbb3ce80f6b70c7e646b928a2b63ec173312b60dbfa9689c240ec8745b6598f",
+                  "font_sha256": "08e725d4f8bb6cbfe4211c49405be0d4515c2478fe556196db434f818dd4847a",
+                  "font_id": "migration-embedded-face",
+                  "runtime_sha256": "39fa5f586f01ad3f25d192177c734f2ea93dfad7d0c6bca21670b47515cd6d8b",
+                  "reason": "embedded font migration-embedded-face: Woff2DecoderUnavailable",
+                  "exact_pixels": 68,
+                  "equivalent_ttf_frames": 68
+                },
+                {
+                  "id": "font-collection",
+                  "project_sha256": "d61cbf1ca0a62bf558483fa9762ccf198dd836da5f85396e5cd447ca635888e2",
+                  "font_sha256": "afac8d59d94437e9738f23046d1dc2d9989110b4f2b9b22f7bb5a21a2203995b",
+                  "font_id": "migration-embedded-face",
+                  "runtime_sha256": "81e38dca990106148762e8d0f72a4bebfc17ee9c4f9137cc4ed76aee06ae0f5a",
+                  "reason": "embedded font migration-embedded-face: EmbeddedCollectionSelectionUnverified",
+                  "exact_pixels": 68,
+                  "equivalent_ttf_frames": 68
+                }
+              ],
+              "rejections": [
+                {
+                  "id": "malformed-font",
+                  "authored_sha256": "dd0ad1049017993c3813bfb1d1c8f4ffa8a36670010fd52286dd42115ee257ec",
+                  "frames": 0,
+                  "rejection": "Error: Cannot decode project font: Embedded invalid-woff2\n    at file:///D:/code/Aster/artifacts/migration/cycle131-fonts2/routing/runtime/web/assets/native-raster-CDs37In2.js:1:17405"
+                },
+                {
+                  "id": "stale-font-revision",
+                  "authored_sha256": "dcbb3ce80f6b70c7e646b928a2b63ec173312b60dbfa9689c240ec8745b6598f",
+                  "frames": 0,
+                  "rejection": "Error: Error invoking remote method 'aster:native-raster-desktop': AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ 'dcbb3ce80f6b70c7e646b928a2b63ec173312b60dbfa9689c240ec8745b6598f'\n- '69efbeccee0db29314aba6ede566f7259568e0197ef9dd5895f5332b8565cc7e'\n"
+                }
+              ],
+              "system_substitution_differences": 68,
+              "failed_attempt": {
+                "path": "artifacts/migration/cycle131-fonts1/report.json",
+                "sha256": "5ca705a4383c39fa2a3314e06eb560c6ac875e9a19707c50e7fbd465c19eda41",
+                "reason": "Stale-revision production rejection succeeded; the diagnostic expected-phrase minimum length rejected its own short phrase. Corrected expected phrase without changing acceptance."
+              }
             }
           }
         },
@@ -2445325,23 +2445374,17 @@
     }
   ],
   "active_cycle": {
-    "id": 130,
+    "id": 131,
     "milestone": "M10",
     "task": "M10-T7",
-    "increment": "production-routing",
-    "started_at": "2026-10-21T18:13:41.455Z",
-    "implementation_state": "committed",
-    "scope": "Audit complete production text request partition and authenticated retained output for all corpus, owner and nested layout samples; preserve exact font unavailability and temporal coverage boundaries.",
-    "updated_at": "2026-10-21T19:42:11.884Z",
+    "increment": "embedded-font-routing",
+    "started_at": "2026-10-21T19:46:55.852Z",
+    "implementation_state": "focused_passed_full_pending",
+    "scope": "Authenticate WOFF2 and embedded collection capability routes against equivalent TTF pixels and distinguish platform substitution; reject malformed font bytes and stale project identities at the live retained provider.",
+    "updated_at": "2026-10-21T19:52:35.774Z",
     "focused_evidence": {
-      "path": "artifacts/migration/cycle130-routing5/report.json",
-      "sha256": "07f3208b26bd30b2b064ef3426e0f751425fb2048e2ea53e1ea664f812bdbea4"
-    },
-    "outcome": "passed",
-    "commit": "dcf5d043eb101155e6cfb9837336f25990a427c3",
-    "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T18-48-59-272Z-5bc5b7bd.json",
-      "sha256": "c901f25b767cbeed5fa6d2e94fcc302e8adde51962675f3212b1fe5f5b97e6e1"
+      "path": "artifacts/migration/cycle131-fonts2/report.json",
+      "sha256": "9e03ccae7675905f8258781742828a9dd00262c39719691197e899eebd673475"
     }
   },
   "execution_pause": {

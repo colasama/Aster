@@ -31,6 +31,7 @@ import { nativeSceneCases, runNativeSceneBatch } from "./native-scene-batch.mjs"
 import { runNativeSceneOutputGate } from "./native-scene-output-gate.mjs";
 import { runNativeSequenceGate } from "./native-sequence-gate.mjs";
 import { runNativeSessionGate } from "./native-session-gate.mjs";
+import { runNativeTextFontGate } from "./native-text-font-gate.mjs";
 import { runNativeVideoGate } from "./native-video-gate.mjs";
 
 export {
@@ -702,6 +703,17 @@ export async function runNativeCoreGate(context, execute = runStep) {
         "Native glyph GPU composition failed",
       );
       assert.equal(report.native_glyph_composite.binary.sha256, report.binary.sha256);
+    }
+    if (
+      context.milestone === "M10" &&
+      ledger.milestones.find((m) => m.id === "M10").tasks.find((t) => t.id === "M10-T7")?.status !==
+        "pending"
+    ) {
+      report.native_text_fonts = await runNativeTextFontGate(
+        { ...context, output: join(context.output, "native-text-fonts") },
+        execute,
+      );
+      assert.equal(report.native_text_fonts.status, "passed", "Embedded font routing failed");
     }
     report.checked_files = await reader.stable();
     report.status = "passed";
