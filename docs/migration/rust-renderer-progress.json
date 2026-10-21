@@ -364,16 +364,38 @@
   },
   "last_cycle": {
     "id": 123,
-    "time": "2026-10-21T00:10:49.577Z",
-    "updated_at": "2026-10-21T00:10:49.577Z",
+    "time": "2026-10-21T01:17:19.031Z",
+    "updated_at": "2026-10-21T01:17:19.031Z",
     "milestone": "M10",
     "task": "M10-T5",
-    "outcome": "in_progress",
-    "previous_verification": {
-      "path": "artifacts/migration/verify-2026-10-20T23-28-15-458Z-86c04618.json",
-      "sha256": "136f46cc11ca0bd3801ccd6b81a210e27d067ddb92db5ad4ad489ef86f8132fa"
+    "outcome": "passed",
+    "commit": "88bf4808a69dd826d55a5cbd7377c80af5f4949f",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-21T00-33-13-252Z-2843cddb.json",
+      "sha256": "8b3f7609e6463323110a3ac1edff1f9deafd6a41ac6ecf5a186a4e637bbd6494"
     },
-    "next_step": "Run complete current-source M10 G0/G3 with fresh text observations and independent raster/atlas audit, then commit the verified glyph raster component."
+    "gates": [
+      {
+        "id": "G0",
+        "status": "passed",
+        "duration_ms": 394578,
+        "proof": {
+          "path": "artifacts/migration/2026-10-21T00-33-13-252Z-2843cddb/static-results.json",
+          "sha256": "e23aad1874e64992e6b66d87018352a13cbecb46338f954f0b41a1015df01727"
+        }
+      },
+      {
+        "id": "G3",
+        "status": "passed",
+        "duration_ms": 2187599,
+        "proof": {
+          "path": "artifacts/migration/2026-10-21T00-33-13-252Z-2843cddb/G3/report.json",
+          "sha256": "7580f1db00f8efa5d7faba54db352893a4f7524a514ef036400a2c4c6ff585ef"
+        }
+      }
+    ],
+    "duration_ms": 2584954,
+    "next_step": "M10-T6: compose native text from immutable glyph atlas generations on the GPU with bounded resources, correct color and alpha handling, transforms, clipping and temporal generation ownership. Production capability routing and strict text pixel acceptance remain pending."
   },
   "milestones": [
     {
@@ -24381,7 +24403,7 @@
         {
           "id": "M10-T5",
           "title": "Rasterize glyphs into a bounded atlas with complete generation keys",
-          "status": "in_progress",
+          "status": "done",
           "scope": "Rasterize supported outline/bitmap glyphs with correct fractional origin, size, variation, color, stroke and hinting identity. Preserve whitespace advances without empty atlas uploads.",
           "acceptance": "Coverage/color format and limits verified, cache invalidation follows font and raster changes, no live frame atlas coordinates can be evicted; G0/G3 green.",
           "estimated_implementation_hours": 2,
@@ -24396,7 +24418,7 @@
           },
           "started_at": "2026-10-21T00:10:49.577Z",
           "progress": {
-            "state": "raster_component_probe_passed_full_gates_pending",
+            "state": "full_required_gates_passed",
             "features": [
               "Bounded Skrifa/Zeno outline fill, round stroke and vertical embedded hinting with complete physical-font and raster keys",
               "Bounded embedded mask/BGRA/PNG decode and premultiplied color resampling; empty glyph metrics without uploads",
@@ -24436,7 +24458,58 @@
               "artifacts/migration/cycle123-raster-audit-tests.log",
               "artifacts/migration/cycle123-clippy3.log",
               "artifacts/migration/cycle123-cargo-deny.log"
-            ]
+            ],
+            "completed_full_run": {
+              "verification": {
+                "path": "artifacts/migration/verify-2026-10-21T00-33-13-252Z-2843cddb.json",
+                "sha256": "8b3f7609e6463323110a3ac1edff1f9deafd6a41ac6ecf5a186a4e637bbd6494"
+              },
+              "gates": [
+                {
+                  "id": "G0",
+                  "status": "passed",
+                  "duration_ms": 394578,
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-21T00-33-13-252Z-2843cddb/static-results.json",
+                    "sha256": "e23aad1874e64992e6b66d87018352a13cbecb46338f954f0b41a1015df01727"
+                  }
+                },
+                {
+                  "id": "G3",
+                  "status": "passed",
+                  "duration_ms": 2187599,
+                  "proof": {
+                    "path": "artifacts/migration/2026-10-21T00-33-13-252Z-2843cddb/G3/report.json",
+                    "sha256": "7580f1db00f8efa5d7faba54db352893a4f7524a514ef036400a2c4c6ff585ef"
+                  }
+                }
+              ],
+              "duration_ms": 2584954,
+              "primary_pixel_frames": 1315,
+              "native_text_acceptance": false,
+              "native_shape_coverage": {
+                "records": 58309,
+                "draws": 285185,
+                "unique_requests": 1153,
+                "native_requests": 1138,
+                "unsupported_requests": 15
+              },
+              "raster_components": {
+                "status": "passed",
+                "glyphs": 2787,
+                "queries": 8376,
+                "completed_queries": 8376,
+                "unsupported": [],
+                "pages": 5,
+                "native_pixel_acceptance": false
+              }
+            }
+          },
+          "completed_at": "2026-10-21T01:17:19.031Z",
+          "commit": "88bf4808a69dd826d55a5cbd7377c80af5f4949f",
+          "verification": {
+            "path": "artifacts/migration/verify-2026-10-21T00-33-13-252Z-2843cddb.json",
+            "sha256": "8b3f7609e6463323110a3ac1edff1f9deafd6a41ac6ecf5a186a4e637bbd6494"
           }
         },
         {
@@ -24449,7 +24522,12 @@
           "required_gates": [
             "G0",
             "G3"
-          ]
+          ],
+          "preparation": {
+            "path": "artifacts/migration/cycle123-gpu-text-preparation.json",
+            "sha256": "53f1770a42d0fc4622b1d1a913ace267f86965a8e52424f22e0d7a2a054b82bd",
+            "status": "read_only_preparation; GPU composition and production integration remain pending"
+          }
         },
         {
           "id": "M10-T7",
@@ -24504,8 +24582,8 @@
       ],
       "started_at": "2026-10-20T20:25:14.937Z",
       "latest_verification": {
-        "path": "artifacts/migration/verify-2026-10-20T23-28-15-458Z-86c04618.json",
-        "sha256": "136f46cc11ca0bd3801ccd6b81a210e27d067ddb92db5ad4ad489ef86f8132fa"
+        "path": "artifacts/migration/verify-2026-10-21T00-33-13-252Z-2843cddb.json",
+        "sha256": "8b3f7609e6463323110a3ac1edff1f9deafd6a41ac6ecf5a186a4e637bbd6494"
       }
     },
     {
@@ -2440104,6 +2440182,19 @@
         "sha256": "136f46cc11ca0bd3801ccd6b81a210e27d067ddb92db5ad4ad489ef86f8132fa"
       },
       "milestone_exit_satisfied": false
+    },
+    {
+      "cycle": 123,
+      "time": "2026-10-21T01:17:19.031Z",
+      "milestone": "M10",
+      "task": "M10-T5",
+      "outcome": "passed",
+      "commit": "88bf4808a69dd826d55a5cbd7377c80af5f4949f",
+      "verification": {
+        "path": "artifacts/migration/verify-2026-10-21T00-33-13-252Z-2843cddb.json",
+        "sha256": "8b3f7609e6463323110a3ac1edff1f9deafd6a41ac6ecf5a186a4e637bbd6494"
+      },
+      "milestone_exit_satisfied": false
     }
   ],
   "known_boundaries": [
@@ -2440330,11 +2440421,17 @@
     "task": "M10-T5",
     "increment": "Rasterize glyphs into a bounded atlas with complete generation keys",
     "started_at": "2026-10-21T00:10:49.577Z",
-    "updated_at": "2026-10-21T00:33:12.109Z",
-    "implementation_state": "verification_pending",
+    "updated_at": "2026-10-21T01:17:19.031Z",
+    "implementation_state": "committed",
     "previous_verification": {
       "path": "artifacts/migration/verify-2026-10-20T23-28-15-458Z-86c04618.json",
       "sha256": "136f46cc11ca0bd3801ccd6b81a210e27d067ddb92db5ad4ad489ef86f8132fa"
+    },
+    "outcome": "passed",
+    "commit": "88bf4808a69dd826d55a5cbd7377c80af5f4949f",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-21T00-33-13-252Z-2843cddb.json",
+      "sha256": "8b3f7609e6463323110a3ac1edff1f9deafd6a41ac6ecf5a186a4e637bbd6494"
     }
   },
   "execution_pause": {
