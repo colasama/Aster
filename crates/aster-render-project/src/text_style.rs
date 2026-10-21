@@ -3,9 +3,15 @@ use aster_text::{FontStyle, TextAlignment, TextDirection, TextLayoutRequest};
 use aster_types::editor::Layer;
 
 #[derive(Clone, serde::Serialize)]
+pub(crate) struct TextFontFamily {
+    pub name: String,
+    pub quoted: bool,
+}
+
+#[derive(Clone, serde::Serialize)]
 pub(crate) struct ProjectTextStyle {
     pub text: String,
-    pub families: Vec<String>,
+    pub families: Vec<TextFontFamily>,
     pub weight: f32,
     pub italic: String,
     pub size: [f64; 2],
@@ -34,7 +40,7 @@ impl ProjectTextStyle {
                 .value()
                 .cloned()
                 .unwrap_or_else(|| layer.name.clone()),
-            families: vec!["Inter".into(), "Segoe UI".into(), "sans-serif".into()],
+            families: Self::families("Inter, \"Segoe UI\", sans-serif")?,
             weight: if hero { 800. } else { 600. },
             italic: "normal".into(),
             size,
@@ -108,7 +114,7 @@ impl ProjectTextStyle {
         }
     }
 
-    pub fn families(value: &str) -> Result<Vec<String>, ProjectRenderError> {
+    pub fn families(value: &str) -> Result<Vec<TextFontFamily>, ProjectRenderError> {
         if value.len() > 4096 {
             return Err(ProjectRenderError::Invalid(
                 "font family list exceeds budget".into(),
@@ -117,6 +123,7 @@ impl ProjectTextStyle {
         let mut names = Vec::new();
         let mut current = String::new();
         let mut quote = None;
+        let mut quoted = false;
         for ch in value.chars() {
             if let Some(delimiter) = quote {
                 if ch == delimiter {
@@ -126,17 +133,23 @@ impl ProjectTextStyle {
                 }
             } else if ch == '\'' || ch == '"' {
                 quote = Some(ch);
+                quoted = true;
             } else if ch == ',' {
-                names.push(std::mem::take(&mut current));
+                names.push((std::mem::take(&mut current), quoted));
+                quoted = false;
             } else {
                 current.push(ch);
             }
         }
-        names.push(current);
+        names.push((current, quoted));
         let names = names
             .into_iter()
-            .map(|s| s.split_whitespace().collect::<Vec<_>>().join(" "))
-            .filter(|s| !s.is_empty())
+            .map(|(s, quoted)| TextFontFamily {
+                name: s.split(|ch| matches!(ch, '\u{9}'..='\u{d}'|' '|'\u{a0}'|'\u{1680}'|'\u{2000}'..='\u{200a}'|'\u{2028}'|'\u{2029}'|'\u{202f}'|'\u{205f}'|'\u{3000}'|'\u{feff}'))
+                    .filter(|part| !part.is_empty()).collect::<Vec<_>>().join(" "),
+                quoted,
+            })
+            .filter(|family| !family.name.is_empty())
             .collect::<Vec<_>>();
         if names.len() > 64 {
             return Err(ProjectRenderError::Invalid(
@@ -144,7 +157,10 @@ impl ProjectTextStyle {
             ));
         }
         Ok(if names.is_empty() {
-            vec!["sans-serif".into()]
+            vec![TextFontFamily {
+                name: "sans-serif".into(),
+                quoted: false,
+            }]
         } else {
             names
         })

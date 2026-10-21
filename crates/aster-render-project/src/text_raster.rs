@@ -126,13 +126,18 @@ impl TextRasterPreparation {
                         pen[1] + glyph.offset[1] + paint.shaped.middle_baseline_offset,
                     ];
                     let transform = surface_transform.compose(paint.transform);
-                    // Translation is rasterized at its true subpixel phase, rather than resampling an integer glyph.
+                    // Canvas caches translated glyphs at quarter-pixel horizontal and integer vertical phases.
                     let translation = transform.0[0] == 1.
                         && transform.0[1] == 0.
                         && transform.0[2] == 0.
                         && transform.0[3] == 1.;
                     let baseline = if translation {
                         transform.point(baseline)
+                    } else {
+                        baseline
+                    };
+                    let baseline = if translation {
+                        [(baseline[0] * 4.).round() / 4., baseline[1].round()]
                     } else {
                         baseline
                     };
@@ -146,7 +151,8 @@ impl TextRasterPreparation {
                         glyph_id: glyph.glyph_id,
                         size: font_size as f32,
                         phase,
-                        hinting: GlyphHinting::None,
+                        hinting: GlyphHinting::Platform,
+                        coverage: aster_text::GlyphCoverage::CanvasSrgb,
                         paint: kind,
                         foreground: [
                             (color[0] * 255.).round() as u8,

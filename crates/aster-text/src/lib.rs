@@ -13,7 +13,10 @@ mod project_font_input;
 mod project_fonts;
 mod raster;
 mod raster_bitmap;
+mod raster_coverage;
 mod raster_outline;
+#[cfg(windows)]
+mod raster_windows;
 mod selection;
 mod shaping;
 mod text_layout;
@@ -46,8 +49,8 @@ pub use glyph_generations::{
 pub use project_font_input::ProjectFontConfig;
 pub use project_fonts::{ProjectFontFallback, ProjectFontResolution, ProjectFontSet};
 pub use raster::{
-    GlyphHinting, GlyphImage, GlyphImageFormat, GlyphPaint, GlyphRasterConfig, GlyphRasterError,
-    GlyphRasterKey, GlyphRasterRequest, GlyphRasterizer,
+    GlyphCoverage, GlyphHinting, GlyphImage, GlyphImageFormat, GlyphPaint, GlyphRasterConfig,
+    GlyphRasterError, GlyphRasterKey, GlyphRasterRequest, GlyphRasterizer,
 };
 pub use selection::{FontRequest, FontSelection};
 pub use shaping::{

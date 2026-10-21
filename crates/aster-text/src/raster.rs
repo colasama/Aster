@@ -16,6 +16,8 @@ pub struct GlyphRasterConfig {
     pub max_outline_commands: usize,
     #[arg(long, default_value_t = 8 * 1024 * 1024)]
     pub max_outline_scratch: usize,
+    #[arg(long, default_value_t = 32 * 1024 * 1024)]
+    pub max_platform_font_bytes: usize,
     #[arg(long, default_value_t = 64 * 1024 * 1024)]
     pub glyph_cache_bytes: usize,
     #[arg(long, default_value_t = 16_384)]
@@ -29,6 +31,7 @@ impl Default for GlyphRasterConfig {
             max_glyph_bytes: 16 * 1024 * 1024,
             max_outline_commands: 65_536,
             max_outline_scratch: 8 * 1024 * 1024,
+            max_platform_font_bytes: 32 * 1024 * 1024,
             glyph_cache_bytes: 64 * 1024 * 1024,
             glyph_cache_entries: 16_384,
         }
@@ -63,6 +66,9 @@ pub enum GlyphRasterError {
     Unsupported(&'static str),
     #[error("glyph outline failed: {0}")]
     Outline(#[from] skrifa::outline::DrawError),
+    #[cfg(windows)]
+    #[error("platform glyph raster failed: {0}")]
+    Platform(#[from] windows::core::Error),
     #[error("glyph PNG failed: {0}")]
     Png(#[from] png::DecodingError),
 }
@@ -73,6 +79,15 @@ pub enum GlyphHinting {
     #[default]
     None,
     Vertical,
+    Platform,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum GlyphCoverage {
+    #[default]
+    Linear,
+    CanvasSrgb,
 }
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
@@ -89,6 +104,8 @@ pub struct GlyphRasterRequest {
     /// Fractional baseline position in screen coordinates; integer translation stays in the draw.
     pub phase: [f32; 2],
     pub hinting: GlyphHinting,
+    #[serde(default)]
+    pub coverage: GlyphCoverage,
     pub paint: GlyphPaint,
     pub foreground: [u8; 4],
     pub prefer_bitmap: bool,
@@ -102,6 +119,7 @@ pub struct GlyphRasterKey {
     pub size_bits: u32,
     pub phase_bits: [u32; 2],
     pub hinting: GlyphHinting,
+    pub coverage: GlyphCoverage,
     pub stroke_bits: Option<u32>,
     pub foreground: [u8; 4],
     pub prefer_bitmap: bool,
@@ -141,6 +159,7 @@ impl GlyphRasterRequest {
             size_bits: self.size.to_bits(),
             phase_bits: self.phase.map(|v| if v == 0.0 { 0 } else { v.to_bits() }),
             hinting: self.hinting,
+            coverage: self.coverage,
             stroke_bits,
             foreground: self.foreground,
             prefer_bitmap: self.prefer_bitmap,
@@ -217,6 +236,8 @@ impl GlyphRasterizer {
             || config.max_outline_commands > 262_144
             || config.max_outline_scratch == 0
             || config.max_outline_scratch > 64 * 1024 * 1024
+            || config.max_platform_font_bytes == 0
+            || config.max_platform_font_bytes > 64 * 1024 * 1024
             || config.glyph_cache_bytes < config.max_glyph_bytes
             || config.glyph_cache_bytes > 512 * 1024 * 1024
             || config.glyph_cache_entries == 0
@@ -305,9 +326,24 @@ impl GlyphRasterizer {
             return Err(GlyphRasterError::Unsupported(
                 "layered color outlines require a verified paint graph",
             ));
+        } else if request.hinting == GlyphHinting::Platform
+            && matches!(request.paint, GlyphPaint::Fill)
+        {
+            #[cfg(windows)]
+            crate::raster_windows::WindowsGlyphRaster::render(
+                font,
+                request,
+                &self.config,
+                &mut image,
+            )?;
+            #[cfg(not(windows))]
+            return Err(GlyphRasterError::Unsupported(
+                "platform glyph raster unavailable",
+            ));
         } else {
             OutlineRaster::render(&face, request, &self.config, &mut image)?;
         }
+        request.coverage.apply(&mut image);
         image.validate(&self.config)?;
         self.bytes += image.data.len();
         let image = Arc::new(image);

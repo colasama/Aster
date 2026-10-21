@@ -5,7 +5,10 @@ use aster_text::{
     NativeFont, ProjectFontConfig, ProjectFontResolution, ProjectFontSet,
 };
 
-use crate::{NativeProjectDocument, ProjectRenderError, text_style::ProjectTextStyle};
+use crate::{
+    NativeProjectDocument, ProjectRenderError,
+    text_style::{ProjectTextStyle, TextFontFamily},
+};
 
 pub(crate) struct TextFontChain {
     pub fonts: Vec<NativeFont>,
@@ -173,7 +176,12 @@ impl ProjectTextFonts {
             if chain.fonts.is_empty() && chain.deferred.is_none() {
                 chain.deferred = Some(format!(
                     "requested font families unavailable: {}",
-                    style.families.join(", ")
+                    style
+                        .families
+                        .iter()
+                        .map(|f| f.name.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", ")
                 ));
             }
             self.chains.insert(key.clone(), chain);
@@ -183,17 +191,57 @@ impl ProjectTextFonts {
             .ok_or_else(|| ProjectRenderError::Invalid("text font chain absent".into()))
     }
 
-    fn platform_name(name: &str) -> Result<String, String> {
+    fn platform_name(family: &TextFontFamily) -> Result<String, String> {
+        let name = &family.name;
+        if family.quoted {
+            return Ok(name.clone());
+        }
         match name.to_ascii_lowercase().as_str() {
             "sans-serif" if cfg!(windows) => Ok("Arial".into()),
             "serif" if cfg!(windows) => Ok("Times New Roman".into()),
             "monospace" if cfg!(windows) => Ok("Courier New".into()),
             "serif" | "sans-serif" | "monospace" | "cursive" | "fantasy" | "system-ui"
-            | "ui-serif" | "ui-sans-serif" | "ui-monospace" | "ui-rounded" | "math" | "emoji"
-            | "fangsong" => Err(format!(
-                "platform generic family mapping unverified: {name}"
-            )),
-            _ => Ok(name.into()),
+            | "ui-serif" | "ui-sans-serif" | "ui-monospace" | "ui-rounded" | "math" | "emoji" => {
+                Err(format!(
+                    "platform generic family mapping unverified: {name}"
+                ))
+            }
+            _ => Ok(name.clone()),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ProjectTextFonts, ProjectTextStyle};
+
+    #[test]
+    fn literal_generic_names_and_ecma_whitespace_stay_distinct()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let names = ProjectTextStyle::families(
+            "\u{feff}'serif', serif, FangSong, \"Brand, Display\", Noto\u{feff}Serif, Name\u{85}Face",
+        )?;
+        assert_eq!(
+            names.iter().map(|f| f.name.as_str()).collect::<Vec<_>>(),
+            vec![
+                "serif",
+                "serif",
+                "FangSong",
+                "Brand, Display",
+                "Noto Serif",
+                "Name\u{85}Face"
+            ]
+        );
+        assert_eq!(ProjectTextFonts::platform_name(&names[0])?, "serif");
+        assert_eq!(ProjectTextFonts::platform_name(&names[2])?, "FangSong");
+        if cfg!(windows) {
+            assert_eq!(
+                ProjectTextFonts::platform_name(&names[1])?,
+                "Times New Roman"
+            );
+        } else {
+            assert!(ProjectTextFonts::platform_name(&names[1]).is_err());
+        }
+        Ok(())
     }
 }

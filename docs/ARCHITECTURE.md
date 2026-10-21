@@ -596,7 +596,13 @@ does not establish raw browser glyph identity, native raster pixels or productio
 
 Glyph rasterization uses Skrifa's shared Fontations parser and Zeno coverage rasterization behind
 `aster-text`. Scalable outlines support fractional baseline phase, fill, round-joined stroke and
-optional vertical embedded hinting with linear advances preserved. Embedded mask, BGRA and PNG
+optional vertical embedded hinting with linear advances preserved. The Windows platform adapter uses
+DirectWrite against authenticated in-memory font bytes, explicit face indices and variation axes;
+it never performs independent font substitution. Font copies have an explicit 32 MiB budget (configurable up to 64 MiB), alpha textures retain the raster
+allocation limits, and loader registrations are released on success and failure. Platform strokes
+use bounded horizontally oversampled coverage filtering. Windows Canvas coverage uses an explicit
+sRGB gamma/contrast transfer; its policy and foreground color are part of the glyph cache key.
+Unsupported platform adapters produce a retained-capability result. Embedded mask, BGRA and PNG
 strikes decode under dimension and memory limits; color resampling uses premultiplied sRGB bytes.
 Whitespace retains its advance without an image or upload. Layered color paint graphs and bitmap
 strokes return explicit unsupported reasons until verified implementations are available.
@@ -639,12 +645,18 @@ Paint runs preserve replacement-character advances, tracking compensation, line 
 transforms, CSS color quantization and stroke-before-fill order. Raster density is recomputed from
 the measured bounds, including the independent ceiling of each output dimension; temporal callers
 may supply a containing union without changing each sample's evaluation time. Translated glyphs
-carry their fractional baseline in the raster key exactly once.
+use Canvas quarter-pixel horizontal and integer vertical cache phases. Quoted family names preserve
+literal identity separately from CSS generic names, with ECMAScript whitespace normalization.
 Unsupported font containers, missing glyphs, synthetic styles and unavailable raster features
 produce request-scoped capability evidence; malformed inputs and resource exhaustion remain errors.
 Preparation emits no full-layer CPU image. Production session acquisition still uses its retained
 provider until complete native text pixel acceptance and capability routing are verified. Actual
 Canvas observations validate authored preparation geometry independently of atlas compositor tests.
+The authored-pixel diagnostic removes the supplied CPU text raster and renders the native recipe
+against authenticated frozen plans. It compares both the complete frame and an isolated text crop,
+checking that the latter retains the original raster alpha and only GPU premultiplication rounding.
+Failed isolated coverage remains an explicit retained requirement even when a padded frame passes;
+diagnostic completion does not grant native production admission or complete the text milestone.
 
 ## Pi agent runtime
 

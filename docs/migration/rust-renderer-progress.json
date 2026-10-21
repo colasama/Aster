@@ -370,40 +370,14 @@
     }
   },
   "last_cycle": {
-    "id": 126,
-    "time": "2026-10-21T04:46:09.532Z",
-    "updated_at": "2026-10-21T04:46:09.532Z",
+    "id": 127,
+    "time": "2026-10-21T04:47:06.964Z",
+    "updated_at": "2026-10-21T06:26:33.399Z",
     "milestone": "M10",
     "task": "M10-T7",
-    "increment": "project-text-preparation",
-    "outcome": "passed",
-    "commit": "79402fe0902f1ae866b477cdd7d5fe8e438b220d",
-    "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T03-51-05-370Z-3258a27d.json",
-      "sha256": "1b56cbe5e13b480f71125d8cd89e4edc3671aed48c3ac5dff480ae661f4b4cfa"
-    },
-    "gates": [
-      {
-        "id": "G0",
-        "status": "passed",
-        "duration_ms": 405660,
-        "proof": {
-          "path": "artifacts/migration/2026-10-21T03-51-05-370Z-3258a27d/static-results.json",
-          "sha256": "66702a594e2fd1ce572cc3288b816f2d78c5fbed177df0e703fad75cc11fb2dc"
-        }
-      },
-      {
-        "id": "G3",
-        "status": "passed",
-        "duration_ms": 2676261,
-        "proof": {
-          "path": "artifacts/migration/2026-10-21T03-51-05-370Z-3258a27d/G3/report.json",
-          "sha256": "1c18fcfd34dea74114e555a03c351757aa378753684654fe9215b495a636a143"
-        }
-      }
-    ],
-    "duration_ms": 3084507,
-    "next_step": "Continue M10-T7 with actual native text pixel comparison and capability-routed project-session acquisition. Partition exact retained requests, bind native descriptors and selector layouts, preserve temporal sample/union semantics. Do not claim final native text parity from geometry preparation."
+    "increment": "authored-text-pixels",
+    "outcome": "in_progress",
+    "next_step": "Repeat full M10 verification after the default comparator-path repair. Production routing and isolated stroke acceptance remain open."
   },
   "milestones": [
     {
@@ -24849,7 +24823,7 @@
             "status": "read_only_preparation; actual native text pixel acceptance and production acquisition remain pending"
           },
           "progress": {
-            "state": "project_text_preparation_verified_production_routing_pending",
+            "state": "verifying_platform_coverage_and_isolated_raster_qualification",
             "increments": [
               {
                 "id": "gpu-frame-admission",
@@ -24872,6 +24846,11 @@
                   "path": "artifacts/migration/verify-2026-10-21T03-51-05-370Z-3258a27d.json",
                   "sha256": "1b56cbe5e13b480f71125d8cd89e4edc3671aed48c3ac5dff480ae661f4b4cfa"
                 }
+              },
+              {
+                "id": "authored-text-pixels",
+                "status": "in_progress",
+                "scope": "Render actual authored text through native glyph recipes without CPU text pixels, compare with authenticated frozen TS output, and resolve raster differences before production admission."
               },
               {
                 "id": "production-routing",
@@ -25025,7 +25004,91 @@
               "path": "artifacts/migration/cycle126-quota-observation.json",
               "sha256": "5d7b2f532d31fe8245a02ea93ebb43a6055902c3477c36816a6e490e7f502dca",
               "remaining_percent": 56
-            }
+            },
+            "authored_pixel_qualification": {
+              "evidence": "artifacts/migration/cycle127-qualification5/report.json",
+              "frame_pairs": 4,
+              "isolated_raster_pairs": 4,
+              "qualified": false,
+              "native_text_acceptance": false,
+              "retained_requirements": [
+                {
+                  "composition": "cbecb430-111c-47f0-a78d-4f90b7a201eb",
+                  "layer": "f6bd3659-66bc-49d0-a30b-c2779bc8fa7b",
+                  "frame": 0,
+                  "scope": "raster",
+                  "failed_checks": [
+                    "alpha_coverage"
+                  ],
+                  "reason": "Authored raster pixel qualification failed; production must retain TS text for this capability."
+                },
+                {
+                  "composition": "cbecb430-111c-47f0-a78d-4f90b7a201eb",
+                  "layer": "f6bd3659-66bc-49d0-a30b-c2779bc8fa7b",
+                  "frame": 15,
+                  "scope": "raster",
+                  "failed_checks": [
+                    "alpha_coverage"
+                  ],
+                  "reason": "Authored raster pixel qualification failed; production must retain TS text for this capability."
+                },
+                {
+                  "composition": "cbecb430-111c-47f0-a78d-4f90b7a201eb",
+                  "layer": "f6bd3659-66bc-49d0-a30b-c2779bc8fa7b",
+                  "frame": 30,
+                  "scope": "raster",
+                  "failed_checks": [
+                    "alpha_coverage"
+                  ],
+                  "reason": "Authored raster pixel qualification failed; production must retain TS text for this capability."
+                },
+                {
+                  "composition": "cbecb430-111c-47f0-a78d-4f90b7a201eb",
+                  "layer": "f6bd3659-66bc-49d0-a30b-c2779bc8fa7b",
+                  "frame": 59,
+                  "scope": "raster",
+                  "failed_checks": [
+                    "alpha_coverage"
+                  ],
+                  "reason": "Authored raster pixel qualification failed; production must retain TS text for this capability."
+                }
+              ],
+              "next_step": "Preserve exact stroke capability fallback when production routing is activated; qualify unstroked and transformed native text separately.",
+              "sha256": "9e1f83cb8e6f0c22f2fb82bbd7c205054350bbb85c18b808e1b242eb09b243ba",
+              "evidence_status": "passed"
+            },
+            "focused_platform_coverage": {
+              "preparation": {
+                "path": "artifacts/migration/cycle127-preparation2.json",
+                "sha256": "5b3cc2a5b17eed52fdae01500fd3fbf1698119b016c24994eabd908b00227703",
+                "requests": 210
+              },
+              "review": {
+                "path": "artifacts/migration/cycle127-self-reviews.json",
+                "sha256": "da13ac980b174dfd34a7a0489fd6727068c4e133df8d8823908570dab1a1ac17"
+              },
+              "platform_font_copy_limit_bytes": 33554432,
+              "production_routing": false
+            },
+            "validation_attempts": [
+              {
+                "cycle": 127,
+                "report": {
+                  "path": "artifacts/migration/verify-2026-10-21T05-36-48-486Z-2459881d.json",
+                  "sha256": "337ae6aff3efbf3c5d332109263f6a9248765f445ad4e3f5b4caec42d1fef1ef"
+                },
+                "status": "failed",
+                "gate": "G3",
+                "reason": "New authored-pixel verifier did not resolve the default comparator when called without options.binary.",
+                "repair": "Use the same platform release-binary default as the existing shaping verifier; preserve explicit overrides.",
+                "focused_recheck": {
+                  "path": "artifacts/migration/cycle127-qualification6/report.json",
+                  "sha256": "71387dc66621e28e2b7b2dff8d4db35fc7d91d0b046402f804c852acea1744ca",
+                  "status": "passed",
+                  "pixel_pairs": 8
+                }
+              }
+            ]
           }
         },
         {
@@ -2386690,6 +2386753,1968 @@
           "sha256": "5006e757dc5f32d023e4658376922eaf1a280fc4ff63274e173458bf5d934f03"
         }
       }
+    },
+    {
+      "case_id": "native-project-layer-text",
+      "frame": 0,
+      "profile": "perceptual",
+      "verdict": "rejected",
+      "residual_class": "shaping-hinting",
+      "reviewed_at": "2026-10-21T05:33:28.409Z",
+      "reference_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "candidate_rgba_sha256": "d64fe437cec9c556090c4b29fd41dd8cc294b8c360c1f02f6b8b6e722a92a310",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 255,
+        "mean_abs_error": 1.4933072916666668,
+        "mean_squared_error": 161.99017361111112,
+        "rgb_mean_squared_error": 202.75146412037037,
+        "psnr": {
+          "kind": "finite",
+          "db": 25.061163618214522
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 26.035916900037016
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 554,
+        "error_component_count": 15,
+        "signed_bias": [
+          -0.8516319444444445,
+          -0.8693923611111111,
+          -0.8989930555555555,
+          -0.1031076388888889
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 1154,
+        "alpha_changed_fraction": 0.02003472222222222,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "candidate": {
+            "min_x": 91,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 117
+          },
+          "edge_deltas": [
+            1,
+            0,
+            0,
+            1
+          ],
+          "same_emptiness": true
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": false
+        },
+        {
+          "id": "ssim",
+          "passed": false
+        },
+        {
+          "id": "error_clusters",
+          "passed": false
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": false
+        },
+        {
+          "id": "registration",
+          "passed": false
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Contact sheet and heatmap inspected directly. Glyph edge coverage differs systematically; failed numerical limits prohibit native admission.",
+      "evidence": {
+        "report": "artifacts/migration/cycle127-pixels1/compare-native/report.json",
+        "sha256": "93dffa3bd48abe460c799f45f024610ce242d73ded189e59c82eb9083c012766",
+        "contact_sheet": "artifacts/migration/cycle127-pixels1/compare-native/contact-sheet.png",
+        "contact_sheet_sha256": "ca0fda7337431aab54adde9195f11e4bb44a59090c81468920708316defe5c91",
+        "heatmap": "artifacts/migration/cycle127-pixels1/compare-native/heatmap.png",
+        "heatmap_sha256": "9b9d94669e662dfb676aee9aec27dcf9e115e742cd25a1559ea3bab138dd0d4e"
+      }
+    },
+    {
+      "case_id": "native-project-layer-text",
+      "frame": 0,
+      "profile": "perceptual",
+      "verdict": "rejected",
+      "residual_class": "shaping-hinting",
+      "reviewed_at": "2026-10-21T05:33:28.413Z",
+      "reference_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "candidate_rgba_sha256": "851afb27767b9dd04ebff4d02e265312a57eed3220831467f51362ac50e9408b",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 195,
+        "mean_abs_error": 1.1188715277777779,
+        "mean_squared_error": 86.78262152777778,
+        "rgb_mean_squared_error": 102.54436342592592,
+        "psnr": {
+          "kind": "finite",
+          "db": 28.02168567448693
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 28.746475957171263
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 518,
+        "error_component_count": 16,
+        "signed_bias": [
+          -0.8253819444444445,
+          -0.8427777777777777,
+          -0.8717013888888889,
+          -0.108125
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 1149,
+        "alpha_changed_fraction": 0.019947916666666666,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "candidate": {
+            "min_x": 91,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 117
+          },
+          "edge_deltas": [
+            1,
+            0,
+            0,
+            1
+          ],
+          "same_emptiness": true
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": false
+        },
+        {
+          "id": "ssim",
+          "passed": false
+        },
+        {
+          "id": "error_clusters",
+          "passed": false
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": false
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Contact sheet and heatmap inspected directly. Glyph edge coverage differs systematically; failed numerical limits prohibit native admission.",
+      "evidence": {
+        "report": "artifacts/migration/cycle127-pixels2/compare-native/report.json",
+        "sha256": "3445a5902748169715d8724c4c5964396546aaf92dad347819d4bdf421f684d3",
+        "contact_sheet": "artifacts/migration/cycle127-pixels2/compare-native/contact-sheet.png",
+        "contact_sheet_sha256": "988e55913ad094a4c3747e59bef32ef01590573d979d236e2130804403117c1d",
+        "heatmap": "artifacts/migration/cycle127-pixels2/compare-native/heatmap.png",
+        "heatmap_sha256": "074bf4fe33431c7142440f6eca912f26bc89e1a5baeb1dfd552cb4c7f5c408f2"
+      }
+    },
+    {
+      "case_id": "native-project-layer-text",
+      "frame": 0,
+      "profile": "perceptual",
+      "verdict": "rejected",
+      "residual_class": "shaping-hinting",
+      "reviewed_at": "2026-10-21T05:33:28.414Z",
+      "reference_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "candidate_rgba_sha256": "06b546853aa2b7893a8a6dfc77f45289bf9bf792de352c2a9a21fac802a79b62",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 255,
+        "mean_abs_error": 0.9138454861111112,
+        "mean_squared_error": 72.74043402777778,
+        "rgb_mean_squared_error": 72.42375,
+        "psnr": {
+          "kind": "finite",
+          "db": 29.53199352646749
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 29.5130447279224
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 433,
+        "error_component_count": 22,
+        "signed_bias": [
+          -0.8241666666666667,
+          -0.8412673611111111,
+          -0.8700173611111112,
+          -0.074375
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 1079,
+        "alpha_changed_fraction": 0.01873263888888889,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "candidate": {
+            "min_x": 91,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "edge_deltas": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": false
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": false
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": false
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Contact sheet and heatmap inspected directly. Glyph edge coverage differs systematically; failed numerical limits prohibit native admission.",
+      "evidence": {
+        "report": "artifacts/migration/cycle127-pixels3/compare-native/report.json",
+        "sha256": "830204d27a538b30374d389f0e03bb21ddca35da9259325615d6be765d5d51ed",
+        "contact_sheet": "artifacts/migration/cycle127-pixels3/compare-native/contact-sheet.png",
+        "contact_sheet_sha256": "5174a731727a4e2f0a786a908c464e5a802e719c1de744d024530c121333bac9",
+        "heatmap": "artifacts/migration/cycle127-pixels3/compare-native/heatmap.png",
+        "heatmap_sha256": "163cad02645b04a29fe91c7aa0a18ec608e053a2c04080260449e3528346eacc"
+      }
+    },
+    {
+      "case_id": "native-project-layer-text",
+      "frame": 0,
+      "profile": "perceptual",
+      "verdict": "rejected",
+      "residual_class": "shaping-hinting",
+      "reviewed_at": "2026-10-21T05:33:28.416Z",
+      "reference_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "candidate_rgba_sha256": "cca5dde8be61f8d7860a026c9678c8d01b89520fc52cceb73c45c64c9cb84ff7",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 255,
+        "mean_abs_error": 0.6092708333333333,
+        "mean_squared_error": 41.103107638888886,
+        "rgb_mean_squared_error": 29.648599537037036,
+        "psnr": {
+          "kind": "finite",
+          "db": 33.4107617674946
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 31.992057025100923
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 306,
+        "error_component_count": 44,
+        "signed_bias": [
+          -0.19875,
+          -0.20362847222222222,
+          -0.21105902777777777,
+          -0.1373263888888889
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 1078,
+        "alpha_changed_fraction": 0.01871527777777778,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "candidate": {
+            "min_x": 91,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "edge_deltas": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": false
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": false
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": false
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Contact sheet and heatmap inspected directly. Glyph edge coverage differs systematically; failed numerical limits prohibit native admission.",
+      "evidence": {
+        "report": "artifacts/migration/cycle127-pixels4/compare-native/report.json",
+        "sha256": "1f82398052d801cedfe3ea86316f31ebc099f67cb9d255f4c94b2eeddfbed7cb",
+        "contact_sheet": "artifacts/migration/cycle127-pixels4/compare-native/contact-sheet.png",
+        "contact_sheet_sha256": "51ecd8e38d48f72e4c4a4bcd4928243538f6f6adc293df03f3a899ec4736b8a2",
+        "heatmap": "artifacts/migration/cycle127-pixels4/compare-native/heatmap.png",
+        "heatmap_sha256": "c1bb53408b963129871e6db4693a71fdc645828628cdbc6e34c7a561382d71ab"
+      }
+    },
+    {
+      "case_id": "native-project-layer-text",
+      "frame": 0,
+      "profile": "perceptual",
+      "verdict": "rejected",
+      "residual_class": "shaping-hinting",
+      "reviewed_at": "2026-10-21T05:33:28.417Z",
+      "reference_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "candidate_rgba_sha256": "bcad5fe860d90068ef87ee77d7f95b9facd91124848a21be8ecabd39db500c14",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 153,
+        "mean_abs_error": 0.5022960069444444,
+        "mean_squared_error": 25.460230034722223,
+        "rgb_mean_squared_error": 29.649334490740742,
+        "psnr": {
+          "kind": "finite",
+          "db": 33.41065411236522
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 34.072180376555686
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 138,
+        "error_component_count": 84,
+        "signed_bias": [
+          -0.19880208333333332,
+          -0.20369791666666667,
+          -0.21109375,
+          -0.1724652777777778
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 967,
+        "alpha_changed_fraction": 0.016788194444444446,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "candidate": {
+            "min_x": 91,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "edge_deltas": [
+            1,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": false
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": false
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Contact sheet and heatmap inspected directly. Glyph edge coverage differs systematically; failed numerical limits prohibit native admission.",
+      "evidence": {
+        "report": "artifacts/migration/cycle127-pixels5/compare-native/report.json",
+        "sha256": "1996ead37f3422a077e5f517a013c1018544fa3eb0228804ee3a20a52e4a2702",
+        "contact_sheet": "artifacts/migration/cycle127-pixels5/compare-native/contact-sheet.png",
+        "contact_sheet_sha256": "eadd4073533a044a8fdc967cce458c67e90f6eca86ceffcb4896b4cb045d6700",
+        "heatmap": "artifacts/migration/cycle127-pixels5/compare-native/heatmap.png",
+        "heatmap_sha256": "6da2b0bc811234d0dded4fa01f03749bf67b2a1cfec8362e6f41227dd40f5d6a"
+      }
+    },
+    {
+      "case_id": "native-project-layer-text",
+      "frame": 0,
+      "profile": "perceptual",
+      "verdict": "rejected",
+      "residual_class": "shaping-hinting",
+      "reviewed_at": "2026-10-21T05:33:28.426Z",
+      "reference_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "candidate_rgba_sha256": "b64ca7cbb16ce773f621844d92f0212648f622135b36281afc7773fc402fdbf4",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 147,
+        "mean_abs_error": 0.47495225694444443,
+        "mean_squared_error": 21.23470920138889,
+        "rgb_mean_squared_error": 24.734548611111112,
+        "psnr": {
+          "kind": "finite",
+          "db": 34.19776371677813
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 34.86034042943939
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 127,
+        "error_component_count": 95,
+        "signed_bias": [
+          -0.18631944444444445,
+          -0.19013888888888889,
+          -0.19708333333333333,
+          -0.1739409722222222
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 960,
+        "alpha_changed_fraction": 0.016666666666666666,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "candidate": {
+            "min_x": 91,
+            "min_y": 57,
+            "max_x": 226,
+            "max_y": 116
+          },
+          "edge_deltas": [
+            1,
+            0,
+            -1,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": false
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": false
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Contact sheet and heatmap inspected directly. Glyph edge coverage differs systematically; failed numerical limits prohibit native admission.",
+      "evidence": {
+        "report": "artifacts/migration/cycle127-pixels6/compare-native/report.json",
+        "sha256": "394632e02a8e2cf2d875d69566513e240d72ac4fb5199fcd3e51088bc27a1186",
+        "contact_sheet": "artifacts/migration/cycle127-pixels6/compare-native/contact-sheet.png",
+        "contact_sheet_sha256": "a007a52e17fd2de2c29a8c8f7f095ed815ab5c5e0368290a6578b0ec6cd959d4",
+        "heatmap": "artifacts/migration/cycle127-pixels6/compare-native/heatmap.png",
+        "heatmap_sha256": "b55d80e58b70c2464ee62c5645b81a0584a404c26521af79d56ba5c2c75c1641"
+      }
+    },
+    {
+      "case_id": "native-project-layer-text",
+      "frame": 0,
+      "profile": "perceptual",
+      "verdict": "rejected",
+      "residual_class": "shaping-hinting",
+      "reviewed_at": "2026-10-21T05:33:28.427Z",
+      "reference_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "candidate_rgba_sha256": "b64ca7cbb16ce773f621844d92f0212648f622135b36281afc7773fc402fdbf4",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 147,
+        "mean_abs_error": 0.47495225694444443,
+        "mean_squared_error": 21.23470920138889,
+        "rgb_mean_squared_error": 24.734548611111112,
+        "psnr": {
+          "kind": "finite",
+          "db": 34.19776371677813
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 34.86034042943939
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 127,
+        "error_component_count": 95,
+        "signed_bias": [
+          -0.18631944444444445,
+          -0.19013888888888889,
+          -0.19708333333333333,
+          -0.1739409722222222
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 960,
+        "alpha_changed_fraction": 0.016666666666666666,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "candidate": {
+            "min_x": 91,
+            "min_y": 57,
+            "max_x": 226,
+            "max_y": 116
+          },
+          "edge_deltas": [
+            1,
+            0,
+            -1,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": false
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": false
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Contact sheet and heatmap inspected directly. Glyph edge coverage differs systematically; failed numerical limits prohibit native admission.",
+      "evidence": {
+        "report": "artifacts/migration/cycle127-pixels7/compare-native/report.json",
+        "sha256": "bebfc4da1b4a09da4488050e96f0f35459f8f93336e5ee57b35e4b366889a282",
+        "contact_sheet": "artifacts/migration/cycle127-pixels7/compare-native/contact-sheet.png",
+        "contact_sheet_sha256": "a007a52e17fd2de2c29a8c8f7f095ed815ab5c5e0368290a6578b0ec6cd959d4",
+        "heatmap": "artifacts/migration/cycle127-pixels7/compare-native/heatmap.png",
+        "heatmap_sha256": "b55d80e58b70c2464ee62c5645b81a0584a404c26521af79d56ba5c2c75c1641"
+      }
+    },
+    {
+      "case_id": "native-project-layer-text",
+      "frame": 0,
+      "profile": "perceptual",
+      "verdict": "rejected",
+      "residual_class": "shaping-hinting",
+      "reviewed_at": "2026-10-21T05:33:28.428Z",
+      "reference_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "candidate_rgba_sha256": "24153d5072d4578112eb679e3a73e4d1d5601948d667ca88166bdb4cdd0c6040",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 76,
+        "mean_abs_error": 0.10006944444444445,
+        "mean_squared_error": 2.4252604166666667,
+        "rgb_mean_squared_error": 0.0011284722222222221,
+        "psnr": {
+          "kind": "finite",
+          "db": 77.60589487648267
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 44.283219822805194
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 72,
+        "error_component_count": 152,
+        "signed_bias": [
+          0.00020833333333333335,
+          0.0005208333333333333,
+          0.00019097222222222223,
+          -0.14189236111111111
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 933,
+        "alpha_changed_fraction": 0.016197916666666666,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "candidate": {
+            "min_x": 91,
+            "min_y": 57,
+            "max_x": 226,
+            "max_y": 116
+          },
+          "edge_deltas": [
+            1,
+            0,
+            -1,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": false
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Contact sheet and heatmap inspected directly. Glyph edge coverage differs systematically; failed numerical limits prohibit native admission.",
+      "evidence": {
+        "report": "artifacts/migration/cycle127-pixels8/compare-native/report.json",
+        "sha256": "ab65a875e9882f6e970aeb000477ecaddbe57bb5ed73cff846e5f947b42ca907",
+        "contact_sheet": "artifacts/migration/cycle127-pixels8/compare-native/contact-sheet.png",
+        "contact_sheet_sha256": "13e6b064375609c838ca258f96c92e7956ee9a22d69aea09d7672b66861e1ea1",
+        "heatmap": "artifacts/migration/cycle127-pixels8/compare-native/heatmap.png",
+        "heatmap_sha256": "dad1c959fc69f1e72fb33cb8e07e6365f8af57347bbb4c6949af37a47bbd7f74"
+      }
+    },
+    {
+      "case_id": "native-project-layer-text",
+      "frame": 0,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "shaping-hinting",
+      "reviewed_at": "2026-10-21T05:33:28.429Z",
+      "reference_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "candidate_rgba_sha256": "5040fec0aba42d9748c46b7e0b43a71542771d625eb0d6b545773b72065c829f",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 50,
+        "mean_abs_error": 0.0361328125,
+        "mean_squared_error": 0.5864713541666666,
+        "rgb_mean_squared_error": 0.0013310185185185185,
+        "psnr": {
+          "kind": "finite",
+          "db": 76.88896262993192
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 50.44833556745725
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 9,
+        "error_component_count": 56,
+        "signed_bias": [
+          -0.0007118055555555556,
+          -0.0003125,
+          -0.0005729166666666667,
+          0.04383680555555555
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 283,
+        "alpha_changed_fraction": 0.004913194444444445,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "candidate": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Contact sheet and heatmap inspected directly. Complete-frame pixels satisfy all limits; residual stroke-edge coverage remains. This accepts only the frame comparison, not isolated-raster or production admission.",
+      "evidence": {
+        "report": "artifacts/migration/cycle127-pixels9/compare-native/report.json",
+        "sha256": "1d3f55b2c7dd010d5ecc5cd2a96ebd8451fe922a7d06bec64d73567b323b0b59",
+        "contact_sheet": "artifacts/migration/cycle127-pixels9/compare-native/contact-sheet.png",
+        "contact_sheet_sha256": "dad8459541d9d4ec43f7579361ecc7b00f3431fb17aa8ff6c4101c4952548fa1",
+        "heatmap": "artifacts/migration/cycle127-pixels9/compare-native/heatmap.png",
+        "heatmap_sha256": "17cddd067284df08e57e70e4663b13f59050e1b5656746dcd9bc068ca752613f"
+      }
+    },
+    {
+      "case_id": "native-project-layer-text",
+      "frame": 0,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "shaping-hinting",
+      "reviewed_at": "2026-10-21T05:33:28.429Z",
+      "reference_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "candidate_rgba_sha256": "5040fec0aba42d9748c46b7e0b43a71542771d625eb0d6b545773b72065c829f",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 50,
+        "mean_abs_error": 0.0361328125,
+        "mean_squared_error": 0.5864713541666666,
+        "rgb_mean_squared_error": 0.0013310185185185185,
+        "psnr": {
+          "kind": "finite",
+          "db": 76.88896262993192
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 50.44833556745725
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 9,
+        "error_component_count": 56,
+        "signed_bias": [
+          -0.0007118055555555556,
+          -0.0003125,
+          -0.0005729166666666667,
+          0.04383680555555555
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 283,
+        "alpha_changed_fraction": 0.004913194444444445,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "candidate": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Contact sheet and heatmap inspected directly. Complete-frame pixels satisfy all limits; residual stroke-edge coverage remains. This accepts only the frame comparison, not isolated-raster or production admission.",
+      "evidence": {
+        "report": "artifacts/migration/cycle127-pixels10/compare-native/report.json",
+        "sha256": "c2d73e283cba3dafc3ba2903ee5866d35a67982e2d65f83442c647721aa6b75e",
+        "contact_sheet": "artifacts/migration/cycle127-pixels10/compare-native/contact-sheet.png",
+        "contact_sheet_sha256": "dad8459541d9d4ec43f7579361ecc7b00f3431fb17aa8ff6c4101c4952548fa1",
+        "heatmap": "artifacts/migration/cycle127-pixels10/compare-native/heatmap.png",
+        "heatmap_sha256": "17cddd067284df08e57e70e4663b13f59050e1b5656746dcd9bc068ca752613f"
+      }
+    },
+    {
+      "case_id": "native-project-text-frame",
+      "frame": 0,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "shaping-hinting",
+      "reviewed_at": "2026-10-21T05:33:28.430Z",
+      "reference_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "candidate_rgba_sha256": "5040fec0aba42d9748c46b7e0b43a71542771d625eb0d6b545773b72065c829f",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 50,
+        "mean_abs_error": 0.0361328125,
+        "mean_squared_error": 0.5864713541666666,
+        "rgb_mean_squared_error": 0.0013310185185185185,
+        "psnr": {
+          "kind": "finite",
+          "db": 76.88896262993192
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 50.44833556745725
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 9,
+        "error_component_count": 56,
+        "signed_bias": [
+          -0.0007118055555555556,
+          -0.0003125,
+          -0.0005729166666666667,
+          0.04383680555555555
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 283,
+        "alpha_changed_fraction": 0.004913194444444445,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "candidate": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected contact sheet and heatmap directly: intact glyphs, positions and colors; all frame limits pass. Companion isolated raster fails coverage and remains unqualified for production.",
+      "evidence": {
+        "report": "artifacts/migration/cycle127-qualification4/0-frame/report.json",
+        "sha256": "20742b43e17b5641a8caf8637a4cfee3a4a19af46ddea1f017baf7f11d986e7d",
+        "contact_sheet": "artifacts/migration/cycle127-qualification4/0-frame/contact-sheet.png",
+        "contact_sheet_sha256": "dad8459541d9d4ec43f7579361ecc7b00f3431fb17aa8ff6c4101c4952548fa1",
+        "heatmap": "artifacts/migration/cycle127-qualification4/0-frame/heatmap.png",
+        "heatmap_sha256": "17cddd067284df08e57e70e4663b13f59050e1b5656746dcd9bc068ca752613f"
+      }
+    },
+    {
+      "case_id": "native-project-text-raster",
+      "frame": 0,
+      "profile": "perceptual",
+      "verdict": "rejected",
+      "residual_class": "shaping-hinting",
+      "reviewed_at": "2026-10-21T05:33:28.431Z",
+      "reference_rgba_sha256": "aee655bd29f622e2ab454c5309fe6b71b11f7be7888d9ad8e9b282ce8e6c0507",
+      "candidate_rgba_sha256": "176b972e437e371d82af821fb51e211a01d9f9083a6c2647910d41143c17f996",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 28000,
+        "max_abs_channel_error": 50,
+        "mean_abs_error": 0.07433035714285714,
+        "mean_squared_error": 1.2064553571428571,
+        "rgb_mean_squared_error": 0.0027380952380952383,
+        "psnr": {
+          "kind": "finite",
+          "db": 73.75631810912199
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 47.31569104664732
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "structural": {
+        "pixel_count": 28000,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 9,
+        "error_component_count": 56,
+        "signed_bias": [
+          -0.0014642857142857142,
+          -0.0006428571428571428,
+          -0.0011785714285714286,
+          0.09017857142857143
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 283,
+        "alpha_changed_fraction": 0.010107142857142858,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 70,
+            "min_y": 17,
+            "max_x": 207,
+            "max_y": 76
+          },
+          "candidate": {
+            "min_x": 70,
+            "min_y": 17,
+            "max_x": 207,
+            "max_y": 76
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": false
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected contact sheet and heatmap directly: stroke-edge alpha differs in 283 of 28000 pixels (1.0107%), above 0.5%. Reject isolated raster; preserve retained TS capability until corrected.",
+      "evidence": {
+        "report": "artifacts/migration/cycle127-qualification4/0-raster/report.json",
+        "sha256": "f1b71a08c7bbac2e5a5845c347593c6c4e2f3b5dbd57bfbf77c86e3e722e89a8",
+        "contact_sheet": "artifacts/migration/cycle127-qualification4/0-raster/contact-sheet.png",
+        "contact_sheet_sha256": "872c428c2087be3990458127a7631ac42883e156d41e53953ec0656a7394d19f",
+        "heatmap": "artifacts/migration/cycle127-qualification4/0-raster/heatmap.png",
+        "heatmap_sha256": "dcc3844e40f99801cb620c14a5a63c08a94ff659ff042dcf309e9aadd793f148"
+      }
+    },
+    {
+      "case_id": "native-project-text-frame",
+      "frame": 15,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "shaping-hinting",
+      "reviewed_at": "2026-10-21T05:33:28.432Z",
+      "reference_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "candidate_rgba_sha256": "5040fec0aba42d9748c46b7e0b43a71542771d625eb0d6b545773b72065c829f",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 50,
+        "mean_abs_error": 0.0361328125,
+        "mean_squared_error": 0.5864713541666666,
+        "rgb_mean_squared_error": 0.0013310185185185185,
+        "psnr": {
+          "kind": "finite",
+          "db": 76.88896262993192
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 50.44833556745725
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 9,
+        "error_component_count": 56,
+        "signed_bias": [
+          -0.0007118055555555556,
+          -0.0003125,
+          -0.0005729166666666667,
+          0.04383680555555555
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 283,
+        "alpha_changed_fraction": 0.004913194444444445,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "candidate": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected contact sheet and heatmap directly: intact glyphs, positions and colors; all frame limits pass. Companion isolated raster fails coverage and remains unqualified for production.",
+      "evidence": {
+        "report": "artifacts/migration/cycle127-qualification4/15-frame/report.json",
+        "sha256": "765f01cac419d02e0384c134bc86e25dc7e5aecd53415ec15cca601b07cb6fc5",
+        "contact_sheet": "artifacts/migration/cycle127-qualification4/15-frame/contact-sheet.png",
+        "contact_sheet_sha256": "dad8459541d9d4ec43f7579361ecc7b00f3431fb17aa8ff6c4101c4952548fa1",
+        "heatmap": "artifacts/migration/cycle127-qualification4/15-frame/heatmap.png",
+        "heatmap_sha256": "17cddd067284df08e57e70e4663b13f59050e1b5656746dcd9bc068ca752613f"
+      }
+    },
+    {
+      "case_id": "native-project-text-raster",
+      "frame": 15,
+      "profile": "perceptual",
+      "verdict": "rejected",
+      "residual_class": "shaping-hinting",
+      "reviewed_at": "2026-10-21T05:33:28.432Z",
+      "reference_rgba_sha256": "aee655bd29f622e2ab454c5309fe6b71b11f7be7888d9ad8e9b282ce8e6c0507",
+      "candidate_rgba_sha256": "176b972e437e371d82af821fb51e211a01d9f9083a6c2647910d41143c17f996",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 28000,
+        "max_abs_channel_error": 50,
+        "mean_abs_error": 0.07433035714285714,
+        "mean_squared_error": 1.2064553571428571,
+        "rgb_mean_squared_error": 0.0027380952380952383,
+        "psnr": {
+          "kind": "finite",
+          "db": 73.75631810912199
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 47.31569104664732
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "structural": {
+        "pixel_count": 28000,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 9,
+        "error_component_count": 56,
+        "signed_bias": [
+          -0.0014642857142857142,
+          -0.0006428571428571428,
+          -0.0011785714285714286,
+          0.09017857142857143
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 283,
+        "alpha_changed_fraction": 0.010107142857142858,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 70,
+            "min_y": 17,
+            "max_x": 207,
+            "max_y": 76
+          },
+          "candidate": {
+            "min_x": 70,
+            "min_y": 17,
+            "max_x": 207,
+            "max_y": 76
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": false
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected contact sheet and heatmap directly: stroke-edge alpha differs in 283 of 28000 pixels (1.0107%), above 0.5%. Reject isolated raster; preserve retained TS capability until corrected.",
+      "evidence": {
+        "report": "artifacts/migration/cycle127-qualification4/15-raster/report.json",
+        "sha256": "da94b1f25a396ac3050304268e3a5a9932aa0da17ea2750ceef6289189b732e5",
+        "contact_sheet": "artifacts/migration/cycle127-qualification4/15-raster/contact-sheet.png",
+        "contact_sheet_sha256": "872c428c2087be3990458127a7631ac42883e156d41e53953ec0656a7394d19f",
+        "heatmap": "artifacts/migration/cycle127-qualification4/15-raster/heatmap.png",
+        "heatmap_sha256": "dcc3844e40f99801cb620c14a5a63c08a94ff659ff042dcf309e9aadd793f148"
+      }
+    },
+    {
+      "case_id": "native-project-text-frame",
+      "frame": 30,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "shaping-hinting",
+      "reviewed_at": "2026-10-21T05:33:28.433Z",
+      "reference_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "candidate_rgba_sha256": "5040fec0aba42d9748c46b7e0b43a71542771d625eb0d6b545773b72065c829f",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 50,
+        "mean_abs_error": 0.0361328125,
+        "mean_squared_error": 0.5864713541666666,
+        "rgb_mean_squared_error": 0.0013310185185185185,
+        "psnr": {
+          "kind": "finite",
+          "db": 76.88896262993192
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 50.44833556745725
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 9,
+        "error_component_count": 56,
+        "signed_bias": [
+          -0.0007118055555555556,
+          -0.0003125,
+          -0.0005729166666666667,
+          0.04383680555555555
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 283,
+        "alpha_changed_fraction": 0.004913194444444445,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "candidate": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected contact sheet and heatmap directly: intact glyphs, positions and colors; all frame limits pass. Companion isolated raster fails coverage and remains unqualified for production.",
+      "evidence": {
+        "report": "artifacts/migration/cycle127-qualification4/30-frame/report.json",
+        "sha256": "28dc48942cc89fb5e50103a5c4ba883ae83b615046eb943c294effefc4c0af83",
+        "contact_sheet": "artifacts/migration/cycle127-qualification4/30-frame/contact-sheet.png",
+        "contact_sheet_sha256": "dad8459541d9d4ec43f7579361ecc7b00f3431fb17aa8ff6c4101c4952548fa1",
+        "heatmap": "artifacts/migration/cycle127-qualification4/30-frame/heatmap.png",
+        "heatmap_sha256": "17cddd067284df08e57e70e4663b13f59050e1b5656746dcd9bc068ca752613f"
+      }
+    },
+    {
+      "case_id": "native-project-text-raster",
+      "frame": 30,
+      "profile": "perceptual",
+      "verdict": "rejected",
+      "residual_class": "shaping-hinting",
+      "reviewed_at": "2026-10-21T05:33:28.439Z",
+      "reference_rgba_sha256": "aee655bd29f622e2ab454c5309fe6b71b11f7be7888d9ad8e9b282ce8e6c0507",
+      "candidate_rgba_sha256": "176b972e437e371d82af821fb51e211a01d9f9083a6c2647910d41143c17f996",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 28000,
+        "max_abs_channel_error": 50,
+        "mean_abs_error": 0.07433035714285714,
+        "mean_squared_error": 1.2064553571428571,
+        "rgb_mean_squared_error": 0.0027380952380952383,
+        "psnr": {
+          "kind": "finite",
+          "db": 73.75631810912199
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 47.31569104664732
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "structural": {
+        "pixel_count": 28000,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 9,
+        "error_component_count": 56,
+        "signed_bias": [
+          -0.0014642857142857142,
+          -0.0006428571428571428,
+          -0.0011785714285714286,
+          0.09017857142857143
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 283,
+        "alpha_changed_fraction": 0.010107142857142858,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 70,
+            "min_y": 17,
+            "max_x": 207,
+            "max_y": 76
+          },
+          "candidate": {
+            "min_x": 70,
+            "min_y": 17,
+            "max_x": 207,
+            "max_y": 76
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": false
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected contact sheet and heatmap directly: stroke-edge alpha differs in 283 of 28000 pixels (1.0107%), above 0.5%. Reject isolated raster; preserve retained TS capability until corrected.",
+      "evidence": {
+        "report": "artifacts/migration/cycle127-qualification4/30-raster/report.json",
+        "sha256": "da7b44de0c4d4a8b7d7c0a028b7ea05a7f87c58c1774182e7530011a6bf35934",
+        "contact_sheet": "artifacts/migration/cycle127-qualification4/30-raster/contact-sheet.png",
+        "contact_sheet_sha256": "872c428c2087be3990458127a7631ac42883e156d41e53953ec0656a7394d19f",
+        "heatmap": "artifacts/migration/cycle127-qualification4/30-raster/heatmap.png",
+        "heatmap_sha256": "dcc3844e40f99801cb620c14a5a63c08a94ff659ff042dcf309e9aadd793f148"
+      }
+    },
+    {
+      "case_id": "native-project-text-frame",
+      "frame": 59,
+      "profile": "perceptual",
+      "verdict": "accepted",
+      "residual_class": "shaping-hinting",
+      "reviewed_at": "2026-10-21T05:33:28.440Z",
+      "reference_rgba_sha256": "8fdc37d6b2170790cb06623a25f511a91389fdb82a360aa9ac90aec5f78096dd",
+      "candidate_rgba_sha256": "5040fec0aba42d9748c46b7e0b43a71542771d625eb0d6b545773b72065c829f",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 50,
+        "mean_abs_error": 0.0361328125,
+        "mean_squared_error": 0.5864713541666666,
+        "rgb_mean_squared_error": 0.0013310185185185185,
+        "psnr": {
+          "kind": "finite",
+          "db": 76.88896262993192
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 50.44833556745725
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 9,
+        "error_component_count": 56,
+        "signed_bias": [
+          -0.0007118055555555556,
+          -0.0003125,
+          -0.0005729166666666667,
+          0.04383680555555555
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 283,
+        "alpha_changed_fraction": 0.004913194444444445,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "candidate": {
+            "min_x": 90,
+            "min_y": 57,
+            "max_x": 227,
+            "max_y": 116
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": true
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected contact sheet and heatmap directly: intact glyphs, positions and colors; all frame limits pass. Companion isolated raster fails coverage and remains unqualified for production.",
+      "evidence": {
+        "report": "artifacts/migration/cycle127-qualification4/59-frame/report.json",
+        "sha256": "1f66a91a8f86fdf991a0780544075e2a3f1020022942f4b095a81ecede945814",
+        "contact_sheet": "artifacts/migration/cycle127-qualification4/59-frame/contact-sheet.png",
+        "contact_sheet_sha256": "dad8459541d9d4ec43f7579361ecc7b00f3431fb17aa8ff6c4101c4952548fa1",
+        "heatmap": "artifacts/migration/cycle127-qualification4/59-frame/heatmap.png",
+        "heatmap_sha256": "17cddd067284df08e57e70e4663b13f59050e1b5656746dcd9bc068ca752613f"
+      }
+    },
+    {
+      "case_id": "native-project-text-raster",
+      "frame": 59,
+      "profile": "perceptual",
+      "verdict": "rejected",
+      "residual_class": "shaping-hinting",
+      "reviewed_at": "2026-10-21T05:33:28.441Z",
+      "reference_rgba_sha256": "aee655bd29f622e2ab454c5309fe6b71b11f7be7888d9ad8e9b282ce8e6c0507",
+      "candidate_rgba_sha256": "176b972e437e371d82af821fb51e211a01d9f9083a6c2647910d41143c17f996",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 28000,
+        "max_abs_channel_error": 50,
+        "mean_abs_error": 0.07433035714285714,
+        "mean_squared_error": 1.2064553571428571,
+        "rgb_mean_squared_error": 0.0027380952380952383,
+        "psnr": {
+          "kind": "finite",
+          "db": 73.75631810912199
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 47.31569104664732
+        },
+        "channel_tolerance": null,
+        "pixels_above_tolerance": null
+      },
+      "structural": {
+        "pixel_count": 28000,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 9,
+        "error_component_count": 56,
+        "signed_bias": [
+          -0.0014642857142857142,
+          -0.0006428571428571428,
+          -0.0011785714285714286,
+          0.09017857142857143
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 283,
+        "alpha_changed_fraction": 0.010107142857142858,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "reference": {
+            "min_x": 70,
+            "min_y": 17,
+            "max_x": 207,
+            "max_y": 76
+          },
+          "candidate": {
+            "min_x": 70,
+            "min_y": 17,
+            "max_x": 207,
+            "max_y": 76
+          },
+          "edge_deltas": [
+            0,
+            0,
+            0,
+            0
+          ],
+          "same_emptiness": true
+        }
+      },
+      "checks": [
+        {
+          "id": "psnr",
+          "passed": true
+        },
+        {
+          "id": "ssim",
+          "passed": true
+        },
+        {
+          "id": "error_clusters",
+          "passed": true
+        },
+        {
+          "id": "signed_bias",
+          "passed": true
+        },
+        {
+          "id": "alpha_coverage",
+          "passed": false
+        },
+        {
+          "id": "registration",
+          "passed": true
+        },
+        {
+          "id": "ink_bounds",
+          "passed": true
+        }
+      ],
+      "inspection": "Inspected contact sheet and heatmap directly: stroke-edge alpha differs in 283 of 28000 pixels (1.0107%), above 0.5%. Reject isolated raster; preserve retained TS capability until corrected.",
+      "evidence": {
+        "report": "artifacts/migration/cycle127-qualification4/59-raster/report.json",
+        "sha256": "79b7c9c47690d6a046c54f97a7a33ed54e25910eda63a9123aa9c958ed695e33",
+        "contact_sheet": "artifacts/migration/cycle127-qualification4/59-raster/contact-sheet.png",
+        "contact_sheet_sha256": "872c428c2087be3990458127a7631ac42883e156d41e53953ec0656a7394d19f",
+        "heatmap": "artifacts/migration/cycle127-qualification4/59-raster/heatmap.png",
+        "heatmap_sha256": "dcc3844e40f99801cb620c14a5a63c08a94ff659ff042dcf309e9aadd793f148"
+      }
     }
   ],
   "history": [
@@ -2441861,18 +2443886,12 @@
     }
   ],
   "active_cycle": {
-    "id": 126,
+    "id": 127,
     "milestone": "M10",
     "task": "M10-T7",
-    "started_at": "2026-10-21T03:32:57.147Z",
-    "updated_at": "2026-10-21T04:46:09.532Z",
-    "implementation_state": "committed",
-    "outcome": "passed",
-    "commit": "79402fe0902f1ae866b477cdd7d5fe8e438b220d",
-    "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T03-51-05-370Z-3258a27d.json",
-      "sha256": "1b56cbe5e13b480f71125d8cd89e4edc3671aed48c3ac5dff480ae661f4b4cfa"
-    }
+    "started_at": "2026-10-21T04:47:06.964Z",
+    "updated_at": "2026-10-21T06:26:33.399Z",
+    "implementation_state": "full_verification_running"
   },
   "execution_pause": {
     "requested_by": "owner",

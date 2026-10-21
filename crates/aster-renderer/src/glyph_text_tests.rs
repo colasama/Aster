@@ -92,6 +92,7 @@ impl GlyphFixture {
                         size_bits: 16.0_f32.to_bits(),
                         phase_bits: [0; 2],
                         hinting: GlyphHinting::None,
+                        coverage: aster_text::GlyphCoverage::Linear,
                         stroke_bits: None,
                         foreground: [255; 4],
                         prefer_bitmap: true,

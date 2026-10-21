@@ -15,6 +15,7 @@ impl GlyphRasterRequest {
             size: 20.0,
             phase: [0.0; 2],
             hinting: GlyphHinting::None,
+            coverage: crate::GlyphCoverage::Linear,
             paint: GlyphPaint::Fill,
             foreground: [255; 4],
             prefer_bitmap: true,
@@ -47,6 +48,13 @@ fn outlines_preserve_fractional_origin_stroke_coverage_and_space_advance()
             );
         }
     }
+    request.coverage = crate::GlyphCoverage::CanvasSrgb;
+    let canvas = raster.rasterize(&font, &request)?;
+    assert_ne!(canvas.key, shifted.key);
+    assert_ne!(canvas.data, shifted.data);
+    assert!(Arc::ptr_eq(&canvas, &raster.rasterize(&font, &request)?));
+    request.coverage = crate::GlyphCoverage::Linear;
+    assert!(Arc::ptr_eq(&shifted, &raster.rasterize(&font, &request)?));
     request.phase = [0.0; 2];
     request.paint = GlyphPaint::Stroke { width: 2.0 };
     let stroke = raster.rasterize(&font, &request)?;
@@ -70,7 +78,7 @@ fn raster_keys_and_limits_prevent_wrong_reuse_and_unbounded_work()
     let font = ShapingFixture::font("Keys", &[(65, 2)])?;
     let base = GlyphRasterRequest::fixture();
     let key = base.key(&font)?;
-    for change in 0..6 {
+    for change in 0..7 {
         let mut changed = base.clone();
         match change {
             0 => changed.size += 0.25,
@@ -78,6 +86,7 @@ fn raster_keys_and_limits_prevent_wrong_reuse_and_unbounded_work()
             2 => changed.hinting = GlyphHinting::Vertical,
             3 => changed.paint = GlyphPaint::Stroke { width: 1.0 },
             4 => changed.foreground[0] = 0,
+            5 => changed.coverage = crate::GlyphCoverage::CanvasSrgb,
             _ => changed.prefer_bitmap = false,
         }
         assert_ne!(key, changed.key(&font)?);

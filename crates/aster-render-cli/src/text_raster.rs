@@ -113,6 +113,7 @@ impl RasterAudit {
                     } else {
                         GlyphHinting::None
                     },
+                    coverage: aster_text::GlyphCoverage::Linear,
                     paint: if mode == "stroke" {
                         GlyphPaint::Stroke { width: 2.0 }
                     } else {

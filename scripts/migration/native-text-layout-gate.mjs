@@ -6,6 +6,7 @@ import { build, preview } from "vite";
 import { decodeRgbaPng } from "../parity/png.mjs";
 import { sha256 } from "./m0-evidence.mjs";
 import { runNativeProjectTextGate } from "./native-project-text-gate.mjs";
+import { runNativeProjectTextPixels } from "./native-project-text-pixels.mjs";
 import { assertTextLayoutPair } from "./native-text-layout-audit.mjs";
 import { runNativeTextShapingGate } from "./native-text-shaping-gate.mjs";
 import { runStep } from "./process.mjs";
@@ -245,6 +246,19 @@ export async function runNativeTextLayoutGate(context, execute = runStep, option
         report.native_project_preparation.status,
         "passed",
         "Authored native text preparation failed",
+      );
+    }
+    if (context.milestone === "M10" && !options.cases) {
+      report.native_project_pixels = await runNativeProjectTextPixels(
+        { ...context, output: join(context.output, "native-project-pixels") },
+        context.output,
+        options.binary,
+        execute,
+      );
+      assert.equal(
+        report.native_project_pixels.status,
+        "passed",
+        "Authored text pixel qualification failed",
       );
     }
     report.source_after = await sourceProvenance(context.root);

@@ -66,6 +66,7 @@ export async function runNativeProjectTextGate(context, observationRoot, execute
         file: "cargo",
         args: [
           "test",
+          "--release",
           "-p",
           "aster-render-project",
           "--test",

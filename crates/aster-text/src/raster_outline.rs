@@ -39,7 +39,7 @@ impl OutlineRaster {
             .iter()
             .map(|(tag, bits)| (skrifa::raw::types::Tag::new(tag), f32::from_bits(*bits)));
         let location = face.axes().location(variations);
-        let hinting = if request.hinting == GlyphHinting::None {
+        let hinting = if matches!(request.hinting, GlyphHinting::None | GlyphHinting::Platform) {
             Hinting::None
         } else {
             Hinting::Embedded
@@ -88,7 +88,7 @@ impl OutlineRaster {
         let mut stroke;
         if let GlyphPaint::Stroke { width } = request.paint {
             stroke = Stroke::new(width);
-            stroke.join(Join::Round);
+            stroke.join(Join::Round).miter_limit(2.);
             mask.style(stroke);
         }
         let mut dimensions = [0, 0];
@@ -102,6 +102,60 @@ impl OutlineRaster {
         image.width = placement.width;
         image.height = placement.height;
         image.origin = [placement.left, placement.top];
+        if request.hinting == GlyphHinting::Platform {
+            let sample_width = image
+                .width
+                .checked_mul(4)
+                .ok_or(GlyphRasterError::Limit("stroke sample width"))?;
+            let sample_bytes = (sample_width as usize)
+                .checked_mul(image.height as usize)
+                .filter(|n| *n <= config.max_outline_scratch)
+                .ok_or(GlyphRasterError::Limit("stroke filter scratch"))?;
+            let output_width = image
+                .width
+                .checked_add(2)
+                .ok_or(GlyphRasterError::Limit("stroke filter width"))?;
+            let output_bytes = config.image_bytes(output_width, image.height, 1)?;
+            let mut samples = vec![0; sample_bytes];
+            mask.transform(Some(zeno::Transform::scale(4., 1.)))
+                .size(sample_width, image.height)
+                .offset([0., 0.])
+                .render_offset([
+                    (request.phase[0] - placement.left as f32) * 4.,
+                    request.phase[1] - placement.top as f32,
+                ]);
+            mask.render_into(&mut samples, None);
+            let weights = [
+                [3u32, 11, 28, 51, 64, 57, 36, 16, 5, 1, 0, 0],
+                [0, 2, 8, 22, 43, 61, 61, 43, 22, 8, 2, 0],
+                [0, 0, 1, 5, 16, 36, 57, 64, 51, 28, 11, 3],
+            ];
+            let mut filtered = vec![0; output_bytes];
+            for y in 0..image.height as usize {
+                for x in 0..output_width as usize {
+                    let start = x as i64 * 4 - 8;
+                    let mut channels = [0u32; 3];
+                    for (channel, coefficients) in channels.iter_mut().zip(&weights) {
+                        for (tap, weight) in coefficients.iter().enumerate() {
+                            let source = start + tap as i64;
+                            if source >= 0 && source < sample_width as i64 {
+                                let value =
+                                    u32::from(samples[y * sample_width as usize + source as usize]);
+                                *channel += value * weight;
+                            }
+                        }
+                    }
+                    filtered[y * output_width as usize + x] = (channels
+                        .into_iter()
+                        .map(|v| (v / 256).min(255))
+                        .sum::<u32>()
+                        / 3) as u8;
+                }
+            }
+            image.data = filtered;
+            image.width = output_width;
+            image.origin[0] -= 1;
+        }
         Ok(())
     }
 
