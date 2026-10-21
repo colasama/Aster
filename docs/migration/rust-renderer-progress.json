@@ -371,13 +371,39 @@
   },
   "last_cycle": {
     "id": 127,
-    "time": "2026-10-21T04:47:06.964Z",
-    "updated_at": "2026-10-21T06:26:33.399Z",
+    "time": "2026-10-21T07:02:13.102Z",
+    "updated_at": "2026-10-21T07:02:13.102Z",
     "milestone": "M10",
     "task": "M10-T7",
     "increment": "authored-text-pixels",
-    "outcome": "in_progress",
-    "next_step": "Repeat full M10 verification after the default comparator-path repair. Production routing and isolated stroke acceptance remain open."
+    "outcome": "passed",
+    "commit": "323af2e059024cebd3e6c81016d7bd92c24668c6",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-21T06-26-35-910Z-a3ad85b3.json",
+      "sha256": "4a4a382290e4e0c91cbbf5ff0827870e17a98e414a655ae02610d0d19132f22f"
+    },
+    "gates": [
+      {
+        "id": "G0",
+        "status": "passed",
+        "duration_ms": 257488,
+        "proof": {
+          "path": "artifacts/migration/2026-10-21T06-26-35-910Z-a3ad85b3/static-results.json",
+          "sha256": "63f51dd88c8f9f24ef0d283ec39d316aa895dfe8d2b55b612825f99f28fffc10"
+        }
+      },
+      {
+        "id": "G3",
+        "status": "passed",
+        "duration_ms": 1840178,
+        "proof": {
+          "path": "artifacts/migration/2026-10-21T06-26-35-910Z-a3ad85b3/G3/report.json",
+          "sha256": "0ff32a15ed79258bc2a57493c79505a3b66c2ae3b6571166438cb3045b9accff"
+        }
+      }
+    ],
+    "duration_ms": 2100344,
+    "next_step": "Continue M10-T7 with actual GPU layer output qualification for fill-only text and exact retained stroke/affine capability. Partition retained requests only after native acceptance; keep temporal sample, union-bounds and selector-layout identities."
   },
   "milestones": [
     {
@@ -24818,12 +24844,12 @@
             }
           ],
           "preparation": {
-            "path": "artifacts/migration/cycle126-routing-preparation.json",
-            "sha256": "9d9f5109dbc12efd81948a512df10a04377d4cf861b15c7648cd4d5c29f2f0f1",
-            "status": "read_only_preparation; actual native text pixel acceptance and production acquisition remain pending"
+            "path": "artifacts/migration/cycle127-routing-preparation.json",
+            "sha256": "c2f0194fa015debb718db82c17be304e1c0ac925c31203c29c84f629c21af522",
+            "status": "read_only_preparation; production routing remains pending"
           },
           "progress": {
-            "state": "verifying_platform_coverage_and_isolated_raster_qualification",
+            "state": "authored_pixel_diagnostic_verified_native_admission_pending",
             "increments": [
               {
                 "id": "gpu-frame-admission",
@@ -24850,7 +24876,16 @@
               {
                 "id": "authored-text-pixels",
                 "status": "in_progress",
-                "scope": "Render actual authored text through native glyph recipes without CPU text pixels, compare with authenticated frozen TS output, and resolve raster differences before production admission."
+                "scope": "Render actual authored text through native glyph recipes without CPU text pixels, compare with authenticated frozen TS output, and resolve raster differences before production admission.",
+                "latest_verified_partial": {
+                  "cycle": 127,
+                  "scope": "Bounded Windows fill coverage and authenticated authored frame/raster qualification; isolated stroke coverage remains rejected.",
+                  "commit": "323af2e059024cebd3e6c81016d7bd92c24668c6",
+                  "verification": {
+                    "path": "artifacts/migration/verify-2026-10-21T06-26-35-910Z-a3ad85b3.json",
+                    "sha256": "4a4a382290e4e0c91cbbf5ff0827870e17a98e414a655ae02610d0d19132f22f"
+                  }
+                }
               },
               {
                 "id": "production-routing",
@@ -24901,70 +24936,101 @@
               "status": "recovered_without_source_or_evidence_changes"
             },
             "latest_verified_increment": {
-              "cycle": 126,
-              "commit": "79402fe0902f1ae866b477cdd7d5fe8e438b220d",
+              "cycle": 127,
+              "commit": "323af2e059024cebd3e6c81016d7bd92c24668c6",
               "verification": {
-                "path": "artifacts/migration/verify-2026-10-21T03-51-05-370Z-3258a27d.json",
-                "sha256": "1b56cbe5e13b480f71125d8cd89e4edc3671aed48c3ac5dff480ae661f4b4cfa"
+                "path": "artifacts/migration/verify-2026-10-21T06-26-35-910Z-a3ad85b3.json",
+                "sha256": "4a4a382290e4e0c91cbbf5ff0827870e17a98e414a655ae02610d0d19132f22f"
               },
               "gates": [
                 {
                   "id": "G0",
                   "status": "passed",
-                  "duration_ms": 405660,
+                  "duration_ms": 257488,
                   "proof": {
-                    "path": "artifacts/migration/2026-10-21T03-51-05-370Z-3258a27d/static-results.json",
-                    "sha256": "66702a594e2fd1ce572cc3288b816f2d78c5fbed177df0e703fad75cc11fb2dc"
+                    "path": "artifacts/migration/2026-10-21T06-26-35-910Z-a3ad85b3/static-results.json",
+                    "sha256": "63f51dd88c8f9f24ef0d283ec39d316aa895dfe8d2b55b612825f99f28fffc10"
                   }
                 },
                 {
                   "id": "G3",
                   "status": "passed",
-                  "duration_ms": 2676261,
+                  "duration_ms": 1840178,
                   "proof": {
-                    "path": "artifacts/migration/2026-10-21T03-51-05-370Z-3258a27d/G3/report.json",
-                    "sha256": "1c18fcfd34dea74114e555a03c351757aa378753684654fe9215b495a636a143"
+                    "path": "artifacts/migration/2026-10-21T06-26-35-910Z-a3ad85b3/G3/report.json",
+                    "sha256": "0ff32a15ed79258bc2a57493c79505a3b66c2ae3b6571166438cb3045b9accff"
                   }
                 }
               ],
-              "duration_ms": 3084507,
+              "duration_ms": 2100344,
               "primary_pixel_frames": 1315,
               "project_text_preparation": {
-                "status": "passed",
-                "cases": [
-                  {
-                    "id": "layer-text",
-                    "project_sha256": "23c131a111c534019f5f5ce6579ff02a5a18c6900eba10d7dfc4ffcec2fe01ef",
-                    "requests": 70
-                  },
-                  {
-                    "id": "scene-motion-blur",
-                    "project_sha256": "3ed366ab49fea7c1c2c3ce5e5f0be662a6156e354dfe208192afbae4040cc9b7",
-                    "requests": 70
-                  },
-                  {
-                    "id": "scene-text-animators",
-                    "project_sha256": "0b5900c0ce12b71fb5a18d953da995704f8f8838c9843c483e6a11159936cdb0",
-                    "requests": 70
-                  }
-                ],
                 "comparisons": 210,
                 "maxima": {
                   "advance": 0,
                   "baseline": 0,
                   "transform": 0.000007533039678264686
-                },
-                "report": {
-                  "path": "artifacts/migration/2026-10-21T03-51-05-370Z-3258a27d/G3/native-text-layout/native-project-preparation/report.json",
-                  "sha256": "a76d052549af413e68f8464a1a9a8502eb278ed973b3e6401d8f0682e95dfbbc"
-                },
-                "native_text_pixel_acceptance": false,
-                "production_routing": false
+                }
               },
-              "glyph_composite": {
-                "status": "passed",
-                "frames": 6
-              }
+              "authored_text_pixels": {
+                "comparisons": 8,
+                "accepted_frames": 4,
+                "rejected_isolated_rasters": 4,
+                "qualified": false,
+                "report": {
+                  "evidence": "artifacts/migration/2026-10-21T06-26-35-910Z-a3ad85b3/G3/native-text-layout/native-project-pixels/report.json",
+                  "sha256": "ea0f4f784f6b3ece1b114ff630b98d1d95561b69067526ce0ee3ff8dfa9bc0c9",
+                  "evidence_status": "passed",
+                  "frame_pairs": 4,
+                  "isolated_raster_pairs": 4,
+                  "qualified": false,
+                  "native_text_acceptance": false,
+                  "retained_requirements": [
+                    {
+                      "composition": "cbecb430-111c-47f0-a78d-4f90b7a201eb",
+                      "layer": "f6bd3659-66bc-49d0-a30b-c2779bc8fa7b",
+                      "frame": 0,
+                      "scope": "raster",
+                      "failed_checks": [
+                        "alpha_coverage"
+                      ],
+                      "reason": "Authored raster pixel qualification failed; production must retain TS text for this capability."
+                    },
+                    {
+                      "composition": "cbecb430-111c-47f0-a78d-4f90b7a201eb",
+                      "layer": "f6bd3659-66bc-49d0-a30b-c2779bc8fa7b",
+                      "frame": 15,
+                      "scope": "raster",
+                      "failed_checks": [
+                        "alpha_coverage"
+                      ],
+                      "reason": "Authored raster pixel qualification failed; production must retain TS text for this capability."
+                    },
+                    {
+                      "composition": "cbecb430-111c-47f0-a78d-4f90b7a201eb",
+                      "layer": "f6bd3659-66bc-49d0-a30b-c2779bc8fa7b",
+                      "frame": 30,
+                      "scope": "raster",
+                      "failed_checks": [
+                        "alpha_coverage"
+                      ],
+                      "reason": "Authored raster pixel qualification failed; production must retain TS text for this capability."
+                    },
+                    {
+                      "composition": "cbecb430-111c-47f0-a78d-4f90b7a201eb",
+                      "layer": "f6bd3659-66bc-49d0-a30b-c2779bc8fa7b",
+                      "frame": 59,
+                      "scope": "raster",
+                      "failed_checks": [
+                        "alpha_coverage"
+                      ],
+                      "reason": "Authored raster pixel qualification failed; production must retain TS text for this capability."
+                    }
+                  ],
+                  "next_step": "Qualify fill-only native GPU layer outputs and enforce retained stroke/affine capability before production routing."
+                }
+              },
+              "production_routing": false
             },
             "storage_preflight": {
               "cycle": 126,
@@ -25001,12 +25067,14 @@
               "sha256": "f10e51dc949f7bdacdbb830f8a4dee5b0cbda75f9f09bdfb7e94c8a5cbb13ee6"
             },
             "quota_observation": {
-              "path": "artifacts/migration/cycle126-quota-observation.json",
-              "sha256": "5d7b2f532d31fe8245a02ea93ebb43a6055902c3477c36816a6e490e7f502dca",
-              "remaining_percent": 56
+              "path": "artifacts/migration/cycle127-quota-observation-0700.json",
+              "sha256": "dc7d2bec29e02fc35a477454069d2528adad903498dde6a889718ec364d5cb18",
+              "remaining_percent": 48
             },
             "authored_pixel_qualification": {
-              "evidence": "artifacts/migration/cycle127-qualification5/report.json",
+              "evidence": "artifacts/migration/2026-10-21T06-26-35-910Z-a3ad85b3/G3/native-text-layout/native-project-pixels/report.json",
+              "sha256": "ea0f4f784f6b3ece1b114ff630b98d1d95561b69067526ce0ee3ff8dfa9bc0c9",
+              "evidence_status": "passed",
               "frame_pairs": 4,
               "isolated_raster_pairs": 4,
               "qualified": false,
@@ -25053,9 +25121,7 @@
                   "reason": "Authored raster pixel qualification failed; production must retain TS text for this capability."
                 }
               ],
-              "next_step": "Preserve exact stroke capability fallback when production routing is activated; qualify unstroked and transformed native text separately.",
-              "sha256": "9e1f83cb8e6f0c22f2fb82bbd7c205054350bbb85c18b808e1b242eb09b243ba",
-              "evidence_status": "passed"
+              "next_step": "Qualify fill-only native GPU layer outputs and enforce retained stroke/affine capability before production routing."
             },
             "focused_platform_coverage": {
               "preparation": {
@@ -25106,8 +25172,8 @@
       ],
       "started_at": "2026-10-20T20:25:14.937Z",
       "latest_verification": {
-        "path": "artifacts/migration/verify-2026-10-21T03-51-05-370Z-3258a27d.json",
-        "sha256": "1b56cbe5e13b480f71125d8cd89e4edc3671aed48c3ac5dff480ae661f4b4cfa"
+        "path": "artifacts/migration/verify-2026-10-21T06-26-35-910Z-a3ad85b3.json",
+        "sha256": "4a4a382290e4e0c91cbbf5ff0827870e17a98e414a655ae02610d0d19132f22f"
       }
     },
     {
@@ -2443665,6 +2443731,20 @@
         "sha256": "1b56cbe5e13b480f71125d8cd89e4edc3671aed48c3ac5dff480ae661f4b4cfa"
       },
       "milestone_exit_satisfied": false
+    },
+    {
+      "cycle": 127,
+      "time": "2026-10-21T07:02:13.102Z",
+      "milestone": "M10",
+      "task": "M10-T7",
+      "increment": "authored-text-pixels",
+      "outcome": "passed",
+      "commit": "323af2e059024cebd3e6c81016d7bd92c24668c6",
+      "verification": {
+        "path": "artifacts/migration/verify-2026-10-21T06-26-35-910Z-a3ad85b3.json",
+        "sha256": "4a4a382290e4e0c91cbbf5ff0827870e17a98e414a655ae02610d0d19132f22f"
+      },
+      "milestone_exit_satisfied": false
     }
   ],
   "known_boundaries": [
@@ -2443890,8 +2443970,14 @@
     "milestone": "M10",
     "task": "M10-T7",
     "started_at": "2026-10-21T04:47:06.964Z",
-    "updated_at": "2026-10-21T06:26:33.399Z",
-    "implementation_state": "full_verification_running"
+    "updated_at": "2026-10-21T07:02:13.102Z",
+    "implementation_state": "committed",
+    "outcome": "passed",
+    "commit": "323af2e059024cebd3e6c81016d7bd92c24668c6",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-21T06-26-35-910Z-a3ad85b3.json",
+      "sha256": "4a4a382290e4e0c91cbbf5ff0827870e17a98e414a655ae02610d0d19132f22f"
+    }
   },
   "execution_pause": {
     "requested_by": "owner",
