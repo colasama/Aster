@@ -25190,6 +25190,16 @@
               "maximum_channel_error": 1,
               "scope": "Windows ordinary ASCII Arial/Segoe UI outline fills at unit density; other exact capabilities remain retained.",
               "retained_stroke_sessions_exact": 4
+            },
+            "capture_replay": {
+              "cycle": 129,
+              "status": "focused_passed_full_pending",
+              "scope": "Actual resident GPU text pixels in bounded capture/export witnesses; original submitted plan and exact routing preserved; separate-process supplied-plan replay.",
+              "evidence": {
+                "path": "artifacts/migration/cycle129-capture1/report.json",
+                "sha256": "fff89dc44a3e31e309fd6d604f2c7d4e31db91073b66fd1bd443489caab08c27"
+              },
+              "frames": 4
             }
           }
         },
@@ -2444908,20 +2444918,13 @@
     }
   ],
   "active_cycle": {
-    "id": 128,
+    "id": 129,
     "milestone": "M10",
     "task": "M10-T7",
-    "started_at": "2026-10-21T07:07:36.998Z",
-    "implementation_state": "committed",
     "increment": "production-routing",
-    "scope": "Qualify direct GPU glyph layer pixels and partition production retained raster requests with exact capabilities; preserve authored clocks and temporal unions.",
-    "updated_at": "2026-10-21T17:13:07.448Z",
-    "outcome": "passed",
-    "commit": "5bac7d0fa99ebb37a1be2eead14346968e91cecc",
-    "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T16-36-34-937Z-47dca48d.json",
-      "sha256": "9a0e34deaa9b0f8cc1d45174f6d26ce3b23683dfd0bd2d9aadd141078879b43c"
-    }
+    "started_at": "2026-10-21T17:17:22.380817+00:00",
+    "implementation_state": "full_verification_running",
+    "scope": "Materialize actual GPU glyph output only for bounded diagnostic captures, preserve submitted plan and exact text capability receipts, and prove independent supplied-plan replay."
   },
   "execution_pause": {
     "requested_by": "owner",

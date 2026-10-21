@@ -171,7 +171,7 @@ impl ProjectExportObserver for ExportWitness {
         };
         let rgb = self
             .capture
-            .frame(index as usize, prepared, &image)
+            .frame(index as usize, prepared, &image, renderer)
             .map_err(|error| ProjectRenderError::Invalid(error.to_string()))?;
         self.capture
             .write(&PathBuf::from(index.to_string()).join("input.nv12"), nv12)

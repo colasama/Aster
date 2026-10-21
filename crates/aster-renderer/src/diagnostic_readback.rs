@@ -19,6 +19,33 @@ impl NativeRenderer {
         self.read_texture_rgba(texture, input.plan.size, false)
     }
 
+    /// Materialize an existing GPU generation for an explicitly requested diagnostic bundle.
+    pub fn capture_native_glyph(
+        &self,
+        input: &crate::NativeGlyphInput,
+        byte_budget: u64,
+    ) -> Result<aster_render_ir::VerifiedResource, RenderError> {
+        use aster_render_ir::{
+            MediaTextureFormat, RasterPixelsDescriptor, ResourceDescriptor, ResourceKind,
+            VerifiedResource,
+        };
+        if input.output_bytes > byte_budget {
+            return Err(RenderError::Invalid(
+                "glyph capture byte budget exceeded".into(),
+            ));
+        }
+        Ok(VerifiedResource::new(
+            ResourceKind::RasterPixels,
+            ResourceDescriptor::RasterPixels(RasterPixelsDescriptor {
+                frame: input.frame.clone(),
+                width: input.plan.size.width,
+                height: input.plan.size.height,
+                format: MediaTextureFormat::Rgba8UnormSrgb,
+            }),
+            self.read_native_glyph_rgba(input)?,
+        )?)
+    }
+
     fn read_texture_rgba(
         &self,
         texture: &wgpu::Texture,

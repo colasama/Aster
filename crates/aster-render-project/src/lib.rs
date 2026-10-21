@@ -24,6 +24,7 @@ mod raster_transport;
 pub use raster_provider::{NativeRasterProvider, RasterProviderOptions, RasterProviderReady};
 mod session;
 mod text;
+mod text_capture;
 mod text_fonts;
 mod text_paint;
 mod text_raster;
@@ -40,6 +41,7 @@ pub use session::{NativeProjectSession, PreparedProjectFrame, ProjectFrameSettin
 pub use text::{
     NativeProjectText, PreparedProjectText, ProjectTextOutcome, ProjectTextRequest, TextCapability,
 };
+pub use text_capture::CapturedProjectText;
 pub use text_paint::{ProjectTextPaint, TextAffine};
 pub use text_routing::ProjectTextRoute;
 

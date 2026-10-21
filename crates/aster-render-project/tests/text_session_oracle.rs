@@ -60,6 +60,10 @@ struct Receipt {
     native_inputs: usize,
     source_sha256: String,
     stale_frame_rejected: bool,
+    captured_text_pixels: usize,
+    replay_rgba_sha256: String,
+    submitted_plan_sha256: String,
+    replay_plan_sha256: String,
 }
 
 #[test]
@@ -176,6 +180,47 @@ fn native_session_omits_ts_text_rasters() -> Result<(), Box<dyn std::error::Erro
             .read_native_glyph_rgba(&prepared.native_text[0])?;
         let frame_rgba = session.gpu.renderer.read_rgba(&output)?;
         drop(output);
+        let limits = aster_render_ir::DecodeLimits::default();
+        let submitted = prepared.bundle.plan.encode(&limits)?;
+        assert!(
+            aster_renderer::SuppliedFrame::new(
+                aster_render_ir::FplnCodec::decode(submitted.clone(), &limits)?,
+                &prepared.registry,
+                &limits,
+                &[],
+            )
+            .is_err()
+        );
+        if index == 0 {
+            assert!(prepared.capture_text(&session.gpu.renderer, 0).is_err());
+        }
+        let captured = prepared.capture_text(&session.gpu.renderer, 67_108_864)?;
+        assert_eq!(captured.pixels.len(), 1);
+        assert_eq!(prepared.bundle.plan.encode(&limits)?, submitted);
+        let replay_bytes = captured.bundle.plan.encode(&limits)?;
+        let mut registry = aster_render_ir::ResourceRegistry::new(Default::default())?;
+        let mut packets = captured.bundle.resources;
+        packets.sort_by_key(|p| match p.request().kind {
+            aster_render_ir::ResourceKind::MediaSource => 0,
+            aster_render_ir::ResourceKind::MediaFrame => 1,
+            aster_render_ir::ResourceKind::RasterPixels => 3,
+            _ => 2,
+        });
+        for packet in packets {
+            registry.put_verified(packet)?;
+        }
+        let replay = aster_renderer::SuppliedFrame::new(
+            aster_render_ir::FplnCodec::decode(replay_bytes.clone(), &limits)?,
+            &registry,
+            &limits,
+            &[],
+        )?;
+        let replayed = session.gpu.renderer.render(&replay, &registry)?;
+        let replay_rgba = session.gpu.renderer.read_rgba(&replayed)?;
+        assert_eq!(
+            replay_rgba, frame_rgba,
+            "diagnostic replay changed production pixels"
+        );
         let mut file = File::options()
             .create_new(true)
             .write(true)
@@ -197,6 +242,10 @@ fn native_session_omits_ts_text_rasters() -> Result<(), Box<dyn std::error::Erro
             native_inputs: 1,
             source_sha256: case.project_sha256.clone(),
             stale_frame_rejected: true,
+            captured_text_pixels: captured.pixels.len(),
+            replay_rgba_sha256: format!("{:x}", Sha256::digest(replay_rgba)),
+            submitted_plan_sha256: format!("{:x}", Sha256::digest(submitted)),
+            replay_plan_sha256: format!("{:x}", Sha256::digest(replay_bytes)),
         });
     }
     let mut file = File::options()

@@ -215,7 +215,7 @@ impl RenderProjectArgs {
                 let rendered = session.render(&prepared, &cancellation)?;
                 let pixels = session.gpu.renderer.read_rgba(&rendered)?;
                 let image = RgbaImage::new(rendered.size.width, rendered.size.height, pixels)?;
-                let mut receipt = capture.frame(index, &prepared, &image)?;
+                let mut receipt = capture.frame(index, &prepared, &image, &session.gpu.renderer)?;
                 receipt.duration_ms = started.elapsed().as_millis();
                 receipt.raster_request_sha256 = raster_request_sha256;
                 report.frames.push(receipt);

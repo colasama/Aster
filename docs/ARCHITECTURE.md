@@ -661,6 +661,13 @@ Actual Canvas observations validate authored preparation geometry independently 
 Production tests prove retained text request omission, stale-frame rejection and actual GPU glyph
 layer pixels. Explicit diagnostic readback resolves a resident immutable generation; normal preview
 and export remain GPU-resident. This limited capability does not complete the text milestone.
+Explicit project captures and selected export witnesses materialize resident native text outputs
+as bounded, content-addressed raster resources for external replay. They preserve `submitted.fpln`
+and its digest separately from the replay envelope, and record exact text capability decisions and
+frame-to-pixel links. Only root-envelope pixel dependencies and their count change; authored scene
+resources remain unchanged. Independent supplied-frame replay requires real pixel payloads and
+cannot acquire native recipe authority from an external plan. Production-session tests require
+byte-identical replay and verify that the original pixel-free bundle is rejected by external admission.
 The authored-pixel diagnostic removes the supplied CPU text raster and renders the native recipe
 against authenticated frozen plans. It compares both the complete frame and an isolated text crop,
 checking that the latter retains the original raster alpha and only GPU premultiplication rounding.

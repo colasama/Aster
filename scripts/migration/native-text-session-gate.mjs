@@ -3,6 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join, posix, relative, resolve } from "node:path";
 import { encodeRgbaPng } from "../parity/png.mjs";
 import { M0Evidence, sha256 } from "./m0-evidence.mjs";
+import { runNativeTextCaptureGate } from "./native-text-capture-gate.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile } from "./source.mjs";
@@ -165,6 +166,9 @@ export async function runNativeTextSessionGate(context, observationsRoot, execut
       assert.equal(receipt.retained_text_requests, 0);
       assert.equal(receipt.native_inputs, 1);
       assert.equal(receipt.stale_frame_rejected, true);
+      assert.equal(receipt.captured_text_pixels, 1);
+      assert.equal(receipt.replay_rgba_sha256, receipt.frame_rgba_sha256);
+      assert.notEqual(receipt.submitted_plan_sha256, receipt.replay_plan_sha256);
       assert.equal(receipt.source_sha256, source.project_sha256);
       assert.equal(receipt.routes.length, 1);
       assert(receipt.routes[0].frame);
@@ -223,6 +227,12 @@ export async function runNativeTextSessionGate(context, observationsRoot, execut
         index,
         sample: receipt.sample,
         route: receipt.routes[0],
+        replay: {
+          rgba_sha256: receipt.replay_rgba_sha256,
+          submitted_plan_sha256: receipt.submitted_plan_sha256,
+          plan_sha256: receipt.replay_plan_sha256,
+          captured_text_pixels: receipt.captured_text_pixels,
+        },
         comparison: pairs.get(key).frame,
       });
     }
@@ -250,6 +260,14 @@ export async function runNativeTextSessionGate(context, observationsRoot, execut
           "Production text self-review missing",
         );
     }
+    report.capture_replay = await runNativeTextCaptureGate(
+      { ...context, output: join(context.output, "capture-replay") },
+      await reader.json(local(input)),
+      receipts,
+      binary,
+      execute,
+    );
+    assert.equal(report.capture_replay.status, "passed", "Native text capture replay failed");
     assert.equal(await hashFile(binary), report.binary.sha256);
     report.checked_files = await reader.stable();
     report.native_text_acceptance = true;

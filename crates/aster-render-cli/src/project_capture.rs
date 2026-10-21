@@ -23,6 +23,9 @@ pub(crate) struct ProjectCapture {
 pub(crate) struct FrameReceipt {
     pub index: usize,
     pub plan_sha256: String,
+    pub submitted_plan_sha256: String,
+    pub text_routes: Vec<aster_render_project::ProjectTextRoute>,
+    pub native_text_pixels: Vec<aster_render_ir::PrecompositionMediaPixels>,
     pub rgba_sha256: String,
     pub png_sha256: String,
     pub width: u32,
@@ -88,14 +91,18 @@ impl ProjectCapture {
         index: usize,
         prepared: &PreparedProjectFrame,
         image: &RgbaImage,
+        renderer: &aster_renderer::NativeRenderer,
     ) -> Result<FrameReceipt, Box<dyn std::error::Error>> {
         let directory = PathBuf::from(index.to_string());
-        let plan = prepared.bundle.plan.encode(&DecodeLimits::default())?;
+        let submitted = prepared.bundle.plan.encode(&DecodeLimits::default())?;
+        let captured = prepared.capture_text(renderer, self.budget.saturating_sub(self.bytes))?;
+        let plan = captured.bundle.plan.encode(&DecodeLimits::default())?;
         let png = PngCodec::encode(image)?;
+        self.write(&directory.join("submitted.fpln"), &submitted)?;
         self.write(&directory.join("plan.fpln"), &plan)?;
         self.write(&directory.join("candidate.png"), &png)?;
         let mut messages = Vec::new();
-        for resource in &prepared.bundle.resources {
+        for resource in &captured.bundle.resources {
             messages.push(ResourceMessage::PutResource(resource.request().clone()));
             let hash = resource.request().hash.0.clone();
             if self.resources.insert(hash.clone()) {
@@ -112,6 +119,9 @@ impl ProjectCapture {
         Ok(FrameReceipt {
             index,
             plan_sha256: format!("{:x}", Sha256::digest(plan)),
+            submitted_plan_sha256: format!("{:x}", Sha256::digest(submitted)),
+            text_routes: prepared.text_routes.clone(),
+            native_text_pixels: captured.pixels,
             rgba_sha256: format!("{:x}", Sha256::digest(&image.pixels)),
             png_sha256: format!("{:x}", Sha256::digest(png)),
             width: image.width,
