@@ -370,40 +370,40 @@
     }
   },
   "last_cycle": {
-    "id": 131,
-    "time": "2026-10-21T20:36:28.204Z",
-    "updated_at": "2026-10-21T20:36:28.204Z",
+    "id": 132,
+    "time": "2026-10-21T21:47:32.071Z",
+    "updated_at": "2026-10-21T21:47:32.071Z",
     "milestone": "M10",
     "task": "M10-T7",
-    "increment": "embedded-font-routing",
+    "increment": "font-and-script-capabilities",
     "outcome": "passed",
-    "commit": "e7d919726bd4b2a766a24c0065248fd7e0a95a8c",
+    "commit": "d1ca0549090cc587b2d23b24d9705ea8ea45c131",
     "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T19-52-37-671Z-66527c54.json",
-      "sha256": "c415ba883153f6f2628ca05b081eea53ae07fc5bf9aa143a5800544fddb37ded"
+      "path": "artifacts/migration/verify-2026-10-21T20-54-40-497Z-e556a3f4.json",
+      "sha256": "7d3d2b85e9219461405c21179cfe5922edeb6c4e8a0644e332a59004678edb7f"
     },
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 292629,
+        "duration_ms": 302739,
         "proof": {
-          "path": "artifacts/migration/2026-10-21T19-52-37-671Z-66527c54/static-results.json",
-          "sha256": "b298413067c3df65dafc0e7614706b306820301b27df8b8b84257147740ac1d9"
+          "path": "artifacts/migration/2026-10-21T20-54-40-497Z-e556a3f4/static-results.json",
+          "sha256": "930a12627382240c464ad18e578af2b0b6cbe6c5ab9db09dbce495b697f7ff15"
         }
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 2226539,
+        "duration_ms": 2843820,
         "proof": {
-          "path": "artifacts/migration/2026-10-21T19-52-37-671Z-66527c54/G3/report.json",
-          "sha256": "45258eb1da7caeef9b64ecc5669f9eeabac1c146651f720d3fe328029f627da6"
+          "path": "artifacts/migration/2026-10-21T20-54-40-497Z-e556a3f4/G3/report.json",
+          "sha256": "620c7e6d7f9d5f4517de0825ca9aea59c8b69f4d2e39684821cc142d80e5de13"
         }
       }
     ],
-    "duration_ms": 2521784,
-    "next_step": "Continue M10-T7 with exact Agency FB/Georgia glyph capability reasons, mixed bidi and embedded-font layouts, color/bitmap and per-character blur routing; then complete M10-T8 exit audit."
+    "duration_ms": 3149099,
+    "next_step": "Continue M10-T7 with ordinary embedded-font native layout and GPU pixel qualification, then exact color/bitmap and per-character blur capabilities; complete M10-T8 exit audit afterward."
   },
   "milestones": [
     {
@@ -24825,23 +24825,27 @@
               }
             },
             {
-              "status": "in_progress",
+              "status": "done",
               "title": "Bind missing Agency FB and Georgia Roman-numeral fallback to exact retained-provider reasons",
               "acceptance": "Authenticate the actual font and text identity in production routing; do not substitute unverified OS fallback or apply blanket text fallback.",
               "evidence": {
-                "path": "artifacts/migration/cycle122-layout-canary2/native-shaping/report.json",
-                "sha256": "e8461082719e1f246d72d91b406a8bf12c11a290bbf69f2f7a666f2c7fc602bf"
-              }
+                "path": "artifacts/migration/2026-10-21T20-54-40-497Z-e556a3f4/G3/native-text-capabilities/report.json",
+                "sha256": "fb4f6d154eb1437321e1d1c2d5411606d7aa476d996d2bbe702831057da1271a"
+              },
+              "cycle": 132,
+              "commit": "d1ca0549090cc587b2d23b24d9705ea8ea45c131"
             },
             {
               "status": "in_progress",
               "title": "Bind mixed bidi and embedded-font layout capabilities to verified production routing",
               "acceptance": "Use native embedded faces where admitted; otherwise retain precise script/container/font reasons. Diagnostic system-font success does not establish embedded-font or mixed-bidi pixel acceptance.",
               "partial_evidence": {
-                "path": "artifacts/migration/cycle132-capabilities2/report.json",
-                "sha256": "2ef80a6df46fa19c0d0aa7bd9f86fdf0823ae057cf388b3831c681e78759cc63"
+                "path": "artifacts/migration/2026-10-21T20-54-40-497Z-e556a3f4/G3/native-text-capabilities/report.json",
+                "sha256": "fb4f6d154eb1437321e1d1c2d5411606d7aa476d996d2bbe702831057da1271a"
               },
-              "remaining": "Mixed bidi with system and embedded fonts has exact retained routing evidence. Ordinary embedded native layout and pixel qualification remains required."
+              "remaining": "Mixed bidi with system and embedded fonts has exact retained routing evidence. Ordinary embedded native layout and pixel qualification remains required.",
+              "partial_cycle": 132,
+              "partial_commit": "d1ca0549090cc587b2d23b24d9705ea8ea45c131"
             },
             {
               "status": "pending",
@@ -24855,8 +24859,8 @@
             }
           ],
           "preparation": {
-            "path": "artifacts/migration/cycle131-next-preparation.json",
-            "sha256": "9442a51182f885f81484f9e17e8f81f5d52e809b15344cf6a05a1bfcb0777ada",
+            "path": "artifacts/migration/cycle132-next-preparation.json",
+            "sha256": "b631c1a90119e9c8e605364872331762ac9a3c771c057bdf141bb1d7727492cd",
             "status": "preparation_only"
           },
           "progress": {
@@ -25079,36 +25083,36 @@
               "status": "recovered_without_source_or_evidence_changes"
             },
             "latest_verified_increment": {
-              "cycle": 131,
-              "commit": "e7d919726bd4b2a766a24c0065248fd7e0a95a8c",
+              "cycle": 132,
+              "commit": "d1ca0549090cc587b2d23b24d9705ea8ea45c131",
               "verification": {
-                "path": "artifacts/migration/verify-2026-10-21T19-52-37-671Z-66527c54.json",
-                "sha256": "c415ba883153f6f2628ca05b081eea53ae07fc5bf9aa143a5800544fddb37ded"
+                "path": "artifacts/migration/verify-2026-10-21T20-54-40-497Z-e556a3f4.json",
+                "sha256": "7d3d2b85e9219461405c21179cfe5922edeb6c4e8a0644e332a59004678edb7f"
               },
               "gates": [
                 {
                   "id": "G0",
                   "status": "passed",
-                  "duration_ms": 292629,
+                  "duration_ms": 302739,
                   "proof": {
-                    "path": "artifacts/migration/2026-10-21T19-52-37-671Z-66527c54/static-results.json",
-                    "sha256": "b298413067c3df65dafc0e7614706b306820301b27df8b8b84257147740ac1d9"
+                    "path": "artifacts/migration/2026-10-21T20-54-40-497Z-e556a3f4/static-results.json",
+                    "sha256": "930a12627382240c464ad18e578af2b0b6cbe6c5ab9db09dbce495b697f7ff15"
                   }
                 },
                 {
                   "id": "G3",
                   "status": "passed",
-                  "duration_ms": 2226539,
+                  "duration_ms": 2843820,
                   "proof": {
-                    "path": "artifacts/migration/2026-10-21T19-52-37-671Z-66527c54/G3/report.json",
-                    "sha256": "45258eb1da7caeef9b64ecc5669f9eeabac1c146651f720d3fe328029f627da6"
+                    "path": "artifacts/migration/2026-10-21T20-54-40-497Z-e556a3f4/G3/report.json",
+                    "sha256": "620c7e6d7f9d5f4517de0825ca9aea59c8b69f4d2e39684821cc142d80e5de13"
                   }
                 }
               ],
-              "duration_ms": 2521784,
-              "embedded_font_routing": {
-                "path": "artifacts/migration/2026-10-21T19-52-37-671Z-66527c54/G3/native-text-fonts/report.json",
-                "sha256": "5060f06fd007d954688ef20c653ebe303a0b12ad12a04ab9206d58e7fa636d8b"
+              "duration_ms": 3149099,
+              "font_script_routing": {
+                "path": "artifacts/migration/2026-10-21T20-54-40-497Z-e556a3f4/G3/native-text-capabilities/report.json",
+                "sha256": "fb4f6d154eb1437321e1d1c2d5411606d7aa476d996d2bbe702831057da1271a"
               },
               "milestone_exit_satisfied": false
             },
@@ -25147,9 +25151,9 @@
               "sha256": "f10e51dc949f7bdacdbb830f8a4dee5b0cbda75f9f09bdfb7e94c8a5cbb13ee6"
             },
             "quota_observation": {
-              "path": "artifacts/migration/cycle131-quota-observation-2030.json",
-              "sha256": "747e1ed6385011f47a1cec95c74773a789ce9784b2ae9e1ae65ac3ac4e19c767",
-              "remaining_percent": 38
+              "path": "artifacts/migration/cycle132-quota-observation-2130.json",
+              "sha256": "98bc82ca22ccac86c74c4e4c48eea95e09f828758908f18ceaff5c14bc333d97",
+              "remaining_percent": 37
             },
             "authored_pixel_qualification": {
               "evidence": "artifacts/migration/2026-10-21T06-26-35-910Z-a3ad85b3/G3/native-text-layout/native-project-pixels/report.json",
@@ -25564,10 +25568,10 @@
               }
             },
             "font_script_routing": {
-              "status": "focused_passed_before_boxing_full_pending",
+              "status": "full_gates_passed",
               "evidence": {
-                "path": "artifacts/migration/cycle132-capabilities2/report.json",
-                "sha256": "2ef80a6df46fa19c0d0aa7bd9f86fdf0823ae057cf388b3831c681e78759cc63"
+                "path": "artifacts/migration/2026-10-21T20-54-40-497Z-e556a3f4/G3/native-text-capabilities/report.json",
+                "sha256": "fb4f6d154eb1437321e1d1c2d5411606d7aa476d996d2bbe702831057da1271a"
               },
               "cases": [
                 {
@@ -25706,7 +25710,9 @@
                   "sha256": "669834a81112ea85c0bf198a8666eb5206c9dadbcfbe69cb3e204bbe715a7985"
                 },
                 "reason": "Box the retained enum variant after adding typed font evidence. Whole-workspace Clippy passed; full current-source G0/G3 remains required. Focused pixel evidence predates this representation-only repair and is not promoted to current-source acceptance."
-              }
+              },
+              "cycle": 132,
+              "commit": "d1ca0549090cc587b2d23b24d9705ea8ea45c131"
             }
           }
         },
@@ -25725,8 +25731,8 @@
       ],
       "started_at": "2026-10-20T20:25:14.937Z",
       "latest_verification": {
-        "path": "artifacts/migration/verify-2026-10-21T19-52-37-671Z-66527c54.json",
-        "sha256": "c415ba883153f6f2628ca05b081eea53ae07fc5bf9aa143a5800544fddb37ded"
+        "path": "artifacts/migration/verify-2026-10-21T20-54-40-497Z-e556a3f4.json",
+        "sha256": "7d3d2b85e9219461405c21179cfe5922edeb6c4e8a0644e332a59004678edb7f"
       }
     },
     {
@@ -2445246,6 +2445252,20 @@
         "sha256": "c415ba883153f6f2628ca05b081eea53ae07fc5bf9aa143a5800544fddb37ded"
       },
       "milestone_exit_satisfied": false
+    },
+    {
+      "cycle": 132,
+      "time": "2026-10-21T21:47:32.071Z",
+      "milestone": "M10",
+      "task": "M10-T7",
+      "increment": "font-and-script-capabilities",
+      "outcome": "passed",
+      "commit": "d1ca0549090cc587b2d23b24d9705ea8ea45c131",
+      "verification": {
+        "path": "artifacts/migration/verify-2026-10-21T20-54-40-497Z-e556a3f4.json",
+        "sha256": "7d3d2b85e9219461405c21179cfe5922edeb6c4e8a0644e332a59004678edb7f"
+      },
+      "milestone_exit_satisfied": false
     }
   ],
   "known_boundaries": [
@@ -2445472,12 +2445492,18 @@
     "task": "M10-T7",
     "increment": "font-and-script-capabilities",
     "started_at": "2026-10-21T20:39:05.065Z",
-    "implementation_state": "full_pending_after_clippy_repair",
+    "implementation_state": "committed",
     "scope": "Bind production font selection and missing-glyph/bidi capability reasons to authenticated retained requests and exact pixels, using a bounded job-local coverage cache before broad raster qualification decisions.",
-    "updated_at": "2026-10-21T20:54:39.284Z",
+    "updated_at": "2026-10-21T21:47:32.071Z",
     "focused_evidence": {
       "path": "artifacts/migration/cycle132-capabilities2/report.json",
       "sha256": "2ef80a6df46fa19c0d0aa7bd9f86fdf0823ae057cf388b3831c681e78759cc63"
+    },
+    "outcome": "passed",
+    "commit": "d1ca0549090cc587b2d23b24d9705ea8ea45c131",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-21T20-54-40-497Z-e556a3f4.json",
+      "sha256": "7d3d2b85e9219461405c21179cfe5922edeb6c4e8a0644e332a59004678edb7f"
     }
   },
   "execution_pause": {
