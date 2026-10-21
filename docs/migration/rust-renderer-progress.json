@@ -370,40 +370,40 @@
     }
   },
   "last_cycle": {
-    "id": 128,
-    "time": "2026-10-21T17:13:07.448Z",
-    "updated_at": "2026-10-21T17:13:07.448Z",
+    "id": 129,
+    "time": "2026-10-21T18:10:35.335Z",
+    "updated_at": "2026-10-21T18:10:35.335Z",
     "milestone": "M10",
     "task": "M10-T7",
     "increment": "production-routing",
     "outcome": "passed",
-    "commit": "5bac7d0fa99ebb37a1be2eead14346968e91cecc",
+    "commit": "cb18e0874f6837ab8240589fa167bb7c4dcf7025",
     "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T16-36-34-937Z-47dca48d.json",
-      "sha256": "9a0e34deaa9b0f8cc1d45174f6d26ce3b23683dfd0bd2d9aadd141078879b43c"
+      "path": "artifacts/migration/verify-2026-10-21T17-24-03-056Z-2b047559.json",
+      "sha256": "84ac2e02212d0f1b515d1e0d8f067a1dcc68535a330293ac6e8ae6af5c496365"
     },
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 244506,
+        "duration_ms": 319977,
         "proof": {
-          "path": "artifacts/migration/2026-10-21T16-36-34-937Z-47dca48d/static-results.json",
-          "sha256": "07ee65f73603fd0e25b428e9bd890cd9138b37b0dcf6e7d26e0ac6025db8e489"
+          "path": "artifacts/migration/2026-10-21T17-24-03-056Z-2b047559/static-results.json",
+          "sha256": "765d5d3f4548eb8e48abe596ac8ad5aced28548df827bbe61868870f24e76ad5"
         }
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 1909076,
+        "duration_ms": 2441350,
         "proof": {
-          "path": "artifacts/migration/2026-10-21T16-36-34-937Z-47dca48d/G3/report.json",
-          "sha256": "7e5a00c90f617ebc0676c1efccddb2dffd248d5a5e05d69e97cf430918ae4beb"
+          "path": "artifacts/migration/2026-10-21T17-24-03-056Z-2b047559/G3/report.json",
+          "sha256": "8ff20123c8948c4973cbf00e7e4f6662eb4b4da342ebb716854c1868d8132c5e"
         }
       }
     ],
-    "duration_ms": 2156179,
-    "next_step": "Continue M10-T7: qualify additional font/script/density coverage, bind retained capability audit to production export, and preserve native selector layouts and temporal sample unions before M10-T8 exit audit."
+    "duration_ms": 2763982,
+    "next_step": "Continue M10-T7 with complete production capability audit for corpus and owner/nested text; authenticate exact native substitutions and retained reasons without weakening general plan comparison, then complete M10-T8 exit audit."
   },
   "milestones": [
     {
@@ -24844,8 +24844,8 @@
             }
           ],
           "preparation": {
-            "path": "artifacts/migration/cycle128-next-preparation.json",
-            "sha256": "14d6832bc45e7368b6f401443904be2941c74a510cf8d6f18d0072d1ae533cc1",
+            "path": "artifacts/migration/cycle129-next-preparation.json",
+            "sha256": "c9e1c9fea6438a1a0c18395b908b4981e28752eb41e2adee51aebadabf6eba7a",
             "status": "read_only_preparation"
           },
           "progress": {
@@ -24903,11 +24903,24 @@
                 "status": "in_progress",
                 "scope": "Partition authenticated retained requests and route native text through project sessions and export. Verify actual TS raster omission and full project pixel/layout acceptance.",
                 "latest_verified_partial": {
-                  "cycle": 128,
-                  "commit": "5bac7d0fa99ebb37a1be2eead14346968e91cecc",
+                  "cycle": 129,
+                  "commit": "cb18e0874f6837ab8240589fa167bb7c4dcf7025",
                   "verification": {
-                    "path": "artifacts/migration/verify-2026-10-21T16-36-34-937Z-47dca48d.json",
-                    "sha256": "9a0e34deaa9b0f8cc1d45174f6d26ce3b23683dfd0bd2d9aadd141078879b43c"
+                    "path": "artifacts/migration/verify-2026-10-21T17-24-03-056Z-2b047559.json",
+                    "sha256": "84ac2e02212d0f1b515d1e0d8f067a1dcc68535a330293ac6e8ae6af5c496365"
+                  },
+                  "capture_replay": {
+                    "cycle": 129,
+                    "status": "passed",
+                    "evidence": {
+                      "path": "artifacts/migration/2026-10-21T17-24-03-056Z-2b047559/G3/native-text-layout/native-project-session/capture-replay/report.json",
+                      "sha256": "5a8e61b04e80edee05e5d6de99952db6541fa2e48094d8743b279a4bd4bd992e"
+                    },
+                    "session_samples": 70,
+                    "independent_cli_frames": 4,
+                    "exact_replay": true,
+                    "submitted_plan_preserved": true,
+                    "scope": "Explicit diagnostics only; ordinary production and export remain GPU-resident. Remaining text capability coverage and M10 exit are pending."
                   },
                   "production": {
                     "evidence": "artifacts/migration/2026-10-21T16-36-34-937Z-47dca48d/G3/native-text-layout/native-project-session/report.json",
@@ -24967,44 +24980,45 @@
               "status": "recovered_without_source_or_evidence_changes"
             },
             "latest_verified_increment": {
-              "cycle": 128,
-              "commit": "5bac7d0fa99ebb37a1be2eead14346968e91cecc",
+              "cycle": 129,
+              "commit": "cb18e0874f6837ab8240589fa167bb7c4dcf7025",
               "verification": {
-                "path": "artifacts/migration/verify-2026-10-21T16-36-34-937Z-47dca48d.json",
-                "sha256": "9a0e34deaa9b0f8cc1d45174f6d26ce3b23683dfd0bd2d9aadd141078879b43c"
+                "path": "artifacts/migration/verify-2026-10-21T17-24-03-056Z-2b047559.json",
+                "sha256": "84ac2e02212d0f1b515d1e0d8f067a1dcc68535a330293ac6e8ae6af5c496365"
               },
               "gates": [
                 {
                   "id": "G0",
                   "status": "passed",
-                  "duration_ms": 244506,
+                  "duration_ms": 319977,
                   "proof": {
-                    "path": "artifacts/migration/2026-10-21T16-36-34-937Z-47dca48d/static-results.json",
-                    "sha256": "07ee65f73603fd0e25b428e9bd890cd9138b37b0dcf6e7d26e0ac6025db8e489"
+                    "path": "artifacts/migration/2026-10-21T17-24-03-056Z-2b047559/static-results.json",
+                    "sha256": "765d5d3f4548eb8e48abe596ac8ad5aced28548df827bbe61868870f24e76ad5"
                   }
                 },
                 {
                   "id": "G3",
                   "status": "passed",
-                  "duration_ms": 1909076,
+                  "duration_ms": 2441350,
                   "proof": {
-                    "path": "artifacts/migration/2026-10-21T16-36-34-937Z-47dca48d/G3/report.json",
-                    "sha256": "7e5a00c90f617ebc0676c1efccddb2dffd248d5a5e05d69e97cf430918ae4beb"
+                    "path": "artifacts/migration/2026-10-21T17-24-03-056Z-2b047559/G3/report.json",
+                    "sha256": "8ff20123c8948c4973cbf00e7e4f6662eb4b4da342ebb716854c1868d8132c5e"
                   }
                 }
               ],
-              "duration_ms": 2156179,
-              "production": {
-                "evidence": "artifacts/migration/2026-10-21T16-36-34-937Z-47dca48d/G3/native-text-layout/native-project-session/report.json",
-                "sha256": "168bb37665986f3fca9fc2b0a240757279a954c20fd9c4cd84c46c676b3545d3",
+              "duration_ms": 2763982,
+              "capture_replay": {
+                "cycle": 129,
                 "status": "passed",
-                "native_samples": 70,
-                "isolated_pixel_pairs": 1,
-                "frozen_frame_pairs": 4,
-                "retained_text_requests": 0,
-                "maximum_channel_error": 1,
-                "scope": "Windows ordinary ASCII Arial/Segoe UI outline fills at unit density; other exact capabilities remain retained.",
-                "retained_stroke_sessions_exact": 4
+                "evidence": {
+                  "path": "artifacts/migration/2026-10-21T17-24-03-056Z-2b047559/G3/native-text-layout/native-project-session/capture-replay/report.json",
+                  "sha256": "5a8e61b04e80edee05e5d6de99952db6541fa2e48094d8743b279a4bd4bd992e"
+                },
+                "session_samples": 70,
+                "independent_cli_frames": 4,
+                "exact_replay": true,
+                "submitted_plan_preserved": true,
+                "scope": "Explicit diagnostics only; ordinary production and export remain GPU-resident. Remaining text capability coverage and M10 exit are pending."
               },
               "milestone_exit_satisfied": false
             },
@@ -25043,9 +25057,9 @@
               "sha256": "f10e51dc949f7bdacdbb830f8a4dee5b0cbda75f9f09bdfb7e94c8a5cbb13ee6"
             },
             "quota_observation": {
-              "path": "artifacts/migration/cycle128-quota-observation-1634.json",
-              "sha256": "1e601745af2c9657284a12d34e929d2b9671375294574401fdddf512dbae8411",
-              "remaining_percent": 45
+              "path": "artifacts/migration/cycle129-quota-observation.json",
+              "sha256": "dcb9dfbee6e196e6f6c9f9a56445de2f6b3497f748b0d5adc56b9054d28c72b0",
+              "remaining_percent": 43
             },
             "authored_pixel_qualification": {
               "evidence": "artifacts/migration/2026-10-21T06-26-35-910Z-a3ad85b3/G3/native-text-layout/native-project-pixels/report.json",
@@ -25193,13 +25207,16 @@
             },
             "capture_replay": {
               "cycle": 129,
-              "status": "focused_passed_full_pending",
-              "scope": "Actual resident GPU text pixels in bounded capture/export witnesses; original submitted plan and exact routing preserved; separate-process supplied-plan replay.",
+              "status": "passed",
               "evidence": {
-                "path": "artifacts/migration/cycle129-capture1/report.json",
-                "sha256": "fff89dc44a3e31e309fd6d604f2c7d4e31db91073b66fd1bd443489caab08c27"
+                "path": "artifacts/migration/2026-10-21T17-24-03-056Z-2b047559/G3/native-text-layout/native-project-session/capture-replay/report.json",
+                "sha256": "5a8e61b04e80edee05e5d6de99952db6541fa2e48094d8743b279a4bd4bd992e"
               },
-              "frames": 4
+              "session_samples": 70,
+              "independent_cli_frames": 4,
+              "exact_replay": true,
+              "submitted_plan_preserved": true,
+              "scope": "Explicit diagnostics only; ordinary production and export remain GPU-resident. Remaining text capability coverage and M10 exit are pending."
             }
           }
         },
@@ -25218,8 +25235,8 @@
       ],
       "started_at": "2026-10-20T20:25:14.937Z",
       "latest_verification": {
-        "path": "artifacts/migration/verify-2026-10-21T16-36-34-937Z-47dca48d.json",
-        "sha256": "9a0e34deaa9b0f8cc1d45174f6d26ce3b23683dfd0bd2d9aadd141078879b43c"
+        "path": "artifacts/migration/verify-2026-10-21T17-24-03-056Z-2b047559.json",
+        "sha256": "84ac2e02212d0f1b515d1e0d8f067a1dcc68535a330293ac6e8ae6af5c496365"
       }
     },
     {
@@ -2444697,6 +2444714,20 @@
         "sha256": "9a0e34deaa9b0f8cc1d45174f6d26ce3b23683dfd0bd2d9aadd141078879b43c"
       },
       "milestone_exit_satisfied": false
+    },
+    {
+      "cycle": 129,
+      "time": "2026-10-21T18:10:35.335Z",
+      "milestone": "M10",
+      "task": "M10-T7",
+      "increment": "production-routing",
+      "outcome": "passed",
+      "commit": "cb18e0874f6837ab8240589fa167bb7c4dcf7025",
+      "verification": {
+        "path": "artifacts/migration/verify-2026-10-21T17-24-03-056Z-2b047559.json",
+        "sha256": "84ac2e02212d0f1b515d1e0d8f067a1dcc68535a330293ac6e8ae6af5c496365"
+      },
+      "milestone_exit_satisfied": false
     }
   ],
   "known_boundaries": [
@@ -2444923,8 +2444954,15 @@
     "task": "M10-T7",
     "increment": "production-routing",
     "started_at": "2026-10-21T17:17:22.380817+00:00",
-    "implementation_state": "full_verification_running",
-    "scope": "Materialize actual GPU glyph output only for bounded diagnostic captures, preserve submitted plan and exact text capability receipts, and prove independent supplied-plan replay."
+    "implementation_state": "committed",
+    "scope": "Materialize actual GPU glyph output only for bounded diagnostic captures, preserve submitted plan and exact text capability receipts, and prove independent supplied-plan replay.",
+    "updated_at": "2026-10-21T18:10:35.335Z",
+    "outcome": "passed",
+    "commit": "cb18e0874f6837ab8240589fa167bb7c4dcf7025",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-21T17-24-03-056Z-2b047559.json",
+      "sha256": "84ac2e02212d0f1b515d1e0d8f067a1dcc68535a330293ac6e8ae6af5c496365"
+    }
   },
   "execution_pause": {
     "requested_by": "owner",
