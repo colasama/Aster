@@ -393,18 +393,18 @@
     }
   },
   "last_cycle": {
-    "id": 144,
-    "time": "2026-10-22T21:34:42.557Z",
-    "updated_at": "2026-10-22T21:34:42.557Z",
+    "id": 145,
+    "time": "2026-10-22T21:43:09.656Z",
+    "updated_at": "2026-10-22T21:43:09.656Z",
     "milestone": "M11",
-    "task": "M11-T6",
-    "increment": "paired-editor-installed-plugin-lifecycle",
+    "task": "M11-T7",
+    "increment": "bounded-preview-input-focus-preparation",
     "outcome": "increment_committed_layered_verification",
-    "commit": "477e1aecab5df1326920cc635f647e22f5d9c6a9",
+    "commit": "c01630ae396901a735519779456ce0d85ca3509a",
     "validation_policy": "layered-development-verification-v1",
     "validation": {
-      "path": "artifacts/migration/cycle144-verification/report.json",
-      "sha256": "49d44e6b607a12f5ca4b0a07293f0318c6c1f0d9dfdb56836e1be33e7619051b"
+      "path": "artifacts/migration/cycle145-verification/report.json",
+      "sha256": "193786c4fa227ed7f8f3abfa017b882bdea132c0e9d79bcd01dfb5070a404976"
     },
     "gates": [
       {
@@ -413,18 +413,13 @@
         "scope": "full lefthook migration-static"
       },
       {
-        "id": "G6",
-        "status": "passed",
-        "scope": "18 exact actual-editor plugin root/nested frames; installation, valid/rejected reload, disable/enable, safe-mode/resume, removal and live registry invalidation"
+        "id": "G4",
+        "status": "incomplete",
+        "scope": "targeted readiness smoke passed: 10 warm-up inputs and 16 samples per TS/native arm; not formal performance acceptance"
       }
     ],
     "milestone_exit_satisfied": false,
-    "rejected_evidence": [
-      "artifacts/migration/cycle144-plugins-ts-attempt1/process.json",
-      "artifacts/migration/cycle144-plugins-ts-attempt2/process.json",
-      "artifacts/migration/cycle144-plugins-paired1/report.json"
-    ],
-    "next_step": "Proceed to M11-T7 bounded pre-measurement focus preparation and paired performance qualification. Refresh complete current-source corpus/owner preview and all gates once at M11 exit under the layered policy; no intermediate full rerun."
+    "next_step": "Complete current-source performance and exit evidence binding before one consolidated full M11 qualification. Retain all historical failed formal runs; require three full 600-sample pairs and current G0/G3/G6 before M11 completion."
   },
   "milestones": [
     {
@@ -27518,7 +27513,7 @@
           "id": "M11-T7",
           "title": "Verify paired production preview throughput and latency",
           "scope": "Measure contemporaneous retained TS versus native in-editor workloads at matched quality; require higher native median FPS and no worse input-to-present p95, with actual presentation timing.",
-          "status": "pending",
+          "status": "in_progress",
           "estimated_implementation_hours": 3,
           "required_gates": [
             "G0",
@@ -27526,7 +27521,13 @@
             "G4",
             "G6"
           ],
-          "progress": "Full performance acceptance remains open. Attempt 2 passed numerically but was rejected for operator interference. Attempt 3 lost focus before the second latency calibration click, with no latency samples; retain failure and add bounded pre-measurement focus preparation before final qualification."
+          "progress": "Bounded focus preparation now runs before geometry, each calibration address and measurement. Audit requires successful window/document focus at those phases and rejects extra recovery phases. No retry or sample discard is permitted after warm-up starts. G0 and both owner-project smoke arms pass (10 warm-up + 16 samples), with all setup phases focused on the first attempt. Actual development bridge is now built/pinned. Full paired throughput/latency and milestone exit remain open.",
+          "started_at": "2026-10-22T21:35:39.955Z",
+          "commit": "c01630ae396901a735519779456ce0d85ca3509a",
+          "validation": {
+            "path": "artifacts/migration/cycle145-verification/report.json",
+            "sha256": "193786c4fa227ed7f8f3abfa017b882bdea132c0e9d79bcd01dfb5070a404976"
+          }
         },
         {
           "id": "M11-T8",
@@ -2452455,6 +2452456,36 @@
         "artifacts/migration/cycle144-plugins-paired1/report.json"
       ],
       "next_step": "Proceed to M11-T7 bounded pre-measurement focus preparation and paired performance qualification. Refresh complete current-source corpus/owner preview and all gates once at M11 exit under the layered policy; no intermediate full rerun."
+    },
+    {
+      "cycle": 145,
+      "id": 145,
+      "time": "2026-10-22T21:43:09.656Z",
+      "updated_at": "2026-10-22T21:43:09.656Z",
+      "milestone": "M11",
+      "task": "M11-T7",
+      "increment": "bounded-preview-input-focus-preparation",
+      "outcome": "increment_committed_layered_verification",
+      "commit": "c01630ae396901a735519779456ce0d85ca3509a",
+      "validation_policy": "layered-development-verification-v1",
+      "validation": {
+        "path": "artifacts/migration/cycle145-verification/report.json",
+        "sha256": "193786c4fa227ed7f8f3abfa017b882bdea132c0e9d79bcd01dfb5070a404976"
+      },
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "scope": "full lefthook migration-static"
+        },
+        {
+          "id": "G4",
+          "status": "incomplete",
+          "scope": "targeted readiness smoke passed: 10 warm-up inputs and 16 samples per TS/native arm; not formal performance acceptance"
+        }
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Complete current-source performance and exit evidence binding before one consolidated full M11 qualification. Retain all historical failed formal runs; require three full 600-sample pairs and current G0/G3/G6 before M11 completion."
     }
   ],
   "known_boundaries": [
