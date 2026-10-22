@@ -370,40 +370,40 @@
     }
   },
   "last_cycle": {
-    "id": 134,
-    "time": "2026-10-22T00:05:18.146Z",
-    "updated_at": "2026-10-22T00:05:18.146Z",
+    "id": 135,
+    "time": "2026-10-22T01:16:28.727Z",
+    "updated_at": "2026-10-22T01:16:28.727Z",
     "milestone": "M10",
     "task": "M10-T7",
-    "increment": "glyph-paint-capabilities",
+    "increment": "evaluated-character-blur-capability",
     "outcome": "passed",
-    "commit": "c2413159eda01b5d3cd51c8fbf0c8d44a8951862",
+    "commit": "00bfcef8de17b079b81d687557e595c38cc5607d",
     "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T23-07-23-929Z-85eb6fd9.json",
-      "sha256": "231102a9f031c318bcc54e8d555d99a5cab82e264875759f194dc062a652e4c6"
+      "path": "artifacts/migration/verify-2026-10-22T00-18-51-735Z-3e5ab551.json",
+      "sha256": "9747d5f4c31464ae22233498f3a18c6a5a9bba99312018f918748a3f8841b06b"
     },
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 340056,
+        "duration_ms": 327506,
         "proof": {
-          "path": "artifacts/migration/2026-10-21T23-07-23-929Z-85eb6fd9/static-results.json",
-          "sha256": "1a49c905c77487fb6afb8d2b67a21f0a8bf6d7a0284933f1aba44266ecafe4c2"
+          "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/static-results.json",
+          "sha256": "24a8e5cb308120a7394b624482d417b92965af4fc377117a03dbf0ab8a1f999e"
         }
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 3107883,
+        "duration_ms": 3103955,
         "proof": {
-          "path": "artifacts/migration/2026-10-21T23-07-23-929Z-85eb6fd9/G3/report.json",
-          "sha256": "f58a74b4073cc52102498d201c073b62257040a91cfb60aa65194e9a836453e4"
+          "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
+          "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
         }
       }
     ],
-    "duration_ms": 3450501,
-    "next_step": "Continue M10-T7 with exact evaluated per-character blur capabilities and authenticated retained output, then complete the M10-T8 exit audit."
+    "duration_ms": 3434095,
+    "next_step": "Complete M10-T8: bind every production text route to per-glyph layout and reviewed native pixels or exact authenticated M5 reasons, implement the M10 exit audit, then proceed to Rust preview."
   },
   "milestones": [
     {
@@ -24804,7 +24804,7 @@
         {
           "id": "M10-T7",
           "title": "Use native text in authored-project rendering with explicit capability routing",
-          "status": "in_progress",
+          "status": "done",
           "scope": "Wire native layout and GPU glyph output through project sessions and headless exports. Keep only documented unsupported fonts/scripts/features on the M5 raster service, with ledger follow-ups.",
           "acceptance": "Supported text actually uses native output in the production project path; unsupported cases have exact reasons and preserved rendering; G0/G3 green.",
           "estimated_implementation_hours": 2,
@@ -24864,14 +24864,20 @@
               }
             },
             {
-              "status": "in_progress",
+              "status": "done",
               "title": "Preserve nonzero per-character blur in native text routing",
-              "acceptance": "Implement and verify the existing Canvas filter behavior or retain the exact affected capability through authenticated M5 output; never silently omit blur. GPU affine composition alone does not establish this behavior."
+              "acceptance": "Implement and verify the existing Canvas filter behavior or retain the exact affected capability through authenticated M5 output; never silently omit blur. GPU affine composition alone does not establish this behavior.",
+              "cycle": 135,
+              "commit": "00bfcef8de17b079b81d687557e595c38cc5607d",
+              "evidence": {
+                "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/native-text-blur/report.json",
+                "sha256": "79f8dc268060c19b280fe39c27bdd0ff7e990d8bbd48f16b75e77750c75df8ea"
+              }
             }
           ],
           "preparation": {
-            "path": "artifacts/migration/cycle134-next-preparation.json",
-            "sha256": "333326056813dfbb042724e90b62fe5edb205cfd8c89faa86bfc93c73c268309",
+            "path": "artifacts/migration/cycle135-next-preparation.json",
+            "sha256": "1d1271f3dd3b78e3ee2b446c76893976e7eaae5329cc11c2783587acc1d7d9fd",
             "status": "preparation_only"
           },
           "progress": {
@@ -25094,36 +25100,36 @@
               "status": "recovered_without_source_or_evidence_changes"
             },
             "latest_verified_increment": {
-              "cycle": 134,
-              "commit": "c2413159eda01b5d3cd51c8fbf0c8d44a8951862",
+              "cycle": 135,
+              "commit": "00bfcef8de17b079b81d687557e595c38cc5607d",
               "verification": {
-                "path": "artifacts/migration/verify-2026-10-21T23-07-23-929Z-85eb6fd9.json",
-                "sha256": "231102a9f031c318bcc54e8d555d99a5cab82e264875759f194dc062a652e4c6"
+                "path": "artifacts/migration/verify-2026-10-22T00-18-51-735Z-3e5ab551.json",
+                "sha256": "9747d5f4c31464ae22233498f3a18c6a5a9bba99312018f918748a3f8841b06b"
               },
               "gates": [
                 {
                   "id": "G0",
                   "status": "passed",
-                  "duration_ms": 340056,
+                  "duration_ms": 327506,
                   "proof": {
-                    "path": "artifacts/migration/2026-10-21T23-07-23-929Z-85eb6fd9/static-results.json",
-                    "sha256": "1a49c905c77487fb6afb8d2b67a21f0a8bf6d7a0284933f1aba44266ecafe4c2"
+                    "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/static-results.json",
+                    "sha256": "24a8e5cb308120a7394b624482d417b92965af4fc377117a03dbf0ab8a1f999e"
                   }
                 },
                 {
                   "id": "G3",
                   "status": "passed",
-                  "duration_ms": 3107883,
+                  "duration_ms": 3103955,
                   "proof": {
-                    "path": "artifacts/migration/2026-10-21T23-07-23-929Z-85eb6fd9/G3/report.json",
-                    "sha256": "f58a74b4073cc52102498d201c073b62257040a91cfb60aa65194e9a836453e4"
+                    "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
+                    "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
                   }
                 }
               ],
-              "duration_ms": 3450501,
-              "glyph_paint_capabilities": {
-                "path": "artifacts/migration/2026-10-21T23-07-23-929Z-85eb6fd9/G3/native-text-capabilities/report.json",
-                "sha256": "352d3bcfbd4a85c8412594ed923d3f4cba6753cd8edd52b7b12d3b0e52fcbbca"
+              "duration_ms": 3434095,
+              "character_blur": {
+                "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/native-text-blur/report.json",
+                "sha256": "79f8dc268060c19b280fe39c27bdd0ff7e990d8bbd48f16b75e77750c75df8ea"
               },
               "milestone_exit_satisfied": false
             },
@@ -25162,9 +25168,9 @@
               "sha256": "f10e51dc949f7bdacdbb830f8a4dee5b0cbda75f9f09bdfb7e94c8a5cbb13ee6"
             },
             "quota_observation": {
-              "path": "artifacts/migration/cycle134-quota-observation-0000.json",
-              "sha256": "d183d74a33e13f4885ee0dd7c25e5dbcb453b99b5d8fec80edcb7053165cd2b5",
-              "remaining_percent": 34
+              "path": "artifacts/migration/cycle135-quota-observation-0100.json",
+              "sha256": "dcd418abc800b2f8a71b6d5317ffd82381c83fcb0f6e98c0e9bc461562612b20",
+              "remaining_percent": 32
             },
             "authored_pixel_qualification": {
               "evidence": "artifacts/migration/2026-10-21T06-26-35-910Z-a3ad85b3/G3/native-text-layout/native-project-pixels/report.json",
@@ -25996,7 +26002,7 @@
               "commit": "c2413159eda01b5d3cd51c8fbf0c8d44a8951862"
             },
             "character_blur": {
-              "status": "focused_passed_full_pending",
+              "status": "full_gates_passed",
               "cycle": 135,
               "focused": {
                 "path": "artifacts/migration/cycle135-blur1/report.json",
@@ -26076,8 +26082,23 @@
                 "artifacts/migration/cycle135-clippy2.log",
                 "artifacts/migration/cycle135-focused1.log"
               ],
-              "note": "A final input-file stability assertion was added after focused validation; full current-source acceptance remains pending."
+              "note": "Current full verification includes the final input-file stability assertion.",
+              "evidence": {
+                "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/native-text-blur/report.json",
+                "sha256": "79f8dc268060c19b280fe39c27bdd0ff7e990d8bbd48f16b75e77750c75df8ea"
+              },
+              "commit": "00bfcef8de17b079b81d687557e595c38cc5607d",
+              "owner_capabilities": {
+                "path": "artifacts/migration/cycle135-owner-capabilities.json",
+                "sha256": "7ce65ca370d7749c312a7c6b69cb443347849f8bfdeb02756824d3d4d5345c5f"
+              }
             }
+          },
+          "completed_at": "2026-10-22T01:16:28.727Z",
+          "commit": "00bfcef8de17b079b81d687557e595c38cc5607d",
+          "verification": {
+            "path": "artifacts/migration/verify-2026-10-22T00-18-51-735Z-3e5ab551.json",
+            "sha256": "9747d5f4c31464ae22233498f3a18c6a5a9bba99312018f918748a3f8841b06b"
           }
         },
         {
@@ -26095,8 +26116,8 @@
       ],
       "started_at": "2026-10-20T20:25:14.937Z",
       "latest_verification": {
-        "path": "artifacts/migration/verify-2026-10-21T23-07-23-929Z-85eb6fd9.json",
-        "sha256": "231102a9f031c318bcc54e8d555d99a5cab82e264875759f194dc062a652e4c6"
+        "path": "artifacts/migration/verify-2026-10-22T00-18-51-735Z-3e5ab551.json",
+        "sha256": "9747d5f4c31464ae22233498f3a18c6a5a9bba99312018f918748a3f8841b06b"
       }
     },
     {
@@ -2447148,6 +2447169,20 @@
         "sha256": "231102a9f031c318bcc54e8d555d99a5cab82e264875759f194dc062a652e4c6"
       },
       "milestone_exit_satisfied": false
+    },
+    {
+      "cycle": 135,
+      "time": "2026-10-22T01:16:28.727Z",
+      "milestone": "M10",
+      "task": "M10-T7",
+      "increment": "evaluated-character-blur-capability",
+      "outcome": "passed",
+      "commit": "00bfcef8de17b079b81d687557e595c38cc5607d",
+      "verification": {
+        "path": "artifacts/migration/verify-2026-10-22T00-18-51-735Z-3e5ab551.json",
+        "sha256": "9747d5f4c31464ae22233498f3a18c6a5a9bba99312018f918748a3f8841b06b"
+      },
+      "milestone_exit_satisfied": false
     }
   ],
   "known_boundaries": [
@@ -2447374,9 +2447409,15 @@
     "task": "M10-T7",
     "increment": "evaluated-character-blur-capability",
     "started_at": "2026-10-22T00:06:53.155Z",
-    "implementation_state": "full_verification_pending",
+    "implementation_state": "committed",
     "scope": "Share native paint preparation between rendering and bounded animation capability checks; bind effective character blur to current-time retained output and independent TS draw filters.",
-    "updated_at": "2026-10-22T00:18:49.782Z"
+    "updated_at": "2026-10-22T01:16:28.727Z",
+    "outcome": "passed",
+    "commit": "00bfcef8de17b079b81d687557e595c38cc5607d",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-22T00-18-51-735Z-3e5ab551.json",
+      "sha256": "9747d5f4c31464ae22233498f3a18c6a5a9bba99312018f918748a3f8841b06b"
+    }
   },
   "execution_pause": {
     "requested_by": "owner",
