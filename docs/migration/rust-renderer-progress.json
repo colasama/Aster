@@ -370,40 +370,40 @@
     }
   },
   "last_cycle": {
-    "id": 133,
-    "time": "2026-10-21T22:51:12.623Z",
-    "updated_at": "2026-10-21T22:51:12.623Z",
+    "id": 134,
+    "time": "2026-10-22T00:05:18.146Z",
+    "updated_at": "2026-10-22T00:05:18.146Z",
     "milestone": "M10",
     "task": "M10-T7",
-    "increment": "embedded-native-text-qualification",
+    "increment": "glyph-paint-capabilities",
     "outcome": "passed",
-    "commit": "fbf77597d8fd7a271b5dd04781b68baa403b9335",
+    "commit": "c2413159eda01b5d3cd51c8fbf0c8d44a8951862",
     "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T22-03-14-452Z-eda3fb26.json",
-      "sha256": "a808b603bab3639d76611983f7557696b3703f280764bf194619f7fb0965c168"
+      "path": "artifacts/migration/verify-2026-10-21T23-07-23-929Z-85eb6fd9.json",
+      "sha256": "231102a9f031c318bcc54e8d555d99a5cab82e264875759f194dc062a652e4c6"
     },
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 297935,
+        "duration_ms": 340056,
         "proof": {
-          "path": "artifacts/migration/2026-10-21T22-03-14-452Z-eda3fb26/static-results.json",
-          "sha256": "56c68157838cc03383a58e4b356849375470d3f8c8a966d850d781a3aba5bea7"
+          "path": "artifacts/migration/2026-10-21T23-07-23-929Z-85eb6fd9/static-results.json",
+          "sha256": "1a49c905c77487fb6afb8d2b67a21f0a8bf6d7a0284933f1aba44266ecafe4c2"
         }
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 2559543,
+        "duration_ms": 3107883,
         "proof": {
-          "path": "artifacts/migration/2026-10-21T22-03-14-452Z-eda3fb26/G3/report.json",
-          "sha256": "063d9bf706bff3c89d9c9302282fdf6a4e16590206ae0935e11d5c9e4b98d20b"
+          "path": "artifacts/migration/2026-10-21T23-07-23-929Z-85eb6fd9/G3/report.json",
+          "sha256": "f58a74b4073cc52102498d201c073b62257040a91cfb60aa65194e9a836453e4"
         }
       }
     ],
-    "duration_ms": 2860012,
-    "next_step": "Continue M10-T7 with exact layered-color and bitmap-stroke capabilities, then per-character blur; complete M10-T8 exit audit after all production text capabilities are bound to verified pixels."
+    "duration_ms": 3450501,
+    "next_step": "Continue M10-T7 with exact evaluated per-character blur capabilities and authenticated retained output, then complete the M10-T8 exit audit."
   },
   "milestones": [
     {
@@ -24853,9 +24853,15 @@
               }
             },
             {
-              "status": "in_progress",
+              "status": "done",
               "title": "Route layered color paint graphs and bitmap strokes through exact capability decisions",
-              "acceptance": "The native rasterizer reports explicit unsupported reasons for unimplemented color paint graphs and bitmap strokes. Bind those reasons to the selected font/glyph and authenticated M5 output, or implement and verify them before native routing; no blanket text fallback."
+              "acceptance": "The native rasterizer reports explicit unsupported reasons for unimplemented color paint graphs and bitmap strokes. Bind those reasons to the selected font/glyph and authenticated M5 output, or implement and verify them before native routing; no blanket text fallback.",
+              "cycle": 134,
+              "commit": "c2413159eda01b5d3cd51c8fbf0c8d44a8951862",
+              "evidence": {
+                "path": "artifacts/migration/2026-10-21T23-07-23-929Z-85eb6fd9/G3/native-text-capabilities/report.json",
+                "sha256": "352d3bcfbd4a85c8412594ed923d3f4cba6753cd8edd52b7b12d3b0e52fcbbca"
+              }
             },
             {
               "status": "pending",
@@ -24864,8 +24870,8 @@
             }
           ],
           "preparation": {
-            "path": "artifacts/migration/cycle133-next-preparation.json",
-            "sha256": "9bd84669fdf42f3e0ca3369057ac8264aa708c0c899caddf7c845cbc220cfc55",
+            "path": "artifacts/migration/cycle134-next-preparation.json",
+            "sha256": "333326056813dfbb042724e90b62fe5edb205cfd8c89faa86bfc93c73c268309",
             "status": "preparation_only"
           },
           "progress": {
@@ -25088,36 +25094,36 @@
               "status": "recovered_without_source_or_evidence_changes"
             },
             "latest_verified_increment": {
-              "cycle": 133,
-              "commit": "fbf77597d8fd7a271b5dd04781b68baa403b9335",
+              "cycle": 134,
+              "commit": "c2413159eda01b5d3cd51c8fbf0c8d44a8951862",
               "verification": {
-                "path": "artifacts/migration/verify-2026-10-21T22-03-14-452Z-eda3fb26.json",
-                "sha256": "a808b603bab3639d76611983f7557696b3703f280764bf194619f7fb0965c168"
+                "path": "artifacts/migration/verify-2026-10-21T23-07-23-929Z-85eb6fd9.json",
+                "sha256": "231102a9f031c318bcc54e8d555d99a5cab82e264875759f194dc062a652e4c6"
               },
               "gates": [
                 {
                   "id": "G0",
                   "status": "passed",
-                  "duration_ms": 297935,
+                  "duration_ms": 340056,
                   "proof": {
-                    "path": "artifacts/migration/2026-10-21T22-03-14-452Z-eda3fb26/static-results.json",
-                    "sha256": "56c68157838cc03383a58e4b356849375470d3f8c8a966d850d781a3aba5bea7"
+                    "path": "artifacts/migration/2026-10-21T23-07-23-929Z-85eb6fd9/static-results.json",
+                    "sha256": "1a49c905c77487fb6afb8d2b67a21f0a8bf6d7a0284933f1aba44266ecafe4c2"
                   }
                 },
                 {
                   "id": "G3",
                   "status": "passed",
-                  "duration_ms": 2559543,
+                  "duration_ms": 3107883,
                   "proof": {
-                    "path": "artifacts/migration/2026-10-21T22-03-14-452Z-eda3fb26/G3/report.json",
-                    "sha256": "063d9bf706bff3c89d9c9302282fdf6a4e16590206ae0935e11d5c9e4b98d20b"
+                    "path": "artifacts/migration/2026-10-21T23-07-23-929Z-85eb6fd9/G3/report.json",
+                    "sha256": "f58a74b4073cc52102498d201c073b62257040a91cfb60aa65194e9a836453e4"
                   }
                 }
               ],
-              "duration_ms": 2860012,
-              "embedded_native_outline": {
-                "path": "artifacts/migration/2026-10-21T22-03-14-452Z-eda3fb26/G3/native-text-embedded/report.json",
-                "sha256": "9f240bed540cab1daf0e658674bb2851d5ee785671282fa9ad6b0d8a4bd4ad6c"
+              "duration_ms": 3450501,
+              "glyph_paint_capabilities": {
+                "path": "artifacts/migration/2026-10-21T23-07-23-929Z-85eb6fd9/G3/native-text-capabilities/report.json",
+                "sha256": "352d3bcfbd4a85c8412594ed923d3f4cba6753cd8edd52b7b12d3b0e52fcbbca"
               },
               "milestone_exit_satisfied": false
             },
@@ -25156,9 +25162,9 @@
               "sha256": "f10e51dc949f7bdacdbb830f8a4dee5b0cbda75f9f09bdfb7e94c8a5cbb13ee6"
             },
             "quota_observation": {
-              "path": "artifacts/migration/cycle133-quota-observation-2230.json",
-              "sha256": "d1181374d7f81f3d9ccc5deea93faf8fd3233d4fbd0f4302a6a0e05dbd1b24a4",
-              "remaining_percent": 35
+              "path": "artifacts/migration/cycle134-quota-observation-0000.json",
+              "sha256": "d183d74a33e13f4885ee0dd7c25e5dbcb453b99b5d8fec80edcb7053165cd2b5",
+              "remaining_percent": 34
             },
             "authored_pixel_qualification": {
               "evidence": "artifacts/migration/2026-10-21T06-26-35-910Z-a3ad85b3/G3/native-text-layout/native-project-pixels/report.json",
@@ -25745,7 +25751,7 @@
               "commit": "fbf77597d8fd7a271b5dd04781b68baa403b9335"
             },
             "glyph_paint_capabilities": {
-              "status": "focused_passed_full_pending",
+              "status": "full_gates_passed",
               "cycle": 134,
               "focused": {
                 "path": "artifacts/migration/cycle134-paint2/report.json",
@@ -25982,7 +25988,12 @@
                 "artifacts/migration/cycle134-clippy2.log",
                 "artifacts/migration/cycle134-focused2.log"
               ],
-              "note": "After the focused run, guarded f64-to-f32 underflow in authored paint probes; full current-source acceptance remains pending."
+              "note": "Current full verification includes the authored f64-to-f32 underflow guard added after focused validation.",
+              "evidence": {
+                "path": "artifacts/migration/2026-10-21T23-07-23-929Z-85eb6fd9/G3/native-text-capabilities/report.json",
+                "sha256": "352d3bcfbd4a85c8412594ed923d3f4cba6753cd8edd52b7b12d3b0e52fcbbca"
+              },
+              "commit": "c2413159eda01b5d3cd51c8fbf0c8d44a8951862"
             }
           }
         },
@@ -26001,8 +26012,8 @@
       ],
       "started_at": "2026-10-20T20:25:14.937Z",
       "latest_verification": {
-        "path": "artifacts/migration/verify-2026-10-21T22-03-14-452Z-eda3fb26.json",
-        "sha256": "a808b603bab3639d76611983f7557696b3703f280764bf194619f7fb0965c168"
+        "path": "artifacts/migration/verify-2026-10-21T23-07-23-929Z-85eb6fd9.json",
+        "sha256": "231102a9f031c318bcc54e8d555d99a5cab82e264875759f194dc062a652e4c6"
       }
     },
     {
@@ -2447040,6 +2447051,20 @@
         "sha256": "a808b603bab3639d76611983f7557696b3703f280764bf194619f7fb0965c168"
       },
       "milestone_exit_satisfied": false
+    },
+    {
+      "cycle": 134,
+      "time": "2026-10-22T00:05:18.146Z",
+      "milestone": "M10",
+      "task": "M10-T7",
+      "increment": "glyph-paint-capabilities",
+      "outcome": "passed",
+      "commit": "c2413159eda01b5d3cd51c8fbf0c8d44a8951862",
+      "verification": {
+        "path": "artifacts/migration/verify-2026-10-21T23-07-23-929Z-85eb6fd9.json",
+        "sha256": "231102a9f031c318bcc54e8d555d99a5cab82e264875759f194dc062a652e4c6"
+      },
+      "milestone_exit_satisfied": false
     }
   ],
   "known_boundaries": [
@@ -2447266,9 +2447291,15 @@
     "task": "M10-T7",
     "increment": "glyph-paint-capabilities",
     "started_at": "2026-10-21T22:53:16.638Z",
-    "implementation_state": "full_verification_pending",
+    "implementation_state": "committed",
     "scope": "Bind layered color outlines and bitmap stroke limitations to the selected physical font/glyph and exact authenticated retained pixels without allocating diagnostic atlases.",
-    "updated_at": "2026-10-21T23:07:22.114Z"
+    "updated_at": "2026-10-22T00:05:18.146Z",
+    "outcome": "passed",
+    "commit": "c2413159eda01b5d3cd51c8fbf0c8d44a8951862",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-21T23-07-23-929Z-85eb6fd9.json",
+      "sha256": "231102a9f031c318bcc54e8d555d99a5cab82e264875759f194dc062a652e4c6"
+    }
   },
   "execution_pause": {
     "requested_by": "owner",
