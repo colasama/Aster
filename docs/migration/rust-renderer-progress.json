@@ -207,6 +207,11 @@
         "path": "artifacts/migration/cycle138-layered-verification-authorization.json",
         "sha256": "73e04cda6b1dd03a36c36de51dce217b3a6ef5e17c31aaf3a969f58691505f12"
       }
+    },
+    "delegation": {
+      "approved_at": "2026-10-22T19:55:16.830Z",
+      "authorization_text": "不用subagent了，继续吧",
+      "subagents": false
     }
   },
   "reference_baseline": {
@@ -388,30 +393,18 @@
     }
   },
   "last_cycle": {
-    "id": 138,
-    "time": "2026-10-22T19:54:30.426Z",
-    "updated_at": "2026-10-22T19:54:30.426Z",
+    "id": 139,
+    "time": "2026-10-22T20:25:57.553Z",
+    "updated_at": "2026-10-22T20:25:57.553Z",
     "milestone": "M11",
-    "task": "M11-T1",
-    "increment": "reduce-native-preview-particle-overhead",
+    "task": "M11-T2",
+    "increment": "trusted-plugin-native-preview-snapshots",
     "outcome": "increment_committed_layered_verification",
-    "commit": "1c6f7cab454007d57ac9e9060404e21391967148",
+    "commit": "6fce2534e8524e83e45efa73056056fbfd6aa6ad",
     "validation_policy": "layered-development-verification-v1",
     "validation": {
-      "path": "artifacts/migration/cycle138-static-closeout/report.json",
-      "sha256": "1cfa9a0aad85f679770693b9c585e03ae61d731925fc5e3e11c53d83f2a2df05"
-    },
-    "pixel_corpus": {
-      "path": "artifacts/migration/2026-10-22T18-41-25-068Z-4a26fe5b/G3/report.json",
-      "sha256": "facb041f3343c9bda939293f2112b48f1fe639c2ee266d7cdbc9df82536336f7"
-    },
-    "recovery": {
-      "path": "artifacts/migration/cycle138-layered-closeout/recovery/report.json",
-      "sha256": "be42dc6deb642e8fee48c57ad5bfad756bcc79596559dcd1238c7c14ed25b4ff"
-    },
-    "latest_full_verification": {
-      "path": "artifacts/migration/verify-2026-10-22T18-41-25-068Z-4a26fe5b.json",
-      "sha256": "0f1d9ed854a1b3e03b7426cfe4e1d516e487366be2d595fa180552de631de7a2"
+      "path": "artifacts/migration/cycle139-verification/report.json",
+      "sha256": "ff81e47458c1b4f6468eebacb9e9629b2ef11a60148010279142f615bae64165"
     },
     "gates": [
       {
@@ -422,21 +415,16 @@
       {
         "id": "G3",
         "status": "passed",
-        "scope": "337 cases / 1819 preview frames; runtime unchanged after capture"
-      },
-      {
-        "id": "G4",
-        "status": "failed",
-        "scope": "latest full attempt; deferred milestone acceptance"
+        "scope": "targeted: 3 installed audio-spectrum cases / 15 frames; authenticated visual review reuse"
       },
       {
         "id": "G6",
-        "status": "failed",
-        "scope": "latest full attempt preserved; corrected targeted recovery passed with 24 exact frames"
+        "status": "passed",
+        "scope": "targeted: production-host recovery / 24 exact frames"
       }
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Start M11-T2: freeze trusted installed generator runtimes into native project snapshots, bind plugin changes to snapshot/cache identity, and preserve local unavailable-generator behavior in root and nested scenes. Use G0 plus affected targeted checks for development. At M11 exit repair pre-sample focus preparation and run all required gates."
+    "next_step": "Audit M11-T3 against the committed broker/receiver ownership implementation and current tests, then address exact editor snapshots and direct-manipulation diagnostics in M11-T4. Full editor installed-plugin hot reload/disable/missing coverage remains in M11-T6; final paired throughput/latency and exit audit remain open."
   },
   "milestones": [
     {
@@ -27425,14 +27413,22 @@
           "id": "M11-T2",
           "title": "Serve time-addressed native project preview snapshots",
           "scope": "Use immutable project snapshots and exact revision/composition/time/target identity with NativeProjectSession; retain only authenticated M5 rasters and native media grants across bounded requests.",
-          "status": "pending",
+          "status": "done",
           "estimated_implementation_hours": 3,
           "required_gates": [
             "G0",
             "G3",
             "G4",
             "G6"
-          ]
+          ],
+          "started_at": "2026-10-22T19:55:16.830Z",
+          "progress": "Committed immutable time-addressed project snapshots with trusted last-valid plugin packages, content-bound scope, registry invalidation and explicit unavailable-generator semantics for root and nested scenes. Full G0, release build, targeted plugin pixels and host recovery passed. Complete editor plugin lifecycle qualification remains an integration task; M11 exit is not claimed.",
+          "completed_at": "2026-10-22T20:25:57.553Z",
+          "commit": "6fce2534e8524e83e45efa73056056fbfd6aa6ad",
+          "validation": {
+            "path": "artifacts/migration/cycle139-verification/report.json",
+            "sha256": "ff81e47458c1b4f6468eebacb9e9629b2ef11a60148010279142f615bae64165"
+          }
         },
         {
           "id": "M11-T3",
@@ -27484,7 +27480,8 @@
             "G3",
             "G4",
             "G6"
-          ]
+          ],
+          "progress": "Retain complete corpus and app coverage. Add actual editor-installed plugin valid reload, rejected reload retaining last-valid content, disable/safe-mode/missing cases in root/nested scenes. Current T2 coverage tests the trusted bridge and snapshot assembly, native omission planning, installed-plugin corpus pixels and general production-host recovery; it does not yet exercise every plugin lifecycle action through the full editor."
         },
         {
           "id": "M11-T7",
@@ -2394352,6 +2394349,1656 @@
         "contact_sheet": "artifacts/migration/cycle137-external-rejected/comparison/contact-sheet.png",
         "contact_sheet_sha256": "086110b7349beb244742d79cef4017a830b170a3b43f6e96e7d0c852706407b7"
       }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 3,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0,
+        "previous": {
+          "status": "compared",
+          "frame": 2,
+          "mean_squared_error": 593.7230946180556,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 4,
+          "mean_squared_error": 421.0957855902778,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "539f6f45f524bdddc6bd2ef512ff44ba5a76c31aee47a81f2ddbee886018fce7",
+      "candidate_rgba_sha256": "539f6f45f524bdddc6bd2ef512ff44ba5a76c31aee47a81f2ddbee886018fce7",
+      "case_id": "scene-audio-spectrum-bars",
+      "frame": 3,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-22T20:25:57.553Z",
+      "cycle": 139,
+      "notes": "Current metric and structural checks passed. Accepted by authenticated reuse of the prior visual self-review: both contact sheet and heatmap are byte-identical, preserving the same non-structural residual classification. No threshold change.",
+      "evidence": {
+        "report": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-bars-3/report.json",
+        "heatmap": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-bars-3/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-bars-3/contact-sheet.png",
+        "report_sha256": "d2391a495d7d74024cb0a3e9c5777b794c898b370f5d13b6384ec402c637cee9",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "9a5327e1000f82ece5cb323752161c78314e655afad0af779074a1a73bd4bcf7"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 6,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0,
+        "previous": {
+          "status": "compared",
+          "frame": 5,
+          "mean_squared_error": 424.180625,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 7,
+          "mean_squared_error": 1490.542717013889,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "99e1a6e80d271ae7e8534ed4c5fd8bbf2177fe56c9b2c8d19dca60dce9399084",
+      "candidate_rgba_sha256": "99e1a6e80d271ae7e8534ed4c5fd8bbf2177fe56c9b2c8d19dca60dce9399084",
+      "case_id": "scene-audio-spectrum-bars",
+      "frame": 6,
+      "profile": "gpu",
+      "cycle": 139,
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-22T20:25:57.553Z",
+      "notes": "Current metric and structural checks passed. Accepted by authenticated reuse of the prior visual self-review: both contact sheet and heatmap are byte-identical, preserving the same non-structural residual classification. No threshold change.",
+      "evidence": {
+        "report": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-bars-6/report.json",
+        "heatmap": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-bars-6/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-bars-6/contact-sheet.png",
+        "report_sha256": "632c853a2f3e432c45482b0026dbc2d9a2f7b167b65f3025707e0e877a5b9a7f",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "ae8903bd0d31132e45ae1f87b7b3b45b4e599d7d9de35314be732c928620232b"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 15,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0,
+        "previous": {
+          "status": "compared",
+          "frame": 14,
+          "mean_squared_error": 1827.4861284722222,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 16,
+          "mean_squared_error": 733.6437456597222,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "55fcbea4914601a147e43b8467e5088c47a76d0bf7057dae2e9c6314e531dbe3",
+      "candidate_rgba_sha256": "55fcbea4914601a147e43b8467e5088c47a76d0bf7057dae2e9c6314e531dbe3",
+      "case_id": "scene-audio-spectrum-bars",
+      "frame": 15,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-22T20:25:57.553Z",
+      "cycle": 139,
+      "notes": "Current metric and structural checks passed. Accepted by authenticated reuse of the prior visual self-review: both contact sheet and heatmap are byte-identical, preserving the same non-structural residual classification. No threshold change.",
+      "evidence": {
+        "report": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-bars-15/report.json",
+        "heatmap": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-bars-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-bars-15/contact-sheet.png",
+        "report_sha256": "99638d85c10b6d606aae23bca36f69de1c0de6bbcaa096f097d0d21201607875",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "72f64f97c65cb71faec9d5ec65c8cce24a069d08a557ec7e455c27781082f9e8"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 33,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0,
+        "previous": {
+          "status": "compared",
+          "frame": 32,
+          "mean_squared_error": 541.8581119791667,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 34,
+          "mean_squared_error": 397.0742317708333,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "2fb5eedc3b85ff87eb7d0074dfcc73e20e2b5435c17987fb3c9c3043fa6ffa30",
+      "candidate_rgba_sha256": "2fb5eedc3b85ff87eb7d0074dfcc73e20e2b5435c17987fb3c9c3043fa6ffa30",
+      "case_id": "scene-audio-spectrum-bars",
+      "frame": 33,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-22T20:25:57.553Z",
+      "cycle": 139,
+      "notes": "Current metric and structural checks passed. Accepted by authenticated reuse of the prior visual self-review: both contact sheet and heatmap are byte-identical, preserving the same non-structural residual classification. No threshold change.",
+      "evidence": {
+        "report": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-bars-33/report.json",
+        "heatmap": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-bars-33/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-bars-33/contact-sheet.png",
+        "report_sha256": "a12c0df2fe594cfb52c4b36236f1a3642cb9c08a8242cf582475d928baa4ae1d",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "a9aa97821a3d74b5376f889281e5332ddbdbaa2c696668f3bc595ddd3edb3798"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 54,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0,
+        "previous": {
+          "status": "compared",
+          "frame": 53,
+          "mean_squared_error": 865.9639105902778,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 55,
+          "mean_squared_error": 591.0640147569444,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "f525b3997c25fac9b0c997c904f0a7ed05ab76a5532a88ca76dee30b33846b52",
+      "candidate_rgba_sha256": "f525b3997c25fac9b0c997c904f0a7ed05ab76a5532a88ca76dee30b33846b52",
+      "case_id": "scene-audio-spectrum-bars",
+      "frame": 54,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-22T20:25:57.553Z",
+      "cycle": 139,
+      "notes": "Current metric and structural checks passed. Accepted by authenticated reuse of the prior visual self-review: both contact sheet and heatmap are byte-identical, preserving the same non-structural residual classification. No threshold change.",
+      "evidence": {
+        "report": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-bars-54/report.json",
+        "heatmap": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-bars-54/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-bars-54/contact-sheet.png",
+        "report_sha256": "b9616a9167a8aa75edfdd4150ca594743f586b12de5ff35c54e94b805fac3700",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "ab1af2edf6cf99bdcc020e901e65c2a6a726a77509216241ea02ff0a8b9b5c13"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 3,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0,
+        "previous": {
+          "status": "compared",
+          "frame": 2,
+          "mean_squared_error": 794.1996875,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 4,
+          "mean_squared_error": 571.3589583333334,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "4ddff6b581d13a768dbfde3d41e378b057553e31e5046c804c8a531d06a80af1",
+      "candidate_rgba_sha256": "4ddff6b581d13a768dbfde3d41e378b057553e31e5046c804c8a531d06a80af1",
+      "case_id": "scene-audio-spectrum-ring",
+      "frame": 3,
+      "profile": "gpu",
+      "cycle": 139,
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-22T20:25:57.553Z",
+      "notes": "Current metric and structural checks passed. Accepted by authenticated reuse of the prior visual self-review: both contact sheet and heatmap are byte-identical, preserving the same non-structural residual classification. No threshold change.",
+      "evidence": {
+        "report": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-ring-3/report.json",
+        "heatmap": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-ring-3/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-ring-3/contact-sheet.png",
+        "report_sha256": "a0cb71004fd88e1806cbc12046a2ddcfbeeeb83edf4a61db04989dce52773b1b",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "290eb161e6558faea4beb62eebe209c35792ba1f60963af6d8f1d7c1e7c46679"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 6,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0,
+        "previous": {
+          "status": "compared",
+          "frame": 5,
+          "mean_squared_error": 577.0492057291667,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 7,
+          "mean_squared_error": 1996.0564409722222,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "772de0c83525d519ee7127eb1249441cd0b8bf902c969965dcb2169dadd2dd84",
+      "candidate_rgba_sha256": "772de0c83525d519ee7127eb1249441cd0b8bf902c969965dcb2169dadd2dd84",
+      "case_id": "scene-audio-spectrum-ring",
+      "frame": 6,
+      "profile": "gpu",
+      "cycle": 139,
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-22T20:25:57.553Z",
+      "notes": "Current metric and structural checks passed. Accepted by authenticated reuse of the prior visual self-review: both contact sheet and heatmap are byte-identical, preserving the same non-structural residual classification. No threshold change.",
+      "evidence": {
+        "report": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-ring-6/report.json",
+        "heatmap": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-ring-6/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-ring-6/contact-sheet.png",
+        "report_sha256": "8dc91f21f395d42025699c3e34c65c3b0871d83abbcf41140dfe42f25c680d28",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "9efc572b9375103a019fca96124dd8e70cd71976c9b59686a2f51a07466303bb"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 15,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0,
+        "previous": {
+          "status": "compared",
+          "frame": 14,
+          "mean_squared_error": 2256.9495225694445,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 16,
+          "mean_squared_error": 1081.6443663194445,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "d91bd0d843620d0961d91e39b58a3d8e16537489c5e46c8d03f1e63b370cf273",
+      "candidate_rgba_sha256": "d91bd0d843620d0961d91e39b58a3d8e16537489c5e46c8d03f1e63b370cf273",
+      "case_id": "scene-audio-spectrum-ring",
+      "frame": 15,
+      "profile": "gpu",
+      "cycle": 139,
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-22T20:25:57.553Z",
+      "notes": "Current metric and structural checks passed. Accepted by authenticated reuse of the prior visual self-review: both contact sheet and heatmap are byte-identical, preserving the same non-structural residual classification. No threshold change.",
+      "evidence": {
+        "report": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-ring-15/report.json",
+        "heatmap": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-ring-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-ring-15/contact-sheet.png",
+        "report_sha256": "0463685357671fe0d35811d83bd5acfdeaf2e177ea262478f0a1a6e410b99cdd",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "2ed7cf711e83a0396033e8e5920e3ab2c6a63ef615a0dfd2d4e559b28cb02f7c"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 33,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0,
+        "previous": {
+          "status": "compared",
+          "frame": 32,
+          "mean_squared_error": 736.5671744791666,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 34,
+          "mean_squared_error": 535.5266536458333,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "2f29c55c52937b34edd747965ca28830bad95c84ee6b9f5b8750113ce4b838d5",
+      "candidate_rgba_sha256": "2f29c55c52937b34edd747965ca28830bad95c84ee6b9f5b8750113ce4b838d5",
+      "case_id": "scene-audio-spectrum-ring",
+      "frame": 33,
+      "profile": "gpu",
+      "cycle": 139,
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-22T20:25:57.553Z",
+      "notes": "Current metric and structural checks passed. Accepted by authenticated reuse of the prior visual self-review: both contact sheet and heatmap are byte-identical, preserving the same non-structural residual classification. No threshold change.",
+      "evidence": {
+        "report": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-ring-33/report.json",
+        "heatmap": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-ring-33/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-ring-33/contact-sheet.png",
+        "report_sha256": "dc9eaedbf52ef95c4d697ad91c117ba8b840df7236aaa7e9b4bf1421d8da07c9",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "17c9198d16deada330e3c339be11ab9b5563211337c2e2f16176bc4861743550"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 54,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0,
+        "previous": {
+          "status": "compared",
+          "frame": 53,
+          "mean_squared_error": 1260.8336501736112,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 55,
+          "mean_squared_error": 787.0866840277778,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "80da989405e05e1dcfdca792f9114aa2d2824b30aeb44d0336f2fc2d071763d9",
+      "candidate_rgba_sha256": "80da989405e05e1dcfdca792f9114aa2d2824b30aeb44d0336f2fc2d071763d9",
+      "case_id": "scene-audio-spectrum-ring",
+      "frame": 54,
+      "profile": "gpu",
+      "cycle": 139,
+      "verdict": "accepted",
+      "residual_class": "float-precision",
+      "reviewed_at": "2026-10-22T20:25:57.553Z",
+      "notes": "Current metric and structural checks passed. Accepted by authenticated reuse of the prior visual self-review: both contact sheet and heatmap are byte-identical, preserving the same non-structural residual classification. No threshold change.",
+      "evidence": {
+        "report": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-ring-54/report.json",
+        "heatmap": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-ring-54/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-ring-54/contact-sheet.png",
+        "report_sha256": "9c0bca37834a1be7b1a038d7bb033478db1a970324ffce0e79453124c23571e0",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "58e2b1de355c8ac3a5d9c5d324a33430dffce79e97ad01ebeee1cbd43bf75ed5"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 3,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0,
+        "previous": {
+          "status": "compared",
+          "frame": 2,
+          "mean_squared_error": 1420.0200520833334,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 4,
+          "mean_squared_error": 1070.3184288194445,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "bfbf59b3b2ef4e3b13911f6a8fe1a952dc486a39a45e8bdf5648c441956131a5",
+      "candidate_rgba_sha256": "bfbf59b3b2ef4e3b13911f6a8fe1a952dc486a39a45e8bdf5648c441956131a5",
+      "case_id": "scene-audio-spectrum-scope",
+      "frame": 3,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-22T20:25:57.553Z",
+      "cycle": 139,
+      "notes": "Current metric and structural checks passed. Accepted by authenticated reuse of the prior visual self-review: both contact sheet and heatmap are byte-identical, preserving the same non-structural residual classification. No threshold change.",
+      "evidence": {
+        "report": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-scope-3/report.json",
+        "heatmap": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-scope-3/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-scope-3/contact-sheet.png",
+        "report_sha256": "93a45f67b054017efdb5a214717c5009e60337def7c24a19168140b671d63d93",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "164cf8b94b68d02d9debb0477a4e4d2c2d3e7f85116d3183d809b94ab48f50d8"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 6,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0,
+        "previous": {
+          "status": "compared",
+          "frame": 5,
+          "mean_squared_error": 544.0295746527778,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 7,
+          "mean_squared_error": 551.1388932291667,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "640177810c60c7ac69b874e05f14e31c0d53335770309c45006664cb9f552143",
+      "candidate_rgba_sha256": "640177810c60c7ac69b874e05f14e31c0d53335770309c45006664cb9f552143",
+      "case_id": "scene-audio-spectrum-scope",
+      "frame": 6,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-22T20:25:57.553Z",
+      "cycle": 139,
+      "notes": "Current metric and structural checks passed. Accepted by authenticated reuse of the prior visual self-review: both contact sheet and heatmap are byte-identical, preserving the same non-structural residual classification. No threshold change.",
+      "evidence": {
+        "report": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-scope-6/report.json",
+        "heatmap": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-scope-6/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-scope-6/contact-sheet.png",
+        "report_sha256": "aab2b687eaf683b75361f091f6afc251cae3a288bd3ef99a90c3155a645f39bc",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "32e01a8be624b5a179cfeaa173ac06327710f4ca32f53f51094a15095b5b915c"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 15,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0,
+        "previous": {
+          "status": "compared",
+          "frame": 14,
+          "mean_squared_error": 809.6031423611112,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 16,
+          "mean_squared_error": 1278.122578125,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "12dcf965cf3434311c3ba30c8e372d6958a0a67493b88c71fbc8fac36adda80f",
+      "candidate_rgba_sha256": "12dcf965cf3434311c3ba30c8e372d6958a0a67493b88c71fbc8fac36adda80f",
+      "case_id": "scene-audio-spectrum-scope",
+      "frame": 15,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-22T20:25:57.553Z",
+      "cycle": 139,
+      "notes": "Current metric and structural checks passed. Accepted by authenticated reuse of the prior visual self-review: both contact sheet and heatmap are byte-identical, preserving the same non-structural residual classification. No threshold change.",
+      "evidence": {
+        "report": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-scope-15/report.json",
+        "heatmap": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-scope-15/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-scope-15/contact-sheet.png",
+        "report_sha256": "be5d1b5e6b4a5ac770884ad8734242c68959e5b27f2685a0988cea3d62d066b9",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "4e2fe173b1963e35ef196e2a1e7ac7d351d2fd21987e9933721a51b29390b884"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 33,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0,
+        "previous": {
+          "status": "compared",
+          "frame": 32,
+          "mean_squared_error": 1420.0200520833334,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 34,
+          "mean_squared_error": 1070.3184288194445,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "bfbf59b3b2ef4e3b13911f6a8fe1a952dc486a39a45e8bdf5648c441956131a5",
+      "candidate_rgba_sha256": "bfbf59b3b2ef4e3b13911f6a8fe1a952dc486a39a45e8bdf5648c441956131a5",
+      "case_id": "scene-audio-spectrum-scope",
+      "frame": 33,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-22T20:25:57.553Z",
+      "cycle": 139,
+      "notes": "Current metric and structural checks passed. Accepted by authenticated reuse of the prior visual self-review: both contact sheet and heatmap are byte-identical, preserving the same non-structural residual classification. No threshold change.",
+      "evidence": {
+        "report": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-scope-33/report.json",
+        "heatmap": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-scope-33/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-scope-33/contact-sheet.png",
+        "report_sha256": "c3d6232b5883ef7e34c543cf61904d7c211954235d1e450cb98f240f1eba75cc",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "164cf8b94b68d02d9debb0477a4e4d2c2d3e7f85116d3183d809b94ab48f50d8"
+      }
+    },
+    {
+      "metrics": {
+        "exact": true,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 0,
+        "mean_abs_error": 0,
+        "mean_squared_error": 0,
+        "rgb_mean_squared_error": 0,
+        "psnr": {
+          "kind": "infinite"
+        },
+        "rgba_psnr": {
+          "kind": "infinite"
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 0
+      },
+      "ssim": {
+        "channels": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "mean": 1,
+        "rgba_mean": 1,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 0,
+        "error_component_count": 0,
+        "signed_bias": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 0,
+        "alpha_changed_fraction": 0,
+        "ink_bounds": null
+      },
+      "registration": {
+        "status": "exact_identity",
+        "shift": {
+          "dx": 0,
+          "dy": 0,
+          "distance": 0
+        },
+        "diagnostic": "coordinate-wise RGBA identity; no phase estimate required",
+        "quality": {
+          "reference_rms": 0,
+          "candidate_rms": 0,
+          "reference_axis_ratio": 0,
+          "candidate_axis_ratio": 0,
+          "reference_window_energy_fraction": 0,
+          "candidate_window_energy_fraction": 0,
+          "active_frequencies": 0,
+          "spectral_bins": 0,
+          "peak_ratio": null,
+          "peak_to_sidelobe_ratio": null,
+          "peak_coherence": null,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 0
+        }
+      },
+      "sequence": {
+        "frame": 54,
+        "first_frame": 0,
+        "last_frame": 59,
+        "current_mean_squared_error": 0,
+        "previous": {
+          "status": "compared",
+          "frame": 53,
+          "mean_squared_error": 1431.8694401041666,
+          "current_is_closer": true
+        },
+        "next": {
+          "status": "compared",
+          "frame": 55,
+          "mean_squared_error": 1392.1794878472222,
+          "current_is_closer": true
+        },
+        "passed": true
+      },
+      "reference_rgba_sha256": "8b15138ab5a1bcc8e90afd0d0223c174840114c5e9882d8539e19bf65d146beb",
+      "candidate_rgba_sha256": "8b15138ab5a1bcc8e90afd0d0223c174840114c5e9882d8539e19bf65d146beb",
+      "case_id": "scene-audio-spectrum-scope",
+      "frame": 54,
+      "profile": "gpu",
+      "residual_class": "float-precision",
+      "verdict": "accepted",
+      "reviewed_at": "2026-10-22T20:25:57.553Z",
+      "cycle": 139,
+      "notes": "Current metric and structural checks passed. Accepted by authenticated reuse of the prior visual self-review: both contact sheet and heatmap are byte-identical, preserving the same non-structural residual classification. No threshold change.",
+      "evidence": {
+        "report": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-scope-54/report.json",
+        "heatmap": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-scope-54/heatmap.png",
+        "contact_sheet": "artifacts/migration/cycle139-verification/plugin-pixels/pixels/frames/scene-audio-spectrum-scope-54/contact-sheet.png",
+        "report_sha256": "9991432e4a6b0a1d00f0325e3e1cbf3a0c88d02d86de2f88d27d3e381e57bdba",
+        "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
+        "contact_sheet_sha256": "b6c60e103ec96913d56b25bca611faf902396589de3656ec5e18c45eb3f01694"
+      }
     }
   ],
   "history": [
@@ -2449668,6 +2451315,46 @@
         "path": "artifacts/migration/cycle138-layered-closeout/report.json",
         "sha256": "8cc85a0b6c37845eedf15c5e33b78e54ebf8bd4c6319d76334cac050878ec5d7"
       }
+    },
+    {
+      "cycle": 139,
+      "id": 139,
+      "time": "2026-10-22T20:25:57.553Z",
+      "updated_at": "2026-10-22T20:25:57.553Z",
+      "milestone": "M11",
+      "task": "M11-T2",
+      "increment": "trusted-plugin-native-preview-snapshots",
+      "outcome": "increment_committed_layered_verification",
+      "commit": "6fce2534e8524e83e45efa73056056fbfd6aa6ad",
+      "validation_policy": "layered-development-verification-v1",
+      "validation": {
+        "path": "artifacts/migration/cycle139-verification/report.json",
+        "sha256": "ff81e47458c1b4f6468eebacb9e9629b2ef11a60148010279142f615bae64165"
+      },
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "scope": "full-static"
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "scope": "targeted: 3 installed audio-spectrum cases / 15 frames; authenticated visual review reuse"
+        },
+        {
+          "id": "G6",
+          "status": "passed",
+          "scope": "targeted: production-host recovery / 24 exact frames"
+        }
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Audit M11-T3 against the committed broker/receiver ownership implementation and current tests, then address exact editor snapshots and direct-manipulation diagnostics in M11-T4. Full editor installed-plugin hot reload/disable/missing coverage remains in M11-T6; final paired throughput/latency and exit audit remain open.",
+      "focused_evidence": [
+        "artifacts/migration/cycle139-preview-plugins-tests.log",
+        "artifacts/migration/cycle139-plugin-ts-tests.log",
+        "artifacts/migration/cycle139-generator-availability-tests2.log"
+      ]
     }
   ],
   "known_boundaries": [
