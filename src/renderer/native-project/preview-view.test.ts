@@ -1,8 +1,9 @@
 // @vitest-environment happy-dom
 
-import { beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { activeComposition, createDemoProject } from "../../core/project/project";
 import type { DesktopNativePreview } from "../../core/rendering/native-preview-protocol";
+import { previewFrameCache } from "../../core/rendering/preview-frame-cache";
 import { createBeautyFrameRequest } from "../compositing/beauty-frame";
 import { NativePreviewCanvas } from "./preview-canvas";
 import { NativePreviewView } from "./preview-view";
@@ -21,7 +22,11 @@ vi.mock("../../core/project/project-file", () => ({
 beforeEach(() => {
   vi.resetAllMocks();
   registry.revision = 0;
+  previewFrameCache.clear();
+  previewFrameCache.setBudgetMb(0);
 });
+
+afterEach(() => previewFrameCache.clear());
 
 async function fixture() {
   const project = createDemoProject();
@@ -42,6 +47,7 @@ async function fixture() {
     bind: vi.fn(),
     dispose: vi.fn(),
     present: vi.fn().mockResolvedValue({ pixels, skipped: false, render_and_share_ms: 1 }),
+    presentCached: vi.fn().mockResolvedValue(undefined),
   };
   const ready = { adapter: { name: "test" } };
   const api = {
@@ -202,4 +208,108 @@ test("disposal cancels a pending snapshot without publishing a canvas", async ()
   await disposing;
   const target = canvas.present.mock.calls[0][4] as HTMLCanvasElement;
   expect([target.width, target.height]).toEqual([0, 0]);
+});
+
+test("native idle work stays inside its byte budget even for an extremely long work area", async () => {
+  const { view, request, canvas } = await fixture();
+  const current = {
+    ...request,
+    time: 0,
+    composition: { ...request.composition, workArea: { start: 0, end: 1e9 } },
+  };
+  previewFrameCache.setBudgetMb((4 * 16) / 1048576);
+  const options = { visualization: "beauty", memoryBudgetMb: 512, playing: false };
+  view.queue(current, options);
+  await view.settled();
+  expect(canvas.present.mock.calls.map((args) => args[3])).toEqual([true, false, false]);
+  expect(view.presented).toHaveBeenCalledOnce();
+  expect(previewFrameCache.usage()).toMatchObject({
+    usedBytes: 48,
+    budgetBytes: 64,
+    frameCount: 3,
+  });
+  const renders = canvas.present.mock.calls.length;
+  view.queue(current, options);
+  await view.settled();
+  expect(canvas.presentCached).toHaveBeenCalledOnce();
+  expect(canvas.present).toHaveBeenCalledTimes(renders);
+  previewFrameCache.setBudgetMb(16 / 1048576);
+  expect(previewFrameCache.usage()).toMatchObject({ usedBytes: 16, frameCount: 1 });
+  await view.dispose();
+});
+
+test.each(["revision", "quality", "playback"] as const)(
+  "%s interrupts an in-flight idle frame without caching or displaying its stale completion",
+  async (change) => {
+    const { view, request, canvas, api } = await fixture();
+    previewFrameCache.setBudgetMb((5 * 16) / 1048576);
+    const options = { visualization: "beauty", memoryBudgetMb: 512, playing: false };
+    let finish!: () => void;
+    canvas.present
+      .mockImplementationOnce(async () => ({
+        pixels: { width: 2, height: 2, pixelFormat: "rgba", pixels: new ArrayBuffer(16) },
+        skipped: false,
+        render_and_share_ms: 1,
+      }))
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = () =>
+              resolve({
+                pixels: { width: 2, height: 2, pixelFormat: "rgba", pixels: new ArrayBuffer(16) },
+                skipped: false,
+                render_and_share_ms: 1,
+              });
+          }),
+      );
+    view.queue({ ...request, time: 0 }, options);
+    await vi.waitFor(() => expect(canvas.present).toHaveBeenCalledTimes(2));
+    const next =
+      change === "revision"
+        ? {
+            ...request,
+            time: 0,
+            project: { ...request.project },
+            snapshot: { ...request.snapshot, projectRevision: 2 },
+          }
+        : change === "quality"
+          ? { ...request, time: 0, antiAliasing: "fxaa" as const }
+          : { ...request, time: 0 };
+    view.queue(next, { ...options, playing: change === "playback" });
+    // Cancel idle work after the new foreground request starts, isolating the older completion.
+    canvas.present.mockImplementationOnce(async () => {
+      view.stopIdle();
+      return {
+        pixels: { width: 2, height: 2, pixelFormat: "rgba", pixels: new ArrayBuffer(16) },
+        skipped: false,
+        render_and_share_ms: 1,
+      };
+    });
+    expect((canvas.present.mock.calls[1][2] as () => boolean)()).toBe(false);
+    finish();
+    await view.settled();
+    expect(previewFrameCache.cachedFrames(request.composition.id)).toEqual([0]);
+    expect(canvas.present.mock.calls.filter((args) => args[3] === false)).toHaveLength(1);
+    expect(view.presented).toHaveBeenCalledTimes(2);
+    if (change !== "playback") expect(api.replace).toHaveBeenCalledOnce();
+    await view.dispose();
+  },
+);
+
+test("budgeted native prerender wraps inside the work area without rendering the playhead twice", async () => {
+  const { view, request, canvas } = await fixture();
+  const rate = request.composition.frameRate.denominator / request.composition.frameRate.numerator;
+  previewFrameCache.setBudgetMb((5 * 16) / 1048576);
+  view.queue(
+    {
+      ...request,
+      time: 4 * rate,
+      composition: { ...request.composition, workArea: { start: 2 * rate, end: 6 * rate } },
+    },
+    { visualization: "beauty", memoryBudgetMb: 512, playing: false },
+  );
+  await view.settled();
+  expect(canvas.present.mock.calls.map((args) => Math.round(args[0] / rate))).toEqual([4, 5, 2, 3]);
+  expect(view.presented).toHaveBeenCalledOnce();
+  await view.dispose();
 });

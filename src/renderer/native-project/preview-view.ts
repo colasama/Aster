@@ -17,7 +17,7 @@ import { getSceneGeneratorRegistryRevision } from "../../core/scene/scene-genera
 import type { GpuDiagnostics, Project, RendererMetrics } from "../../core/types";
 import type { BeautyFrameRequest } from "../compositing/beauty-frame";
 import { previewFramePlan } from "../frame-cache/cached-beauty-presenter";
-import { idleSlot, prerenderFrameOrder } from "../frame-cache/preview-prerenderer";
+import { idleSlot } from "../frame-cache/preview-prerenderer";
 import type { RawVideoFrame } from "../gpu/frame-readback";
 import { NativePreviewCanvas } from "./preview-canvas";
 import { previewProjectClosure } from "./preview-project";
@@ -341,8 +341,13 @@ export class NativePreviewView {
         previewFrameCache.usage().budgetBytes /
           (work.request.target.width * work.request.target.height * 4),
       ) - 2;
-    for (const frame of prerenderFrameOrder(plan.frame, first, last)) {
-      if (remaining-- <= 0 || !current()) return;
+    // Iterate only the budgeted window; a long composition must not allocate its full frame list.
+    const tailStart = Math.max(first, plan.frame + 1);
+    const tailCount = Math.max(0, last - tailStart + 1);
+    const headCount = Math.max(0, Math.min(plan.frame, last + 1) - first);
+    for (let index = 0; index < tailCount + headCount && remaining-- > 0; index++) {
+      if (!current()) return;
+      const frame = index < tailCount ? tailStart + index : first + index - tailCount;
       await idleSlot();
       if (!current()) return;
       await this.#render(

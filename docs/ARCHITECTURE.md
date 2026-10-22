@@ -740,6 +740,9 @@ resources until GPU use finishes. The broker acknowledges presentation only afte
 producer. This provides the GPU completion boundary without another renderer-process queue wait.
 Explicit pixel captures also wait for their mapped readback buffer. A replaceable foreground queue rejects
 stale edits while idle pre-rendering fills the bounded RAM cache without changing the displayed frame.
+The native idle scheduler iterates only its budgeted frame window, without allocating a list for the
+entire work area. Editing, quality changes and playback invalidate in-flight idle completions before
+they can enter the cache or update the displayed frame.
 Presentation-device loss is persistent. The view can retire its old session and recreate the device,
 or reopen a crashed native producer, once per request. Invalid input and mismatched frame identities
 remain errors. Host disposal waits for retirements already triggered by renderer loss or navigation.
