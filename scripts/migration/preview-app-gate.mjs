@@ -3,6 +3,7 @@ import { mkdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { runAppChecks } from "./app-checks.mjs";
 import { runEditorInteractionGate } from "./preview-editor-interaction-gate.mjs";
+import { runEditorPluginGate } from "./preview-editor-plugin-gate.mjs";
 import { auditPreviewLatency } from "./preview-latency-audit.mjs";
 import { runPreviewLifecycle } from "./preview-lifecycle-gate.mjs";
 import { runStep } from "./process.mjs";
@@ -87,6 +88,11 @@ export async function runPreviewAppGate(context, execute = runStep) {
       execute,
     );
     assert.equal(report.interactions.status, "passed", report.interactions.error);
+    report.plugins = await runEditorPluginGate(
+      { ...context, output: join(context.output, "plugins") },
+      execute,
+    );
+    assert.equal(report.plugins.status, "passed", report.plugins.error);
     report.recovery = await runPreviewLifecycle(
       {
         ...context,

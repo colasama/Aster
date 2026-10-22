@@ -4,9 +4,10 @@ import { createServer } from "node:net";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import { captureHostInfo } from "../parity/electron-host-info.mjs";
 import { captureEditorInteractions } from "./preview-editor-interactions.mjs";
+import { captureEditorPlugins } from "./preview-editor-plugins.mjs";
 import { capturePreviewInputLatency } from "./preview-input-latency.mjs";
 import { captureInitialPreview, captureReadyBenchmark } from "./preview-readiness.mjs";
 import { writeAtomicJson } from "./report.mjs";
@@ -104,7 +105,17 @@ async function main() {
       });
       context = await call("get_editor_context");
     }
-    if (process.env.ASTER_PREVIEW_INTERACTIONS === "1") {
+    if (process.env.ASTER_PREVIEW_PLUGINS === "1") {
+      report.plugins = await captureEditorPlugins({
+        editor,
+        call,
+        root,
+        output,
+        nativeCalls: report.native_calls,
+        engine,
+        dialog,
+      });
+    } else if (process.env.ASTER_PREVIEW_INTERACTIONS === "1") {
       report.interactions = await captureEditorInteractions({
         editor,
         call,

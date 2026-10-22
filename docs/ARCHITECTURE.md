@@ -759,6 +759,10 @@ Native editor qualification drives the diagnostic selector, snapshot button, key
 pointer-drag preview/commit/undo in both rendering engines, binding every native snapshot to its
 actual IPC call and exact playhead time. Diagnostic depth views use primary auxiliary surfaces,
 matching the TS editor; camera beauty depth of field retains its budgeted layered attachments.
+Installed-plugin qualification uses the real plugin manager in isolated application profiles. Paired
+root and nested compositions cover installation, successful and rejected hot reload, disable/enable,
+safe-mode recovery and missing packages, including live registry invalidation without reopening the
+active project. Pixel checks require visible reload changes and retention of the last valid shader.
 The editor benchmark uses uncached native evaluation and waits for GPU presentation; its synthetic
 compositions are materialized into authored snapshots. Exclusive benchmark ownership drains foreground
 work and suspends idle pre-rendering. Preview snapshots include the reachable composition graph,
