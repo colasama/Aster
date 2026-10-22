@@ -24,6 +24,8 @@ pub struct BridgeOptions {
     #[command(flatten)]
     preference_limits: crate::plugins::PluginPreferenceLimits,
     #[command(flatten)]
+    preview_plugin_limits: crate::preview_plugins::PreviewPluginLimits,
+    #[command(flatten)]
     hot_reload_limits: aster_plugin::hot_reload::HotReloadLimits,
     #[command(flatten)]
     registry_limits: aster_plugin::registry::RegistryLimits,
@@ -153,6 +155,7 @@ impl BridgeOptions {
             },
             plugins: PluginHost {
                 preference_limits: self.preference_limits,
+                snapshot_limits: self.preview_plugin_limits,
                 app_data: self.app_data_dir,
                 runtime: aster_plugin::hot_reload::HotReloadController::new(
                     self.hot_reload_limits,
@@ -330,6 +333,13 @@ impl BridgeRuntime {
                 let args: PluginRuntimeArgs = serde_json::from_value(args)
                     .map_err(|error| format!("invalid command arguments: {error}"))?;
                 serde_json::to_value(self.plugins.load_plugin_runtime(args.plugin_ids)?)
+                    .map_err(|error| error.to_string())
+            }
+            "prepare_native_preview_plugins" => {
+                let args: crate::preview_plugins::PreviewPluginRequest =
+                    serde_json::from_value(args)
+                        .map_err(|error| format!("invalid preview plugin request: {error}"))?;
+                serde_json::to_value(self.plugins.prepare_preview_plugins(args)?)
                     .map_err(|error| error.to_string())
             }
             "poll_plugin_hot_reload" => {

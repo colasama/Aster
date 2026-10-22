@@ -42,6 +42,16 @@ pub struct PluginPackage {
 }
 
 impl PluginLimits {
+    /// Freeze the admitted manifest without consulting a potentially changed installation.
+    pub fn serialize_manifest(&self, manifest: &PluginManifest) -> Result<String, PluginError> {
+        manifest.validate(self)?;
+        let source = toml::to_string(manifest)?;
+        if source.len() as u64 > self.max_manifest_bytes {
+            return Err(PluginError::ManifestTooLarge(source.len() as u64));
+        }
+        Ok(source)
+    }
+
     pub fn parse_manifest(&self, source: &str) -> Result<PluginManifest, PluginError> {
         if source.len() as u64 > self.max_manifest_bytes {
             return Err(PluginError::ManifestTooLarge(source.len() as u64));

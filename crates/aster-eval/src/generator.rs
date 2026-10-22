@@ -1,6 +1,6 @@
 mod catalog;
 mod context;
-pub use catalog::GeneratorCatalog;
+pub use catalog::{GeneratorCatalog, UnavailableGenerator, UnavailableGeneratorReason};
 mod parameters;
 mod plan;
 pub use plan::{GeneratorInvocation, GeneratorProgramSource, NativeGeneratorProgram};

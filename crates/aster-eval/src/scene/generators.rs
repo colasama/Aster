@@ -41,6 +41,12 @@ impl SceneProject {
             let instance = layer.generator.value().ok_or_else(|| {
                 EvaluationError::InvalidScene("generator instance is absent".into())
             })?;
+            if catalog
+                .unavailable
+                .contains_key(&(instance.plugin_id.clone(), instance.node_type.clone()))
+            {
+                continue;
+            }
             let admitted = catalog
                 .entries
                 .get(&(instance.plugin_id.clone(), instance.node_type.clone()))

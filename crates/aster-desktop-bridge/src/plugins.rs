@@ -54,6 +54,7 @@ pub(crate) struct PluginHost {
     pub(crate) app_data: PathBuf,
     pub(crate) preference_limits: PluginPreferenceLimits,
     pub(crate) limits: aster_plugin::PluginLimits,
+    pub(crate) snapshot_limits: crate::preview_plugins::PreviewPluginLimits,
     pub(crate) runtime: aster_plugin::hot_reload::HotReloadController,
 }
 impl PluginHost {

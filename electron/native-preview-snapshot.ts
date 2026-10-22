@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { antiAliasingScale, isAntiAliasingMode } from "../src/core/rendering/anti-aliasing.js";
 import type { NativePreviewSnapshot } from "../src/core/rendering/native-preview-protocol.js";
 import { validateRenderSnapshotIdentity } from "../src/core/rendering/render-snapshot.js";
+import { freezePreviewPlugins, type ResolvePreviewPlugins } from "./native-preview-plugins.js";
 
 const modes = [
   "beauty",
@@ -84,6 +85,7 @@ export async function preparePreviewSnapshot(options: {
   snapshot: NativePreviewSnapshot;
   runtime: PreviewSnapshotRuntime;
   mediaCache?: PreviewSnapshotMediaCache;
+  resolvePlugins?: ResolvePreviewPlugins;
   save(
     directory: string,
     document: unknown,
@@ -136,6 +138,10 @@ export async function preparePreviewSnapshot(options: {
     }
     mediaCache = { key, imports: persisted.mediaImports, paths };
   }
+  const plugins = await freezePreviewPlugins(directory, persisted, options.resolvePlugins);
+  const scope = plugins.identity
+    ? `${snapshot.snapshotScope}:plugins:${plugins.identity}`
+    : snapshot.snapshotScope;
   // Bound the entire private store, including media retained by previous revisions.
   const pending = [directory];
   let bytes = 0,
@@ -169,7 +175,7 @@ export async function preparePreviewSnapshot(options: {
     request,
     JSON.stringify({
       frame: {
-        snapshotScope: snapshot.snapshotScope,
+        snapshotScope: scope,
         projectRevision: snapshot.projectRevision,
         compositionId: snapshot.compositionId,
         time: snapshot.time,
@@ -195,7 +201,8 @@ export async function preparePreviewSnapshot(options: {
         selectedLayerId: snapshot.selectedLayerId ?? null,
         shadowMapSize: 1024,
       },
-      plugins: [],
+      plugins: plugins.plugins,
+      unavailableGenerators: plugins.unavailableGenerators,
       rasterProvider: {
         executable: runtime.executable,
         arguments: [runtime.host],
@@ -207,5 +214,5 @@ export async function preparePreviewSnapshot(options: {
     }),
     { flag: "wx" },
   );
-  return { project, request, mediaCache };
+  return { project, request, mediaCache, scope };
 }

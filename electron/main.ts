@@ -1411,6 +1411,10 @@ if (hasSingleInstanceLock)
             bridge: bridgeExecutable(),
           },
           trusted: (contents) => contents === primaryWindow?.webContents,
+          resolvePlugins: async (references) => {
+            if (!desktopBridge) throw new Error("Aster desktop bridge is unavailable");
+            return desktopBridge.invoke("prepare_native_preview_plugins", { references });
+          },
           save: async (directory, document, assets) => {
             if (!desktopBridge) throw new Error("Aster desktop bridge is unavailable");
             authorizeProjectMediaExternalPaths(document, { allowedAssets });

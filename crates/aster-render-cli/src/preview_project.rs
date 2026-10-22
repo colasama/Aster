@@ -4,7 +4,7 @@ use crate::{
         PreviewDescription, PreviewFrameTimings, PreviewProducedFrame, PreviewProducer,
         PreviewSource, PreviewTransportArgs,
     },
-    project_runtime::ProjectRuntimeArgs,
+    project_runtime::{ProjectPreviewAdmission, ProjectRuntimeArgs},
 };
 use aster_eval::FramePlanRequest;
 use aster_render_ir::DecodeLimits;
@@ -44,6 +44,8 @@ struct PreviewConfiguration {
     settings: ProjectFrameSettings,
     #[serde(default)]
     plugins: Vec<PathBuf>,
+    #[serde(default, rename = "unavailableGenerators")]
+    unavailable_generators: Vec<aster_eval::UnavailableGenerator>,
     #[serde(rename = "rasterProvider")]
     raster_provider: Option<RasterProviderOptions>,
 }
@@ -113,7 +115,10 @@ impl PreviewProjectSession {
         }
         let (mut session, identity) = self.runtime.open_preview(
             document,
-            &configuration.frame,
+            ProjectPreviewAdmission {
+                frame: configuration.frame.clone(),
+                unavailable_generators: configuration.unavailable_generators.clone(),
+            },
             &configuration.settings,
             &configuration.plugins,
             renderer,
@@ -169,7 +174,13 @@ impl PreviewProducer for PreviewProjectSession {
         }
         let configuration: PreviewConfiguration =
             serde_json::from_slice(&IrArgs::read_bounded(request, &limits)?)?;
-        if self.max_plugins > 4096 || configuration.plugins.len() > self.max_plugins {
+        if self.max_plugins > 4096
+            || configuration
+                .plugins
+                .len()
+                .saturating_add(configuration.unavailable_generators.len())
+                > self.max_plugins
+        {
             return Err("preview plugin count exceeds limit".into());
         }
         let renderer = match self.state.take() {

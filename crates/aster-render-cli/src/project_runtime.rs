@@ -53,7 +53,13 @@ pub(crate) struct ProjectIdentity {
 enum ProjectAdmission {
     Schedule(Vec<FramePlanRequest>),
     #[cfg(windows)]
-    Preview(FramePlanRequest),
+    Preview(ProjectPreviewAdmission),
+}
+
+#[cfg(windows)]
+pub(crate) struct ProjectPreviewAdmission {
+    pub frame: FramePlanRequest,
+    pub unavailable_generators: Vec<aster_eval::UnavailableGenerator>,
 }
 
 impl ProjectRuntimeArgs {
@@ -80,7 +86,7 @@ impl ProjectRuntimeArgs {
     pub fn open_preview(
         &self,
         document: NativeProjectDocument,
-        frame: &FramePlanRequest,
+        admission: ProjectPreviewAdmission,
         settings: &ProjectFrameSettings,
         plugins: &[PathBuf],
         renderer: Option<NativeRenderer>,
@@ -88,7 +94,7 @@ impl ProjectRuntimeArgs {
     ) -> Result<(NativeProjectSession, ProjectIdentity), Box<dyn std::error::Error>> {
         self.open_admitted(
             document,
-            ProjectAdmission::Preview(frame.clone()),
+            ProjectAdmission::Preview(admission),
             settings,
             plugins,
             renderer,
@@ -108,7 +114,7 @@ impl ProjectRuntimeArgs {
         let frames = match &admission {
             ProjectAdmission::Schedule(frames) => frames.as_slice(),
             #[cfg(windows)]
-            ProjectAdmission::Preview(frame) => std::slice::from_ref(frame),
+            ProjectAdmission::Preview(admission) => std::slice::from_ref(&admission.frame),
         };
         let first = frames.first().ok_or("native project schedule is empty")?;
         if frames.iter().any(|frame| {
@@ -146,9 +152,9 @@ impl ProjectRuntimeArgs {
                 cancellation,
             )?,
             #[cfg(windows)]
-            ProjectAdmission::Preview(frame) => NativeProjectFileMedia::new_preview(
+            ProjectAdmission::Preview(admission) => NativeProjectFileMedia::new_preview(
                 document,
-                frame,
+                &admission.frame,
                 &settings.resources,
                 tools,
                 self.media.clone(),
@@ -167,6 +173,13 @@ impl ProjectRuntimeArgs {
             &self.project.bundle,
         )?;
         let catalog = NativeProjectGenerators::catalog(installed, self.project.bundle.clone())?;
+        #[cfg(windows)]
+        let catalog = match &admission {
+            ProjectAdmission::Preview(preview) => {
+                catalog.with_unavailable(preview.unavailable_generators.clone())?
+            }
+            ProjectAdmission::Schedule(_) => catalog,
+        };
         let renderer = match renderer {
             Some(renderer) => renderer,
             None => {

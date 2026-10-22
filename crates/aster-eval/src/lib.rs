@@ -14,7 +14,7 @@ mod curve;
 mod effects;
 mod expression;
 mod generator;
-pub use generator::GeneratorCatalog;
+pub use generator::{GeneratorCatalog, UnavailableGenerator, UnavailableGeneratorReason};
 pub use scene::{GeneratorFrameSettings, SurfaceProgramFrames, SurfaceProgramInputs};
 mod geometry;
 mod javascript;

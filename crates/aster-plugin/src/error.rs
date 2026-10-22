@@ -10,6 +10,8 @@ pub enum PluginError {
     Io(#[from] std::io::Error),
     #[error("plugin manifest is invalid TOML: {0}")]
     Toml(#[from] toml::de::Error),
+    #[error("plugin manifest could not be serialized: {0}")]
+    TomlSerialization(#[from] toml::ser::Error),
     #[error("plugin manifest is {0} bytes; the v1 limit is 1048576 bytes")]
     ManifestTooLarge(u64),
     #[error("plugin id `{0}` must be a reverse-domain identifier")]

@@ -5,12 +5,21 @@ import { createBeautyFrameRequest } from "../compositing/beauty-frame";
 import { NativePreviewCanvas } from "./preview-canvas";
 import { NativePreviewView } from "./preview-view";
 
+const registry = vi.hoisted(() => ({ revision: 0 }));
+vi.mock("../../core/scene/scene-generator-registry", async (original) => ({
+  ...(await original<object>()),
+  getSceneGeneratorRegistryRevision: () => registry.revision,
+}));
+
 vi.mock("./preview-canvas", () => ({ NativePreviewCanvas: { create: vi.fn() } }));
 vi.mock("../../core/project/project-file", () => ({
   projectDocumentWithMediaImports: async (project: unknown) => project,
 }));
 
-beforeEach(() => vi.resetAllMocks());
+beforeEach(() => {
+  vi.resetAllMocks();
+  registry.revision = 0;
+});
 
 async function fixture() {
   const project = createDemoProject();
@@ -49,6 +58,20 @@ async function fixture() {
   );
   return { view, request, canvas, api, pixels };
 }
+
+test("activated generator changes replace the native snapshot without a project edit", async () => {
+  const { view, request, api } = await fixture();
+  await view.readback(request, 512);
+  await view.readback(request, 512);
+  expect(api.open).toHaveBeenCalledOnce();
+  expect(api.replace).not.toHaveBeenCalled();
+  registry.revision++;
+  await view.readback(request, 512);
+  expect(api.replace).toHaveBeenCalledOnce();
+  await view.readback(request, 512);
+  expect(api.replace).toHaveBeenCalledOnce();
+  await view.dispose();
+});
 
 test("a crashed producer reopens the identical time-addressed snapshot once", async () => {
   const { view, request, canvas, api, pixels } = await fixture();

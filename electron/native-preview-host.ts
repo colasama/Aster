@@ -9,6 +9,7 @@ import type {
 } from "../src/core/rendering/native-preview-protocol.js";
 import { NativePreviewBroker } from "./native-preview-broker.js";
 import { NativePreviewClient } from "./native-preview-client.js";
+import type { ResolvePreviewPlugins } from "./native-preview-plugins.js";
 import {
   type PreviewSnapshotMediaCache,
   type PreviewSnapshotRuntime,
@@ -24,6 +25,7 @@ interface HostOptions {
   ffmpeg: string;
   ffprobe: string;
   raster: PreviewSnapshotRuntime;
+  resolvePlugins?: ResolvePreviewPlugins;
   trusted(contents: WebContents): boolean;
   save(
     directory: string,
@@ -196,6 +198,7 @@ class PreviewHostSession {
         snapshot,
         runtime: this.options.raster,
         mediaCache: this.#mediaCache,
+        resolvePlugins: this.options.resolvePlugins,
         save: this.options.save,
       });
       this.#mediaCache = address.mediaCache;
@@ -230,7 +233,7 @@ class PreviewHostSession {
       if (
         ready?.source.kind !== "project" ||
         ready.source.authored_sha256 !== hash ||
-        ready.source.scope !== snapshot.snapshotScope ||
+        ready.source.scope !== address.scope ||
         ready.source.revision !== snapshot.projectRevision ||
         ready.source.composition_id !== snapshot.compositionId ||
         ready.width !== snapshot.width ||

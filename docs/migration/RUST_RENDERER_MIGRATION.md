@@ -267,7 +267,7 @@ those exits; existing TS diagnostics do not establish native performance accepta
 
 The original fixed-reference 5% limits and M8's 75/120 fps targets remain historical references,
 not blocking conditions for this migration. Baselines and prior failed evidence remain frozen;
-no failed run is reclassified. All M0–M12 functionality, pixel and quality checks, G0, M11 latency,
+no failed run is reclassified. All M0–M12 functionality, pixel and quality checks, G0 and M11 latency
 remain required. The owner's 2026-10-23 layered-verification approval in section 8 supersedes the
 original full-required-gates-before-each-commit rule. Performance diagnostics should answer concrete
 implementation questions or establish final native acceptance.

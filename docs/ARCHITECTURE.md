@@ -751,6 +751,15 @@ compositions are materialized into authored snapshots. Exclusive benchmark owner
 work and suspends idle pre-rendering. Preview snapshots include the reachable composition graph,
 including future and hidden dependencies. Authorized legacy assets are copied into the private store;
 immutable media identities allow geometry-only revisions to reuse those admitted copies.
+Installed scene generators enter preview through a main-process-only bridge command. It freezes
+the plugin manager's admitted manifest and shader sources, including its last valid version after a
+rejected hot reload. The renderer supplies project references, never plugin paths or executable
+content. Main persists bounded immutable packages in the private session, binds their content digest
+and explicit unavailable identities into the snapshot scope, and Rust validates the packages again.
+Activated registry changes replace the native snapshot and invalidate frame-cache scope. Disabled,
+safe-mode and missing generators are explicitly classified and logged; only those identities may be
+omitted from root and nested scene commands while preserving surrounding content. Other missing or
+invalid contracts remain errors, and built-in generators cannot receive unavailable grants.
 The preview raster transport retains at most 64 MiB of verified immutable pixel resources from its
 preceding frame. Rust advertises only resident identities, and Electron intersects them with its
 previous metadata before the renderer may omit bytes. Cache hits retain exact descriptor, raw digest,

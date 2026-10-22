@@ -51,7 +51,17 @@ impl SceneProject {
                         .ok_or_else(|| {
                             EvaluationError::InvalidScene("surface layer is absent".into())
                         })?;
-                    if self.project.compositions[index].layers[layer_index].kind == "generator" {
+                    let layer = &self.project.compositions[index].layers[layer_index];
+                    if layer.kind == "generator" {
+                        let instance = layer.generator.value().ok_or_else(|| {
+                            EvaluationError::InvalidScene("surface generator is absent".into())
+                        })?;
+                        if catalog
+                            .unavailable
+                            .contains_key(&(instance.plugin_id.clone(), instance.node_type.clone()))
+                        {
+                            continue;
+                        }
                         bindings.generators.insert(entry.instance_id.clone());
                     }
                 }

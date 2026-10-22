@@ -13,6 +13,7 @@ import type {
   NativePreviewSnapshot,
 } from "../../core/rendering/native-preview-protocol";
 import { previewFrameCache } from "../../core/rendering/preview-frame-cache";
+import { getSceneGeneratorRegistryRevision } from "../../core/scene/scene-generator-registry";
 import type { GpuDiagnostics, Project, RendererMetrics } from "../../core/types";
 import type { BeautyFrameRequest } from "../compositing/beauty-frame";
 import { previewFramePlan } from "../frame-cache/cached-beauty-presenter";
@@ -137,6 +138,7 @@ export class NativePreviewView {
       options.visualization,
       options.selectedLayerId,
       options.memoryBudgetMb,
+      getSceneGeneratorRegistryRevision(),
     ]);
   }
 

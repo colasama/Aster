@@ -1,6 +1,7 @@
 mod logging;
 mod plugin_registry;
 mod plugins;
+mod preview_plugins;
 mod project_media;
 mod project_storage;
 mod protocol;

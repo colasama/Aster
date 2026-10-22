@@ -46,6 +46,7 @@ vi.mock("./native-preview-snapshot.js", () => ({
     project: "project.json",
     request: "request.json",
     mediaCache: undefined,
+    scope: "snapshot",
   })),
 }));
 vi.mock("./native-preview-client.js", () => ({
