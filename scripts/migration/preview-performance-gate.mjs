@@ -123,6 +123,11 @@ export async function runPreviewPerformanceGate(context, execute = runStep) {
       "Current hardware or AC power is not qualified",
     );
     for (const command of [
+      {
+        id: "preview-perf-bridge-build",
+        file: "cargo",
+        args: ["build", "-p", "aster-desktop-bridge"],
+      },
       { id: "preview-perf-web-build", file: "pnpm", args: ["exec", "vite", "build"] },
       {
         id: "preview-perf-raster-build",
@@ -136,8 +141,12 @@ export async function runPreviewPerformanceGate(context, execute = runStep) {
       assert.equal(step.status, "passed");
     }
     report.binaries = await Promise.all(
-      ["aster-render-cli.exe", "aster-desktop-bridge.exe"].map(async (name) => {
-        const path = join(root, "target/release", name);
+      [
+        "release/aster-render-cli.exe",
+        "release/aster-desktop-bridge.exe",
+        "debug/aster-desktop-bridge.exe",
+      ].map(async (name) => {
+        const path = join(root, "target", name);
         return { path: local(path), sha256: await hashFile(path) };
       }),
     );

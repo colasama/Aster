@@ -7,6 +7,12 @@ function fixture() {
     status: "passed",
     scope: "timeline-input-to-compositor-presentation",
     warmup: 10,
+    focus_readiness: ["geometry", "calibration-0", "calibration-1", "measurement"].map((phase) => ({
+      phase,
+      attempt: 1,
+      focused: true,
+      document_focused: true,
+    })),
     geometry: { quality: { antiAliasing: "off", memoryBudgetMb: "1024", frameCacheBudgetMb: "0" } },
     references: [24, 26].map((time, index) => ({
       time,
@@ -29,6 +35,11 @@ test("latency acceptance derives p95 from complete independently presented frame
 
 test("latency rejects missing, stale, overlapping, relabeled or unmatched presentation evidence", () => {
   for (const mutate of [
+    (value) => value.focus_readiness.pop(),
+    (value) => value.focus_readiness.push(value.focus_readiness[3]),
+    (value) => {
+      value.focus_readiness[2].document_focused = false;
+    },
     (value) => value.samples.pop(),
     (value) => {
       value.samples[0].latency_ms = 1;

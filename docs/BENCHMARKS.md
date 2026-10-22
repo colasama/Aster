@@ -554,6 +554,11 @@ retained. The combined native p95 over three runs must not exceed TS. This measu
 input-to-compositor-presentation, including the capture callback delivery, not physical display
 scan-out. Focus loss, unchanged calibration images, missing target frames and stale identities
 invalidate the run. Renderer completion time cannot substitute for these presentation samples.
+Window and document focus are prepared with at most ten bounded attempts before geometry capture,
+each calibration address and the measurement sequence. The attempt log is retained. Once warm-up
+or sampling begins, focus loss fails the run without refocusing, replaying input or dropping samples.
+Development qualification builds and pins the debug desktop bridge selected by the editor, alongside
+the release renderer and packaged bridge, before starting timed work.
 
 An initial 60-frame run on the development WebGPU adapter measured 1.11 ms median / 1.31 ms p95 at
 1080p, 4.59 / 4.92 ms at 4K, 3.47 / 3.80 ms for 20 layers, and 0.72 / 0.79 ms for the five-effect

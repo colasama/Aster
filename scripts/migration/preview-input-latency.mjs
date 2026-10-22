@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
+import { preparePreviewInputFocus } from "./preview-input-focus.mjs";
 import { writeAtomicJson } from "./report.mjs";
 
 const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
@@ -11,10 +12,15 @@ const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
 export async function capturePreviewInputLatency(editor, call, output, samples) {
   assert(Number.isSafeInteger(samples) && samples > 0 && samples <= 600);
   const contents = editor.webContents;
-  editor.show();
-  editor.focus();
-  await delay(250);
-  assert(editor.isFocused(), "Real input latency requires a focused test window");
+  const focusReadiness = [];
+  const prepareFocus = async (phase) => {
+    try {
+      await preparePreviewInputFocus(editor, phase, focusReadiness);
+    } finally {
+      await writeAtomicJson(join(output, "latency-focus.json"), focusReadiness);
+    }
+  };
+  await prepareFocus("geometry");
   await contents.executeJavaScript(`new Promise(resolve => {
     const surface=document.querySelector('.timeline-canvas');
     const pps=parseFloat(getComputedStyle(surface).getPropertyValue('--timeline-pps'));
@@ -82,6 +88,7 @@ export async function capturePreviewInputLatency(editor, call, output, samples) 
   };
   const references = [];
   for (const [index, point] of geometry.points.entries()) {
+    await prepareFocus(`calibration-${index}`);
     const before = await canvasHash();
     click(point);
     await delay(100);
@@ -127,9 +134,11 @@ export async function capturePreviewInputLatency(editor, call, output, samples) 
     warmup: 10,
     geometry,
     references,
+    focus_readiness: focusReadiness,
     samples: [],
   };
   let pending;
+  await prepareFocus("measurement");
   let attempted = 0;
   let lastPresentation;
   let observed = 0;

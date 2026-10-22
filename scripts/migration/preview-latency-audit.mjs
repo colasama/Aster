@@ -10,6 +10,20 @@ export function validatePreviewLatency(value, composition) {
   assert.equal(value.status, "passed");
   assert.equal(value.scope, "timeline-input-to-compositor-presentation");
   assert.equal(value.warmup, 10);
+  const focus = [...value.focus_readiness];
+  for (const phase of ["geometry", "calibration-0", "calibration-1", "measurement"]) {
+    let ready = false;
+    for (let attempt = 1; attempt <= 10 && !ready; attempt++) {
+      const observation = focus.shift();
+      assert.equal(observation?.phase, phase, "Focus setup phases must precede measurement");
+      assert.equal(observation.attempt, attempt);
+      assert.equal(typeof observation.focused, "boolean");
+      assert.equal(typeof observation.document_focused, "boolean");
+      ready = observation.focused && observation.document_focused;
+    }
+    assert(ready, "Focus preparation did not succeed within its bound");
+  }
+  assert.equal(focus.length, 0, "Unexpected focus recovery after measurement started");
   assert.equal(value.samples.length, 600, "600 input-to-present samples required");
   assert.deepEqual(value.geometry.quality, {
     antiAliasing: "off",
