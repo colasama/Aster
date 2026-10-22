@@ -393,33 +393,33 @@
     }
   },
   "last_cycle": {
-    "id": 140,
-    "time": "2026-10-22T20:29:58.824Z",
-    "updated_at": "2026-10-22T20:29:58.824Z",
+    "id": 141,
+    "time": "2026-10-22T20:44:48.681Z",
+    "updated_at": "2026-10-22T20:44:48.681Z",
     "milestone": "M11",
-    "task": "M11-T3",
-    "increment": "audit-committed-preview-transport-ownership",
-    "outcome": "unchanged_source_task_completed",
-    "commit": "4a954e9b04ecb17002938ded71132798dbaa2da0",
+    "task": "M11-T4",
+    "increment": "exact-native-editor-snapshots",
+    "outcome": "increment_committed_layered_verification",
+    "commit": "548eb77d8befc59ac344ff92b426fd652b6d0f2c",
     "validation_policy": "layered-development-verification-v1",
     "validation": {
-      "path": "artifacts/migration/cycle140-transport-audit.json",
-      "sha256": "ed5907a6e79eefb101a7806d3fcef24ab09cf4944d58260940394455d57a568f"
+      "path": "artifacts/migration/cycle141-verification-final/report.json",
+      "sha256": "cf9d0bca4c17ea5a4ae14019fe780a9398586c62b855e85ad2f487b3ede77de8"
     },
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "scope": "unchanged execution source; full cycle139 G0"
+        "scope": "full-static"
       },
       {
         "id": "G6",
         "status": "passed",
-        "scope": "unchanged execution source; cycle139 production-host recovery"
+        "scope": "production host: 24 exact frames, 2 exact associated-alpha-normalized snapshots, cache/resize/device/producer/renderer recovery"
       }
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Implement exact native editor snapshots retaining visualization and selection; keep complete M11 integration, performance and exit gates open."
+    "next_step": "Complete M11-T5 cache budget and cancellation coverage. M11-T6 retains full editor direct-manipulation, diagnostic and installed-plugin workflows; final G4 and exit audit remain pending."
   },
   "milestones": [
     {
@@ -27450,14 +27450,22 @@
           "id": "M11-T4",
           "title": "Present native frames in the editor viewport",
           "scope": "Route beauty and supported diagnostic previews through native evaluation; preserve exact paused and direct-manipulation times, adapter identity and explicit capability fallback.",
-          "status": "pending",
+          "status": "done",
           "estimated_implementation_hours": 3,
           "required_gates": [
             "G0",
             "G3",
             "G4",
             "G6"
-          ]
+          ],
+          "started_at": "2026-10-22T20:31:19.268Z",
+          "completed_at": "2026-10-22T20:44:48.681Z",
+          "commit": "548eb77d8befc59ac344ff92b426fd652b6d0f2c",
+          "validation": {
+            "path": "artifacts/migration/cycle141-verification-final/report.json",
+            "sha256": "cf9d0bca4c17ea5a4ae14019fe780a9398586c62b855e85ad2f487b3ede77de8"
+          },
+          "progress": "Native viewport presentation now includes serialized exact-time comparison snapshots preserving diagnostic mode and selection, independently bounded canvases and stale-context rejection. Full G0 and real Electron snapshots/recovery pass. Full editor workflow qualification remains in T6; M11 exit is not claimed."
         },
         {
           "id": "M11-T5",
@@ -2396002,6 +2396010,29 @@
         "heatmap_sha256": "f477963bb5ed0624ade6f1bd6a0a0070bdcda0887ff7aa1c2d858c37a6503916",
         "contact_sheet_sha256": "b6c60e103ec96913d56b25bca611faf902396589de3656ec5e18c45eb3f01694"
       }
+    },
+    {
+      "cycle": 141,
+      "case_id": "native-editor-comparison-snapshot-initial-representation",
+      "profile": "exact",
+      "reviewed_at": "2026-10-22T20:44:48.681Z",
+      "verdict": "rejected",
+      "residual_class": "structural",
+      "metrics": {
+        "different_pixels": 12863,
+        "max_abs": 254,
+        "alpha_different_pixels": 0
+      },
+      "structural": {
+        "status": "not-accepted",
+        "reason": "Exact comparison used incompatible alpha representations; the original report remains failed."
+      },
+      "evidence": {
+        "report": "artifacts/migration/cycle141-verification/recovery/capture/report.json",
+        "candidate": "artifacts/migration/cycle141-verification/recovery/capture/snapshot-0.png",
+        "reference": "artifacts/migration/cycle141-verification/recovery/capture/frame-0.png"
+      },
+      "notes": "Inspected both images. Rejected the original raw hash comparison. Canvas 2D exposes straight RGB, while frozen GPU bytes are associated-alpha RGB. Re-associating each candidate RGB byte with round(channel * alpha / 255) yields exact reference bytes and identical alpha for every pixel. Corrected witness preserves both original straight pixels and normalized comparison pixels; no reference, renderer or tolerance change. Current full G0 and independent real-host reruns passed."
     }
   ],
   "history": [
@@ -2451388,6 +2451419,44 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Implement exact native editor snapshots retaining visualization and selection; keep complete M11 integration, performance and exit gates open."
+    },
+    {
+      "cycle": 141,
+      "id": 141,
+      "time": "2026-10-22T20:44:48.681Z",
+      "updated_at": "2026-10-22T20:44:48.681Z",
+      "milestone": "M11",
+      "task": "M11-T4",
+      "increment": "exact-native-editor-snapshots",
+      "outcome": "increment_committed_layered_verification",
+      "commit": "548eb77d8befc59ac344ff92b426fd652b6d0f2c",
+      "validation_policy": "layered-development-verification-v1",
+      "validation": {
+        "path": "artifacts/migration/cycle141-verification-final/report.json",
+        "sha256": "cf9d0bca4c17ea5a4ae14019fe780a9398586c62b855e85ad2f487b3ede77de8"
+      },
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "scope": "full-static"
+        },
+        {
+          "id": "G6",
+          "status": "passed",
+          "scope": "production host: 24 exact frames, 2 exact associated-alpha-normalized snapshots, cache/resize/device/producer/renderer recovery"
+        }
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Complete M11-T5 cache budget and cancellation coverage. M11-T6 retains full editor direct-manipulation, diagnostic and installed-plugin workflows; final G4 and exit audit remain pending.",
+      "rejected_evidence": {
+        "path": "artifacts/migration/cycle141-verification/report.json",
+        "sha256": "373252a6877948e3b9bb58b17c68d8b0cdff2ad1c495091862fca0a626a6008b"
+      },
+      "corrected_targeted_evidence": {
+        "path": "artifacts/migration/cycle141-recovery-corrected/report.json",
+        "sha256": "55564d35fc627d7ce5163a4344f9ab2cb994b7ebe771fd3f58b9128d9dbdca79"
+      }
     }
   ],
   "known_boundaries": [
