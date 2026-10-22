@@ -370,40 +370,41 @@
     }
   },
   "last_cycle": {
-    "id": 135,
-    "time": "2026-10-22T01:16:28.727Z",
-    "updated_at": "2026-10-22T01:16:28.727Z",
+    "id": 136,
+    "time": "2026-10-22T02:24:02.834Z",
+    "updated_at": "2026-10-22T02:24:02.834Z",
     "milestone": "M10",
-    "task": "M10-T7",
-    "increment": "evaluated-character-blur-capability",
+    "task": "M10-T8",
+    "increment": "native-text-exit-audit",
     "outcome": "passed",
-    "commit": "00bfcef8de17b079b81d687557e595c38cc5607d",
+    "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf",
     "verification": {
-      "path": "artifacts/migration/verify-2026-10-22T00-18-51-735Z-3e5ab551.json",
-      "sha256": "9747d5f4c31464ae22233498f3a18c6a5a9bba99312018f918748a3f8841b06b"
+      "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+      "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
     },
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 327506,
+        "duration_ms": 280969,
         "proof": {
-          "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/static-results.json",
-          "sha256": "24a8e5cb308120a7394b624482d417b92965af4fc377117a03dbf0ab8a1f999e"
+          "path": "artifacts/migration/2026-10-22T01-31-43-813Z-6150bfa7/static-results.json",
+          "sha256": "6968c668b4a851220cabfeceff2dc8aa901c1f697b550deb853eb71975c89138"
         }
       },
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 3103955,
+        "duration_ms": 2744272,
         "proof": {
-          "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
-          "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
+          "path": "artifacts/migration/2026-10-22T01-31-43-813Z-6150bfa7/G3/report.json",
+          "sha256": "bc6949bc9e1d37ab3f9360ac098511168c0ddbd4215dfcc71f21585f64f8ecb6"
         }
       }
     ],
-    "duration_ms": 3434095,
-    "next_step": "Complete M10-T8: bind every production text route to per-glyph layout and reviewed native pixels or exact authenticated M5 reasons, implement the M10 exit audit, then proceed to Rust preview."
+    "duration_ms": 3052407,
+    "milestone_exit_satisfied": true,
+    "next_step": "Start M11: read ledger and newest report, create bounded Rust preview tasks, then implement lossless shared GPU surface ownership and native Electron presentation."
   },
   "milestones": [
     {
@@ -23839,7 +23840,7 @@
     {
       "id": "M10",
       "title": "Native text shaping and rasterization",
-      "status": "in_progress",
+      "status": "done",
       "gates": [
         "G0",
         "G3"
@@ -26104,7 +26105,7 @@
         {
           "id": "M10-T8",
           "title": "Complete full text layout and pixel self-review acceptance",
-          "status": "in_progress",
+          "status": "done",
           "scope": "Verify all text-bearing corpus cases including owner compositions and nested reachability. Self-review every non-exact native comparison under the perceptual profile and bind layout/font evidence.",
           "acceptance": "All text cases meet pixel and layout requirements or have explicit authenticated M5 routing with reasons; no blanket fallback; full G0/G3 and M10 exit audit green.",
           "estimated_implementation_hours": 2,
@@ -26131,7 +26132,13 @@
                 "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
                 "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
               },
-              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification.",
+              "current_verification": {
+                "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+                "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
+              },
+              "verified_at": "2026-10-22T02:24:02.834Z",
+              "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf"
             },
             {
               "id": "M10-R2",
@@ -26152,7 +26159,13 @@
                 "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
                 "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
               },
-              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification.",
+              "current_verification": {
+                "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+                "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
+              },
+              "verified_at": "2026-10-22T02:24:02.834Z",
+              "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf"
             },
             {
               "id": "M10-R3",
@@ -26192,7 +26205,13 @@
                 "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
                 "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
               },
-              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification.",
+              "current_verification": {
+                "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+                "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
+              },
+              "verified_at": "2026-10-22T02:24:02.834Z",
+              "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf"
             },
             {
               "id": "M10-R4",
@@ -26209,7 +26228,13 @@
                 "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
                 "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
               },
-              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification.",
+              "current_verification": {
+                "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+                "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
+              },
+              "verified_at": "2026-10-22T02:24:02.834Z",
+              "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf"
             },
             {
               "id": "M10-R5",
@@ -26226,7 +26251,13 @@
                 "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
                 "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
               },
-              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification.",
+              "current_verification": {
+                "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+                "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
+              },
+              "verified_at": "2026-10-22T02:24:02.834Z",
+              "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf"
             },
             {
               "id": "M10-R6",
@@ -26243,7 +26274,13 @@
                 "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
                 "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
               },
-              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification.",
+              "current_verification": {
+                "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+                "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
+              },
+              "verified_at": "2026-10-22T02:24:02.834Z",
+              "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf"
             },
             {
               "id": "M10-R7",
@@ -26260,7 +26297,13 @@
                 "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
                 "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
               },
-              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification.",
+              "current_verification": {
+                "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+                "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
+              },
+              "verified_at": "2026-10-22T02:24:02.834Z",
+              "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf"
             },
             {
               "id": "M10-R8",
@@ -26277,7 +26320,13 @@
                 "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
                 "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
               },
-              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification.",
+              "current_verification": {
+                "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+                "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
+              },
+              "verified_at": "2026-10-22T02:24:02.834Z",
+              "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf"
             },
             {
               "id": "M10-R9",
@@ -26297,7 +26346,13 @@
                 "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
                 "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
               },
-              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification.",
+              "current_verification": {
+                "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+                "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
+              },
+              "verified_at": "2026-10-22T02:24:02.834Z",
+              "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf"
             },
             {
               "id": "M10-R10",
@@ -26314,7 +26369,13 @@
                 "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
                 "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
               },
-              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification.",
+              "current_verification": {
+                "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+                "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
+              },
+              "verified_at": "2026-10-22T02:24:02.834Z",
+              "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf"
             },
             {
               "id": "M10-R11",
@@ -26331,7 +26392,13 @@
                 "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
                 "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
               },
-              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification.",
+              "current_verification": {
+                "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+                "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
+              },
+              "verified_at": "2026-10-22T02:24:02.834Z",
+              "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf"
             },
             {
               "id": "M10-R12",
@@ -26349,7 +26416,13 @@
                 "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
                 "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
               },
-              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification.",
+              "current_verification": {
+                "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+                "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
+              },
+              "verified_at": "2026-10-22T02:24:02.834Z",
+              "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf"
             },
             {
               "id": "M10-R13",
@@ -26367,7 +26440,13 @@
                 "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
                 "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
               },
-              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification.",
+              "current_verification": {
+                "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+                "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
+              },
+              "verified_at": "2026-10-22T02:24:02.834Z",
+              "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf"
             },
             {
               "id": "M10-R14",
@@ -26421,7 +26500,13 @@
                 "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
                 "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
               },
-              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification.",
+              "current_verification": {
+                "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+                "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
+              },
+              "verified_at": "2026-10-22T02:24:02.834Z",
+              "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf"
             },
             {
               "id": "M10-R15",
@@ -26474,7 +26559,13 @@
                 "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
                 "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
               },
-              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification.",
+              "current_verification": {
+                "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+                "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
+              },
+              "verified_at": "2026-10-22T02:24:02.834Z",
+              "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf"
             },
             {
               "id": "M10-R16",
@@ -26491,11 +26582,17 @@
                 "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
                 "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
               },
-              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification.",
+              "current_verification": {
+                "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+                "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
+              },
+              "verified_at": "2026-10-22T02:24:02.834Z",
+              "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf"
             }
           ],
           "preparation": {
-            "status": "focused_passed_full_pending",
+            "status": "full_gates_passed",
             "cycle": 136,
             "focused": [
               {
@@ -26531,13 +26628,733 @@
             ],
             "tests": "artifacts/migration/cycle136-tests2.log",
             "note": "Stored-report binding checks are diagnostic only; completion requires current full G0/G3 and the integrated M10 exit audit."
+          },
+          "completed_at": "2026-10-22T02:24:02.834Z",
+          "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf",
+          "verification": {
+            "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+            "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
+          },
+          "self_review_integrity": {
+            "path": "artifacts/migration/cycle136-self-review-integrity.json",
+            "sha256": "8ee4bc394a3975481d0bc5a34beb60b8baece2d670473296a33792c30dc7ac51",
+            "reviewed": 10
+          },
+          "exit_audit": {
+            "status": "passed",
+            "native_text_acceptance": true,
+            "coverage": [
+              {
+                "id": "enchanted-love",
+                "samples": 206,
+                "records": 14,
+                "native": 0,
+                "retained": 14,
+                "exact_pixels": 14,
+                "temporal_samples": 0,
+                "reasons": {
+                  "extended-range text color requires raster qualification": 4,
+                  "requested font families unavailable: Agency FB": 5,
+                  "requested primary family and CSS family syntax require raster qualification": 5
+                }
+              },
+              {
+                "id": "owner-opening",
+                "samples": 378,
+                "records": 9635,
+                "native": 0,
+                "retained": 9635,
+                "exact_pixels": 9635,
+                "temporal_samples": 0,
+                "reasons": {
+                  "per-character paint and affine coverage require pixel qualification": 8993,
+                  "animation paint preparation requires retained rendering: text requires retained rendering: glyph has no verified outline ink bounds": 535,
+                  "per-character blur requires native filter composition; paint 0 blur 2px": 17,
+                  "no admitted fallback font covers UTF-16 interval 6..7": 66,
+                  "stroke coverage exceeds the isolated raster alpha limit": 24
+                }
+              },
+              {
+                "id": "owner-main",
+                "samples": 674,
+                "records": 48450,
+                "native": 0,
+                "retained": 48450,
+                "exact_pixels": 48450,
+                "temporal_samples": 0,
+                "reasons": {
+                  "per-character blur requires native filter composition; paint 0 blur 2px": 17,
+                  "per-character paint and affine coverage require pixel qualification": 45418,
+                  "animation paint preparation requires retained rendering: text requires retained rendering: glyph has no verified outline ink bounds": 2607,
+                  "no admitted fallback font covers UTF-16 interval 6..7": 365,
+                  "per-character blur requires native filter composition; paint 0 blur 1.6115987225651778px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 1.2770490397805234px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.9923321759259425px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.7534293552812101px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.5563218021262128px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.39699074074074375px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.2714173954046607px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.17558299039780756px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.10546874999999871px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.05705589849108506px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.026325660150891276px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.009259259259259753px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.0018379200960219157px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.00004286694101510515px": 1,
+                  "per-character blur requires native filter composition; paint 1 blur 0.00007407407407407329px": 1,
+                  "per-character blur requires native filter composition; paint 2 blur 0.00011762688614544069px": 1,
+                  "per-character blur requires native filter composition; paint 3 blur 0.00017558299039780993px": 1,
+                  "per-character blur requires native filter composition; paint 4 blur 0.0002500000000000673px": 1,
+                  "per-character blur requires native filter composition; paint 5 blur 0.0003429355281207302px": 1,
+                  "stroke coverage exceeds the isolated raster alpha limit": 24
+                }
+              },
+              {
+                "id": "layer-text",
+                "samples": 70,
+                "records": 70,
+                "native": 0,
+                "retained": 70,
+                "exact_pixels": 70,
+                "temporal_samples": 0,
+                "reasons": {
+                  "stroke coverage exceeds the isolated raster alpha limit": 70
+                }
+              },
+              {
+                "id": "scene-motion-blur",
+                "samples": 70,
+                "records": 70,
+                "native": 70,
+                "retained": 0,
+                "exact_pixels": 0,
+                "temporal_samples": 0,
+                "reasons": {
+                  "ordinary outline fill through the platform glyph atlas": 70
+                }
+              },
+              {
+                "id": "scene-text-animators",
+                "samples": 70,
+                "records": 70,
+                "native": 0,
+                "retained": 70,
+                "exact_pixels": 70,
+                "temporal_samples": 0,
+                "reasons": {
+                  "stroke coverage exceeds the isolated raster alpha limit": 70
+                }
+              }
+            ],
+            "native": {
+              "status": "passed",
+              "case_id": "scene-motion-blur",
+              "samples": 70,
+              "comparisons": 5,
+              "reviewed": 5,
+              "maxima": {
+                "advance": 0,
+                "baseline": 0,
+                "transform": 7.105427357601002e-15,
+                "cluster_advance": 0,
+                "cluster_position": 0,
+                "glyph_advance": 0,
+                "glyph_position": 0,
+                "glyph_baseline": 0
+              }
+            },
+            "embedded": {
+              "status": "passed",
+              "case_id": "embedded-native-outline",
+              "samples": 70,
+              "comparisons": 5,
+              "reviewed": 5,
+              "maxima": {
+                "advance": 0,
+                "baseline": 0,
+                "transform": 7.105427357601002e-15,
+                "cluster_advance": 0,
+                "cluster_position": 0,
+                "glyph_advance": 0,
+                "glyph_position": 0,
+                "glyph_baseline": 0
+              }
+            },
+            "retained_fixtures": [
+              {
+                "id": "font-woff2",
+                "retained": 68,
+                "exact_pixels": 68,
+                "temporal_samples": 0,
+                "reasons": {
+                  "embedded font migration-embedded-face: Woff2DecoderUnavailable": 68
+                }
+              },
+              {
+                "id": "font-collection",
+                "retained": 68,
+                "exact_pixels": 68,
+                "temporal_samples": 0,
+                "reasons": {
+                  "embedded font migration-embedded-face: EmbeddedCollectionSelectionUnverified": 68
+                }
+              },
+              {
+                "id": "font-unavailable",
+                "retained": 68,
+                "exact_pixels": 68,
+                "temporal_samples": 0,
+                "reasons": {
+                  "requested font families unavailable: Agency FB": 68
+                }
+              },
+              {
+                "id": "font-missing-glyph",
+                "retained": 272,
+                "exact_pixels": 272,
+                "temporal_samples": 0,
+                "reasons": {
+                  "no admitted fallback font covers UTF-16 interval 6..7": 68,
+                  "requested primary family and CSS family syntax require raster qualification": 68,
+                  "no admitted fallback font covers UTF-16 interval 9..10": 68,
+                  "script raster coverage requires isolated pixel qualification": 68
+                }
+              },
+              {
+                "id": "font-mixed-bidi",
+                "retained": 68,
+                "exact_pixels": 68,
+                "temporal_samples": 0,
+                "reasons": {
+                  "text requires retained rendering: bidirectional paragraph requires independently verified visual runs": 68
+                }
+              },
+              {
+                "id": "font-embedded-bidi",
+                "retained": 68,
+                "exact_pixels": 68,
+                "temporal_samples": 0,
+                "reasons": {
+                  "text requires retained rendering: bidirectional paragraph requires independently verified visual runs": 68
+                }
+              },
+              {
+                "id": "font-color-paint",
+                "retained": 136,
+                "exact_pixels": 136,
+                "temporal_samples": 0,
+                "reasons": {
+                  "layered color outlines require a verified paint graph; face 7c0244dd8eeb7c6bdecdfc3f9e59833527fc18a66d0295ce47339069692a2b4f#0 glyph 11680 at authored size 32": 68,
+                  "requested primary family and CSS family syntax require raster qualification": 68
+                }
+              },
+              {
+                "id": "font-bitmap-stroke",
+                "retained": 136,
+                "exact_pixels": 136,
+                "temporal_samples": 0,
+                "reasons": {
+                  "bitmap glyph strokes require verified coverage expansion; face 198e8dac512206f27c9bdbfeb3d5b3e55a33de9dcf58d801823ef8c5ef5a76dc#0 glyph 4 at authored size 12": 68,
+                  "requested primary family and CSS family syntax require raster qualification": 68
+                }
+              },
+              {
+                "id": "text-blur-controls",
+                "retained": 552,
+                "exact_pixels": 552,
+                "temporal_samples": 0,
+                "reasons": {
+                  "per-character blur requires native filter composition; paint 0 blur 4px": 69,
+                  "per-character paint and affine coverage require pixel qualification": 278,
+                  "requested primary family and CSS family syntax require raster qualification": 69,
+                  "per-character blur requires native filter composition; paint 2 blur 4px": 69,
+                  "per-character blur requires native filter composition; paint 0 blur 3px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 6px": 34,
+                  "per-character blur requires native filter composition; paint 0 blur 0.7624907931312919px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 2.031342322938144px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.84383047465235px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 3.7536363769322634px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.5468004243448377px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 1.8091482650488615px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 2.325940439477563px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 4.842837064526975px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 2.19764743745327px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 4.150961617939174px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.3096896940842271px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 5.070861222222447px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 5.77994117885828px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 3.4235547529533505px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 2.5021875528618693px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.9965087715536356px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 4.595785989426076px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 4.01598324906081px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.9643640303984284px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 2.177729702554643px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.3659604415297508px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.5912176799029112px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 3.4414560673758388px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.49336444213986397px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.2808685312047601px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 2.1880245795473456px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.44608671963214874px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 1.3298113765195012px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 3.613700651563704px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 1.90985974855721px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 5.1123594688251615px": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 5.466977748088539px": 1
+                }
+              },
+              {
+                "id": "text-blur-exposure",
+                "retained": 69,
+                "exact_pixels": 31,
+                "temporal_samples": 283,
+                "reasons": {
+                  "per-character blur requires native filter composition; paint 0 blur 0.009374999999999998px; exposure time 0.0015624999999999997": 2,
+                  "per-character blur requires native filter composition; paint 0 blur 2.934375px; exposure time 0.4890625": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 5.934375px; exposure time 0.9890625000000001": 2,
+                  "per-character blur requires native filter composition; paint 0 blur 6px": 31,
+                  "per-character blur requires native filter composition; paint 0 blur 0.6968657931312918px; exposure time 0.11614429885521531": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 1.9657173229381444px; exposure time 0.32761955382302405": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.7782054746523499px; exposure time 0.1297009124420583": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 3.6880113769322636px; exposure time 0.614668562822044": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.4811754243448376px; exposure time 0.08019590405747294": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 1.7435232650488617px; exposure time 0.29058721084147693": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 2.260315439477563px; exposure time 0.37671923991292716": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 4.777212064526975px; exposure time 0.7962020107544959": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 2.13202243745327px; exposure time 0.35533707290887834": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 4.085336617939174px; exposure time 0.6808894363231958": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.2440646940842271px; exposure time 0.04067744901403785": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 5.005236222222448px; exposure time 0.8342060370370746": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 5.71431617885828px; exposure time 0.9523860298097134": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 3.3579297529533507px; exposure time 0.5596549588255585": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 2.4365625528618695px; exposure time 0.40609375881031157": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.9308837715536356px; exposure time 0.15514729525893925": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 4.530160989426077px; exposure time 0.7550268315710128": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 3.95035824906081px; exposure time 0.658393041510135": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.8987390303984284px; exposure time 0.14978983839973806": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 2.1121047025546433px; exposure time 0.35201745042577387": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.30033544152975084px; exposure time 0.05005590692162514": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.5255926799029111px; exposure time 0.08759877998381853": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 3.375831067375839px; exposure time 0.5626385112293065": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.4277394421398639px; exposure time 0.07128990702331066": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.21524353120476009px; exposure time 0.03587392186746002": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 2.122399579547346px; exposure time 0.35373326325789095": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 0.3804617196321487px; exposure time 0.06341028660535812": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 1.2641863765195012px; exposure time 0.21069772941991685": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 3.548075651563704px; exposure time 0.5913459419272841": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 1.8442347485572101px; exposure time 0.30737245809286834": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 5.046734468825162px; exposure time 0.8411224114708603": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 5.401352748088539px; exposure time 0.9002254580147565": 1,
+                  "per-character blur requires native filter composition; paint 0 blur 6px; exposure time 1": 1
+                }
+              },
+              {
+                "id": "embedded-unqualified-control",
+                "retained": 70,
+                "exact_pixels": 70,
+                "temporal_samples": 0,
+                "reasons": {
+                  "embedded font embedded-unqualified-control physical face requires raster qualification": 70
+                }
+              }
+            ],
+            "gate_reports": {
+              "G0": {
+                "path": "artifacts/migration/2026-10-22T01-31-43-813Z-6150bfa7/static-results.json",
+                "sha256": "6968c668b4a851220cabfeceff2dc8aa901c1f697b550deb853eb71975c89138"
+              },
+              "G3": {
+                "path": "artifacts/migration/2026-10-22T01-31-43-813Z-6150bfa7/G3/report.json",
+                "sha256": "bc6949bc9e1d37ab3f9360ac098511168c0ddbd4215dfcc71f21585f64f8ecb6"
+              }
+            },
+            "retained_capability_tasks": [
+              "M10-R1",
+              "M10-R2",
+              "M10-R3",
+              "M10-R4",
+              "M10-R5",
+              "M10-R6",
+              "M10-R7",
+              "M10-R8",
+              "M10-R9",
+              "M10-R10",
+              "M10-R11",
+              "M10-R12",
+              "M10-R13",
+              "M10-R14",
+              "M10-R15",
+              "M10-R16"
+            ],
+            "checked_files": 25,
+            "production_preview_acceptance": false
           }
         }
       ],
       "started_at": "2026-10-20T20:25:14.937Z",
       "latest_verification": {
-        "path": "artifacts/migration/verify-2026-10-22T00-18-51-735Z-3e5ab551.json",
-        "sha256": "9747d5f4c31464ae22233498f3a18c6a5a9bba99312018f918748a3f8841b06b"
+        "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+        "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
+      },
+      "completed_at": "2026-10-22T02:24:02.834Z",
+      "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf",
+      "verification": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+      "verification_sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7",
+      "self_review_integrity": {
+        "path": "artifacts/migration/cycle136-self-review-integrity.json",
+        "sha256": "8ee4bc394a3975481d0bc5a34beb60b8baece2d670473296a33792c30dc7ac51",
+        "reviewed": 10
+      },
+      "exit_audit": {
+        "status": "passed",
+        "native_text_acceptance": true,
+        "coverage": [
+          {
+            "id": "enchanted-love",
+            "samples": 206,
+            "records": 14,
+            "native": 0,
+            "retained": 14,
+            "exact_pixels": 14,
+            "temporal_samples": 0,
+            "reasons": {
+              "extended-range text color requires raster qualification": 4,
+              "requested font families unavailable: Agency FB": 5,
+              "requested primary family and CSS family syntax require raster qualification": 5
+            }
+          },
+          {
+            "id": "owner-opening",
+            "samples": 378,
+            "records": 9635,
+            "native": 0,
+            "retained": 9635,
+            "exact_pixels": 9635,
+            "temporal_samples": 0,
+            "reasons": {
+              "per-character paint and affine coverage require pixel qualification": 8993,
+              "animation paint preparation requires retained rendering: text requires retained rendering: glyph has no verified outline ink bounds": 535,
+              "per-character blur requires native filter composition; paint 0 blur 2px": 17,
+              "no admitted fallback font covers UTF-16 interval 6..7": 66,
+              "stroke coverage exceeds the isolated raster alpha limit": 24
+            }
+          },
+          {
+            "id": "owner-main",
+            "samples": 674,
+            "records": 48450,
+            "native": 0,
+            "retained": 48450,
+            "exact_pixels": 48450,
+            "temporal_samples": 0,
+            "reasons": {
+              "per-character blur requires native filter composition; paint 0 blur 2px": 17,
+              "per-character paint and affine coverage require pixel qualification": 45418,
+              "animation paint preparation requires retained rendering: text requires retained rendering: glyph has no verified outline ink bounds": 2607,
+              "no admitted fallback font covers UTF-16 interval 6..7": 365,
+              "per-character blur requires native filter composition; paint 0 blur 1.6115987225651778px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 1.2770490397805234px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.9923321759259425px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.7534293552812101px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.5563218021262128px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.39699074074074375px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.2714173954046607px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.17558299039780756px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.10546874999999871px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.05705589849108506px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.026325660150891276px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.009259259259259753px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.0018379200960219157px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.00004286694101510515px": 1,
+              "per-character blur requires native filter composition; paint 1 blur 0.00007407407407407329px": 1,
+              "per-character blur requires native filter composition; paint 2 blur 0.00011762688614544069px": 1,
+              "per-character blur requires native filter composition; paint 3 blur 0.00017558299039780993px": 1,
+              "per-character blur requires native filter composition; paint 4 blur 0.0002500000000000673px": 1,
+              "per-character blur requires native filter composition; paint 5 blur 0.0003429355281207302px": 1,
+              "stroke coverage exceeds the isolated raster alpha limit": 24
+            }
+          },
+          {
+            "id": "layer-text",
+            "samples": 70,
+            "records": 70,
+            "native": 0,
+            "retained": 70,
+            "exact_pixels": 70,
+            "temporal_samples": 0,
+            "reasons": {
+              "stroke coverage exceeds the isolated raster alpha limit": 70
+            }
+          },
+          {
+            "id": "scene-motion-blur",
+            "samples": 70,
+            "records": 70,
+            "native": 70,
+            "retained": 0,
+            "exact_pixels": 0,
+            "temporal_samples": 0,
+            "reasons": {
+              "ordinary outline fill through the platform glyph atlas": 70
+            }
+          },
+          {
+            "id": "scene-text-animators",
+            "samples": 70,
+            "records": 70,
+            "native": 0,
+            "retained": 70,
+            "exact_pixels": 70,
+            "temporal_samples": 0,
+            "reasons": {
+              "stroke coverage exceeds the isolated raster alpha limit": 70
+            }
+          }
+        ],
+        "native": {
+          "status": "passed",
+          "case_id": "scene-motion-blur",
+          "samples": 70,
+          "comparisons": 5,
+          "reviewed": 5,
+          "maxima": {
+            "advance": 0,
+            "baseline": 0,
+            "transform": 7.105427357601002e-15,
+            "cluster_advance": 0,
+            "cluster_position": 0,
+            "glyph_advance": 0,
+            "glyph_position": 0,
+            "glyph_baseline": 0
+          }
+        },
+        "embedded": {
+          "status": "passed",
+          "case_id": "embedded-native-outline",
+          "samples": 70,
+          "comparisons": 5,
+          "reviewed": 5,
+          "maxima": {
+            "advance": 0,
+            "baseline": 0,
+            "transform": 7.105427357601002e-15,
+            "cluster_advance": 0,
+            "cluster_position": 0,
+            "glyph_advance": 0,
+            "glyph_position": 0,
+            "glyph_baseline": 0
+          }
+        },
+        "retained_fixtures": [
+          {
+            "id": "font-woff2",
+            "retained": 68,
+            "exact_pixels": 68,
+            "temporal_samples": 0,
+            "reasons": {
+              "embedded font migration-embedded-face: Woff2DecoderUnavailable": 68
+            }
+          },
+          {
+            "id": "font-collection",
+            "retained": 68,
+            "exact_pixels": 68,
+            "temporal_samples": 0,
+            "reasons": {
+              "embedded font migration-embedded-face: EmbeddedCollectionSelectionUnverified": 68
+            }
+          },
+          {
+            "id": "font-unavailable",
+            "retained": 68,
+            "exact_pixels": 68,
+            "temporal_samples": 0,
+            "reasons": {
+              "requested font families unavailable: Agency FB": 68
+            }
+          },
+          {
+            "id": "font-missing-glyph",
+            "retained": 272,
+            "exact_pixels": 272,
+            "temporal_samples": 0,
+            "reasons": {
+              "no admitted fallback font covers UTF-16 interval 6..7": 68,
+              "requested primary family and CSS family syntax require raster qualification": 68,
+              "no admitted fallback font covers UTF-16 interval 9..10": 68,
+              "script raster coverage requires isolated pixel qualification": 68
+            }
+          },
+          {
+            "id": "font-mixed-bidi",
+            "retained": 68,
+            "exact_pixels": 68,
+            "temporal_samples": 0,
+            "reasons": {
+              "text requires retained rendering: bidirectional paragraph requires independently verified visual runs": 68
+            }
+          },
+          {
+            "id": "font-embedded-bidi",
+            "retained": 68,
+            "exact_pixels": 68,
+            "temporal_samples": 0,
+            "reasons": {
+              "text requires retained rendering: bidirectional paragraph requires independently verified visual runs": 68
+            }
+          },
+          {
+            "id": "font-color-paint",
+            "retained": 136,
+            "exact_pixels": 136,
+            "temporal_samples": 0,
+            "reasons": {
+              "layered color outlines require a verified paint graph; face 7c0244dd8eeb7c6bdecdfc3f9e59833527fc18a66d0295ce47339069692a2b4f#0 glyph 11680 at authored size 32": 68,
+              "requested primary family and CSS family syntax require raster qualification": 68
+            }
+          },
+          {
+            "id": "font-bitmap-stroke",
+            "retained": 136,
+            "exact_pixels": 136,
+            "temporal_samples": 0,
+            "reasons": {
+              "bitmap glyph strokes require verified coverage expansion; face 198e8dac512206f27c9bdbfeb3d5b3e55a33de9dcf58d801823ef8c5ef5a76dc#0 glyph 4 at authored size 12": 68,
+              "requested primary family and CSS family syntax require raster qualification": 68
+            }
+          },
+          {
+            "id": "text-blur-controls",
+            "retained": 552,
+            "exact_pixels": 552,
+            "temporal_samples": 0,
+            "reasons": {
+              "per-character blur requires native filter composition; paint 0 blur 4px": 69,
+              "per-character paint and affine coverage require pixel qualification": 278,
+              "requested primary family and CSS family syntax require raster qualification": 69,
+              "per-character blur requires native filter composition; paint 2 blur 4px": 69,
+              "per-character blur requires native filter composition; paint 0 blur 3px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 6px": 34,
+              "per-character blur requires native filter composition; paint 0 blur 0.7624907931312919px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 2.031342322938144px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.84383047465235px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 3.7536363769322634px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.5468004243448377px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 1.8091482650488615px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 2.325940439477563px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 4.842837064526975px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 2.19764743745327px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 4.150961617939174px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.3096896940842271px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 5.070861222222447px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 5.77994117885828px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 3.4235547529533505px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 2.5021875528618693px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.9965087715536356px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 4.595785989426076px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 4.01598324906081px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.9643640303984284px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 2.177729702554643px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.3659604415297508px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.5912176799029112px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 3.4414560673758388px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.49336444213986397px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.2808685312047601px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 2.1880245795473456px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.44608671963214874px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 1.3298113765195012px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 3.613700651563704px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 1.90985974855721px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 5.1123594688251615px": 1,
+              "per-character blur requires native filter composition; paint 0 blur 5.466977748088539px": 1
+            }
+          },
+          {
+            "id": "text-blur-exposure",
+            "retained": 69,
+            "exact_pixels": 31,
+            "temporal_samples": 283,
+            "reasons": {
+              "per-character blur requires native filter composition; paint 0 blur 0.009374999999999998px; exposure time 0.0015624999999999997": 2,
+              "per-character blur requires native filter composition; paint 0 blur 2.934375px; exposure time 0.4890625": 1,
+              "per-character blur requires native filter composition; paint 0 blur 5.934375px; exposure time 0.9890625000000001": 2,
+              "per-character blur requires native filter composition; paint 0 blur 6px": 31,
+              "per-character blur requires native filter composition; paint 0 blur 0.6968657931312918px; exposure time 0.11614429885521531": 1,
+              "per-character blur requires native filter composition; paint 0 blur 1.9657173229381444px; exposure time 0.32761955382302405": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.7782054746523499px; exposure time 0.1297009124420583": 1,
+              "per-character blur requires native filter composition; paint 0 blur 3.6880113769322636px; exposure time 0.614668562822044": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.4811754243448376px; exposure time 0.08019590405747294": 1,
+              "per-character blur requires native filter composition; paint 0 blur 1.7435232650488617px; exposure time 0.29058721084147693": 1,
+              "per-character blur requires native filter composition; paint 0 blur 2.260315439477563px; exposure time 0.37671923991292716": 1,
+              "per-character blur requires native filter composition; paint 0 blur 4.777212064526975px; exposure time 0.7962020107544959": 1,
+              "per-character blur requires native filter composition; paint 0 blur 2.13202243745327px; exposure time 0.35533707290887834": 1,
+              "per-character blur requires native filter composition; paint 0 blur 4.085336617939174px; exposure time 0.6808894363231958": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.2440646940842271px; exposure time 0.04067744901403785": 1,
+              "per-character blur requires native filter composition; paint 0 blur 5.005236222222448px; exposure time 0.8342060370370746": 1,
+              "per-character blur requires native filter composition; paint 0 blur 5.71431617885828px; exposure time 0.9523860298097134": 1,
+              "per-character blur requires native filter composition; paint 0 blur 3.3579297529533507px; exposure time 0.5596549588255585": 1,
+              "per-character blur requires native filter composition; paint 0 blur 2.4365625528618695px; exposure time 0.40609375881031157": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.9308837715536356px; exposure time 0.15514729525893925": 1,
+              "per-character blur requires native filter composition; paint 0 blur 4.530160989426077px; exposure time 0.7550268315710128": 1,
+              "per-character blur requires native filter composition; paint 0 blur 3.95035824906081px; exposure time 0.658393041510135": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.8987390303984284px; exposure time 0.14978983839973806": 1,
+              "per-character blur requires native filter composition; paint 0 blur 2.1121047025546433px; exposure time 0.35201745042577387": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.30033544152975084px; exposure time 0.05005590692162514": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.5255926799029111px; exposure time 0.08759877998381853": 1,
+              "per-character blur requires native filter composition; paint 0 blur 3.375831067375839px; exposure time 0.5626385112293065": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.4277394421398639px; exposure time 0.07128990702331066": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.21524353120476009px; exposure time 0.03587392186746002": 1,
+              "per-character blur requires native filter composition; paint 0 blur 2.122399579547346px; exposure time 0.35373326325789095": 1,
+              "per-character blur requires native filter composition; paint 0 blur 0.3804617196321487px; exposure time 0.06341028660535812": 1,
+              "per-character blur requires native filter composition; paint 0 blur 1.2641863765195012px; exposure time 0.21069772941991685": 1,
+              "per-character blur requires native filter composition; paint 0 blur 3.548075651563704px; exposure time 0.5913459419272841": 1,
+              "per-character blur requires native filter composition; paint 0 blur 1.8442347485572101px; exposure time 0.30737245809286834": 1,
+              "per-character blur requires native filter composition; paint 0 blur 5.046734468825162px; exposure time 0.8411224114708603": 1,
+              "per-character blur requires native filter composition; paint 0 blur 5.401352748088539px; exposure time 0.9002254580147565": 1,
+              "per-character blur requires native filter composition; paint 0 blur 6px; exposure time 1": 1
+            }
+          },
+          {
+            "id": "embedded-unqualified-control",
+            "retained": 70,
+            "exact_pixels": 70,
+            "temporal_samples": 0,
+            "reasons": {
+              "embedded font embedded-unqualified-control physical face requires raster qualification": 70
+            }
+          }
+        ],
+        "gate_reports": {
+          "G0": {
+            "path": "artifacts/migration/2026-10-22T01-31-43-813Z-6150bfa7/static-results.json",
+            "sha256": "6968c668b4a851220cabfeceff2dc8aa901c1f697b550deb853eb71975c89138"
+          },
+          "G3": {
+            "path": "artifacts/migration/2026-10-22T01-31-43-813Z-6150bfa7/G3/report.json",
+            "sha256": "bc6949bc9e1d37ab3f9360ac098511168c0ddbd4215dfcc71f21585f64f8ecb6"
+          }
+        },
+        "retained_capability_tasks": [
+          "M10-R1",
+          "M10-R2",
+          "M10-R3",
+          "M10-R4",
+          "M10-R5",
+          "M10-R6",
+          "M10-R7",
+          "M10-R8",
+          "M10-R9",
+          "M10-R10",
+          "M10-R11",
+          "M10-R12",
+          "M10-R13",
+          "M10-R14",
+          "M10-R15",
+          "M10-R16"
+        ],
+        "checked_files": 25,
+        "production_preview_acceptance": false
       }
     },
     {
@@ -2447603,6 +2448420,20 @@
         "sha256": "9747d5f4c31464ae22233498f3a18c6a5a9bba99312018f918748a3f8841b06b"
       },
       "milestone_exit_satisfied": false
+    },
+    {
+      "cycle": 136,
+      "time": "2026-10-22T02:24:02.834Z",
+      "milestone": "M10",
+      "task": "M10-T8",
+      "increment": "native-text-exit-audit",
+      "outcome": "passed",
+      "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf",
+      "verification": {
+        "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+        "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
+      },
+      "milestone_exit_satisfied": true
     }
   ],
   "known_boundaries": [
@@ -2447676,6 +2448507,32 @@
         "M11"
       ],
       "status_note": "M7 proves pixel correctness and GPU instance reuse. Under the approved rust-delivery-v1 policy, measure the retained culling cost in paired native export/preview performance acceptance; no M7 performance equivalence is claimed."
+    },
+    {
+      "id": "native-text-qualified-capabilities",
+      "detail": "Ordinary qualified physical outlines and equivalent embedded outlines use native shaping, atlas and GPU composition. Unsupported fonts, scripts, strokes and character effects remain explicitly routed to exact M5 rasters as allowed by M10; this does not establish native preview or retirement of the TS GPU renderer.",
+      "tasks": [
+        "M10-R1",
+        "M10-R2",
+        "M10-R3",
+        "M10-R4",
+        "M10-R5",
+        "M10-R6",
+        "M10-R7",
+        "M10-R8",
+        "M10-R9",
+        "M10-R10",
+        "M10-R11",
+        "M10-R12",
+        "M10-R13",
+        "M10-R14",
+        "M10-R15",
+        "M10-R16"
+      ],
+      "evidence": [
+        "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json"
+      ],
+      "native_milestone": "M10"
     }
   ],
   "reference_repairs": [
@@ -2447829,9 +2448686,15 @@
     "task": "M10-T8",
     "increment": "native-text-exit-audit",
     "started_at": "2026-10-22T01:17:46.252Z",
-    "implementation_state": "full_verification_pending",
+    "implementation_state": "committed",
     "scope": "Bind actual admitted text to per-glyph observations and reviewed GPU pixels; authenticate complete retained capability coverage and current G0/G3 before M10 exit.",
-    "updated_at": "2026-10-22T01:31:42.546Z"
+    "updated_at": "2026-10-22T02:24:02.834Z",
+    "outcome": "passed",
+    "commit": "4af8d2ad70bb702e3d002ab00640b1d675726dbf",
+    "verification": {
+      "path": "artifacts/migration/verify-2026-10-22T01-31-43-813Z-6150bfa7.json",
+      "sha256": "05546bea55757ba018a30b6bfea755a18af04eaa82fcb328d72d0b6eafe0e3d7"
+    }
   },
   "execution_pause": {
     "requested_by": "owner",
