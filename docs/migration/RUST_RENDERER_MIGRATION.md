@@ -549,6 +549,13 @@ and binds admitted production samples to per-glyph layout, physical font identit
 GPU pixels. Explicit retained capability tasks account for the remaining M5 paths. The exit audit
 does not repeat image decoding already authenticated by the same invocation's text gates.
 
+The M11 exit audit binds one current full G0/G3/G4/G6 invocation to complete corpus and owner-project
+coverage, admitted self-reviews, exact editor interaction/plugin witnesses, recovery, packaged binaries,
+and three canonical throughput/latency pairs. Performance and exit tasks may remain in progress while
+that invocation runs; both complete only after its exit audit passes. The audit reuses image validation
+already performed by its own gates and does not rescan the corpus PNGs. No historical failed gate or
+short readiness run can establish full preview acceptance.
+
 ### Moving-target rule
 
 While the migration runs, any new TS renderer feature arriving from the base branch must either

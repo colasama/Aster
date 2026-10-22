@@ -4,11 +4,14 @@ import {
   aggregatePreviewRounds,
   comparePreviewThroughput,
   previewDistribution,
+  previewScenarioNames,
 } from "./preview-performance-gate.mjs";
 
 function samples(scenario, value) {
-  scenario.samples = { wallMs: Array(600).fill(value) };
+  scenario.samples = { wallMs: Array(600).fill(value), cpuMs: Array(600).fill(value), gpuMs: [] };
   scenario.wallMs = previewDistribution(scenario.samples.wallMs);
+  scenario.cpuMs = previewDistribution(scenario.samples.cpuMs);
+  scenario.gpuMs = { minimum: 0, median: 0, p95: 0, p99: 0, maximum: 0 };
 }
 
 function pair() {
@@ -18,14 +21,16 @@ function pair() {
     backend: "rdna-3",
     quality: { antiAliasing: "off", memoryBudgetMb: 1024, visualization: "beauty" },
     scenarios: Array.from({ length: 7 }, (_, index) => ({
-      name: `scenario-${index}`,
+      name: previewScenarioNames[index],
       width: 1920,
       height: 1080,
       layers: 20,
       effects: 0,
       workloadSha256: String(index).repeat(64),
-      samples: { wallMs: Array(600).fill(30) },
+      samples: { wallMs: Array(600).fill(30), cpuMs: Array(600).fill(30), gpuMs: [] },
       wallMs: previewDistribution(Array(600).fill(30)),
+      cpuMs: previewDistribution(Array(600).fill(30)),
+      gpuMs: { minimum: 0, median: 0, p95: 0, p99: 0, maximum: 0 },
     })),
   };
   const native = structuredClone(reference);
@@ -45,6 +50,11 @@ test("native preview throughput requires every matched workload to improve", () 
 
 test("preview comparison refuses unlike quality, scenario identity, incomplete or nonfinite samples", () => {
   for (const mutate of [
+    (native) => native.scenarios[0].samples.cpuMs.pop(),
+    (native) => native.scenarios[0].samples.gpuMs.push(1),
+    (native) => {
+      native.scenarios[0].gpuMs.median = 1;
+    },
     (native) => {
       native.quality.memoryBudgetMb = 2048;
     },
@@ -74,6 +84,13 @@ test("preview comparison refuses unlike quality, scenario identity, incomplete o
     mutate(native);
     assert.throws(() => comparePreviewThroughput(reference, native));
   }
+});
+
+test("matching duplicate scenarios cannot replace a required workload", () => {
+  const { reference, native } = pair();
+  reference.scenarios[6] = structuredClone(reference.scenarios[5]);
+  native.scenarios[6] = structuredClone(native.scenarios[5]);
+  assert.throws(() => comparePreviewThroughput(reference, native));
 });
 
 test("preview acceptance uses three run medians and rejects a changed workload between rounds", () => {

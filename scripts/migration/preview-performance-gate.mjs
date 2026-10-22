@@ -8,9 +8,19 @@ import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile, sourceProvenance } from "./source.mjs";
 
-export function previewDistribution(samples) {
+export const previewScenarioNames = [
+  "1080p current composition",
+  "4K current composition",
+  "20-layer 1080p composite",
+  "Blur + glow effect chain",
+  "100K GPU particles",
+  "500K GPU particles",
+  "1M GPU particles",
+];
+
+export function previewDistribution(samples, allowZero = false) {
   assert(Array.isArray(samples) && samples.length > 0);
-  assert(samples.every((value) => Number.isFinite(value) && value > 0));
+  assert(samples.every((value) => Number.isFinite(value) && (allowZero ? value >= 0 : value > 0)));
   const values = [...samples].sort((a, b) => a - b);
   const percentile = (position) => {
     const index = position * (values.length - 1),
@@ -40,8 +50,13 @@ export function comparePreviewThroughput(ts, native) {
   assert.deepEqual(native.quality, ts.quality);
   assert.equal(native.compositionId, ts.compositionId);
   assert.equal(ts.quality.memoryBudgetMb, 1024);
+  assert.equal(ts.quality.antiAliasing, "off");
   assert.equal(ts.quality.visualization, "beauty");
   assert.equal(ts.scenarios.length, 7);
+  assert.deepEqual(
+    ts.scenarios.map((s) => s.name),
+    previewScenarioNames,
+  );
   assert.deepEqual(
     native.scenarios.map((s) => s.name),
     ts.scenarios.map((s) => s.name),
@@ -54,6 +69,18 @@ export function comparePreviewThroughput(ts, native) {
     for (const scenario of [reference, candidate]) {
       assert.equal(scenario.samples?.wallMs?.length, 600, "Complete raw wall samples required");
       assert.deepEqual(scenario.wallMs, previewDistribution(scenario.samples.wallMs));
+      assert.equal(scenario.samples.cpuMs?.length, 600, "Complete raw CPU samples required");
+      assert.deepEqual(scenario.cpuMs, previewDistribution(scenario.samples.cpuMs, true));
+      assert(
+        [0, 600].includes(scenario.samples.gpuMs?.length),
+        "GPU timing is complete or unavailable",
+      );
+      assert.deepEqual(
+        scenario.gpuMs,
+        scenario.samples.gpuMs.length
+          ? previewDistribution(scenario.samples.gpuMs, true)
+          : { minimum: 0, median: 0, p95: 0, p99: 0, maximum: 0 },
+      );
     }
     return {
       name: reference.name,

@@ -17,6 +17,7 @@ import { auditM7Exit } from "./m7-exit.mjs";
 import { auditM8Exit } from "./m8-exit.mjs";
 import { auditM9Exit } from "./m9-exit.mjs";
 import { auditM10Exit } from "./m10-exit.mjs";
+import { auditM11Exit } from "./m11-exit.mjs";
 import { runNativeAppGate } from "./native-app-gate.mjs";
 import { runNativeCoreGate } from "./native-core-gate.mjs";
 import { runNativeExportGate } from "./native-export-gate.mjs";
@@ -639,6 +640,25 @@ export async function verifyMigration(options, dependencies = {}) {
           throw new Error("M10 native text audit failed");
         report.milestone_exit_reason =
           "Complete text routing, per-glyph layout, physical fonts and reviewed production pixels audited";
+      } catch (error) {
+        report.milestone_exit = { status: "failed", error: error.message };
+        report.milestone_exit_reason = error.message;
+      }
+    }
+    const previewExit = milestone.tasks.find((task) => task.id === "M11-T8");
+    if (
+      milestone.id === "M11" &&
+      !quick &&
+      (milestone.status === "done" || ["in_progress", "done"].includes(previewExit?.status))
+    ) {
+      try {
+        if (report.gates.some((gate) => gate.status !== "passed"))
+          throw new Error("M11 exit requires every current full gate");
+        report.milestone_exit = await (dependencies.auditM11Exit ?? auditM11Exit)(root, report);
+        if (report.milestone_exit.status !== "passed")
+          throw new Error("M11 production preview audit failed");
+        report.milestone_exit_reason =
+          "Current native preview corpus, editor lifecycle, paired throughput and input latency audited";
       } catch (error) {
         report.milestone_exit = { status: "failed", error: error.message };
         report.milestone_exit_reason = error.message;

@@ -93,6 +93,45 @@ test("M10 exit requires a successful audit and skips it on quick or failed gates
   }
 });
 
+test("M11 full exit consumes current performance and app gates and cannot pass a rejected audit", async (t) => {
+  for (const mode of ["accepted", "rejected", "quick", "failed-gate"]) {
+    const context = await fixture(t);
+    await writeAtomicJson(context.ledger, {
+      status: "running",
+      milestones: [
+        {
+          id: "M11",
+          status: "in_progress",
+          gates: ["G0", "G3", "G4", "G6"],
+          tasks: [{ id: "M11-T8", status: "in_progress" }],
+        },
+      ],
+    });
+    let calls = 0;
+    const result = await verifyMigration(
+      { ...context, quick: mode === "quick" },
+      {
+        provenance,
+        execute: fakeHook,
+        runSharedPreviewGate: async () => ({ id: "G3", status: "passed" }),
+        runPreviewPerformanceGate: async () => ({
+          id: "G4",
+          status: mode === "failed-gate" ? "failed" : "passed",
+        }),
+        runPreviewAppGate: async () => ({ id: "G6", status: "passed" }),
+        auditM11Exit: async () => {
+          calls++;
+          if (mode === "rejected") throw new Error("Missing current editor evidence");
+          return { status: "passed" };
+        },
+      },
+    );
+    assert.equal(calls, ["accepted", "rejected"].includes(mode) ? 1 : 0);
+    assert.equal(result.report.milestone_exit_satisfied, mode === "accepted");
+    assert.equal(result.exitCode, ["rejected", "failed-gate"].includes(mode) ? 1 : 0);
+  }
+});
+
 test("M10 font increments execute native GPU checks without claiming text migration acceptance", async (t) => {
   const context = await fixture(t);
   await writeAtomicJson(context.ledger, {

@@ -537,8 +537,10 @@ the download button writes the complete wall/CPU/GPU min, median, p95, p99, and 
 schema-versioned JSON with adapter metadata.
 
 Native preview qualification runs three contemporaneous TS/native pairs in alternating order at
-matched 1024 MiB budgets and beauty quality. Each scenario retains all 600 raw wall/CPU/GPU samples;
-reported distributions are recomputed from those samples. Every scenario's median FPS across the
+matched 1024 MiB budgets and beauty quality. Each scenario retains all 600 raw wall and CPU samples,
+plus 600 GPU samples when available. Empty GPU sample arrays indicate unavailable GPU timing;
+their zero summaries do not establish zero GPU cost. Acceptance uses measured wall throughput.
+Reported distributions are recomputed from those samples. Every scenario's median FPS across the
 three runs must exceed TS. These editor scenarios include 100K, 500K and 1M particle workloads.
 Native samples include Electron's GPU-tracked import-release notification and the Rust surface
 release acknowledgement. Returning from the texture transfer or submitting the canvas copy alone
@@ -559,6 +561,9 @@ each calibration address and the measurement sequence. The attempt log is retain
 or sampling begins, focus loss fails the run without refocusing, replaying input or dropping samples.
 Development qualification builds and pins the debug desktop bridge selected by the editor, alongside
 the release renderer and packaged bridge, before starting timed work.
+The exit audit requires the seven canonical scenarios exactly once per arm and recomputes summaries
+from complete samples. It binds three paired runs, independent latency, application recovery and
+complete corpus pixels to the same current verification invocation and executable identities.
 
 An initial 60-frame run on the development WebGPU adapter measured 1.11 ms median / 1.31 ms p95 at
 1080p, 4.59 / 4.92 ms at 4K, 3.47 / 3.80 ms for 20 layers, and 0.72 / 0.79 ms for the five-effect
