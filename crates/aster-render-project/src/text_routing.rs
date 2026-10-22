@@ -93,6 +93,31 @@ impl NativeProjectText {
                 .layer(&request.composition_id, &request.layer_id)?;
             let style = ProjectTextStyle::from_layer(layer)?;
             let coverage = self.inspect_font_coverage(document, &style, &context.locale)?;
+            let animation_reason = if style.animated
+                && coverage.reason.is_none()
+                && style.color_coverage_reason().is_none()
+                && style.stroke_width == 0.
+            {
+                if let Some(exposure) = exposure {
+                    let mut reason = None;
+                    for sample in &exposure.samples {
+                        let mut sample_request = text_request.clone();
+                        sample_request.source_time = sample.local_time;
+                        if let Some(limitation) =
+                            self.inspect_animation_coverage(document, &style, &sample_request)?
+                        {
+                            reason =
+                                Some(format!("{limitation}; exposure time {}", sample.local_time));
+                            break;
+                        }
+                    }
+                    reason
+                } else {
+                    self.inspect_animation_coverage(document, &style, &text_request)?
+                }
+            } else {
+                None
+            };
             let reason = if !cfg!(windows) {
                 Some("platform coverage has not been qualified on this host")
             } else if let Some(reason) = style.color_coverage_reason() {
@@ -102,7 +127,10 @@ impl NativeProjectText {
             } else if style.stroke_width > 0. {
                 Some("stroke coverage exceeds the isolated raster alpha limit")
             } else if style.animated {
-                Some("per-character paint and affine coverage require pixel qualification")
+                Some(animation_reason.as_deref().map_or(
+                    "per-character paint and affine coverage require pixel qualification",
+                    |reason| reason,
+                ))
             } else if exposure.is_some() {
                 Some("temporal glyph union and sample routing require pixel qualification")
             } else if *resolution_scale != 1. {

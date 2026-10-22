@@ -689,6 +689,13 @@ limitations without allocating pixels or atlas leases. Their bounded cache also 
 stroke width and animation state. Real rasterizer controls distinguish ordinary outlines in a
 color font and supported bitmap fills from the unsupported paints; independent M5 pixel comparisons
 authenticate the resulting retained production routes. Animated paints remain separately qualified.
+Animated capability probes share layout, ink bounds and final raster density with native text
+preparation before any atlas allocation. They evaluate the selected character paints at the requested
+time, including individual exposure samples, and retain nonzero blur with the affected paint index
+and scaled radius. A bounded cache binds the immutable project layer, style, physical fonts, locale,
+density and canonical animation time. Independent Canvas draw filters and exact retained pixels
+distinguish active blur from zero, disabled, unselected and time-varying controls; native preparation
+must independently reject the same unsupported filter. These probes do not grant native admission.
 Ordinary embedded outlines are qualified through the production project shaper and GPU session.
 An installed face is embedded under a different installed family alias; independent TS observations
 must match the original physical face exactly, while the unembedded alias must differ. The project

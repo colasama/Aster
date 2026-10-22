@@ -24864,7 +24864,7 @@
               }
             },
             {
-              "status": "pending",
+              "status": "in_progress",
               "title": "Preserve nonzero per-character blur in native text routing",
               "acceptance": "Implement and verify the existing Canvas filter behavior or retain the exact affected capability through authenticated M5 output; never silently omit blur. GPU affine composition alone does not establish this behavior."
             }
@@ -25994,6 +25994,89 @@
                 "sha256": "352d3bcfbd4a85c8412594ed923d3f4cba6753cd8edd52b7b12d3b0e52fcbbca"
               },
               "commit": "c2413159eda01b5d3cd51c8fbf0c8d44a8951862"
+            },
+            "character_blur": {
+              "status": "focused_passed_full_pending",
+              "cycle": 135,
+              "focused": {
+                "path": "artifacts/migration/cycle135-blur1/report.json",
+                "sha256": "0a0aae3fcc8a5e5d4b4334d35834178233b31b49b74e263fdd98320f8501bf76"
+              },
+              "cases": [
+                {
+                  "id": "text-blur-controls",
+                  "frames": 69,
+                  "exact_pixels": 552,
+                  "temporal_samples": 0
+                },
+                {
+                  "id": "text-blur-exposure",
+                  "frames": 69,
+                  "exact_pixels": 31,
+                  "temporal_samples": 283
+                }
+              ],
+              "controls": {
+                "nonzero": {
+                  "blurred": 69,
+                  "clear": 0,
+                  "nonzero_paint_index": 0
+                },
+                "zero": {
+                  "blurred": 0,
+                  "clear": 69,
+                  "nonzero_paint_index": 0
+                },
+                "disabled-group": {
+                  "blurred": 0,
+                  "clear": 69,
+                  "nonzero_paint_index": 0
+                },
+                "disabled-animator": {
+                  "blurred": 0,
+                  "clear": 69,
+                  "nonzero_paint_index": 0
+                },
+                "unselected": {
+                  "blurred": 0,
+                  "clear": 69,
+                  "nonzero_paint_index": 0
+                },
+                "time-varying": {
+                  "blurred": 67,
+                  "clear": 2,
+                  "nonzero_paint_index": 0
+                },
+                "wrapped-selection": {
+                  "blurred": 69,
+                  "clear": 0,
+                  "nonzero_paint_index": 69
+                },
+                "below-threshold": {
+                  "blurred": 0,
+                  "clear": 69,
+                  "nonzero_paint_index": 0
+                },
+                "exposure": {
+                  "blurred": 69,
+                  "clear": 0,
+                  "nonzero_paint_index": 0
+                }
+              },
+              "blurred": 274,
+              "clear": 347,
+              "exposure_blurred": 38,
+              "center_clear_exposure_blur": 2,
+              "preparation": {
+                "samples": 552,
+                "blurred": 205,
+                "clear": 347
+              },
+              "validation_logs": [
+                "artifacts/migration/cycle135-clippy2.log",
+                "artifacts/migration/cycle135-focused1.log"
+              ],
+              "note": "A final input-file stability assertion was added after focused validation; full current-source acceptance remains pending."
             }
           }
         },
@@ -2447286,20 +2447369,14 @@
     }
   ],
   "active_cycle": {
-    "id": 134,
+    "id": 135,
     "milestone": "M10",
     "task": "M10-T7",
-    "increment": "glyph-paint-capabilities",
-    "started_at": "2026-10-21T22:53:16.638Z",
-    "implementation_state": "committed",
-    "scope": "Bind layered color outlines and bitmap stroke limitations to the selected physical font/glyph and exact authenticated retained pixels without allocating diagnostic atlases.",
-    "updated_at": "2026-10-22T00:05:18.146Z",
-    "outcome": "passed",
-    "commit": "c2413159eda01b5d3cd51c8fbf0c8d44a8951862",
-    "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T23-07-23-929Z-85eb6fd9.json",
-      "sha256": "231102a9f031c318bcc54e8d555d99a5cab82e264875759f194dc062a652e4c6"
-    }
+    "increment": "evaluated-character-blur-capability",
+    "started_at": "2026-10-22T00:06:53.155Z",
+    "implementation_state": "full_verification_pending",
+    "scope": "Share native paint preparation between rendering and bounded animation capability checks; bind effective character blur to current-time retained output and independent TS draw filters.",
+    "updated_at": "2026-10-22T00:18:49.782Z"
   },
   "execution_pause": {
     "requested_by": "owner",

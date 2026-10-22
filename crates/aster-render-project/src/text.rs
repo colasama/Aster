@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use aster_render_ir::{Extent2d, ResourceHash};
+use aster_render_ir::ResourceHash;
 use aster_renderer::{GlyphTextConfig, GlyphTextPlan, NativeGlyphInput};
 use aster_text::{
     FontCatalog, FontCatalogConfig, FontDiscoveryConfig, FontSelection, GlyphGeneration,
@@ -13,7 +13,7 @@ use crate::{
     NativeProjectDocument, ProjectRenderError, ProjectTextPaint, TextFontEvidence,
     text_coverage::{TextCoverage, TextFontCoverage},
     text_fonts::ProjectTextFonts,
-    text_paint::TextPaintEvaluator,
+    text_preparation::TextPaintPreparation,
     text_style::ProjectTextStyle,
 };
 
@@ -82,6 +82,28 @@ pub struct NativeProjectText {
 }
 
 impl NativeProjectText {
+    pub(crate) fn inspect_animation_coverage(
+        &mut self,
+        document: &NativeProjectDocument,
+        style: &ProjectTextStyle,
+        request: &ProjectTextRequest,
+    ) -> Result<Option<String>, ProjectRenderError> {
+        if document.runtime_sha256 != self.project_sha256 {
+            return Err(ProjectRenderError::Invalid(
+                "text project revision differs".into(),
+            ));
+        }
+        let Some(track) = document
+            .scene
+            .text_animator(&request.composition, &request.layer)?
+        else {
+            return Ok(None);
+        };
+        let chain = self.fonts.resolve(style)?;
+        self.coverage
+            .inspect_animation(style, request, chain, track, (&self.layout, &self.shaper))
+    }
+
     pub(crate) fn inspect_font_coverage(
         &mut self,
         document: &NativeProjectDocument,
@@ -160,57 +182,18 @@ impl NativeProjectText {
                 .map(|track| track.evaluate(request.source_time))
                 .transpose()?;
             let animation = animation.as_ref().filter(|_| style.animated);
-            let measured = self
-                .layout
-                .evaluate(&style.layout(&request.locale, 1.), &chain.fonts)?;
-            let paints = TextPaintEvaluator::evaluate(
-                &style,
-                &measured,
-                animation,
-                1.,
-                &request.locale,
-                &chain.fonts,
-                &self.shaper,
-            )?;
-            let measured_bounds = crate::text_raster::TextRasterPreparation::bounds(
-                style.size,
-                style.font_size,
-                &paints,
-                &chain.fonts,
-            )?;
-            let bounds = request.bounds.unwrap_or(measured_bounds);
-            if bounds
-                .iter()
-                .any(|n| !n.is_finite() || n.abs() > 1_048_576.)
-                || bounds[2] < 1.
-                || bounds[3] < 1.
-                || bounds[0] > measured_bounds[0]
-                || bounds[1] > measured_bounds[1]
-                || bounds[0] + bounds[2] < measured_bounds[0] + measured_bounds[2]
-                || bounds[1] + bounds[3] < measured_bounds[1] + measured_bounds[3]
-            {
-                return Err(ProjectRenderError::Invalid(
-                    "text union bounds do not contain measured ink".into(),
-                ));
-            }
-            let scale = request
-                .resolution_scale
-                .min(request.maximum_dimension as f64 / bounds[2].max(bounds[3]));
-            let size = Extent2d {
-                width: (bounds[2] * scale).ceil().max(1.) as u32,
-                height: (bounds[3] * scale).ceil().max(1.) as u32,
-            };
-            let scale = size.width as f64 / bounds[2];
-            let layout = self
-                .layout
-                .evaluate(&style.layout(&request.locale, scale), &chain.fonts)?;
-            let paints = TextPaintEvaluator::evaluate(
-                &style,
-                &layout,
-                animation,
+            let TextPaintPreparation {
+                bounds,
+                size,
                 scale,
-                &request.locale,
+                layout,
+                paints,
+            } = TextPaintPreparation::evaluate(
+                &style,
+                &request,
+                animation,
                 &chain.fonts,
+                &self.layout,
                 &self.shaper,
             )?;
             let (atlas, plan) = crate::text_raster::TextRasterPreparation::rasterize(

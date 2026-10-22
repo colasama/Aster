@@ -28,6 +28,7 @@ mod text_capture;
 mod text_coverage;
 mod text_fonts;
 mod text_paint;
+mod text_preparation;
 mod text_raster;
 mod text_routing;
 mod text_style;

@@ -31,6 +31,7 @@ import { nativeSceneCases, runNativeSceneBatch } from "./native-scene-batch.mjs"
 import { runNativeSceneOutputGate } from "./native-scene-output-gate.mjs";
 import { runNativeSequenceGate } from "./native-sequence-gate.mjs";
 import { runNativeSessionGate } from "./native-session-gate.mjs";
+import { runNativeTextBlurGate } from "./native-text-blur-gate.mjs";
 import { runNativeTextCapabilityGate } from "./native-text-capability-gate.mjs";
 import { runNativeTextFontGate } from "./native-text-font-gate.mjs";
 import { runNativeVideoGate } from "./native-video-gate.mjs";
@@ -733,6 +734,15 @@ export async function runNativeCoreGate(context, execute = runStep) {
         report.native_text_embedded.status,
         "passed",
         "Native embedded text qualification failed",
+      );
+      report.native_text_blur = await runNativeTextBlurGate(
+        { ...context, output: join(context.output, "native-text-blur") },
+        execute,
+      );
+      assert.equal(
+        report.native_text_blur.status,
+        "passed",
+        "Character blur capability routing failed",
       );
     }
     report.checked_files = await reader.stable();

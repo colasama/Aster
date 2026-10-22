@@ -1,12 +1,16 @@
 use std::collections::BTreeMap;
 
+use aster_eval::TextAnimatorTrack;
 use aster_text::{
-    FontFaceId, FontSelection, GlyphPaint, TextDirection, TextShapeError, TextShaper,
+    FontFaceId, FontSelection, GlyphPaint, TextDirection, TextLayout, TextShapeError, TextShaper,
 };
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
-use crate::{ProjectRenderError, text_fonts::TextFontChain, text_style::ProjectTextStyle};
+use crate::{
+    ProjectRenderError, ProjectTextRequest, text_fonts::TextFontChain,
+    text_preparation::TextPaintPreparation, text_style::ProjectTextStyle,
+};
 
 #[derive(Clone, Debug, Serialize)]
 pub struct TextFontEvidence {
@@ -52,6 +56,7 @@ pub(crate) struct TextFontCoverage {
 pub(crate) struct TextCoverage {
     config: TextCoverageConfig,
     reasons: BTreeMap<String, Option<String>>,
+    animation_reasons: BTreeMap<String, Option<String>>,
 }
 
 impl TextCoverage {
@@ -64,6 +69,50 @@ impl TextCoverage {
         Ok(Self {
             config,
             reasons: BTreeMap::new(),
+            animation_reasons: BTreeMap::new(),
+        })
+    }
+
+    pub fn inspect_animation(
+        &mut self,
+        style: &ProjectTextStyle,
+        request: &ProjectTextRequest,
+        chain: &TextFontChain,
+        track: &TextAnimatorTrack,
+        engines: (&TextLayout, &TextShaper),
+    ) -> Result<Option<String>, ProjectRenderError> {
+        let mut identity = request.clone();
+        identity.source_time = track.cache_time(request.source_time).map_or(0., |t| t);
+        let fonts = chain
+            .selections
+            .iter()
+            .map(TextFontEvidence::from)
+            .collect::<Vec<_>>();
+        let key = format!(
+            "{:x}",
+            Sha256::digest(serde_json::to_vec(&(style, &identity, &fonts))?)
+        );
+        if !self.animation_reasons.contains_key(&key) {
+            let frame = track.evaluate(request.source_time)?;
+            let reason = match TextPaintPreparation::evaluate(
+                style, request, Some(&frame), &chain.fonts, engines.0, engines.1,
+            ) {
+                Ok(prepared) => prepared.paints.iter().enumerate()
+                    .find(|(_, paint)| paint.blur > 0.00001)
+                    .map(|(index, paint)| format!(
+                        "per-character blur requires native filter composition; paint {index} blur {}px",
+                        paint.blur,
+                    )),
+                // A failed diagnostic preparation must never discard authenticated retained output.
+                Err(error) => Some(format!("animation paint preparation requires retained rendering: {error}")),
+            };
+            if self.animation_reasons.len() >= self.config.max_text_coverage_entries {
+                self.animation_reasons.clear();
+            }
+            self.animation_reasons.insert(key.clone(), reason);
+        }
+        self.animation_reasons.get(&key).cloned().ok_or_else(|| {
+            ProjectRenderError::Invalid("animation coverage cache entry absent".into())
         })
     }
 
