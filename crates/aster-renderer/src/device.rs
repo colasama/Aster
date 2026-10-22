@@ -22,12 +22,21 @@ pub use project_output::{ProjectOutputAvailability, ProjectOutputRequest};
 #[path = "project_allocation_tests.rs"]
 mod project_allocation_tests;
 
+#[cfg(all(test, windows))]
+#[path = "generator_storage_tests.rs"]
+mod generator_storage_tests;
 #[cfg(windows)]
 #[path = "shared_nv12_output.rs"]
 mod shared_nv12_output;
 #[cfg(all(test, windows))]
 #[path = "shared_nv12_tests.rs"]
 mod shared_nv12_tests;
+#[cfg(windows)]
+#[path = "shared_preview_output.rs"]
+mod shared_preview_output;
+#[cfg(all(test, windows))]
+#[path = "shared_preview_tests.rs"]
+mod shared_preview_tests;
 
 #[cfg(test)]
 #[path = "glyph_frame_tests.rs"]
@@ -118,6 +127,10 @@ pub struct NativeRenderer {
     shared_nv12: Vec<Arc<crate::shared_nv12::SharedNv12Target>>,
     #[cfg(windows)]
     shared_nv12_reserved_bytes: u64,
+    #[cfg(windows)]
+    shared_preview: Vec<Arc<crate::shared_preview::SharedPreviewTarget>>,
+    #[cfg(windows)]
+    shared_preview_reserved_bytes: u64,
 }
 
 impl FrameTargets {
@@ -310,6 +323,10 @@ impl NativeRenderer {
             shared_nv12: Vec::new(),
             #[cfg(windows)]
             shared_nv12_reserved_bytes: 0,
+            #[cfg(windows)]
+            shared_preview: Vec::new(),
+            #[cfg(windows)]
+            shared_preview_reserved_bytes: 0,
         })
     }
 
@@ -502,7 +519,10 @@ impl NativeRenderer {
         let internal = self.device.push_error_scope(wgpu::ErrorFilter::Internal);
         let validation = self.device.push_error_scope(wgpu::ErrorFilter::Validation);
         if has_generators && self.scene.generators.is_none() {
-            self.scene.generators = Some(crate::generators::GeneratorPipelines::new(&self.device));
+            self.scene.generators = Some(crate::generators::GeneratorPipelines::new(
+                &self.device,
+                self.scene.generator_overwrite.clone(),
+            ));
         }
         if let Some(generators) = &mut self.scene.generators {
             generators.prepare(&self.device, frame, self.project_preparation.is_some())?;

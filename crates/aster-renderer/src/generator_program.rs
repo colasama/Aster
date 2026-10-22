@@ -7,6 +7,7 @@ use crate::{RenderError, generator_input::GeneratorInput};
 pub(crate) struct GeneratorProgram {
     pub compute: Vec<wgpu::ComputePipeline>,
     pub variants: Vec<GeneratorVariant>,
+    pub overwrites_instances: bool,
 }
 
 pub(crate) struct GeneratorVariant {
@@ -21,6 +22,7 @@ impl GeneratorProgram {
         input: &GeneratorInput,
         compute_layout: &wgpu::BindGroupLayout,
         render_layout: &wgpu::BindGroupLayout,
+        overwrite: &crate::generator_overwrite::GeneratorOverwrite,
     ) -> Result<Self, RenderError> {
         let modules = input
             .shaders
@@ -157,6 +159,10 @@ impl GeneratorProgram {
                 pipelines,
             });
         }
-        Ok(Self { compute, variants })
+        Ok(Self {
+            compute,
+            variants,
+            overwrites_instances: overwrite.program(graph, &input.shaders)?,
+        })
     }
 }

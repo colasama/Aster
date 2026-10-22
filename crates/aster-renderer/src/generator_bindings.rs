@@ -1,12 +1,13 @@
 use wgpu::util::DeviceExt;
 
-use crate::{RenderError, generator_input::GeneratorInput};
+use crate::{RenderError, generator_input::GeneratorInput, generator_storage::GeneratorStorage};
 
 #[derive(Clone)]
 pub(crate) struct GeneratorBindings {
     pub compute: wgpu::BindGroup,
     pub render: wgpu::BindGroup,
     pub indirect: wgpu::Buffer,
+    pub storage: GeneratorStorage,
 }
 
 impl GeneratorBindings {
@@ -15,6 +16,7 @@ impl GeneratorBindings {
         input: &GeneratorInput,
         layouts: (&wgpu::BindGroupLayout, &wgpu::BindGroupLayout),
         audio: &wgpu::Buffer,
+        recycled: Option<wgpu::Buffer>,
     ) -> Result<Self, RenderError> {
         let invocation = &input.invocation;
         let storage_bytes =
@@ -45,12 +47,7 @@ impl GeneratorBindings {
             contents: &input.payload[2256..2272],
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::INDIRECT,
         });
-        let storage = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Time-addressed generator instances"),
-            size: storage_bytes,
-            usage: wgpu::BufferUsages::STORAGE,
-            mapped_at_creation: false,
-        });
+        let storage = GeneratorStorage::new(device, storage_bytes, recycled);
         let entries = [
             wgpu::BindGroupEntry {
                 binding: 0,
@@ -62,7 +59,7 @@ impl GeneratorBindings {
             },
             wgpu::BindGroupEntry {
                 binding: 2,
-                resource: storage.as_entire_binding(),
+                resource: storage.buffer.as_entire_binding(),
             },
             wgpu::BindGroupEntry {
                 binding: 3,
@@ -92,6 +89,7 @@ impl GeneratorBindings {
             compute,
             render,
             indirect,
+            storage,
         })
     }
 

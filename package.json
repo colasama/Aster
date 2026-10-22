@@ -9,7 +9,7 @@
     "email": "mycolands@gmail.com"
   },
   "type": "module",
-  "main": "dist-electron/electron/main.js",
+  "main": "dist-electron/electron/bootstrap.js",
   "packageManager": "pnpm@10.15.0",
   "scripts": {
     "dev": "pnpm electron:bridge:dev && pnpm electron:compile && concurrently -k -s first \"vite --host 127.0.0.1\" \"wait-on tcp:1420 && electron .\"",
@@ -96,6 +96,10 @@
       }
     ],
     "extraResources": [
+      {
+        "from": "dist/native-raster",
+        "to": "native-raster"
+      },
       {
         "from": "target/release",
         "to": "bin",

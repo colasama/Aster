@@ -5,6 +5,7 @@ use aster_render_ir::{EffectBlendMode, GeneratorBlend, ResourceHash};
 use crate::{
     RenderError, SuppliedFrame, generator_bindings::GeneratorBindings,
     generator_input::GeneratorInput, generator_program::GeneratorProgram,
+    generator_storage::GeneratorStoragePool,
 };
 
 pub(crate) struct GeneratorPipelines {
@@ -14,10 +15,15 @@ pub(crate) struct GeneratorPipelines {
     audio: Option<wgpu::Buffer>,
     prepared: BTreeMap<ResourceHash, (GeneratorBindings, u64)>,
     prepared_audio: Option<std::sync::Arc<[u8]>>,
+    recycled: GeneratorStoragePool,
+    overwrite: crate::generator_overwrite::GeneratorOverwrite,
 }
 
 impl GeneratorPipelines {
-    pub fn new(device: &wgpu::Device) -> Self {
+    pub fn new(
+        device: &wgpu::Device,
+        overwrite: crate::generator_overwrite::GeneratorOverwrite,
+    ) -> Self {
         let layout = |compute| {
             let entries = (0..5)
                 .filter(|binding| compute || *binding != 3)
@@ -56,17 +62,25 @@ impl GeneratorPipelines {
             audio: None,
             prepared: BTreeMap::new(),
             prepared_audio: None,
+            recycled: GeneratorStoragePool::default(),
+            overwrite,
         }
     }
 
-    pub fn begin_allocation(&mut self) {
-        self.prepared.clear();
+    pub fn begin_allocation(&mut self, budget: u64) {
+        self.recycled.recycle(
+            std::mem::take(&mut self.prepared)
+                .into_values()
+                .map(|(bindings, _)| bindings.storage.buffer),
+            budget,
+        );
         self.prepared_audio = None;
         self.audio = None;
     }
 
     pub fn allocated_bytes(&self) -> u64 {
         self.prepared.values().map(|(_, bytes)| *bytes).sum::<u64>()
+            + self.recycled.bytes
             + if self.prepared.is_empty() { 0 } else { 9280 }
     }
 
@@ -101,6 +115,7 @@ impl GeneratorPipelines {
                 input,
                 &self.compute_layout,
                 &self.render_layout,
+                &self.overwrite,
             )?);
         }
         if input.invocation.program.graph.render_variants[input.invocation.variant_index as usize]
@@ -112,6 +127,11 @@ impl GeneratorPipelines {
                 .ok_or_else(|| RenderError::Invalid("generator program absent".into()))?
                 .prepare_auxiliary(device, input, &self.render_layout)?;
         }
+        let recycled = self.recycled.take(
+            u64::from(input.invocation.capacity)
+                * u64::from(input.invocation.program.graph.instance_stride),
+            budget - bytes,
+        );
         let audio = self
             .audio
             .get_or_insert_with(|| GeneratorBindings::audio(device, input.audio.as_deref()));
@@ -120,6 +140,7 @@ impl GeneratorPipelines {
             input,
             (&self.compute_layout, &self.render_layout),
             audio,
+            recycled,
         )?;
         self.prepared_audio = input.audio.clone();
         self.prepared
@@ -133,6 +154,7 @@ impl GeneratorPipelines {
         frame: &SuppliedFrame,
         require_prepared: bool,
     ) -> Result<(), RenderError> {
+        self.recycled = GeneratorStoragePool::default();
         let inputs = std::iter::once(&frame.scene)
             .chain(frame.surfaces.targets.iter().map(|s| &s.scene))
             .flat_map(|s| s.generators.values())
@@ -173,6 +195,7 @@ impl GeneratorPipelines {
                     input,
                     &self.compute_layout,
                     &self.render_layout,
+                    &self.overwrite,
                 )?);
             }
         }
@@ -254,10 +277,25 @@ impl GeneratorPipelines {
                     input,
                     (&self.compute_layout, &self.render_layout),
                     audio,
+                    None,
                 )?,
             );
         }
         if !bindings.is_empty() {
+            for (key, input) in inputs {
+                let program = self
+                    .programs
+                    .get(&input.program_key)
+                    .ok_or_else(|| RenderError::Invalid("compiled generator absent".into()))?;
+                let binding = bindings
+                    .get(key)
+                    .ok_or_else(|| RenderError::Invalid("generator buffers absent".into()))?;
+                binding.storage.initialize(
+                    encoder,
+                    program.overwrites_instances
+                        && crate::generator_overwrite::GeneratorOverwrite::invocation(input),
+                );
+            }
             let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
                 label: Some("Time-addressed scene generators"),
                 timestamp_writes: None,

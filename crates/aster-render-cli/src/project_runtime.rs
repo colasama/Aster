@@ -50,6 +50,12 @@ pub(crate) struct ProjectIdentity {
     pub runtime_sha256: String,
 }
 
+enum ProjectAdmission {
+    Schedule(Vec<FramePlanRequest>),
+    #[cfg(windows)]
+    Preview(FramePlanRequest),
+}
+
 impl ProjectRuntimeArgs {
     pub fn open(
         &self,
@@ -60,6 +66,50 @@ impl ProjectRuntimeArgs {
         renderer: Option<NativeRenderer>,
         cancellation: &CancellationToken,
     ) -> Result<(NativeProjectSession, ProjectIdentity), Box<dyn std::error::Error>> {
+        self.open_admitted(
+            document,
+            ProjectAdmission::Schedule(frames.to_vec()),
+            settings,
+            plugins,
+            renderer,
+            cancellation,
+        )
+    }
+
+    #[cfg(windows)]
+    pub fn open_preview(
+        &self,
+        document: NativeProjectDocument,
+        frame: &FramePlanRequest,
+        settings: &ProjectFrameSettings,
+        plugins: &[PathBuf],
+        renderer: Option<NativeRenderer>,
+        cancellation: &CancellationToken,
+    ) -> Result<(NativeProjectSession, ProjectIdentity), Box<dyn std::error::Error>> {
+        self.open_admitted(
+            document,
+            ProjectAdmission::Preview(frame.clone()),
+            settings,
+            plugins,
+            renderer,
+            cancellation,
+        )
+    }
+
+    fn open_admitted(
+        &self,
+        document: NativeProjectDocument,
+        admission: ProjectAdmission,
+        settings: &ProjectFrameSettings,
+        plugins: &[PathBuf],
+        renderer: Option<NativeRenderer>,
+        cancellation: &CancellationToken,
+    ) -> Result<(NativeProjectSession, ProjectIdentity), Box<dyn std::error::Error>> {
+        let frames = match &admission {
+            ProjectAdmission::Schedule(frames) => frames.as_slice(),
+            #[cfg(windows)]
+            ProjectAdmission::Preview(frame) => std::slice::from_ref(frame),
+        };
         let first = frames.first().ok_or("native project schedule is empty")?;
         if frames.iter().any(|frame| {
             frame.composition_id != first.composition_id
@@ -86,14 +136,25 @@ impl ProjectRuntimeArgs {
             self.audio.clone(),
             cancellation,
         )?;
-        let files = NativeProjectFileMedia::new(
-            document,
-            frames,
-            &settings.resources,
-            tools,
-            self.media.clone(),
-            cancellation,
-        )?;
+        let files = match &admission {
+            ProjectAdmission::Schedule(_) => NativeProjectFileMedia::new(
+                document,
+                frames,
+                &settings.resources,
+                tools,
+                self.media.clone(),
+                cancellation,
+            )?,
+            #[cfg(windows)]
+            ProjectAdmission::Preview(frame) => NativeProjectFileMedia::new_preview(
+                document,
+                frame,
+                &settings.resources,
+                tools,
+                self.media.clone(),
+                cancellation,
+            )?,
+        };
         let materials = NativeProjectMaterials::new(
             self.ffmpeg.clone(),
             self.textures.clone(),

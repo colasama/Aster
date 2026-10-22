@@ -18,6 +18,22 @@ function isFrameSessionPending(error) {
 }
 
 export async function captureInitialPreview(capture, attempts, options = {}) {
+  return captureWhenReady(capture, attempts, isFrameSessionPending, options);
+}
+
+export async function captureReadyBenchmark(capture, attempts, options = {}) {
+  return captureWhenReady(
+    capture,
+    attempts,
+    (error) =>
+      /^(?:Error: )?(?:The GPU renderer is not ready for benchmarking\.|Benchmark composition is not ready\.|Editor benchmark was not claimed)$/.test(
+        error.message,
+      ),
+    options,
+  );
+}
+
+async function captureWhenReady(capture, attempts, isPending, options) {
   const maximumAttempts = options.maximumAttempts ?? 30;
   const wait = options.wait ?? (() => delay(1_000));
   const started = performance.now();
@@ -32,7 +48,7 @@ export async function captureInitialPreview(capture, attempts, options = {}) {
       record.status = "failed";
       record.error = error.message;
       if (
-        !isFrameSessionPending(error) ||
+        !isPending(error) ||
         attempt === maximumAttempts ||
         performance.now() - started >= 30_000
       ) {

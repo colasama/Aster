@@ -79,11 +79,21 @@ export async function runAppChecks(context, execute, platform = process.platform
         ) {
           throw new Error(`Incomplete smoke evidence in ${reportPath}`);
         }
+        if (
+          context.env?.ASTER_NATIVE_PREVIEW === "1" &&
+          (report.native_preview?.status !== "passed" ||
+            report.native_preview.binary.sha256 !==
+              (await hashFile(
+                join(context.output, "package/win-unpacked/resources/bin/aster-render-cli.exe"),
+              )))
+        )
+          throw new Error(`Native preview producer evidence is missing in ${reportPath}`);
         gate.evidence[background ? "background" : "foreground"] = {
           report: relative(context.root, reportPath).replaceAll("\\", "/"),
           preview: report.preview,
           preview_attempts: report.preview_attempts,
           render_job: report.render_job,
+          native_preview: report.native_preview,
         };
       }
     }

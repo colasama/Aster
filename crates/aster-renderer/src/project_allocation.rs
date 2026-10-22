@@ -150,7 +150,7 @@ impl NativeRenderer {
             })
             .map_err(|error| RenderError::Gpu(error.to_string()))?;
         if let Some(generators) = &mut self.scene.generators {
-            generators.begin_allocation();
+            generators.begin_allocation(generator_budget);
         }
         let memory = self.device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
         let internal = self.device.push_error_scope(wgpu::ErrorFilter::Internal);
@@ -219,10 +219,12 @@ impl NativeRenderer {
         let memory = self.device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
         let internal = self.device.push_error_scope(wgpu::ErrorFilter::Internal);
         let validation = self.device.push_error_scope(wgpu::ErrorFilter::Validation);
-        let generators = self
-            .scene
-            .generators
-            .get_or_insert_with(|| crate::generators::GeneratorPipelines::new(&self.device));
+        let generators = self.scene.generators.get_or_insert_with(|| {
+            crate::generators::GeneratorPipelines::new(
+                &self.device,
+                self.scene.generator_overwrite.clone(),
+            )
+        });
         let result = generators.allocate(&self.device, &input, preparation.generator_budget);
         let error = [
             pollster::block_on(validation.pop()),

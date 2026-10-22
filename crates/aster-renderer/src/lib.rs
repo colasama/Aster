@@ -24,7 +24,11 @@ mod generator_bindings;
 mod generator_input;
 #[cfg(test)]
 mod generator_input_tests;
+mod generator_overwrite;
+#[cfg(test)]
+mod generator_overwrite_tests;
 mod generator_program;
+mod generator_storage;
 mod generators;
 mod geometry_pipelines;
 mod glyph_atlas;
@@ -50,6 +54,20 @@ mod nv12;
 mod shared_nv12;
 #[cfg(windows)]
 pub use shared_nv12::SharedNv12Frame;
+#[cfg(windows)]
+mod shared_preview;
+#[cfg(windows)]
+pub use shared_preview::SharedPreviewFrame;
+#[cfg(windows)]
+mod preview_consumer;
+#[cfg(windows)]
+mod preview_guard;
+#[cfg(all(test, windows))]
+mod preview_guard_tests;
+#[cfg(windows)]
+pub use preview_consumer::{PreviewConsumer, RemotePreviewFrame};
+#[cfg(windows)]
+pub use preview_guard::{PreviewGuardError, PreviewHandleGuard};
 mod output;
 mod program_time;
 mod pyramid;

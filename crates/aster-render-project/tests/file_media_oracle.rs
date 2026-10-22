@@ -83,10 +83,15 @@ fn native_ordered_file_resources_match_ts() -> Result<(), Box<dyn std::error::Er
     for proof in input.sources.iter().chain([&input.ffmpeg, &input.ffprobe]) {
         proof.read(&root)?;
     }
+    let preview = std::env::var("ASTER_NATIVE_PROJECT_FILE_PREVIEW").as_deref() == Ok("1");
     let decode = std::env::var("ASTER_NATIVE_PROJECT_FILE_DECODE").as_deref() == Ok("1");
     let token = CancellationToken::default();
     let mut report = Report {
-        scope: "native-ordered-file-resource-acquisition",
+        scope: if preview {
+            "native-time-addressed-preview-file-acquisition"
+        } else {
+            "native-ordered-file-resource-acquisition"
+        },
         decoded_pixels: decode,
         observations: Vec::new(),
     };
@@ -101,17 +106,39 @@ fn native_ordered_file_resources_match_ts() -> Result<(), Box<dyn std::error::Er
             .iter()
             .map(|s| s.frame.clone())
             .collect::<Vec<_>>();
-        let mut session = NativeProjectFileMedia::new(
-            document,
-            &frames,
-            &case.context,
-            ProjectMediaTools {
-                ffmpeg: root.join(&input.ffmpeg.path),
-                ffprobe: root.join(&input.ffprobe.path),
-            },
-            options.media,
-            &token,
-        )?;
+        let tools = ProjectMediaTools {
+            ffmpeg: root.join(&input.ffmpeg.path),
+            ffprobe: root.join(&input.ffprobe.path),
+        };
+        let mut session = if preview {
+            let mut initial = frames.first().ok_or("sample absent")?.clone();
+            initial.time = -1.0;
+            let requests = document.resource_requests(&initial, &case.context)?;
+            assert!(
+                !requests.operations.iter().any(|operation| matches!(
+                    operation,
+                    aster_eval::ResourcePreparationOperation::Media { .. }
+                )),
+                "preview admission must start outside active media times"
+            );
+            NativeProjectFileMedia::new_preview(
+                document,
+                &initial,
+                &case.context,
+                tools,
+                options.media,
+                &token,
+            )?
+        } else {
+            NativeProjectFileMedia::new(
+                document,
+                &frames,
+                &case.context,
+                tools,
+                options.media,
+                &token,
+            )?
+        };
         for sample in &case.samples {
             let expected: Vec<ResourceMessage> =
                 serde_json::from_slice(&sample.resources.read(&root)?)?;

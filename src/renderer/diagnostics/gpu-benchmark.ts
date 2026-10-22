@@ -1,3 +1,4 @@
+import { logger } from "../../core/logger";
 import {
   copyRenderSnapshotIdentity,
   type RenderSnapshotIdentity,
@@ -8,7 +9,6 @@ import {
 } from "../../core/scene/bundled-particle";
 import { createDefaultParticleSettings } from "../../core/scene/particle-settings";
 import type { Composition, Project, RendererMetrics } from "../../core/types";
-import { createId } from "../../core/types";
 import { createEffect } from "../../effects/registry";
 
 const WARMUP_FRAMES = 10;
@@ -27,9 +27,17 @@ export interface GpuBenchmarkScenarioReport {
   height: number;
   layers: number;
   effects: number;
+  workloadSha256?: string;
+  samples?: { wallMs: number[]; cpuMs: number[]; gpuMs: number[] };
   wallMs: BenchmarkDistribution;
   cpuMs: BenchmarkDistribution;
   gpuMs: BenchmarkDistribution;
+}
+
+export interface GpuBenchmarkQuality {
+  antiAliasing: string;
+  memoryBudgetMb: number;
+  visualization: "beauty";
 }
 
 export interface GpuBenchmarkReport {
@@ -39,6 +47,8 @@ export interface GpuBenchmarkReport {
   backend: string;
   warmupFrames: number;
   sampleFrames: number;
+  quality?: GpuBenchmarkQuality;
+  compositionId?: string;
   scenarios: GpuBenchmarkScenarioReport[];
 }
 
@@ -50,12 +60,15 @@ export interface BenchmarkRenderer {
     snapshot: RenderSnapshotIdentity,
     playing?: boolean,
     project?: Project,
-  ): RendererMetrics;
+  ): RendererMetrics | Promise<RendererMetrics>;
   complete(): Promise<void>;
 }
 
 export interface GpuBenchmarkRequest {
   sampleFrames: number;
+  memoryBudgetMb?: number;
+  expectedCompositionId?: string;
+  scenarioNames?: readonly string[];
   onProgress: (scenario: string, completed: number, total: number) => void;
   accept: () => void;
   reject: (error: unknown) => void;
@@ -78,24 +91,40 @@ export async function runGpuBenchmark(
   backend: string,
   sampleFrames: number,
   onProgress: GpuBenchmarkRequest["onProgress"],
+  scenarioNames?: readonly string[],
+  quality?: GpuBenchmarkQuality,
 ): Promise<GpuBenchmarkReport> {
   const originalSnapshot = copyRenderSnapshotIdentity(snapshot);
   const preview = { width: canvas.width, height: canvas.height };
   const samples = Math.max(1, Math.floor(sampleFrames));
-  const scenarios = buildBenchmarkScenarios(composition);
+  const scenarios = buildBenchmarkScenarios(composition).filter(
+    (scenario) => !scenarioNames || scenarioNames.includes(scenario.name),
+  );
+  if (!scenarios.length) throw new Error("No benchmark scenarios selected");
   const reports: GpuBenchmarkScenarioReport[] = [];
+  let failed = false;
+  let failure: unknown;
   try {
     for (const [scenarioIndex, scenario] of scenarios.entries()) {
       const scenarioSnapshot = copyRenderSnapshotIdentity({
         snapshotScope: `benchmark:${crypto.randomUUID()}`,
         projectRevision: 0,
       });
+      const workloadSha256 = Array.from(
+        new Uint8Array(
+          await crypto.subtle.digest(
+            "SHA-256",
+            new TextEncoder().encode(JSON.stringify(scenario.composition)),
+          ),
+        ),
+        (byte) => byte.toString(16).padStart(2, "0"),
+      ).join("");
       const { width, height } = scenario.composition;
       canvas.width = width;
       canvas.height = height;
       renderer.resize(width, height);
       for (let frame = 0; frame < WARMUP_FRAMES; frame += 1) {
-        renderer.render(
+        await renderer.render(
           scenario.composition,
           (frame / 60) % scenario.composition.duration,
           scenarioSnapshot,
@@ -109,7 +138,7 @@ export async function runGpuBenchmark(
       const gpu: number[] = [];
       for (let frame = 0; frame < samples; frame += 1) {
         const started = performance.now();
-        const metrics = renderer.render(
+        const metrics = await renderer.render(
           scenario.composition,
           (frame / 60) % scenario.composition.duration,
           scenarioSnapshot,
@@ -118,6 +147,8 @@ export async function runGpuBenchmark(
         );
         await renderer.complete();
         wall.push(performance.now() - started);
+        if (quality && metrics.memoryBudgetMb !== quality.memoryBudgetMb)
+          throw new Error("Benchmark renderer did not honor the declared memory budget");
         cpu.push(metrics.cpuMs);
         if (metrics.gpuMs !== undefined) gpu.push(metrics.gpuMs);
         if (frame % 10 === 9 || frame === samples - 1)
@@ -130,6 +161,7 @@ export async function runGpuBenchmark(
       }
       reports.push({
         name: scenario.name,
+        workloadSha256,
         width,
         height,
         layers: scenario.composition.layers.length,
@@ -140,14 +172,24 @@ export async function runGpuBenchmark(
         wallMs: summarizeSamples(wall),
         cpuMs: summarizeSamples(cpu),
         gpuMs: summarizeSamples(gpu),
+        samples: { wallMs: wall, cpuMs: cpu, gpuMs: gpu },
       });
     }
-  } finally {
+  } catch (error) {
+    failed = true;
+    failure = error;
+  }
+  try {
     canvas.width = preview.width;
     canvas.height = preview.height;
     renderer.resize(preview.width, preview.height);
-    renderer.render(composition, currentTime, originalSnapshot, false, project);
+    await renderer.render(composition, currentTime, originalSnapshot, false, project);
+    await renderer.complete();
+  } catch (error) {
+    if (!failed) throw error;
+    logger.error("gpu_benchmark", "preview_restore_failed", error);
   }
+  if (failed) throw failure;
   return {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
@@ -155,6 +197,8 @@ export async function runGpuBenchmark(
     backend,
     warmupFrames: WARMUP_FRAMES,
     sampleFrames: samples,
+    quality,
+    compositionId: composition.id,
     scenarios: reports,
   };
 }
@@ -162,7 +206,12 @@ export async function runGpuBenchmark(
 export function buildBenchmarkScenarios(source: Composition): BenchmarkScenario[] {
   const resolution = (name: string, width: number, height: number): BenchmarkScenario => ({
     name,
-    composition: { ...structuredClone(source), id: createId(), width, height },
+    composition: {
+      ...structuredClone(source),
+      id: `benchmark:${source.id}:${name}`,
+      width,
+      height,
+    },
   });
   const twentyLayers = resolution("20-layer 1080p composite", 1920, 1080);
   const candidates = source.layers.filter(
@@ -173,7 +222,7 @@ export function buildBenchmarkScenarios(source: Composition): BenchmarkScenario[
     if (!template) throw new Error("Benchmark composition requires at least one layer");
     return {
       ...structuredClone(template),
-      id: createId(),
+      id: `${twentyLayers.composition.id}:layer:${index}`,
       name: `${template.name} · ${index + 1}`,
       parentId: undefined,
       blendMode: index % 3 === 0 ? "screen" : template.blendMode,
@@ -192,7 +241,7 @@ export function buildBenchmarkScenarios(source: Composition): BenchmarkScenario[
       createEffect("curves"),
       createEffect("chromatic"),
       createEffect("exposure"),
-    ];
+    ].map((effect, index) => ({ ...effect, id: `${effectChain.composition.id}:effect:${index}` }));
   }
   const particleScenario = (count: number): BenchmarkScenario => {
     const label = count === 1_000_000 ? "1M" : `${count / 1000}K`;
@@ -201,7 +250,7 @@ export function buildBenchmarkScenarios(source: Composition): BenchmarkScenario[
     const particle = sourceParticle
       ? structuredClone(sourceParticle)
       : createParticleLayerForComposition(scenario.composition);
-    particle.id = createId();
+    particle.id = `${scenario.composition.id}:particle`;
     particle.parentId = undefined;
     particle.name = `${label} GPU particles`;
     particle.generator = createParticleSceneGenerator({

@@ -713,6 +713,51 @@ must have an observed glyph position, advance and baseline within 0.5 px, identi
 matching physical fonts and a reviewed perceptual GPU comparison. Retained cases keep exact M5
 pixels and explicit capability tasks in the migration ledger. Diagnostic shaping or atlas success
 alone cannot confer text acceptance; native preview acceptance remains separate.
+
+Native preview transport reserves one to three lossless BGRA sharing surfaces before rendering.
+Each surface remains immutable while a consumer owns its lease. DX12 completion precedes publication,
+and an owned duplicate NT handle is bound to the importing process identity. An independent bounded
+handle guard owns the consumer duplicates before acknowledging publication. It monitors producer
+exit and control EOF, reclaiming original handles even after abrupt producer termination; Chromium
+retains its own imported resource references until GPU use finishes. The experimental
+`preview-plan` sidecar accepts bounded controls for supplied-frame presentation and release.
+`preview-project` evaluates explicit times against immutable native project snapshots. Its media
+admission follows the visible composition graph, so later seeks can acquire sources that were absent
+at the initial time. Snapshot replacement requires drained consumer leases and a strictly increasing
+generation; same-size replacements retain the GPU device and caches, while resize retires the old
+allocation generation first. Readiness binds the authored/runtime hashes, scope, revision, composition
+and target; frame replies carry the exact requested time and generation. `NativePreviewClient`
+serializes these controls and bounds queued work.
+`NativePreviewBroker` imports only in Electron's main process and releases the native lease only
+after Electron reports that every process and GPU reference has finished. Renderer IPC receives
+the shared texture and frame identity, never the raw NT handle. Presentation preserves premultiplied
+alpha through GPU canvas copies. The opt-in capability flag `ASTER_NATIVE_PREVIEW=1` connects
+the editor to application-owned private project snapshots; IPC clients cannot select executables or
+filesystem destinations. The sandboxed preload transfers owned VideoFrames to the GPU canvas, which
+checks snapshot identity and validation before closing them. Electron retains their underlying
+resources until GPU use finishes. The broker acknowledges presentation only after
+`allReferencesReleased` and the native lease-release reply; bounded drain failures terminate the
+producer. This provides the GPU completion boundary without another renderer-process queue wait.
+Explicit pixel captures also wait for their mapped readback buffer. A replaceable foreground queue rejects
+stale edits while idle pre-rendering fills the bounded RAM cache without changing the displayed frame.
+Presentation-device loss is persistent. The view can retire its old session and recreate the device,
+or reopen a crashed native producer, once per request. Invalid input and mismatched frame identities
+remain errors. Host disposal waits for retirements already triggered by renderer loss or navigation.
+Packaged raster workers use the application bootstrap and an external HTML resource directory so
+native path validation never depends on Electron's virtual ASAR filesystem.
+Explicit beauty captures reuse native evaluation and offscreen readback at exact requested times.
+The editor benchmark uses uncached native evaluation and waits for GPU presentation; its synthetic
+compositions are materialized into authored snapshots. Exclusive benchmark ownership drains foreground
+work and suspends idle pre-rendering. Preview snapshots include the reachable composition graph,
+including future and hidden dependencies. Authorized legacy assets are copied into the private store;
+immutable media identities allow geometry-only revisions to reuse those admitted copies.
+The preview raster transport retains at most 64 MiB of verified immutable pixel resources from its
+preceding frame. Rust advertises only resident identities, and Electron intersects them with its
+previous metadata before the renderer may omit bytes. Cache hits retain exact descriptor, raw digest,
+frame-request and aggregate-budget checks. Misses undergo full content verification; eviction requires
+retransmission. The ordinary capture interface still returns owned bytes.
+Full corpus parity, paired performance,
+packaged startup and crash recovery remain required before enabling the production default.
 Explicit project captures and selected export witnesses materialize resident native text outputs
 as bounded, content-addressed raster resources for external replay. They preserve `submitted.fpln`
 and its digest separately from the replay envelope, and record exact text capability decisions and
@@ -1437,6 +1482,13 @@ mip counts. Sequential scenes may share these attachments because every layer cl
 them before use. Only descriptors required by the current frame remain resident; retired slots wait
 for GPU completion before replacement. Their cost stays within the existing per-scene transient
 budget. This allocation reuse is independent of the optional rendered-result cache.
+
+Generator instance buffers also reuse bounded, same-sized allocations after GPU completion.
+Generic programs clear recycled storage once per frame. The canonical particle program may omit
+that clear only when its complete compute, beauty and auxiliary shader sources and entry-point
+contracts match the embedded catalog. Validated dispatch and indirect arguments ensure every drawn
+instance is overwritten, including invisible particles; unused capacity is never drawn. Plugin names
+grant no exemption, and modified programs retain zero-initialized storage.
 
 The native isolated-layer cache retains post-effect RGBA16Float outputs on the GPU. Keys contain
 ordered evaluated geometry, lighting, effect uniforms and operations, pyramid settings, LUT identity

@@ -6,6 +6,7 @@ import { dirname, join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { captureNativePreviewProcesses } from "./migration/preview-process-witness.mjs";
 import { captureInitialPreview } from "./migration/preview-readiness.mjs";
 
 // Run against the packaged application: pnpm artifact:build --dir, then node scripts/automation-smoke.mjs.
@@ -133,6 +134,11 @@ try {
   );
   assert.equal(preview.frames[0].width, 320);
   report.preview = preview.frames.map(({ width, height }) => ({ width, height }));
+  if (process.env.ASTER_NATIVE_PREVIEW === "1")
+    report.native_preview = await captureNativePreviewProcesses(
+      join(dirname(binary), "resources/bin/aster-render-cli.exe"),
+      app?.pid ?? transport.pid,
+    );
   const cropped = await call("render_preview", {
     ...work,
     times: [0.5],

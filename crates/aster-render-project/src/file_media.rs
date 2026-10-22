@@ -78,6 +78,69 @@ impl NativeProjectFileMedia {
                 }
             }
         }
+        Self::from_sources(document, ids, scope, tools, limits, cancellation)
+    }
+
+    /// A preview can seek to any time within one immutable composition snapshot.
+    /// Admit its bounded visible source graph, independently of the initial playhead position.
+    pub fn new_preview(
+        document: NativeProjectDocument,
+        frame: &FramePlanRequest,
+        context: &ResourceRequestContext,
+        tools: ProjectMediaTools,
+        limits: ProjectMediaLimits,
+        cancellation: &CancellationToken,
+    ) -> Result<Self, ProjectRenderError> {
+        document.resource_requests(frame, context)?;
+        let mut pending = vec![frame.composition_id.clone()];
+        let mut visited = BTreeSet::new();
+        let mut ids = BTreeSet::new();
+        while let Some(id) = pending.pop() {
+            if cancellation.is_cancelled() {
+                return Err(aster_video::FfmpegError::Cancelled.into());
+            }
+            if !visited.insert(id.clone()) {
+                continue;
+            }
+            for layer in &document.scene.composition(&id)?.layers {
+                if !layer.visible {
+                    continue;
+                }
+                if layer.kind == "precomposition" {
+                    if let Some(child) = layer.source_composition_id.value() {
+                        pending.push(child.clone());
+                    }
+                } else if matches!(layer.kind.as_str(), "image" | "video")
+                    && let Some(source) = layer.source_id.value()
+                {
+                    let binding = document.catalog.bind(source)?;
+                    if matches!(
+                        binding.source.kind.as_str(),
+                        "still" | "video" | "imageSequence"
+                    ) {
+                        ids.insert(source.clone());
+                    }
+                }
+            }
+        }
+        Self::from_sources(
+            document,
+            ids,
+            frame.snapshot_scope.clone(),
+            tools,
+            limits,
+            cancellation,
+        )
+    }
+
+    fn from_sources(
+        document: NativeProjectDocument,
+        ids: BTreeSet<String>,
+        scope: String,
+        tools: ProjectMediaTools,
+        limits: ProjectMediaLimits,
+        cancellation: &CancellationToken,
+    ) -> Result<Self, ProjectRenderError> {
         let bindings = ids
             .iter()
             .map(|id| document.catalog.bind(id))

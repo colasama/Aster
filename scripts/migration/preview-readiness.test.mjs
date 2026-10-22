@@ -1,6 +1,35 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { captureInitialPreview } from "./preview-readiness.mjs";
+import { captureInitialPreview, captureReadyBenchmark } from "./preview-readiness.mjs";
+
+test("benchmark startup retries readiness only, preserving real execution failures", async () => {
+  const attempts = [];
+  let calls = 0;
+  assert.equal(
+    await captureReadyBenchmark(
+      async () => {
+        if (++calls === 1)
+          throw new Error("Error: The GPU renderer is not ready for benchmarking.");
+        return "measured";
+      },
+      attempts,
+      { wait: async () => {} },
+    ),
+    "measured",
+  );
+  assert.deepEqual(
+    attempts.map((attempt) => attempt.status),
+    ["failed", "passed"],
+  );
+  const failed = [];
+  await assert.rejects(
+    captureReadyBenchmark(async () => {
+      throw new Error("GPU device lost during frame 20");
+    }, failed),
+    /device lost/,
+  );
+  assert.equal(failed.length, 1);
+});
 
 test("initial GPU readiness retry records the transient failure and successful capture", async () => {
   const attempts = [];

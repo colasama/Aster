@@ -18,6 +18,7 @@ pub(crate) struct ScenePipelines {
     pub(crate) layer_targets: crate::layer_targets::LayerTargetPool,
     materials: Option<crate::material::MaterialPipelines>,
     pub(crate) generators: Option<crate::generators::GeneratorPipelines>,
+    pub(crate) generator_overwrite: crate::generator_overwrite::GeneratorOverwrite,
 }
 
 impl ScenePipelines {
@@ -110,6 +111,7 @@ impl ScenePipelines {
         let layers = crate::layers::LayerPipelines::new(device, catalog)?;
         Ok(Self {
             generators: None,
+            generator_overwrite: crate::generator_overwrite::GeneratorOverwrite::new(catalog)?,
             materials: None,
             layers,
             layer_targets: Default::default(),

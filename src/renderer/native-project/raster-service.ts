@@ -3,6 +3,7 @@ import { activateProjectFonts, prepareProjectFonts } from "../../core/media/proj
 import { loadProjectFromPath } from "../../core/project/project-file";
 import { mediaImportRuntime } from "../../importers/media-import-runtime";
 import type { FrameHeaderSlice } from "../frame-plan/types";
+import { VerifiedMediaPixels } from "../media/verified-media-pixels";
 import type {} from "./raster-service-protocol";
 import { RetainedRasterProvider } from "./retained-raster-provider";
 import type { RetainedRasterRequest } from "./retained-raster-types";
@@ -46,14 +47,24 @@ async function run() {
     for (let work = await api.take(); work; work = await api.take()) {
       if (deviceFailure) throw deviceFailure;
       device.pushErrorScope("validation");
-      const frame = await provider.acquire(
+      const frame = await provider.acquireVerified(
         project,
         work.requests as RetainedRasterRequest[],
         work.header as FrameHeaderSlice,
       );
       const error = await device.popErrorScope();
       if (error || deviceFailure) throw deviceFailure ?? new Error(error?.message);
-      await api.frame({ index: work.index, ...frame });
+      const known = new Set(work.knownPayloads);
+      await api.frame({
+        index: work.index,
+        ...frame,
+        pixels: frame.pixels.map((item) => {
+          const description = VerifiedMediaPixels.describe(item);
+          return known.has(`${description.pixels.message.hash}.bin`)
+            ? description
+            : VerifiedMediaPixels.copy(item);
+        }),
+      });
     }
   } finally {
     await device.queue.onSubmittedWorkDone();

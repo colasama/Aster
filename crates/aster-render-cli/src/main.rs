@@ -12,6 +12,14 @@ mod plan_input;
 mod plan_project;
 mod prepare_rasters;
 mod prepare_resources;
+#[cfg(windows)]
+mod preview_guard;
+#[cfg(windows)]
+mod preview_plan;
+#[cfg(windows)]
+mod preview_project;
+#[cfg(windows)]
+mod preview_transport;
 mod project_capture;
 mod project_runtime;
 mod render_input;
@@ -37,6 +45,9 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    #[cfg(windows)]
+    #[command(hide = true)]
+    PreviewHandleGuard(preview_guard::PreviewGuardArgs),
     /// Export an authored project using native evaluation, rendering, audio and hardware encoding.
     Export(Box<export_project::ExportProjectArgs>),
     /// Compare lossless RGBA pixels against a fixed tolerance profile.
@@ -45,6 +56,12 @@ enum Command {
     Ir(ir::IrArgs),
     /// Execute a complete supplied frame on a native GPU, with optional diagnostic PNG output.
     RenderPlan(Box<render_plan::RenderPlanArgs>),
+    /// Present a supplied native frame through bounded shared GPU leases to a trusted host.
+    #[cfg(windows)]
+    PreviewPlan(Box<preview_plan::PreviewPlanArgs>),
+    /// Evaluate a project at requested times and publish GPU-resident preview frames.
+    #[cfg(windows)]
+    PreviewProject(Box<preview_project::PreviewProjectArgs>),
     /// Evaluate admitted projects and execute native frames without supplied plans.
     RenderProject(Box<render_project::RenderProjectArgs>),
     /// Evaluate a project snapshot in Rust and publish an authenticated frame bundle.
@@ -70,10 +87,16 @@ struct Failure {
 impl Cli {
     fn run(self) -> Result<ExitCode, Box<dyn std::error::Error>> {
         match self.command {
+            #[cfg(windows)]
+            Command::PreviewHandleGuard(arguments) => arguments.run(),
             Command::Export(arguments) => arguments.run(),
             Command::Compare(arguments) => arguments.run(),
             Command::Ir(arguments) => Ok(arguments.run()),
             Command::RenderPlan(arguments) => arguments.run(),
+            #[cfg(windows)]
+            Command::PreviewPlan(arguments) => arguments.run(),
+            #[cfg(windows)]
+            Command::PreviewProject(arguments) => arguments.run(),
             Command::RenderProject(arguments) => arguments.run(),
             Command::PlanProject(arguments) => arguments.run(),
             Command::PrepareRasters(arguments) => arguments.run(),

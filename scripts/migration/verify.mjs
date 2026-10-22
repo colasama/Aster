@@ -27,8 +27,11 @@ import { runNativeProjectGate } from "./native-project-gate.mjs";
 import { runNativeProjectPixelGate } from "./native-project-pixel-gate.mjs";
 import { runPerformanceGate } from "./performance-gate.mjs";
 import { selectRequiredGates } from "./performance-policy.mjs";
+import { runPreviewAppGate } from "./preview-app-gate.mjs";
+import { runPreviewPerformanceGate } from "./preview-performance-gate.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
+import { runSharedPreviewGate } from "./shared-preview-gate.mjs";
 import { hashFile, ownerProject, sourceProvenance } from "./source.mjs";
 import { staticCommands } from "./static-checks.mjs";
 import { verifyTsPixels } from "./ts-pixels.mjs";
@@ -220,6 +223,19 @@ export async function verifyMigration(options, dependencies = {}) {
                 execute,
               ),
         );
+      } else if (id === "G4" && milestone.id === "M11") {
+        report.gates.push(
+          quick
+            ? {
+                id,
+                status: "skipped",
+                reason: "Quick mode omits paired editor preview measurement",
+              }
+            : await (dependencies.runPreviewPerformanceGate ?? runPreviewPerformanceGate)(
+                { ...context, output: join(output, "G4"), source: report.source },
+                execute,
+              ),
+        );
       } else if (id === "G4" && milestone.id === "M8") {
         report.gates.push(
           quick
@@ -302,6 +318,17 @@ export async function verifyMigration(options, dependencies = {}) {
                     : milestone.id === "M4"
                       ? "Native effect increments require the complete effect/style corpus and M4 exit audit"
                       : "Native core increments require the complete core corpus and M3 exit audit";
+      } else if (id === "G3" && milestone.id === "M11") {
+        report.gates.push(
+          quick
+            ? { id, status: "skipped", reason: "Quick mode omits shared preview GPU qualification" }
+            : await (dependencies.runSharedPreviewGate ?? runSharedPreviewGate)(
+                { ...context, output: join(output, "G3"), source: report.source },
+                execute,
+              ),
+        );
+        report.milestone_exit_reason =
+          "Native preview requires project pixels, editor lifecycle, paired FPS and input-to-present latency";
       } else if (id === "G3") {
         const pixelContext = { ...context, output: join(output, "G3") };
         const build = await execute(nativeReleaseBuild("compare-cli-build"), pixelContext);
@@ -374,6 +401,21 @@ export async function verifyMigration(options, dependencies = {}) {
               }
             : await (dependencies.runNativeAppGate ?? runNativeAppGate)(
                 { ...context, output: join(output, "G6") },
+                execute,
+              ),
+        );
+      } else if (id === "G6" && milestone.id === "M11") {
+        report.gates.push(
+          quick
+            ? { id, status: "skipped", reason: "Quick mode omits live native editor checks" }
+            : await (dependencies.runPreviewAppGate ?? runPreviewAppGate)(
+                {
+                  ...context,
+                  output: join(output, "G6"),
+                  source: report.source,
+                  previewPerformance: report.gates.find((gate) => gate.id === "G4"),
+                  previewPerformancePath: join(output, "G4/report.json"),
+                },
                 execute,
               ),
         );

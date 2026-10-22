@@ -1,12 +1,14 @@
 use crate::{
-    ProjectRasterFrame, ProjectRenderError, ProjectRenderLimits, raster_manifest::RasterManifest,
+    ProjectRasterFrame, ProjectRenderError, ProjectRenderLimits,
+    raster_manifest::{RasterManifest, RasterPayloadCache},
     raster_transport::RasterChannel,
 };
-use aster_eval::{ProjectResourceRequests, TextLayouts};
+use aster_eval::{ProjectResourceRequests, ResourcePreparationOperation, TextLayouts};
 use aster_video::CancellationToken;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
+    collections::BTreeMap,
     fs,
     net::TcpListener,
     path::{Path, PathBuf},
@@ -23,6 +25,8 @@ pub struct RasterProviderOptions {
     pub bundle: PathBuf,
     pub bridge: PathBuf,
     pub timeout_ms: u64,
+    #[serde(default)]
+    pub cache_bytes: usize,
 }
 
 #[derive(Serialize)]
@@ -58,6 +62,7 @@ enum RasterRequest {
         index: u64,
         request_sha256: String,
         preparation: ProjectResourceRequests,
+        known_payloads: Vec<String>,
     },
 }
 
@@ -104,6 +109,8 @@ pub struct NativeRasterProvider {
     limits: ProjectRenderLimits,
     index: u64,
     poisoned: bool,
+    raster_history: bool,
+    payload_cache: RasterPayloadCache,
 }
 
 impl NativeRasterProvider {
@@ -123,6 +130,7 @@ impl NativeRasterProvider {
             || !(32..=67_108_864).contains(&limits.render_project_input_bytes)
             || limits.render_project_pixel_bytes == 0
             || limits.render_project_pixel_bytes > 1_073_741_824
+            || options.cache_bytes > limits.render_project_pixel_bytes
         {
             return Err(ProjectRenderError::Invalid(
                 "invalid raster provider limits".into(),
@@ -231,6 +239,11 @@ impl NativeRasterProvider {
             limits,
             index: 0,
             poisoned: false,
+            raster_history: false,
+            payload_cache: RasterPayloadCache {
+                budget_bytes: options.cache_bytes,
+                entries: BTreeMap::new(),
+            },
         })
     }
 
@@ -239,11 +252,25 @@ impl NativeRasterProvider {
         requests: &ProjectResourceRequests,
         cancel: &CancellationToken,
     ) -> Result<ProjectRasterFrame, ProjectRenderError> {
+        if cancel.is_cancelled() {
+            return Err(aster_video::FfmpegError::Cancelled.into());
+        }
         if self.poisoned {
             return Err(ProjectRenderError::Invalid(
                 "raster provider is not ready".into(),
             ));
         }
+        // Pure native scenes need no raster IPC. Once retained rasters have participated,
+        // keep empty acquisitions so their temporal bounds and eviction history stay unchanged.
+        if !self.raster_history
+            && !requests
+                .operations
+                .iter()
+                .any(|operation| matches!(operation, ResourcePreparationOperation::Raster { .. }))
+        {
+            return Ok(ProjectRasterFrame::default());
+        }
+        self.raster_history = true;
         let result = self.acquire_frame(requests, cancel);
         if result.is_err() {
             self.poisoned = true;
@@ -266,6 +293,7 @@ impl NativeRasterProvider {
                 index: self.index,
                 request_sha256: format!("{:x}", Sha256::digest(serde_json::to_vec(requests)?)),
                 preparation: requests.clone(),
+                known_payloads: self.payload_cache.entries.keys().cloned().collect(),
             },
             cancel,
         )?;
@@ -298,6 +326,7 @@ impl NativeRasterProvider {
             requests,
             &self.limits,
             cancel,
+            Some(&mut self.payload_cache),
             |name, maximum| {
                 let payload = payloads
                     .next()

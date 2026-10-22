@@ -9,6 +9,7 @@ import type {
 import type { AutomationDesktopApi } from "../ai/automation-protocol";
 import type { GpuMemoryDevice } from "../core/rendering/gpu-memory-policy";
 import type { NativeRenderHostRequest } from "../core/rendering/native-export-protocol";
+import type { DesktopNativePreview } from "../core/rendering/native-preview-protocol";
 import type {
   EnqueueRenderJobInput,
   RenderJobManifest,
@@ -210,6 +211,7 @@ export interface DesktopDocumentLifecycle {
 }
 
 export interface AsterDesktopApi {
+  nativePreview?: DesktopNativePreview;
   getGpuMemoryDevices?(): Promise<GpuMemoryDevice[]>;
   automation?: AutomationDesktopApi;
   automationSettings?: AutomationSettingsApi;

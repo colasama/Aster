@@ -11,6 +11,7 @@ import { preparedRasterIdentity } from "../media/media-frame-identity";
 import { destroyMediaResource, type MediaResource } from "../media/media-resource";
 import { MediaTextureCache } from "../media/media-texture-cache";
 import { NativeRasterCaptureCache } from "../media/native-raster-capture-cache";
+import { VerifiedMediaPixels } from "../media/verified-media-pixels";
 import type { RetainedRasterRequest } from "./retained-raster-types";
 
 /** Retains the existing font/import raster boundary without invoking a scene or effect evaluator. */
@@ -37,6 +38,15 @@ export class RetainedRasterProvider {
   }
 
   async acquire(
+    project: Project,
+    requests: readonly RetainedRasterRequest[],
+    header: FrameHeaderSlice,
+  ) {
+    const frame = await this.acquireVerified(project, requests, header);
+    return { ...frame, pixels: frame.pixels.map(VerifiedMediaPixels.copy) };
+  }
+
+  async acquireVerified(
     project: Project,
     requests: readonly RetainedRasterRequest[],
     header: FrameHeaderSlice,
@@ -191,7 +201,7 @@ export class RetainedRasterProvider {
       const textFrames = new Set(
         textLease.resourceMessages.filter((r) => r.kind === "media_frame").map((r) => r.hash),
       );
-      const pixels = await this.#pixels.capture(
+      const pixels = await this.#pixels.captureVerified(
         this.device,
         {
           textureForHash: (hash) =>

@@ -101,7 +101,11 @@ export function selectRequiredGates(milestone, policy) {
               ? "native-required"
               : "unchanged",
           native_gate_implementation:
-            milestone.id === "M8" ? "paired-native-export" : "not_implemented",
+            milestone.id === "M8"
+              ? "paired-native-export"
+              : milestone.id === "M11"
+                ? "paired-native-preview-with-input-latency"
+                : "not_implemented",
         }
       : { kind: "specification-default", application: "unchanged" },
   };

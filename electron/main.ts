@@ -50,6 +50,8 @@ import { fetchLocalAsset } from "./local-file-response.js";
 import { AsterLogger, isRendererLogPayload, type LogLevel, parseLogLevel } from "./logger.js";
 import { discoverDesktopImageSequence } from "./media-import.js";
 import { Mp4ExportManager } from "./mp4-export.js";
+import { materializePreviewAssets } from "./native-preview-assets.js";
+import { NativePreviewHost } from "./native-preview-host.js";
 import { nativeRenderRuntime } from "./native-render-runtime.js";
 import { developmentProfileDirectory } from "./profile-paths.js";
 import { authorizeProjectMediaExternalPaths } from "./project-media-authorization.js";
@@ -251,6 +253,7 @@ let applicationLogger: AsterLogger | undefined;
 let appPreferences: AppPreferencesStore | undefined;
 let renderQueueManager: RenderQueueManager | undefined;
 let renderHostController: ElectronRenderHostController | undefined;
+let nativePreviewHost: NativePreviewHost | undefined;
 let automationSettings: AutomationSettingsController | undefined;
 let primaryWindow: BrowserWindow | undefined;
 let activeProjectPath: string | undefined;
@@ -1379,6 +1382,44 @@ if (hasSingleInstanceLock)
       registerAssetProtocol();
       registerIpc(logger, preferences, renderQueueManager, renderMediaSnapshots);
       renderHostController.registerIpc();
+      const previewFfmpeg = app.isPackaged
+        ? ffmpegExecutable()
+        : (process.env.ASTER_FFMPEG_PATH ?? join(app.getAppPath(), "build/ffmpeg/ffmpeg.exe"));
+      const previewRuntime = nativeRenderRuntime({
+        appPath: app.getAppPath(),
+        resourcesPath: process.resourcesPath,
+        packaged: app.isPackaged,
+        executable: process.execPath,
+        temporaryDirectory: app.getPath("temp"),
+        ffmpeg: previewFfmpeg,
+      });
+      if (previewRuntime) {
+        nativePreviewHost = new NativePreviewHost({
+          // Enable explicitly selected sessions until complete editor acceptance.
+          enabled: process.env.ASTER_NATIVE_PREVIEW === "1",
+          temporaryRoot: join(app.getPath("temp"), "aster-native-preview"),
+          binary: previewRuntime.binary,
+          compiler: previewRuntime.compiler,
+          ffmpeg: previewFfmpeg,
+          ffprobe: previewRuntime.ffprobe,
+          raster: {
+            executable: process.execPath,
+            host: join(dirname(fileURLToPath(import.meta.url)), "native-raster-host.js"),
+            bundle: app.isPackaged
+              ? join(process.resourcesPath, "native-raster/native-raster.html")
+              : join(app.getAppPath(), "dist/native-raster/native-raster.html"),
+            bridge: bridgeExecutable(),
+          },
+          trusted: (contents) => contents === primaryWindow?.webContents,
+          save: async (directory, document, assets) => {
+            if (!desktopBridge) throw new Error("Aster desktop bridge is unavailable");
+            authorizeProjectMediaExternalPaths(document, { allowedAssets });
+            await materializePreviewAssets(directory, document, assets, allowedAssets);
+            await desktopBridge.invoke("save_project", { path: directory, project: document });
+          },
+        });
+        nativePreviewHost.registerIpc();
+      }
       registerFontAccess(() => primaryWindow);
       registerEditorPermissions(session.defaultSession, () => primaryWindow);
       await renderQueueManager.startScheduler(renderHostController, 1);
@@ -1447,12 +1488,13 @@ app.on("will-quit", (event) => {
   if (finalizingApplication) return;
   event.preventDefault();
   finalizingApplication = true;
-  desktopBridge?.dispose();
   piAgentHost?.dispose();
   void (async () => {
     await automationSettings?.close();
     await renderQueueManager?.shutdown();
     await renderHostController?.dispose();
+    await nativePreviewHost?.dispose();
+    desktopBridge?.dispose();
     await Promise.all([
       mp4ExportManager?.dispose(),
       appPreferences?.flush(),

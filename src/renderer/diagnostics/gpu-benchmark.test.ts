@@ -6,6 +6,32 @@ import type { RendererMetrics } from "../../core/types";
 import { buildBenchmarkScenarios, runGpuBenchmark, summarizeSamples } from "./gpu-benchmark";
 
 describe("GPU benchmark harness", () => {
+  it("preserves the original frame failure when restoring the editor also fails", async () => {
+    const project = createDemoProject();
+    const failure = new Error("frame allocation exceeded its budget");
+    let calls = 0;
+    await expect(
+      runGpuBenchmark(
+        {
+          resize() {},
+          render() {
+            throw ++calls === 1 ? failure : new Error("restore rejected after device failure");
+          },
+          async complete() {},
+        },
+        { width: 64, height: 36 } as HTMLCanvasElement,
+        activeComposition(project),
+        project,
+        { snapshotScope: "failure-test", projectRevision: 0 },
+        0,
+        "test",
+        "test",
+        1,
+        () => {},
+      ),
+    ).rejects.toBe(failure);
+    expect(calls).toBe(2);
+  });
   it("owns derived scenario scopes and restores the captured editor revision after awaits", async () => {
     const project = createDemoProject();
     const composition = activeComposition(project);
@@ -48,7 +74,9 @@ describe("GPU benchmark harness", () => {
   });
 
   it("builds representative resolution, layer, and effect scenarios", () => {
-    const scenarios = buildBenchmarkScenarios(activeComposition(createDemoProject()));
+    const source = activeComposition(createDemoProject());
+    const scenarios = buildBenchmarkScenarios(source);
+    expect(buildBenchmarkScenarios(source)).toEqual(scenarios);
     expect(scenarios.map((scenario) => scenario.name)).toEqual([
       "1080p current composition",
       "4K current composition",

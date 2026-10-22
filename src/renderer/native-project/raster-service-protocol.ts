@@ -9,6 +9,7 @@ export interface RasterServiceWork {
   requestSha256: string;
   header: unknown;
   requests: unknown[];
+  knownPayloads?: string[];
 }
 
 /** Rust authenticates these opaque descriptors against the exact native request and payloads. */
@@ -16,7 +17,7 @@ export interface RasterServiceFrame {
   index: number;
   bindings: Record<string, string | undefined>;
   resources: unknown[];
-  pixels: { frame: unknown; pixels: { message: { hash: string }; bytes: Uint8Array } }[];
+  pixels: { frame: unknown; pixels: { message: { hash: string }; bytes?: Uint8Array } }[];
   textBounds: unknown;
   previousTextBounds: unknown;
   temporal: unknown[];

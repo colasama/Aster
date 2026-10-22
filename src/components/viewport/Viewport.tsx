@@ -57,6 +57,8 @@ import { createDefaultBezierPath } from "../../renderer/geometry/vector-path";
 import { calculatePreviewSize } from "../../renderer/gpu/preview-size";
 import { encodeRawFramePng } from "../../renderer/gpu/raw-frame-png";
 import type { BufferVisualization } from "../../renderer/gpu/render-buffers";
+import { createNativePreviewBeautyBackend } from "../../renderer/native-project/preview-beauty-backend";
+import { NativePreviewView } from "../../renderer/native-project/preview-view";
 import { WebGpuRenderer } from "../../renderer/webgpu-renderer";
 import { useEditor } from "../../state/editor-store";
 import { isEditableShortcutTarget, isEditorShortcutBlocked } from "../../ui/keyboard-shortcuts";
@@ -122,6 +124,7 @@ export function Viewport() {
     viewerIdentity,
   );
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const nativePreviewRef = useRef<NativePreviewView | undefined>(undefined);
   const mirrorCanvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const transformControlsRef = useRef<ViewportTransformHandle>(null);
@@ -308,12 +311,44 @@ export function Viewport() {
     const invalidate = () => {
       if (!cancelled) setRendererRevision((revision) => revision + 1);
     };
-    WebGpuRenderer.create(canvas, invalidate)
+    (async () => {
+      const api = window.asterDesktop?.nativePreview;
+      if (api && (await api.available().catch(() => false))) {
+        const native = await NativePreviewView.create(
+          canvas,
+          api,
+          (metrics, diagnostics) => {
+            if (cancelled) return;
+            publishDiagnostics(diagnostics);
+            syncMirrorCanvas(canvas, mirrorCanvasRef.current);
+            if (performance.now() - lastMetricUpdate.current > 200) {
+              lastMetricUpdate.current = performance.now();
+              dispatch({ type: "setMetrics", metrics });
+            }
+          },
+          (error) => logger.error("viewport", "native_preview_failed", error),
+        );
+        if (cancelled) {
+          await native.dispose();
+          return;
+        }
+        nativePreviewRef.current = native;
+        beautyPipelineRef.current = new ProductionBeautyFramePipeline(
+          createNativePreviewBeautyBackend(native),
+        );
+        publishDiagnostics(native.diagnostics);
+        resize();
+        setRendererReady(true);
+        return;
+      }
+      return WebGpuRenderer.create(canvas, invalidate);
+    })()
       .catch((error: unknown) => {
         logger.error("viewport", "webgpu_fallback_activated", error);
         return new CanvasFallbackRenderer(canvas, invalidate);
       })
       .then((renderer) => {
+        if (!renderer) return;
         if (cancelled) {
           disposeRenderer(renderer);
           return;
@@ -336,9 +371,14 @@ export function Viewport() {
       const renderer = rendererRef.current;
       rendererRef.current = undefined;
       beautyPipelineRef.current = undefined;
+      const native = nativePreviewRef.current;
+      nativePreviewRef.current = undefined;
+      void native
+        ?.dispose()
+        .catch((error) => logger.error("viewport", "native_preview_close_failed", error));
       disposeRenderer(renderer);
     };
-  }, [publishDiagnostics, resize]);
+  }, [dispatch, publishDiagnostics, resize]);
 
   useEffect(() => {
     if (!rendererReady) return;
@@ -347,6 +387,7 @@ export function Viewport() {
       try {
         const renderer = rendererRef.current;
         const budget = state.gpuMemoryBudgetMb === "auto" ? undefined : state.gpuMemoryBudgetMb;
+        nativePreviewRef.current?.setMemoryBudget(state.gpuMemoryBudgetMb, currentGpuMemory());
         if (renderer instanceof WebGpuRenderer)
           renderer.setMemoryBudget(budget, currentGpuMemory());
         else renderer?.setMemoryBudget(budget);
@@ -395,13 +436,35 @@ export function Viewport() {
     }
     activateProjectFonts(previewProject);
     const renderer = rendererRef.current;
-    if (!renderer) return;
+    const native = nativePreviewRef.current;
+    if (!renderer && !native) return;
     const pipeline = beautyPipelineRef.current;
     let renderFailed = false;
     /** Renders one frame; true when the preview held the previous frame for loading media. */
     const renderAtTime = (time: number): boolean => {
       if (renderFailed) return false;
       try {
+        if (native) {
+          native.queue(
+            createBeautyFrameRequest({
+              snapshot: previewSnapshot,
+              composition: previewComposition,
+              antiAliasing: state.antiAliasing,
+              project: previewProject,
+              time,
+              width: canvasRef.current?.width ?? 1,
+              height: canvasRef.current?.height ?? 1,
+            }),
+            {
+              visualization: bufferView,
+              selectedLayerId: state.selection[0],
+              playing: state.playing,
+              memoryBudgetMb: native.memoryBudgetMb,
+            },
+          );
+          return false;
+        }
+        if (!renderer) return false;
         let metrics: RendererMetrics | undefined;
         if (bufferView === "beauty" && pipeline) {
           const request = createBeautyFrameRequest({
@@ -571,7 +634,8 @@ export function Viewport() {
       const canvas = canvasRef.current;
       const renderer = rendererRef.current;
       const pipeline = beautyPipelineRef.current;
-      if (!canvas || !renderer || !pipeline || renderSessionGuardRef.current.active) {
+      const native = nativePreviewRef.current;
+      if (!canvas || (!renderer && !native) || !pipeline || renderSessionGuardRef.current.active) {
         queueMicrotask(() => {
           if (claimedRenderSessionEvents.has(event)) return;
           claimedRenderSessionEvents.add(event);
@@ -606,7 +670,25 @@ export function Viewport() {
         lease = renderSessionGuardRef.current.acquire(() => {
           try {
             const preview = previewRestoreRef.current;
-            if (preview.bufferView !== "beauty") {
+            if (native) {
+              native.queue(
+                createBeautyFrameRequest({
+                  snapshot: preview.snapshot,
+                  composition: preview.composition,
+                  antiAliasing: preview.antiAliasing,
+                  project: preview.project,
+                  time: preview.time,
+                  width: previewWidth,
+                  height: previewHeight,
+                }),
+                {
+                  visualization: preview.bufferView,
+                  selectedLayerId: preview.selectedLayerId,
+                  playing: false,
+                  memoryBudgetMb: native.memoryBudgetMb,
+                },
+              );
+            } else if (preview.bufferView !== "beauty") {
               if (renderer instanceof WebGpuRenderer)
                 renderer.setBufferVisualization(preview.bufferView);
               pipeline.resize(previewWidth, previewHeight);
@@ -621,7 +703,7 @@ export function Viewport() {
                   true,
                 );
               else
-                renderer.render(
+                renderer?.render(
                   preview.composition,
                   preview.time,
                   false,
@@ -693,7 +775,14 @@ export function Viewport() {
     return () => window.removeEventListener("aster:open-render-session", openRenderSession);
   }, [resize, state.project, state.antiAliasing, projectSnapshot]);
 
-  useViewportBenchmark(canvasRef, rendererRef, renderSessionGuardRef, resize, projectSnapshot);
+  useViewportBenchmark(
+    canvasRef,
+    rendererRef,
+    renderSessionGuardRef,
+    resize,
+    projectSnapshot,
+    nativePreviewRef,
+  );
 
   const beginTextEditing = useCallback(
     (layerId: string) => {

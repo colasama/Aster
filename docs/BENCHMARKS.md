@@ -536,6 +536,25 @@ composition, and a fused Blur/Glow color-effect chain. The visual report shows G
 the download button writes the complete wall/CPU/GPU min, median, p95, p99, and max distributions as
 schema-versioned JSON with adapter metadata.
 
+Native preview qualification runs three contemporaneous TS/native pairs in alternating order at
+matched 1024 MiB budgets and beauty quality. Each scenario retains all 600 raw wall/CPU/GPU samples;
+reported distributions are recomputed from those samples. Every scenario's median FPS across the
+three runs must exceed TS. These editor scenarios include 100K, 500K and 1M particle workloads.
+Native samples include Electron's GPU-tracked import-release notification and the Rust surface
+release acknowledgement. Returning from the texture transfer or submitting the canvas copy alone
+does not complete a measured frame. Exclusive benchmarks return metrics without per-frame editor
+diagnostics or mirror updates, matching the TS benchmark path.
+
+Input latency is measured separately in the focused test application's owner-project timeline.
+Real mouse clicks alternate between 24 and 26 seconds with the RAM frame cache disabled, AA off,
+and a 1024 MiB GPU budget. Ten warm-up inputs precede 600 samples per arm. Electron presentation
+subscriptions supply compositor frames; a sample ends only when the visible preview crop matches
+the calibrated target image. Raw monotonic input/presentation times and PNG/hash witnesses are
+retained. The combined native p95 over three runs must not exceed TS. This measures application
+input-to-compositor-presentation, including the capture callback delivery, not physical display
+scan-out. Focus loss, unchanged calibration images, missing target frames and stale identities
+invalidate the run. Renderer completion time cannot substitute for these presentation samples.
+
 An initial 60-frame run on the development WebGPU adapter measured 1.11 ms median / 1.31 ms p95 at
 1080p, 4.59 / 4.92 ms at 4K, 3.47 / 3.80 ms for 20 layers, and 0.72 / 0.79 ms for the five-effect
 Blur/Glow chain. This run predates the fixed-manifest policy and remains an observational smoke result

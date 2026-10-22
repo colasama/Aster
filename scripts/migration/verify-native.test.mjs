@@ -6,6 +6,56 @@ import { writeAtomicJson } from "./report.mjs";
 import { verifyMigration } from "./verify.mjs";
 import { deliveryPolicy, fakeHook, fixture, provenance } from "./verify-fixtures.mjs";
 
+test("M11 shared transport evidence cannot establish project pixels, performance or exit", async (t) => {
+  const context = await fixture(t);
+  await writeAtomicJson(context.ledger, {
+    status: "running",
+    milestones: [
+      {
+        id: "M11",
+        status: "in_progress",
+        gates: ["G0", "G3", "G4", "G6"],
+        tasks: [{ id: "M11-T1", status: "in_progress" }],
+      },
+    ],
+  });
+  let calls = 0;
+  const result = await verifyMigration(context, {
+    provenance,
+    execute: fakeHook,
+    runSharedPreviewGate: async () => {
+      calls++;
+      return {
+        id: "G3",
+        status: "incomplete",
+        transport: { status: "passed" },
+        native_preview_acceptance: false,
+      };
+    },
+    runPixelGate: async () => {
+      throw new Error("Stored pixels cannot qualify live preview");
+    },
+    runPreviewAppGate: async () => ({
+      id: "G6",
+      status: "incomplete",
+      editor: { status: "passed" },
+    }),
+    runPreviewPerformanceGate: async () => ({
+      id: "G4",
+      status: "incomplete",
+      throughput_passed: true,
+      latency: { status: "incomplete" },
+    }),
+  });
+  assert.equal(calls, 1);
+  assert.equal(result.report.required_gates_passed, false);
+  assert.equal(result.report.milestone_exit_satisfied, false);
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.report.gates.find((gate) => gate.id === "G3").status, "incomplete");
+  assert.equal(result.report.gates.find((gate) => gate.id === "G4").status, "incomplete");
+  assert.equal(result.report.gates.find((gate) => gate.id === "G6").status, "incomplete");
+});
+
 test("M10 exit requires a successful audit and skips it on quick or failed gates", async (t) => {
   for (const mode of ["accepted", "rejected", "quick", "failed-gate"]) {
     const context = await fixture(t);

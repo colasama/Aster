@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { app, BrowserWindow, ipcMain, protocol, session } from "electron";
@@ -14,6 +13,7 @@ import {
   createAssetProtocolHandler,
 } from "./asset-protocol.js";
 import { fetchLocalAsset } from "./local-file-response.js";
+import { NativeRasterPayloads } from "./native-raster-payloads.js";
 import { NativeRasterProject } from "./native-raster-project.js";
 import { NativeRasterWire } from "./native-raster-wire.js";
 
@@ -61,6 +61,7 @@ async function main() {
     | { work: RasterServiceWork; resolve: () => void; reject: (error: Error) => void }
     | undefined;
   let queued: RasterServiceWork | undefined;
+  const rasterPayloads = new NativeRasterPayloads();
   const wire = new NativeRasterWire(
     config.address,
     config.maximumJsonBytes,
@@ -73,6 +74,7 @@ async function main() {
         kind: string;
         index: number;
         requestSha256: string;
+        knownPayloads?: string[];
         preparation: {
           header: RasterServiceWork["header"];
           operations: { kind: string; request?: RasterServiceWork["requests"][number] }[];
@@ -96,6 +98,7 @@ async function main() {
         requestSha256: request.requestSha256,
         header: request.preparation.header,
         requests,
+        knownPayloads: rasterPayloads.known(request.knownPayloads ?? []),
       };
       await new Promise<void>((resolveFrame, reject) => {
         current = { work, resolve: resolveFrame, reject };
@@ -187,27 +190,11 @@ async function main() {
   });
   handle("frame", async (value: RasterServiceFrame) => {
     assert(current && value.index === index && current.work.index === index);
-    assert(Array.isArray(value.pixels) && value.pixels.length <= 65536);
-    const payloads = new Map<string, Buffer>();
-    let total = 0;
-    const pixels = value.pixels.map((item) => {
-      assert(/^[a-f0-9]{64}$/.test(item.pixels.message.hash));
-      const file = `${item.pixels.message.hash}.bin`,
-        bytes = Buffer.from(item.pixels.bytes);
-      const previous = payloads.get(file);
-      if (previous) assert(previous.equals(bytes), "Conflicting raster payload");
-      else {
-        total += bytes.length;
-        assert(total <= config.maximumPixelBytes);
-        payloads.set(file, bytes);
-      }
-      return {
-        frame: item.frame,
-        message: item.pixels.message,
-        file,
-        sha256: createHash("sha256").update(bytes).digest("hex"),
-      };
-    });
+    const { pixels, payloads, identities } = rasterPayloads.prepare(
+      value.pixels,
+      current.work.knownPayloads ?? [],
+      config.maximumPixelBytes,
+    );
     const manifest = {
       caseId: "native-raster-session",
       ...value,
@@ -223,6 +210,7 @@ async function main() {
       },
       [...payloads.values()],
     );
+    rasterPayloads.commit(identities);
     const complete = current.resolve;
     current = undefined;
     index++;

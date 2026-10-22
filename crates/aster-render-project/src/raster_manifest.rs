@@ -33,6 +33,12 @@ struct RasterPayload {
     sha256: String,
 }
 
+/// Process-local immutable proofs, never reconstructed from wire-provided hashes.
+pub(crate) struct RasterPayloadCache {
+    pub budget_bytes: usize,
+    pub entries: BTreeMap<String, (VerifiedResource, String)>,
+}
+
 impl RasterManifest {
     fn read(path: &Path, maximum: usize) -> Result<Vec<u8>, ProjectRenderError> {
         let file = File::open(path)?;
@@ -91,15 +97,22 @@ impl ProjectRasterFrame {
             .parent()
             .ok_or_else(|| ProjectRenderError::Invalid("raster directory absent".into()))?
             .canonicalize()?;
-        Self::admit(manifest, requests, limits, cancellation, |name, maximum| {
-            let file = directory.join(name).canonicalize()?;
-            if !file.starts_with(&directory) {
-                return Err(ProjectRenderError::Invalid(
-                    "raster payload escapes directory".into(),
-                ));
-            }
-            RasterManifest::read(&file, maximum)
-        })
+        Self::admit(
+            manifest,
+            requests,
+            limits,
+            cancellation,
+            None,
+            |name, maximum| {
+                let file = directory.join(name).canonicalize()?;
+                if !file.starts_with(&directory) {
+                    return Err(ProjectRenderError::Invalid(
+                        "raster payload escapes directory".into(),
+                    ));
+                }
+                RasterManifest::read(&file, maximum)
+            },
+        )
     }
 
     pub(crate) fn admit(
@@ -107,6 +120,7 @@ impl ProjectRasterFrame {
         requests: &ProjectResourceRequests,
         limits: &ProjectRenderLimits,
         cancellation: &CancellationToken,
+        mut cache: Option<&mut RasterPayloadCache>,
         mut read_payload: impl FnMut(&str, usize) -> Result<Vec<u8>, ProjectRenderError>,
     ) -> Result<Self, ProjectRenderError> {
         if manifest.request_sha256 != format!("{:x}", Sha256::digest(serde_json::to_vec(requests)?))
@@ -144,7 +158,9 @@ impl ProjectRasterFrame {
             }
             packets.insert(resource.request().hash.clone(), resource);
         }
-        let mut payloads = BTreeMap::<ResourceHash, VerifiedResource>::new();
+        let mut payloads = BTreeMap::<ResourceHash, (VerifiedResource, String)>::new();
+        let mut next_cache = BTreeMap::new();
+        let mut remaining_cache = cache.as_ref().map_or(0, |cache| cache.budget_bytes);
         let mut remaining = limits.render_project_pixel_bytes;
         for item in manifest.pixels {
             if cancellation.is_cancelled() {
@@ -176,30 +192,49 @@ impl ProjectRasterFrame {
                     "raster payload filename differs".into(),
                 ));
             }
-            let pixels = if let Some(pixels) = payloads.get(&message.hash) {
-                if pixels.request() != message
-                    || format!("{:x}", Sha256::digest(pixels.bytes())) != item.sha256
-                {
+            let pixels = if let Some((pixels, digest)) = payloads.get(&message.hash) {
+                if pixels.request() != message || *digest != item.sha256 {
                     return Err(ProjectRenderError::Invalid(
                         "duplicate raster payload differs".into(),
                     ));
                 }
                 pixels.clone()
             } else {
-                let bytes = read_payload(&item.file, remaining)?;
-                if bytes.len() > remaining {
+                let cached = cache
+                    .as_ref()
+                    .and_then(|cache| cache.entries.get(&item.file));
+                let pixels = if let Some((pixels, digest)) = cached {
+                    if pixels.request() != message || *digest != item.sha256 {
+                        return Err(ProjectRenderError::Invalid(
+                            "resident raster identity differs".into(),
+                        ));
+                    }
+                    pixels.clone()
+                } else {
+                    let bytes = read_payload(&item.file, remaining)?;
+                    if bytes.len() > remaining {
+                        return Err(ProjectRenderError::Invalid(
+                            "raster payload exceeds byte budget".into(),
+                        ));
+                    }
+                    if format!("{:x}", Sha256::digest(&bytes)) != item.sha256 {
+                        return Err(ProjectRenderError::Invalid(
+                            "raster payload SHA-256 differs".into(),
+                        ));
+                    }
+                    RasterManifest::verify(item.message, bytes)?
+                };
+                if pixels.bytes().len() > remaining {
                     return Err(ProjectRenderError::Invalid(
                         "raster payload exceeds byte budget".into(),
                     ));
                 }
-                if format!("{:x}", Sha256::digest(&bytes)) != item.sha256 {
-                    return Err(ProjectRenderError::Invalid(
-                        "raster payload SHA-256 differs".into(),
-                    ));
+                remaining -= pixels.bytes().len();
+                if pixels.bytes().len() <= remaining_cache {
+                    remaining_cache -= pixels.bytes().len();
+                    next_cache.insert(item.file, (pixels.clone(), item.sha256.clone()));
                 }
-                remaining -= bytes.len();
-                let pixels = RasterManifest::verify(item.message, bytes)?;
-                payloads.insert(pixels.request().hash.clone(), pixels.clone());
+                payloads.insert(pixels.request().hash.clone(), (pixels.clone(), item.sha256));
                 pixels
             };
             result.pixels.push(BundleMediaPixels {
@@ -209,6 +244,9 @@ impl ProjectRasterFrame {
         }
         result.resources = packets.into_values().collect();
         result.validate(requests, limits.render_project_pixel_bytes)?;
+        if let Some(cache) = cache.as_mut() {
+            cache.entries = next_cache;
+        }
         Ok(result)
     }
 }

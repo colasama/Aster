@@ -56,7 +56,8 @@ migration hits most often:
 - No dirty data: an interrupted job never publishes a partial file; the default product path is never
   left half-migrated. New paths stay behind a capability gate until their milestone passes.
 - `cargo fmt`, Clippy with `-D warnings`, Biome, typecheck, tests must pass before any commit.
-- Gitmoji commits, focused, architectural intent in the body. Never commit with failing gates.
+- Gitmoji commits, focused, architectural intent in the body. Development commits require passing
+  G0 and affected-scope verification; milestone exits require all milestone gates (section 8).
 - Keep `docs/ARCHITECTURE.md`, `docs/PRODUCTION_RENDER_CONTRACT.md`, `docs/MEDIA_BACKENDS.md`,
   `docs/RENDER_QUEUE.md`, `docs/BENCHMARKS.md`, `docs/PROJECT_FORMAT.md` and `docs/PLUGINS.md`
   synchronized with each milestone that changes their subject.
@@ -267,8 +268,9 @@ those exits; existing TS diagnostics do not establish native performance accepta
 The original fixed-reference 5% limits and M8's 75/120 fps targets remain historical references,
 not blocking conditions for this migration. Baselines and prior failed evidence remain frozen;
 no failed run is reclassified. All M0–M12 functionality, pixel and quality checks, G0, M11 latency,
-and the full required-gates-before-commit rule remain required. Performance diagnostics should
-answer concrete implementation questions or establish final native acceptance.
+remain required. The owner's 2026-10-23 layered-verification approval in section 8 supersedes the
+original full-required-gates-before-each-commit rule. Performance diagnostics should answer concrete
+implementation questions or establish final native acceptance.
 
 ### 6.6 Pixel-level self-review
 
@@ -490,10 +492,13 @@ starts from a fresh session. In every cycle the agent must:
    the milestone into tasks of at most a few hours each and write them to the ledger before coding.
 4. Implement the smallest increment that moves a required gate toward green. Keep the default
    product path intact behind capability gates.
-5. Run `pnpm migrate:verify --milestone <id>` (use `--quick` while iterating; the full run before a
-   commit).
-6. On green for the increment: commit (gitmoji, intent in body), mark the task done, record gate
-   summary, commit hash, and timings in the ledger.
+5. During development, run full G0 through the repository's lefthook migration-static command and
+   the verification commands covering the increment's affected behavior. Use
+   `pnpm migrate:verify --milestone <id> --quick` where useful, but skipped checks do not count as
+   passing G0. Run `pnpm migrate:verify --milestone <id>` in full at milestone exit and final delivery.
+6. On green G0 and affected-scope verification for the increment: commit (gitmoji, intent in body),
+   mark only the completed task done, and record validation scope, evidence, commit hash and timings
+   in the ledger. A development commit does not establish a passing milestone exit.
 7. On red: fix and re-run within the same cycle. If the same gate fails with no measurable
    improvement across 3 consecutive cycles, set `status: "blocked"` with the evidence.
 8. When every task and required gate of a milestone is green with a full run, mark the milestone
@@ -504,6 +509,15 @@ starts from a fresh session. In every cycle the agent must:
 10. Rebase on the owner's base branch only when the ledger's `sync.requested` flag is set; resolve
     conflicts by preserving owner changes. After rebase, re-run the full gates of all `done`
     milestones affected by changed files.
+
+On 2026-10-23 (Asia/Tokyo), the owner approved `layered-development-verification-v1`: development
+increments may commit after G0 and targeted verification of affected behavior pass. Complete pixel,
+performance, application and export gates run at their applicable milestone exits and final delivery.
+Retain failed reports and explicitly record deferred milestone gates; do not relabel a failed full
+run or use targeted checks to declare the milestone done. Repair failed checks with targeted runs
+before attempting another complete exit run. The section 11 completion criteria, pixel self-review,
+quality limits and performance acceptance are unchanged. This approval changes verification frequency,
+not acceptance thresholds or the checkpoint authentication rules below.
 
 Checkpoint reuse after the diagnostic-verifier repair requires complete before/after file inventories
 whose digests reproduce the original and current execution identities. Only the explicitly enumerated

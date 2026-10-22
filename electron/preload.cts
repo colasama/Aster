@@ -1,8 +1,38 @@
-import { contextBridge, type IpcRendererEvent, ipcRenderer } from "electron";
+/// <reference lib="dom" />
+import { contextBridge, type IpcRendererEvent, ipcRenderer, sharedTexture } from "electron";
+
+// VideoFrames cross the isolated-world boundary through the browser's transferable channel.
+// The frame retains its own shared-image reference until the canvas receiver closes it.
+sharedTexture.setSharedTextureReceiver(async ({ importedSharedTexture }, identity: unknown) => {
+  const frame = importedSharedTexture.getVideoFrame();
+  try {
+    if (
+      !identity ||
+      typeof identity !== "object" ||
+      !("id" in identity) ||
+      !("request" in identity)
+    )
+      throw new Error("Invalid preview delivery");
+    window.postMessage({ ...identity, channel: "aster-native-preview", frame }, "*", [frame]);
+  } catch {
+    frame.close();
+  } finally {
+    importedSharedTexture.release();
+  }
+});
 
 contextBridge.exposeInMainWorld(
   "asterDesktop",
   Object.freeze({
+    nativePreview: Object.freeze({
+      available: () => ipcRenderer.invoke("aster:native-preview-available"),
+      open: (snapshot: unknown) => ipcRenderer.invoke("aster:native-preview-open", snapshot),
+      replace: (id: string, snapshot: unknown) =>
+        ipcRenderer.invoke("aster:native-preview-replace", id, snapshot),
+      present: (id: string, time: number, request: number) =>
+        ipcRenderer.invoke("aster:native-preview-present", id, time, request),
+      close: (id: string) => ipcRenderer.invoke("aster:native-preview-close", id),
+    }),
     invoke: (command: string, args: Record<string, unknown> = {}) =>
       ipcRenderer.invoke("aster:invoke", command, args),
     runAgent: (request: Record<string, unknown>) => ipcRenderer.invoke("aster:agent-run", request),
