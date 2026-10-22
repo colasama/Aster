@@ -105,8 +105,9 @@ export async function runPreviewLifecycle(context, execute = runStep) {
       assert.equal(frame.time, 0.234567891);
       assert.equal(frame.generation, 0);
       assert.equal(frame.exact, true);
-      assert.equal(frame.normalization, "canvas-straight-to-reference-associated-alpha");
+      assert.equal(frame.normalization, "reference-associated-rgb-to-opaque-editor-canvas");
       const reference = decodeRgbaPng((await inputs.bytes(references[0])).bytes);
+      for (let i = 3; i < reference.pixels.length; i += 4) reference.pixels[i] = 255;
       const actual = decodeRgbaPng(await readFile(join(capture, `snapshot-${index}.png`)));
       assert.equal(actual.width, reference.width);
       assert.equal(actual.height, reference.height);

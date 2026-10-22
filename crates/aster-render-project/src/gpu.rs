@@ -44,7 +44,8 @@ impl NativeProjectGpu {
         let availability = self.renderer.prepare_project_output(ProjectOutputRequest {
             auxiliary: true,
             depth,
-            depth_of_field: matches!(mode, BufferVisualization::DepthOfField),
+            // Diagnostic views use primary surfaces; layered depth belongs to camera beauty output.
+            depth_of_field: false,
             motion: false,
             surface,
             visualizer: !depth && !surface,
@@ -182,8 +183,7 @@ impl ProjectFrameAllocator for &mut NativeProjectGpu {
                     || context.beauty_depth_of_field
                     || context.motion_blur_requested,
                 depth,
-                depth_of_field: context.beauty_depth_of_field
-                    || matches!(context.visualization, BufferVisualization::DepthOfField),
+                depth_of_field: context.beauty_depth_of_field,
                 motion: context.beauty_motion_blur,
                 surface,
                 visualizer: !matches!(context.visualization, BufferVisualization::Beauty)

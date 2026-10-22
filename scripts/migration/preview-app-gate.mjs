@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { runAppChecks } from "./app-checks.mjs";
+import { runEditorInteractionGate } from "./preview-editor-interaction-gate.mjs";
 import { auditPreviewLatency } from "./preview-latency-audit.mjs";
 import { runPreviewLifecycle } from "./preview-lifecycle-gate.mjs";
 import { runStep } from "./process.mjs";
@@ -81,6 +82,11 @@ export async function runPreviewAppGate(context, execute = runStep) {
       explicit_capture: true,
       resize: true,
     };
+    report.interactions = await runEditorInteractionGate(
+      { ...context, output: join(context.output, "interactions") },
+      execute,
+    );
+    assert.equal(report.interactions.status, "passed", report.interactions.error);
     report.recovery = await runPreviewLifecycle(
       {
         ...context,

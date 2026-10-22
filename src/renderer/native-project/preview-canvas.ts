@@ -42,7 +42,7 @@ export class NativePreviewCanvas {
     context.configure({
       device,
       format: this.format,
-      alphaMode: "premultiplied",
+      alphaMode: "opaque",
       colorSpace: "srgb",
       usage:
         GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC,
@@ -167,7 +167,8 @@ export class NativePreviewCanvas {
         const target = pending.snapshot;
         target.width = Math.max(1, Math.round(delivery.width * scale));
         target.height = Math.max(1, Math.round(delivery.height * scale));
-        const context = target.getContext("2d");
+        // Match the editor's opaque swapchain: associated RGB is displayed over black.
+        const context = target.getContext("2d", { alpha: false });
         if (!context) throw new Error("Native snapshot canvas is unavailable");
         context.drawImage(video, 0, 0, target.width, target.height);
         pending.resolve({ skipped: !pending.current() });

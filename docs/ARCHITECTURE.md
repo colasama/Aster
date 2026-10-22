@@ -730,8 +730,9 @@ and target; frame replies carry the exact requested time and generation. `Native
 serializes these controls and bounds queued work.
 `NativePreviewBroker` imports only in Electron's main process and releases the native lease only
 after Electron reports that every process and GPU reference has finished. Renderer IPC receives
-the shared texture and frame identity, never the raw NT handle. Presentation preserves premultiplied
-alpha through GPU canvas copies. The opt-in capability flag `ASTER_NATIVE_PREVIEW=1` connects
+the shared texture and frame identity, never the raw NT handle. GPU copies and explicit readbacks
+preserve associated RGB and alpha. The editor swapchain and comparison snapshots are opaque,
+displaying associated RGB over black to match the retained TS viewport. The opt-in capability flag `ASTER_NATIVE_PREVIEW=1` connects
 the editor to application-owned private project snapshots; IPC clients cannot select executables or
 filesystem destinations. The sandboxed preload transfers owned VideoFrames to the GPU canvas, which
 checks snapshot identity and validation before closing them. Electron retains their underlying
@@ -754,6 +755,10 @@ requested time, diagnostic mode and selected layer. The receiver copies the auth
 VideoFrame into a separate canvas capped at 2048 pixels per side; it never reads a previous swapchain
 frame or changes the displayed viewport. Context changes and teardown discard pending comparison
 results, and temporary canvas pixels are released after publication.
+Native editor qualification drives the diagnostic selector, snapshot button, keyboard movement and
+pointer-drag preview/commit/undo in both rendering engines, binding every native snapshot to its
+actual IPC call and exact playhead time. Diagnostic depth views use primary auxiliary surfaces,
+matching the TS editor; camera beauty depth of field retains its budgeted layered attachments.
 The editor benchmark uses uncached native evaluation and waits for GPU presentation; its synthetic
 compositions are materialized into authored snapshots. Exclusive benchmark ownership drains foreground
 work and suspends idle pre-rendering. Preview snapshots include the reachable composition graph,

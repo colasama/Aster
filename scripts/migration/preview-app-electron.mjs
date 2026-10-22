@@ -140,15 +140,16 @@ async function main() {
             pixels[i + 2] = r;
           }
         if (snapshot) {
-          // Canvas 2D exposes straight alpha; the frozen GPU reference contains associated RGB.
+          // The editor presents associated RGB on an opaque canvas; transport readbacks retain alpha.
           await writeFile(
             join(config.output, `snapshot-${collection.length}-straight.png`),
             encodeRgbaPng(args.width, args.height, pixels),
             { flag: "wx" },
           );
-          for (let i = 0; i < pixels.length; i += 4)
-            for (let channel = 0; channel < 3; channel++)
-              pixels[i + channel] = Math.round((pixels[i + channel] * pixels[i + 3]) / 255);
+          for (let i = 0; i < pixels.length; i += 4) {
+            assert.equal(pixels[i + 3], 255, "Editor snapshot must be opaque");
+            reference.pixels[i + 3] = 255;
+          }
         }
         const path = join(
           config.output,
@@ -165,7 +166,9 @@ async function main() {
           rgba_sha256: actual,
           expected_rgba_sha256: expected,
           exact: actual === expected,
-          ...(snapshot ? { normalization: "canvas-straight-to-reference-associated-alpha" } : {}),
+          ...(snapshot
+            ? { normalization: "reference-associated-rgb-to-opaque-editor-canvas" }
+            : {}),
         });
         assert.equal(actual, expected, "Application preview pixels differ");
         return;
