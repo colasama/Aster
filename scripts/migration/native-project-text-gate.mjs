@@ -18,18 +18,28 @@ export async function runNativeProjectTextGate(
     native_text_acceptance: false,
     cases: [],
     comparisons: [],
-    maxima: { advance: 0, baseline: 0, transform: 0, cluster_advance: 0, cluster_position: 0 },
+    maxima: {
+      advance: 0,
+      baseline: 0,
+      transform: 0,
+      cluster_advance: 0,
+      cluster_position: 0,
+      glyph_advance: 0,
+      glyph_position: 0,
+      glyph_baseline: 0,
+    },
   };
   const local = (path) => relative(context.root, path).replaceAll("\\", "/");
   try {
-    const mode = options.fixtureManifest ? "extended" : "ordinary";
+    const perGlyph = Boolean(options.fixtureManifest || options.perGlyph);
+    const mode = perGlyph ? "extended" : "ordinary";
     const observationPath = join(observationRoot, mode, "report.json");
     const observations = JSON.parse(await readFile(observationPath));
     assert.equal(observations.status, "passed");
     const corpus = JSON.parse(
       await readFile(options.fixtureManifest ?? join(context.root, "tests/parity/corpus.json")),
     );
-    if (options.fixtureManifest) assert(options.cases?.length > 0);
+    if (perGlyph) assert(options.cases?.length > 0);
     const selected = options.cases ?? ["layer-text", "scene-motion-blur", "scene-text-animators"];
     const cases = [],
       expected = [];
@@ -121,12 +131,15 @@ export async function runNativeProjectTextGate(
           transform: 0,
           cluster_advance: 0,
           cluster_position: 0,
+          glyph_advance: 0,
+          glyph_position: 0,
+          glyph_baseline: 0,
         };
         for (const [i, paint] of result.paints.entries()) {
           const draw = draws[i],
             matrix = draw.transform;
           assert.equal(paint.text, draw.text);
-          if (options.fixtureManifest) {
+          if (perGlyph) {
             const shape = auditNativeShape(
               {
                 width: draw.metrics.width,
@@ -146,6 +159,36 @@ export async function runNativeProjectTextGate(
               deltas.cluster_position,
               shape.deltas.cluster_position,
             );
+            let x = 0,
+              y = 0;
+            for (const glyph of paint.shaped.glyphs) {
+              const cluster = draw.clusters.find(
+                (c) => c.start === glyph.cluster_start && c.end === glyph.cluster_end,
+              );
+              assert(cluster);
+              deltas.glyph_position = Math.max(
+                deltas.glyph_position,
+                Math.abs(x + glyph.offset[0] - cluster.x),
+              );
+              deltas.glyph_advance = Math.max(
+                deltas.glyph_advance,
+                Math.abs(
+                  glyph.advance[0] -
+                    cluster.selectionRects.reduce((sum, rect) => sum + rect.width, 0),
+                ),
+              );
+              deltas.glyph_baseline = Math.max(
+                deltas.glyph_baseline,
+                Math.abs(
+                  y +
+                    glyph.offset[1] +
+                    paint.shaped.middle_baseline_offset +
+                    draw.metrics.alphabeticBaseline,
+                ),
+              );
+              x += glyph.advance[0];
+              y += glyph.advance[1];
+            }
           }
           deltas.advance = Math.max(
             deltas.advance,
@@ -198,8 +241,11 @@ export async function runNativeProjectTextGate(
           paints: result.paints.length,
           deltas,
           bounds_exact: true,
+          line_breaks_exact: true,
           native_recipe_admitted: true,
-          per_glyph_observed: Boolean(options.fixtureManifest),
+          per_glyph_observed: perGlyph,
+          request: cases[index].requests[sample],
+          fonts: result.fonts,
         });
       }
     }

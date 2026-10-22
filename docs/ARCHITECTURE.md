@@ -707,6 +707,12 @@ An embedded alias alone cannot confer native raster qualification: its physical 
 an installed face from the qualified outline families. Other embedded faces retain their exact
 font identity and an explicit qualification reason. An unrelated physical font embedded under the
 same alias is checked through real retained routing and exact independent pixels.
+The text milestone exit audit binds the current full static and GPU reports to authored corpus
+coverage, including owner compositions and nested text layers. Every admitted production sample
+must have an observed glyph position, advance and baseline within 0.5 px, identical line breaks,
+matching physical fonts and a reviewed perceptual GPU comparison. Retained cases keep exact M5
+pixels and explicit capability tasks in the migration ledger. Diagnostic shaping or atlas success
+alone cannot confer text acceptance; native preview acceptance remains separate.
 Explicit project captures and selected export witnesses materialize resident native text outputs
 as bounded, content-addressed raster resources for external replay. They preserve `submitted.fpln`
 and its digest separately from the replay envelope, and record exact text capability decisions and

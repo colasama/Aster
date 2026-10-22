@@ -6,6 +6,43 @@ import { writeAtomicJson } from "./report.mjs";
 import { verifyMigration } from "./verify.mjs";
 import { deliveryPolicy, fakeHook, fixture, provenance } from "./verify-fixtures.mjs";
 
+test("M10 exit requires a successful audit and skips it on quick or failed gates", async (t) => {
+  for (const mode of ["accepted", "rejected", "quick", "failed-gate"]) {
+    const context = await fixture(t);
+    await writeAtomicJson(context.ledger, {
+      status: "running",
+      milestones: [
+        {
+          id: "M10",
+          status: "in_progress",
+          gates: ["G0", "G3"],
+          tasks: [{ id: "M10-T8", status: "in_progress" }],
+        },
+      ],
+    });
+    let calls = 0;
+    const result = await verifyMigration(
+      { ...context, quick: mode === "quick" },
+      {
+        provenance,
+        execute: fakeHook,
+        runNativeCoreGate: async () => ({
+          id: "G3",
+          status: mode === "failed-gate" ? "failed" : "passed",
+        }),
+        auditM10Exit: async () => {
+          calls++;
+          if (mode === "rejected") throw new Error("Text sample has no pixel review");
+          return { status: "passed" };
+        },
+      },
+    );
+    assert.equal(calls, ["accepted", "rejected"].includes(mode) ? 1 : 0);
+    assert.equal(result.report.milestone_exit_satisfied, mode === "accepted");
+    assert.equal(result.exitCode, ["rejected", "failed-gate"].includes(mode) ? 1 : 0);
+  }
+});
+
 test("M10 font increments execute native GPU checks without claiming text migration acceptance", async (t) => {
   const context = await fixture(t);
   await writeAtomicJson(context.ledger, {

@@ -26104,14 +26104,434 @@
         {
           "id": "M10-T8",
           "title": "Complete full text layout and pixel self-review acceptance",
-          "status": "pending",
+          "status": "in_progress",
           "scope": "Verify all text-bearing corpus cases including owner compositions and nested reachability. Self-review every non-exact native comparison under the perceptual profile and bind layout/font evidence.",
           "acceptance": "All text cases meet pixel and layout requirements or have explicit authenticated M5 routing with reasons; no blanket fallback; full G0/G3 and M10 exit audit green.",
           "estimated_implementation_hours": 2,
           "required_gates": [
             "G0",
             "G3"
-          ]
+          ],
+          "started_at": "2026-10-22T01:17:46.252Z",
+          "retained_capability_tasks": [
+            {
+              "id": "M10-R1",
+              "title": "Keep enchanted-love text on authenticated M5 until its recorded capabilities are qualified",
+              "status": "verified_retained",
+              "route": "M5",
+              "cases": [
+                "enchanted-love"
+              ],
+              "reasons": [
+                "extended-range text color requires raster qualification",
+                "requested font families unavailable: Agency FB",
+                "requested primary family and CSS family syntax require raster qualification"
+              ],
+              "evidence": {
+                "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
+                "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
+              },
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+            },
+            {
+              "id": "M10-R2",
+              "title": "Keep owner-opening text on authenticated M5 until its recorded capabilities are qualified",
+              "status": "verified_retained",
+              "route": "M5",
+              "cases": [
+                "owner-opening"
+              ],
+              "reasons": [
+                "per-character paint and affine coverage require pixel qualification",
+                "animation paint preparation requires retained rendering: text requires retained rendering: glyph has no verified outline ink bounds",
+                "per-character blur requires native filter composition; paint 0 blur 2px",
+                "no admitted fallback font covers UTF-16 interval 6..7",
+                "stroke coverage exceeds the isolated raster alpha limit"
+              ],
+              "evidence": {
+                "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
+                "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
+              },
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+            },
+            {
+              "id": "M10-R3",
+              "title": "Keep owner-main text on authenticated M5 until its recorded capabilities are qualified",
+              "status": "verified_retained",
+              "route": "M5",
+              "cases": [
+                "owner-main"
+              ],
+              "reasons": [
+                "per-character blur requires native filter composition; paint 0 blur 2px",
+                "per-character paint and affine coverage require pixel qualification",
+                "animation paint preparation requires retained rendering: text requires retained rendering: glyph has no verified outline ink bounds",
+                "no admitted fallback font covers UTF-16 interval 6..7",
+                "per-character blur requires native filter composition; paint 0 blur 1.6115987225651778px",
+                "per-character blur requires native filter composition; paint 0 blur 1.2770490397805234px",
+                "per-character blur requires native filter composition; paint 0 blur 0.9923321759259425px",
+                "per-character blur requires native filter composition; paint 0 blur 0.7534293552812101px",
+                "per-character blur requires native filter composition; paint 0 blur 0.5563218021262128px",
+                "per-character blur requires native filter composition; paint 0 blur 0.39699074074074375px",
+                "per-character blur requires native filter composition; paint 0 blur 0.2714173954046607px",
+                "per-character blur requires native filter composition; paint 0 blur 0.17558299039780756px",
+                "per-character blur requires native filter composition; paint 0 blur 0.10546874999999871px",
+                "per-character blur requires native filter composition; paint 0 blur 0.05705589849108506px",
+                "per-character blur requires native filter composition; paint 0 blur 0.026325660150891276px",
+                "per-character blur requires native filter composition; paint 0 blur 0.009259259259259753px",
+                "per-character blur requires native filter composition; paint 0 blur 0.0018379200960219157px",
+                "per-character blur requires native filter composition; paint 0 blur 0.00004286694101510515px",
+                "per-character blur requires native filter composition; paint 1 blur 0.00007407407407407329px",
+                "per-character blur requires native filter composition; paint 2 blur 0.00011762688614544069px",
+                "per-character blur requires native filter composition; paint 3 blur 0.00017558299039780993px",
+                "per-character blur requires native filter composition; paint 4 blur 0.0002500000000000673px",
+                "per-character blur requires native filter composition; paint 5 blur 0.0003429355281207302px",
+                "stroke coverage exceeds the isolated raster alpha limit"
+              ],
+              "evidence": {
+                "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
+                "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
+              },
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+            },
+            {
+              "id": "M10-R4",
+              "title": "Keep layer-text text on authenticated M5 until its recorded capabilities are qualified",
+              "status": "verified_retained",
+              "route": "M5",
+              "cases": [
+                "layer-text"
+              ],
+              "reasons": [
+                "stroke coverage exceeds the isolated raster alpha limit"
+              ],
+              "evidence": {
+                "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
+                "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
+              },
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+            },
+            {
+              "id": "M10-R5",
+              "title": "Keep scene-text-animators text on authenticated M5 until its recorded capabilities are qualified",
+              "status": "verified_retained",
+              "route": "M5",
+              "cases": [
+                "scene-text-animators"
+              ],
+              "reasons": [
+                "stroke coverage exceeds the isolated raster alpha limit"
+              ],
+              "evidence": {
+                "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
+                "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
+              },
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+            },
+            {
+              "id": "M10-R6",
+              "title": "Keep font-woff2 text on authenticated M5 until its recorded capabilities are qualified",
+              "status": "verified_retained",
+              "route": "M5",
+              "cases": [
+                "font-woff2"
+              ],
+              "reasons": [
+                "embedded font migration-embedded-face: Woff2DecoderUnavailable"
+              ],
+              "evidence": {
+                "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
+                "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
+              },
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+            },
+            {
+              "id": "M10-R7",
+              "title": "Keep font-collection text on authenticated M5 until its recorded capabilities are qualified",
+              "status": "verified_retained",
+              "route": "M5",
+              "cases": [
+                "font-collection"
+              ],
+              "reasons": [
+                "embedded font migration-embedded-face: EmbeddedCollectionSelectionUnverified"
+              ],
+              "evidence": {
+                "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
+                "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
+              },
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+            },
+            {
+              "id": "M10-R8",
+              "title": "Keep font-unavailable text on authenticated M5 until its recorded capabilities are qualified",
+              "status": "verified_retained",
+              "route": "M5",
+              "cases": [
+                "font-unavailable"
+              ],
+              "reasons": [
+                "requested font families unavailable: Agency FB"
+              ],
+              "evidence": {
+                "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
+                "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
+              },
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+            },
+            {
+              "id": "M10-R9",
+              "title": "Keep font-missing-glyph text on authenticated M5 until its recorded capabilities are qualified",
+              "status": "verified_retained",
+              "route": "M5",
+              "cases": [
+                "font-missing-glyph"
+              ],
+              "reasons": [
+                "no admitted fallback font covers UTF-16 interval 6..7",
+                "requested primary family and CSS family syntax require raster qualification",
+                "no admitted fallback font covers UTF-16 interval 9..10",
+                "script raster coverage requires isolated pixel qualification"
+              ],
+              "evidence": {
+                "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
+                "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
+              },
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+            },
+            {
+              "id": "M10-R10",
+              "title": "Keep font-mixed-bidi text on authenticated M5 until its recorded capabilities are qualified",
+              "status": "verified_retained",
+              "route": "M5",
+              "cases": [
+                "font-mixed-bidi"
+              ],
+              "reasons": [
+                "text requires retained rendering: bidirectional paragraph requires independently verified visual runs"
+              ],
+              "evidence": {
+                "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
+                "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
+              },
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+            },
+            {
+              "id": "M10-R11",
+              "title": "Keep font-embedded-bidi text on authenticated M5 until its recorded capabilities are qualified",
+              "status": "verified_retained",
+              "route": "M5",
+              "cases": [
+                "font-embedded-bidi"
+              ],
+              "reasons": [
+                "text requires retained rendering: bidirectional paragraph requires independently verified visual runs"
+              ],
+              "evidence": {
+                "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
+                "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
+              },
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+            },
+            {
+              "id": "M10-R12",
+              "title": "Keep font-color-paint text on authenticated M5 until its recorded capabilities are qualified",
+              "status": "verified_retained",
+              "route": "M5",
+              "cases": [
+                "font-color-paint"
+              ],
+              "reasons": [
+                "layered color outlines require a verified paint graph; face 7c0244dd8eeb7c6bdecdfc3f9e59833527fc18a66d0295ce47339069692a2b4f#0 glyph 11680 at authored size 32",
+                "requested primary family and CSS family syntax require raster qualification"
+              ],
+              "evidence": {
+                "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
+                "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
+              },
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+            },
+            {
+              "id": "M10-R13",
+              "title": "Keep font-bitmap-stroke text on authenticated M5 until its recorded capabilities are qualified",
+              "status": "verified_retained",
+              "route": "M5",
+              "cases": [
+                "font-bitmap-stroke"
+              ],
+              "reasons": [
+                "bitmap glyph strokes require verified coverage expansion; face 198e8dac512206f27c9bdbfeb3d5b3e55a33de9dcf58d801823ef8c5ef5a76dc#0 glyph 4 at authored size 12",
+                "requested primary family and CSS family syntax require raster qualification"
+              ],
+              "evidence": {
+                "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
+                "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
+              },
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+            },
+            {
+              "id": "M10-R14",
+              "title": "Keep text-blur-controls text on authenticated M5 until its recorded capabilities are qualified",
+              "status": "verified_retained",
+              "route": "M5",
+              "cases": [
+                "text-blur-controls"
+              ],
+              "reasons": [
+                "per-character blur requires native filter composition; paint 0 blur 4px",
+                "per-character paint and affine coverage require pixel qualification",
+                "requested primary family and CSS family syntax require raster qualification",
+                "per-character blur requires native filter composition; paint 2 blur 4px",
+                "per-character blur requires native filter composition; paint 0 blur 3px",
+                "per-character blur requires native filter composition; paint 0 blur 6px",
+                "per-character blur requires native filter composition; paint 0 blur 0.7624907931312919px",
+                "per-character blur requires native filter composition; paint 0 blur 2.031342322938144px",
+                "per-character blur requires native filter composition; paint 0 blur 0.84383047465235px",
+                "per-character blur requires native filter composition; paint 0 blur 3.7536363769322634px",
+                "per-character blur requires native filter composition; paint 0 blur 0.5468004243448377px",
+                "per-character blur requires native filter composition; paint 0 blur 1.8091482650488615px",
+                "per-character blur requires native filter composition; paint 0 blur 2.325940439477563px",
+                "per-character blur requires native filter composition; paint 0 blur 4.842837064526975px",
+                "per-character blur requires native filter composition; paint 0 blur 2.19764743745327px",
+                "per-character blur requires native filter composition; paint 0 blur 4.150961617939174px",
+                "per-character blur requires native filter composition; paint 0 blur 0.3096896940842271px",
+                "per-character blur requires native filter composition; paint 0 blur 5.070861222222447px",
+                "per-character blur requires native filter composition; paint 0 blur 5.77994117885828px",
+                "per-character blur requires native filter composition; paint 0 blur 3.4235547529533505px",
+                "per-character blur requires native filter composition; paint 0 blur 2.5021875528618693px",
+                "per-character blur requires native filter composition; paint 0 blur 0.9965087715536356px",
+                "per-character blur requires native filter composition; paint 0 blur 4.595785989426076px",
+                "per-character blur requires native filter composition; paint 0 blur 4.01598324906081px",
+                "per-character blur requires native filter composition; paint 0 blur 0.9643640303984284px",
+                "per-character blur requires native filter composition; paint 0 blur 2.177729702554643px",
+                "per-character blur requires native filter composition; paint 0 blur 0.3659604415297508px",
+                "per-character blur requires native filter composition; paint 0 blur 0.5912176799029112px",
+                "per-character blur requires native filter composition; paint 0 blur 3.4414560673758388px",
+                "per-character blur requires native filter composition; paint 0 blur 0.49336444213986397px",
+                "per-character blur requires native filter composition; paint 0 blur 0.2808685312047601px",
+                "per-character blur requires native filter composition; paint 0 blur 2.1880245795473456px",
+                "per-character blur requires native filter composition; paint 0 blur 0.44608671963214874px",
+                "per-character blur requires native filter composition; paint 0 blur 1.3298113765195012px",
+                "per-character blur requires native filter composition; paint 0 blur 3.613700651563704px",
+                "per-character blur requires native filter composition; paint 0 blur 1.90985974855721px",
+                "per-character blur requires native filter composition; paint 0 blur 5.1123594688251615px",
+                "per-character blur requires native filter composition; paint 0 blur 5.466977748088539px"
+              ],
+              "evidence": {
+                "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
+                "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
+              },
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+            },
+            {
+              "id": "M10-R15",
+              "title": "Keep text-blur-exposure text on authenticated M5 until its recorded capabilities are qualified",
+              "status": "verified_retained",
+              "route": "M5",
+              "cases": [
+                "text-blur-exposure"
+              ],
+              "reasons": [
+                "per-character blur requires native filter composition; paint 0 blur 0.009374999999999998px; exposure time 0.0015624999999999997",
+                "per-character blur requires native filter composition; paint 0 blur 2.934375px; exposure time 0.4890625",
+                "per-character blur requires native filter composition; paint 0 blur 5.934375px; exposure time 0.9890625000000001",
+                "per-character blur requires native filter composition; paint 0 blur 6px",
+                "per-character blur requires native filter composition; paint 0 blur 0.6968657931312918px; exposure time 0.11614429885521531",
+                "per-character blur requires native filter composition; paint 0 blur 1.9657173229381444px; exposure time 0.32761955382302405",
+                "per-character blur requires native filter composition; paint 0 blur 0.7782054746523499px; exposure time 0.1297009124420583",
+                "per-character blur requires native filter composition; paint 0 blur 3.6880113769322636px; exposure time 0.614668562822044",
+                "per-character blur requires native filter composition; paint 0 blur 0.4811754243448376px; exposure time 0.08019590405747294",
+                "per-character blur requires native filter composition; paint 0 blur 1.7435232650488617px; exposure time 0.29058721084147693",
+                "per-character blur requires native filter composition; paint 0 blur 2.260315439477563px; exposure time 0.37671923991292716",
+                "per-character blur requires native filter composition; paint 0 blur 4.777212064526975px; exposure time 0.7962020107544959",
+                "per-character blur requires native filter composition; paint 0 blur 2.13202243745327px; exposure time 0.35533707290887834",
+                "per-character blur requires native filter composition; paint 0 blur 4.085336617939174px; exposure time 0.6808894363231958",
+                "per-character blur requires native filter composition; paint 0 blur 0.2440646940842271px; exposure time 0.04067744901403785",
+                "per-character blur requires native filter composition; paint 0 blur 5.005236222222448px; exposure time 0.8342060370370746",
+                "per-character blur requires native filter composition; paint 0 blur 5.71431617885828px; exposure time 0.9523860298097134",
+                "per-character blur requires native filter composition; paint 0 blur 3.3579297529533507px; exposure time 0.5596549588255585",
+                "per-character blur requires native filter composition; paint 0 blur 2.4365625528618695px; exposure time 0.40609375881031157",
+                "per-character blur requires native filter composition; paint 0 blur 0.9308837715536356px; exposure time 0.15514729525893925",
+                "per-character blur requires native filter composition; paint 0 blur 4.530160989426077px; exposure time 0.7550268315710128",
+                "per-character blur requires native filter composition; paint 0 blur 3.95035824906081px; exposure time 0.658393041510135",
+                "per-character blur requires native filter composition; paint 0 blur 0.8987390303984284px; exposure time 0.14978983839973806",
+                "per-character blur requires native filter composition; paint 0 blur 2.1121047025546433px; exposure time 0.35201745042577387",
+                "per-character blur requires native filter composition; paint 0 blur 0.30033544152975084px; exposure time 0.05005590692162514",
+                "per-character blur requires native filter composition; paint 0 blur 0.5255926799029111px; exposure time 0.08759877998381853",
+                "per-character blur requires native filter composition; paint 0 blur 3.375831067375839px; exposure time 0.5626385112293065",
+                "per-character blur requires native filter composition; paint 0 blur 0.4277394421398639px; exposure time 0.07128990702331066",
+                "per-character blur requires native filter composition; paint 0 blur 0.21524353120476009px; exposure time 0.03587392186746002",
+                "per-character blur requires native filter composition; paint 0 blur 2.122399579547346px; exposure time 0.35373326325789095",
+                "per-character blur requires native filter composition; paint 0 blur 0.3804617196321487px; exposure time 0.06341028660535812",
+                "per-character blur requires native filter composition; paint 0 blur 1.2641863765195012px; exposure time 0.21069772941991685",
+                "per-character blur requires native filter composition; paint 0 blur 3.548075651563704px; exposure time 0.5913459419272841",
+                "per-character blur requires native filter composition; paint 0 blur 1.8442347485572101px; exposure time 0.30737245809286834",
+                "per-character blur requires native filter composition; paint 0 blur 5.046734468825162px; exposure time 0.8411224114708603",
+                "per-character blur requires native filter composition; paint 0 blur 5.401352748088539px; exposure time 0.9002254580147565",
+                "per-character blur requires native filter composition; paint 0 blur 6px; exposure time 1"
+              ],
+              "evidence": {
+                "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
+                "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
+              },
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+            },
+            {
+              "id": "M10-R16",
+              "title": "Keep embedded-unqualified-control text on authenticated M5 until its recorded capabilities are qualified",
+              "status": "verified_retained",
+              "route": "M5",
+              "cases": [
+                "embedded-unqualified-control"
+              ],
+              "reasons": [
+                "embedded font embedded-unqualified-control physical face requires raster qualification"
+              ],
+              "evidence": {
+                "path": "artifacts/migration/2026-10-22T00-18-51-735Z-3e5ab551/G3/report.json",
+                "sha256": "8c81dba231bdf2617ecb162f808ea3efdc239aa5ff23feecdf885f5465692368"
+              },
+              "acceptance": "Existing full-run exact retained pixels and explicit production capability decisions; current full exit audit must bind the same capabilities. Native expansion requires new layout and pixel qualification."
+            }
+          ],
+          "preparation": {
+            "status": "focused_passed_full_pending",
+            "cycle": 136,
+            "focused": [
+              {
+                "path": "artifacts/migration/cycle136-layout2/report.json",
+                "sha256": "537f2ff6a0a4999d3e95500ce6f18147dd6c0fec65d2337acf9a0b191f521abb",
+                "samples": 70,
+                "maxima": {
+                  "advance": 0,
+                  "baseline": 0,
+                  "transform": 7.105427357601002e-15,
+                  "cluster_advance": 0,
+                  "cluster_position": 0,
+                  "glyph_advance": 0,
+                  "glyph_position": 0,
+                  "glyph_baseline": 0
+                }
+              },
+              {
+                "path": "artifacts/migration/cycle136-embedded-layout2/report.json",
+                "sha256": "5233a9b2ea32082f0216241fe1c38e373b6ac1a76c905cceedd364d6f6851ba9",
+                "samples": 70,
+                "maxima": {
+                  "advance": 0,
+                  "baseline": 0,
+                  "transform": 7.105427357601002e-15,
+                  "cluster_advance": 0,
+                  "cluster_position": 0,
+                  "glyph_advance": 0,
+                  "glyph_position": 0,
+                  "glyph_baseline": 0
+                }
+              }
+            ],
+            "tests": "artifacts/migration/cycle136-tests2.log",
+            "note": "Stored-report binding checks are diagnostic only; completion requires current full G0/G3 and the integrated M10 exit audit."
+          }
         }
       ],
       "started_at": "2026-10-20T20:25:14.937Z",
@@ -2447404,20 +2447824,14 @@
     }
   ],
   "active_cycle": {
-    "id": 135,
+    "id": 136,
     "milestone": "M10",
-    "task": "M10-T7",
-    "increment": "evaluated-character-blur-capability",
-    "started_at": "2026-10-22T00:06:53.155Z",
-    "implementation_state": "committed",
-    "scope": "Share native paint preparation between rendering and bounded animation capability checks; bind effective character blur to current-time retained output and independent TS draw filters.",
-    "updated_at": "2026-10-22T01:16:28.727Z",
-    "outcome": "passed",
-    "commit": "00bfcef8de17b079b81d687557e595c38cc5607d",
-    "verification": {
-      "path": "artifacts/migration/verify-2026-10-22T00-18-51-735Z-3e5ab551.json",
-      "sha256": "9747d5f4c31464ae22233498f3a18c6a5a9bba99312018f918748a3f8841b06b"
-    }
+    "task": "M10-T8",
+    "increment": "native-text-exit-audit",
+    "started_at": "2026-10-22T01:17:46.252Z",
+    "implementation_state": "full_verification_pending",
+    "scope": "Bind actual admitted text to per-glyph observations and reviewed GPU pixels; authenticate complete retained capability coverage and current G0/G3 before M10 exit.",
+    "updated_at": "2026-10-22T01:31:42.546Z"
   },
   "execution_pause": {
     "requested_by": "owner",

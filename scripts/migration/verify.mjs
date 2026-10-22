@@ -16,6 +16,7 @@ import { auditM6Exit } from "./m6-exit.mjs";
 import { auditM7Exit } from "./m7-exit.mjs";
 import { auditM8Exit } from "./m8-exit.mjs";
 import { auditM9Exit } from "./m9-exit.mjs";
+import { auditM10Exit } from "./m10-exit.mjs";
 import { runNativeAppGate } from "./native-app-gate.mjs";
 import { runNativeCoreGate } from "./native-core-gate.mjs";
 import { runNativeExportGate } from "./native-export-gate.mjs";
@@ -577,6 +578,25 @@ export async function verifyMigration(options, dependencies = {}) {
           throw new Error("M9 native evaluation and headless export audit failed");
         report.milestone_exit_reason =
           "Complete project-origin evaluation, random-time plans, reviewed pixels and headless exports audited";
+      } catch (error) {
+        report.milestone_exit = { status: "failed", error: error.message };
+        report.milestone_exit_reason = error.message;
+      }
+    }
+    const textExit = milestone.tasks.find((task) => task.id === "M10-T8");
+    if (
+      milestone.id === "M10" &&
+      !quick &&
+      (milestone.status === "done" || ["in_progress", "done"].includes(textExit?.status))
+    ) {
+      try {
+        if (report.gates.some((gate) => gate.status !== "passed"))
+          throw new Error("M10 exit requires every current full gate");
+        report.milestone_exit = await (dependencies.auditM10Exit ?? auditM10Exit)(root, report);
+        if (report.milestone_exit.status !== "passed")
+          throw new Error("M10 native text audit failed");
+        report.milestone_exit_reason =
+          "Complete text routing, per-glyph layout, physical fonts and reviewed production pixels audited";
       } catch (error) {
         report.milestone_exit = { status: "failed", error: error.message };
         report.milestone_exit_reason = error.message;

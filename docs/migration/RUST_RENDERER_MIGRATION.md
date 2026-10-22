@@ -530,6 +530,11 @@ When reused checkpoints have multiple historical execution identities, authentic
 historical inventory directly against the same current inventory; never rewrite the original
 identities or infer compatibility transitively. Reject NUL separators in inventory paths and identities.
 
+The M10 exit audit consumes the current full G0/G3 invocation, reconstructs authored text coverage,
+and binds admitted production samples to per-glyph layout, physical font identities and reviewed
+GPU pixels. Explicit retained capability tasks account for the remaining M5 paths. The exit audit
+does not repeat image decoding already authenticated by the same invocation's text gates.
+
 ### Moving-target rule
 
 While the migration runs, any new TS renderer feature arriving from the base branch must either

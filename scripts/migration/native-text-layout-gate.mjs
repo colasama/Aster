@@ -292,6 +292,21 @@ export async function runNativeTextLayoutGate(context, execute = runStep, option
         "Complete text routing audit failed",
       );
       assert.equal(report.native_text_routing.full_coverage, true);
+      const admitted = report.native_text_routing.cases
+        .filter((c) => c.native > 0)
+        .map((c) => c.id);
+      assert(admitted.length > 0, "Text migration requires actual native production coverage");
+      report.native_admitted_layout = await runNativeProjectTextGate(
+        { ...context, output: join(context.output, "native-admitted-layout") },
+        context.output,
+        execute,
+        { cases: admitted, perGlyph: true },
+      );
+      assert.equal(
+        report.native_admitted_layout.status,
+        "passed",
+        report.native_admitted_layout.error,
+      );
     }
     report.source_after = await sourceProvenance(context.root);
     assert.equal(report.source_after.source_sha256, report.source.source_sha256);
