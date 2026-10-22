@@ -393,33 +393,38 @@
     }
   },
   "last_cycle": {
-    "id": 142,
-    "time": "2026-10-22T20:52:32.201Z",
-    "updated_at": "2026-10-22T20:52:32.201Z",
+    "id": 143,
+    "time": "2026-10-22T21:21:29.911Z",
+    "updated_at": "2026-10-22T21:21:29.911Z",
     "milestone": "M11",
-    "task": "M11-T5",
-    "increment": "bounded-native-preview-cache-scheduling",
+    "task": "M11-T6",
+    "increment": "paired-editor-diagnostic-and-manipulation-witness",
     "outcome": "increment_committed_layered_verification",
-    "commit": "bf4ab60e71045c2410ea1fc5828d4dfe18ecc97e",
+    "commit": "37fa7e26186f928ddf04f3f5556b14591dfc39b7",
     "validation_policy": "layered-development-verification-v1",
     "validation": {
-      "path": "artifacts/migration/cycle142-verification/report.json",
-      "sha256": "7576d19547763ae7d8ad0c26732a0854e5dd176162c7d3007d4491138a70e135"
+      "path": "artifacts/migration/cycle143-verification/report.json",
+      "sha256": "df626dd88565b47fbf3506021382c104a306c7b8e86ffca87f1445562aa88868"
     },
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "scope": "full-static; native cache budget, hit, wrap order and cancellation race tests"
+        "scope": "full lefthook migration-static"
       },
       {
         "id": "G6",
         "status": "passed",
-        "scope": "production-host cache/resize/recovery, 24 exact frames and 2 exact normalized snapshots"
+        "scope": "18 exact paired actual-editor diagnostic/manipulation frames plus production-host recovery, 24 alpha-preserving raw frames and 2 opaque snapshots"
       }
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Implement M11-T6 actual editor direct-manipulation, diagnostic and installed-plugin lifecycle coverage. Retain full corpus, final paired performance and current-source exit audit requirements."
+    "rejected_evidence": [
+      "artifacts/migration/cycle143-alpha-rejections/report.json",
+      "artifacts/migration/cycle143-interactions-corrected/report.json",
+      "artifacts/migration/cycle143-interactions-check/report.json"
+    ],
+    "next_step": "Complete M11-T6 real editor installed-plugin lifecycle coverage. Retain full corpus, owner-project preview, final paired performance and current-source milestone exit requirements."
   },
   "milestones": [
     {
@@ -27492,7 +27497,7 @@
           "id": "M11-T6",
           "title": "Verify complete native preview pixels and application lifecycle",
           "scope": "Cover corpus and owner-project preview outputs, edits, resize, stale completion, cache and teardown through real Electron presentation; self-review all non-exact results.",
-          "status": "pending",
+          "status": "in_progress",
           "estimated_implementation_hours": 3,
           "required_gates": [
             "G0",
@@ -27500,7 +27505,13 @@
             "G4",
             "G6"
           ],
-          "progress": "Retain complete corpus and app coverage. Add actual editor-installed plugin valid reload, rejected reload retaining last-valid content, disable/safe-mode/missing cases in root/nested scenes. Current T2 coverage tests the trusted bridge and snapshot assembly, native omission planning, installed-plugin corpus pixels and general production-host recovery; it does not yet exercise every plugin lifecycle action through the full editor."
+          "progress": "Actual editor diagnostics, keyboard movement, drag preview/commit and undo now pass 18 paired exact comparisons at time 7/30, with per-frame native IPC proof. Fixed opaque presentation and diagnostic depth allocation; full G0 and raw-alpha host recovery pass. Invalid fallback runs and structural failures are preserved and rejected. Installed-plugin valid/rejected reload, disable/safe-mode/missing root/nested editor workflows and complete milestone exit coverage remain open.",
+          "started_at": "2026-10-22T20:55:02.662Z",
+          "commit": "37fa7e26186f928ddf04f3f5556b14591dfc39b7",
+          "validation": {
+            "path": "artifacts/migration/cycle143-verification/report.json",
+            "sha256": "df626dd88565b47fbf3506021382c104a306c7b8e86ffca87f1445562aa88868"
+          }
         },
         {
           "id": "M11-T7",
@@ -2396041,6 +2396052,884 @@
         "reference": "artifacts/migration/cycle141-verification/recovery/capture/frame-0.png"
       },
       "notes": "Inspected both images. Rejected the original raw hash comparison. Canvas 2D exposes straight RGB, while frozen GPU bytes are associated-alpha RGB. Re-associating each candidate RGB byte with round(channel * alpha / 255) yields exact reference bytes and identical alpha for every pixel. Corrected witness preserves both original straight pixels and normalized comparison pixels; no reference, renderer or tolerance change. Current full G0 and independent real-host reruns passed."
+    },
+    {
+      "cycle": 143,
+      "case_id": "editor-preview-pre-opaque-beauty",
+      "profile": "gpu",
+      "reviewed_at": "2026-10-22T21:21:29.911Z",
+      "verdict": "rejected",
+      "residual_class": "structural",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 255,
+        "mean_abs_error": 62.403537326388886,
+        "mean_squared_error": 13265.438641493056,
+        "rgb_mean_squared_error": 1037.5336516203704,
+        "psnr": {
+          "kind": "finite",
+          "db": 17.970781692418303
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 6.903587457180239
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 54601
+      },
+      "ssim": {
+        "channels": [
+          0.9312554903803615,
+          0.9601009093495148,
+          0.9437679360864026,
+          0.15827302986505462
+        ],
+        "mean": 0.9450414452720931,
+        "rgba_mean": 0.7483493414203335,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 41753,
+        "error_component_count": 2,
+        "signed_bias": [
+          15.463871527777778,
+          9.07220486111111,
+          16.582899305555557,
+          -208.4951736111111
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 54546,
+        "alpha_changed_fraction": 0.9469791666666667,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "reference": {
+            "min_x": 69,
+            "min_y": 15,
+            "max_x": 257,
+            "max_y": 156
+          },
+          "candidate": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "edge_deltas": [
+            -69,
+            -15,
+            62,
+            23
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0546875,
+          "dy": 0.0234375,
+          "distance": 0.059498227389561786
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.20044186501928674,
+          "candidate_rms": 0.30437876948638276,
+          "reference_axis_ratio": 0.39333673819967163,
+          "candidate_axis_ratio": 0.38888089878081084,
+          "reference_window_energy_fraction": 0.9594280583638904,
+          "candidate_window_energy_fraction": 0.9480019028931302,
+          "active_frequencies": 3622,
+          "spectral_bins": 524288,
+          "peak_ratio": 1.9406992395301994,
+          "peak_to_sidelobe_ratio": 73.02775540198246,
+          "peak_coherence": 0.9921389542297511,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "reference_rgba_sha256": "87a93c2caa23f8ae949399ef383df2059f931325836043b4cf66c1d0fe40657a",
+      "candidate_rgba_sha256": "3ce722af5346d7a6ec418269aead7913b7cda88756532f36f5acd9c90dd1f725",
+      "evidence": {
+        "report": "artifacts/migration/cycle143-alpha-rejections/beauty/report.json",
+        "report_sha256": "7111478ae55d467d90d1df89b31f9483f6d8341fb49a6802e6851fcb0b5554e3",
+        "contact_sheet": "artifacts/migration/cycle143-alpha-rejections/beauty/contact-sheet.png",
+        "contact_sheet_sha256": "8752aec41cbd61ec26494f4e25934cd6cfb36df29947c642d5df95be6254c9c0",
+        "heatmap": "artifacts/migration/cycle143-alpha-rejections/beauty/heatmap.png",
+        "heatmap_sha256": "8479e0504488a6ca548a1f0055d5b20658602c76defd550e2d8cf4739dbf6c57"
+      },
+      "notes": "Directly inspected contact sheet and heatmap. Rejected transparent native editor presentation against the opaque TS viewport. Fixed native swapchain and snapshot opacity while preserving raw transport alpha; subsequent paired actual-editor capture is RGBA exact. No tolerance changes."
+    },
+    {
+      "cycle": 143,
+      "case_id": "editor-preview-pre-opaque-depthFog",
+      "profile": "gpu",
+      "reviewed_at": "2026-10-22T21:21:29.911Z",
+      "verdict": "rejected",
+      "residual_class": "structural",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 255,
+        "mean_abs_error": 62.403537326388886,
+        "mean_squared_error": 13265.438641493056,
+        "rgb_mean_squared_error": 1037.5336516203704,
+        "psnr": {
+          "kind": "finite",
+          "db": 17.970781692418303
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 6.903587457180239
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 54601
+      },
+      "ssim": {
+        "channels": [
+          0.9312554903803615,
+          0.9601009093495148,
+          0.9437679360864026,
+          0.15827302986505462
+        ],
+        "mean": 0.9450414452720931,
+        "rgba_mean": 0.7483493414203335,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 41753,
+        "error_component_count": 2,
+        "signed_bias": [
+          15.463871527777778,
+          9.07220486111111,
+          16.582899305555557,
+          -208.4951736111111
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 54546,
+        "alpha_changed_fraction": 0.9469791666666667,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "reference": {
+            "min_x": 69,
+            "min_y": 15,
+            "max_x": 257,
+            "max_y": 156
+          },
+          "candidate": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "edge_deltas": [
+            -69,
+            -15,
+            62,
+            23
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0546875,
+          "dy": 0.0234375,
+          "distance": 0.059498227389561786
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.20044186501928674,
+          "candidate_rms": 0.30437876948638276,
+          "reference_axis_ratio": 0.39333673819967163,
+          "candidate_axis_ratio": 0.38888089878081084,
+          "reference_window_energy_fraction": 0.9594280583638904,
+          "candidate_window_energy_fraction": 0.9480019028931302,
+          "active_frequencies": 3622,
+          "spectral_bins": 524288,
+          "peak_ratio": 1.9406992395301994,
+          "peak_to_sidelobe_ratio": 73.02775540198246,
+          "peak_coherence": 0.9921389542297511,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "reference_rgba_sha256": "87a93c2caa23f8ae949399ef383df2059f931325836043b4cf66c1d0fe40657a",
+      "candidate_rgba_sha256": "3ce722af5346d7a6ec418269aead7913b7cda88756532f36f5acd9c90dd1f725",
+      "evidence": {
+        "report": "artifacts/migration/cycle143-alpha-rejections/depthFog/report.json",
+        "report_sha256": "91cbf365c9d378c3d0a4be96d1ce7bb7834750e5fd5a36b52185790c21e6765a",
+        "contact_sheet": "artifacts/migration/cycle143-alpha-rejections/depthFog/contact-sheet.png",
+        "contact_sheet_sha256": "8752aec41cbd61ec26494f4e25934cd6cfb36df29947c642d5df95be6254c9c0",
+        "heatmap": "artifacts/migration/cycle143-alpha-rejections/depthFog/heatmap.png",
+        "heatmap_sha256": "8479e0504488a6ca548a1f0055d5b20658602c76defd550e2d8cf4739dbf6c57"
+      },
+      "notes": "Directly inspected contact sheet and heatmap. Rejected transparent native editor presentation against the opaque TS viewport. Fixed native swapchain and snapshot opacity while preserving raw transport alpha; subsequent paired actual-editor capture is RGBA exact. No tolerance changes."
+    },
+    {
+      "cycle": 143,
+      "case_id": "editor-preview-pre-opaque-depthOfField",
+      "profile": "gpu",
+      "reviewed_at": "2026-10-22T21:21:29.911Z",
+      "verdict": "rejected",
+      "residual_class": "structural",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 255,
+        "mean_abs_error": 69.81968315972222,
+        "mean_squared_error": 14360.2998046875,
+        "rgb_mean_squared_error": 2785.1705787037035,
+        "psnr": {
+          "kind": "finite",
+          "db": 13.68228562032801
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 6.559168539586853
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 57596
+      },
+      "ssim": {
+        "channels": [
+          0.8890932321773191,
+          0.8966104370540561,
+          0.8683193851455965,
+          0.17136570602979265
+        ],
+        "mean": 0.8846743514589904,
+        "rgba_mean": 0.706347190101691,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 57590,
+        "error_component_count": 1,
+        "signed_bias": [
+          31.771597222222223,
+          19.933454861111112,
+          21.16546875,
+          -206.40668402777777
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 57594,
+        "alpha_changed_fraction": 0.9998958333333333,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "reference": {
+            "min_x": 69,
+            "min_y": 15,
+            "max_x": 257,
+            "max_y": 156
+          },
+          "candidate": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "edge_deltas": [
+            -69,
+            -15,
+            62,
+            23
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.1328125,
+          "dy": 0.03125,
+          "distance": 0.1364394468482264
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.19193182555482888,
+          "candidate_rms": 0.3634596534227048,
+          "reference_axis_ratio": 0.3751452193246599,
+          "candidate_axis_ratio": 0.38307633027821425,
+          "reference_window_energy_fraction": 0.9437231679197756,
+          "candidate_window_energy_fraction": 0.9423801409458995,
+          "active_frequencies": 1724,
+          "spectral_bins": 524288,
+          "peak_ratio": 2.003953651202174,
+          "peak_to_sidelobe_ratio": 48.68070057525904,
+          "peak_coherence": 0.978634550491577,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "reference_rgba_sha256": "a1f45189a114e098d2701cff088a852aa93d536584a7b33adb6888cc76474d1c",
+      "candidate_rgba_sha256": "3a8811183d8d536e0e1285eb08ee24b418a4cd96910bcb7f036faf2e40f0ce12",
+      "evidence": {
+        "report": "artifacts/migration/cycle143-alpha-rejections/depthOfField/report.json",
+        "report_sha256": "11027efc921286e092b1f38cd505185cef619a8bcbb65bbe272428e7339f6c78",
+        "contact_sheet": "artifacts/migration/cycle143-alpha-rejections/depthOfField/contact-sheet.png",
+        "contact_sheet_sha256": "61ace86bf12d781e22f47cdbc8ce65f7d7a07b8060eb508ec42da29b853c9ffa",
+        "heatmap": "artifacts/migration/cycle143-alpha-rejections/depthOfField/heatmap.png",
+        "heatmap_sha256": "19988518e3281813e935a90954a16a7e323fc59bf951975b44bf6b2f0cf5e645"
+      },
+      "notes": "Directly inspected contact sheet and heatmap. Rejected transparent native editor presentation against the opaque TS viewport. Fixed native swapchain and snapshot opacity while preserving raw transport alpha; subsequent paired actual-editor capture is RGBA exact. No tolerance changes."
+    },
+    {
+      "cycle": 143,
+      "case_id": "editor-preview-pre-opaque-selectionIsolation",
+      "profile": "gpu",
+      "reviewed_at": "2026-10-22T21:21:29.911Z",
+      "verdict": "rejected",
+      "residual_class": "structural",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 255,
+        "mean_abs_error": 63.836032986111114,
+        "mean_squared_error": 13460.499704861111,
+        "rgb_mean_squared_error": 1297.6150694444445,
+        "psnr": {
+          "kind": "finite",
+          "db": 16.99934480429185
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 6.840191780204111
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 54601
+      },
+      "ssim": {
+        "channels": [
+          0.9284343899264493,
+          0.9578731411134837,
+          0.9374893056644817,
+          0.15827302986505462
+        ],
+        "mean": 0.941265612234805,
+        "rgba_mean": 0.7455174666423674,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 41753,
+        "error_component_count": 2,
+        "signed_bias": [
+          15.769340277777777,
+          11.936493055555555,
+          19.143125,
+          -208.4951736111111
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 54546,
+        "alpha_changed_fraction": 0.9469791666666667,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "reference": {
+            "min_x": 69,
+            "min_y": 15,
+            "max_x": 257,
+            "max_y": 156
+          },
+          "candidate": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "edge_deltas": [
+            -69,
+            -15,
+            62,
+            23
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0703125,
+          "dy": 0.03125,
+          "distance": 0.07694420157653206
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.21144418972528167,
+          "candidate_rms": 0.32226324197463474,
+          "reference_axis_ratio": 0.39190883508908464,
+          "candidate_axis_ratio": 0.3875694128762051,
+          "reference_window_energy_fraction": 0.955763222055413,
+          "candidate_window_energy_fraction": 0.9457105323318693,
+          "active_frequencies": 3134,
+          "spectral_bins": 524288,
+          "peak_ratio": 1.9346448669656386,
+          "peak_to_sidelobe_ratio": 67.23958960334207,
+          "peak_coherence": 0.9893242953455541,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "reference_rgba_sha256": "13bf3ff4e15bc54d905bc17d298b1170e10f0183ef70a5799261fc2869a916b2",
+      "candidate_rgba_sha256": "f5750b5d151959bcd923cda32f2dfe386ad7b3ac122860de216e0b64c28df42b",
+      "evidence": {
+        "report": "artifacts/migration/cycle143-alpha-rejections/selectionIsolation/report.json",
+        "report_sha256": "b0bdcc5033e26e706d39c25dd7145b6ba71f799684ab6416e9de0bf5d3dd5ce9",
+        "contact_sheet": "artifacts/migration/cycle143-alpha-rejections/selectionIsolation/contact-sheet.png",
+        "contact_sheet_sha256": "6793e289976526383e53593a495e5bdab84992f513c3248b867e9fb09c2978b9",
+        "heatmap": "artifacts/migration/cycle143-alpha-rejections/selectionIsolation/heatmap.png",
+        "heatmap_sha256": "8479e0504488a6ca548a1f0055d5b20658602c76defd550e2d8cf4739dbf6c57"
+      },
+      "notes": "Directly inspected contact sheet and heatmap. Rejected transparent native editor presentation against the opaque TS viewport. Fixed native swapchain and snapshot opacity while preserving raw transport alpha; subsequent paired actual-editor capture is RGBA exact. No tolerance changes."
+    },
+    {
+      "cycle": 143,
+      "case_id": "editor-preview-pre-opaque-vectorMotionBlur",
+      "profile": "gpu",
+      "reviewed_at": "2026-10-22T21:21:29.911Z",
+      "verdict": "rejected",
+      "residual_class": "structural",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 255,
+        "mean_abs_error": 62.403537326388886,
+        "mean_squared_error": 13265.438641493056,
+        "rgb_mean_squared_error": 1037.5336516203704,
+        "psnr": {
+          "kind": "finite",
+          "db": 17.970781692418303
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 6.903587457180239
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 54601
+      },
+      "ssim": {
+        "channels": [
+          0.9312554903803615,
+          0.9601009093495148,
+          0.9437679360864026,
+          0.15827302986505462
+        ],
+        "mean": 0.9450414452720931,
+        "rgba_mean": 0.7483493414203335,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 41753,
+        "error_component_count": 2,
+        "signed_bias": [
+          15.463871527777778,
+          9.07220486111111,
+          16.582899305555557,
+          -208.4951736111111
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 54546,
+        "alpha_changed_fraction": 0.9469791666666667,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "reference": {
+            "min_x": 69,
+            "min_y": 15,
+            "max_x": 257,
+            "max_y": 156
+          },
+          "candidate": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "edge_deltas": [
+            -69,
+            -15,
+            62,
+            23
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0546875,
+          "dy": 0.0234375,
+          "distance": 0.059498227389561786
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.20044186501928674,
+          "candidate_rms": 0.30437876948638276,
+          "reference_axis_ratio": 0.39333673819967163,
+          "candidate_axis_ratio": 0.38888089878081084,
+          "reference_window_energy_fraction": 0.9594280583638904,
+          "candidate_window_energy_fraction": 0.9480019028931302,
+          "active_frequencies": 3622,
+          "spectral_bins": 524288,
+          "peak_ratio": 1.9406992395301994,
+          "peak_to_sidelobe_ratio": 73.02775540198246,
+          "peak_coherence": 0.9921389542297511,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "reference_rgba_sha256": "87a93c2caa23f8ae949399ef383df2059f931325836043b4cf66c1d0fe40657a",
+      "candidate_rgba_sha256": "3ce722af5346d7a6ec418269aead7913b7cda88756532f36f5acd9c90dd1f725",
+      "evidence": {
+        "report": "artifacts/migration/cycle143-alpha-rejections/vectorMotionBlur/report.json",
+        "report_sha256": "1509f1674e61cb968a729c3deeaae1be7f5fd49d66e70306f9a4935a8362dda2",
+        "contact_sheet": "artifacts/migration/cycle143-alpha-rejections/vectorMotionBlur/contact-sheet.png",
+        "contact_sheet_sha256": "8752aec41cbd61ec26494f4e25934cd6cfb36df29947c642d5df95be6254c9c0",
+        "heatmap": "artifacts/migration/cycle143-alpha-rejections/vectorMotionBlur/heatmap.png",
+        "heatmap_sha256": "8479e0504488a6ca548a1f0055d5b20658602c76defd550e2d8cf4739dbf6c57"
+      },
+      "notes": "Directly inspected contact sheet and heatmap. Rejected transparent native editor presentation against the opaque TS viewport. Fixed native swapchain and snapshot opacity while preserving raw transport alpha; subsequent paired actual-editor capture is RGBA exact. No tolerance changes."
+    },
+    {
+      "cycle": 143,
+      "case_id": "editor-preview-pre-opaque-moved",
+      "profile": "gpu",
+      "reviewed_at": "2026-10-22T21:21:29.911Z",
+      "verdict": "rejected",
+      "residual_class": "structural",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 255,
+        "mean_abs_error": 62.403537326388886,
+        "mean_squared_error": 13265.438641493056,
+        "rgb_mean_squared_error": 1037.5336516203704,
+        "psnr": {
+          "kind": "finite",
+          "db": 17.970781692418303
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 6.903587457180239
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 54601
+      },
+      "ssim": {
+        "channels": [
+          0.9312554903803614,
+          0.960100909349515,
+          0.9437679360864027,
+          0.15827302986505473
+        ],
+        "mean": 0.9450414452720931,
+        "rgba_mean": 0.7483493414203335,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 41753,
+        "error_component_count": 2,
+        "signed_bias": [
+          15.463871527777778,
+          9.07220486111111,
+          16.582899305555557,
+          -208.4951736111111
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 54546,
+        "alpha_changed_fraction": 0.9469791666666667,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "reference": {
+            "min_x": 79,
+            "min_y": 15,
+            "max_x": 267,
+            "max_y": 156
+          },
+          "candidate": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "edge_deltas": [
+            -79,
+            -15,
+            52,
+            23
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0625,
+          "dy": 0.03125,
+          "distance": 0.06987712429686843
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.20044186501928674,
+          "candidate_rms": 0.30437876948638276,
+          "reference_axis_ratio": 0.39333673819967163,
+          "candidate_axis_ratio": 0.38888089878081084,
+          "reference_window_energy_fraction": 0.9594280583638922,
+          "candidate_window_energy_fraction": 0.9480019028931294,
+          "active_frequencies": 3660,
+          "spectral_bins": 524288,
+          "peak_ratio": 1.9361300634087337,
+          "peak_to_sidelobe_ratio": 73.33305474976464,
+          "peak_coherence": 0.9911404774203707,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "reference_rgba_sha256": "8e960c25313484f979015c2501c1e5d5dbc66384310a8cad2b1588abe26e9db5",
+      "candidate_rgba_sha256": "b3ba0a7ccd80edd8e5fa996f1d5f5a319250aa691c46d416fbe217aa3c242e3f",
+      "evidence": {
+        "report": "artifacts/migration/cycle143-alpha-rejections/moved/report.json",
+        "report_sha256": "a39e8a20addff14aa6768cbee128f21785678b87cf7ad06641d7d149f65f1111",
+        "contact_sheet": "artifacts/migration/cycle143-alpha-rejections/moved/contact-sheet.png",
+        "contact_sheet_sha256": "41e1166a88db5187d5cf7dd74e0a5c7ea6f3a7f2637227107b6b8c8d7a211827",
+        "heatmap": "artifacts/migration/cycle143-alpha-rejections/moved/heatmap.png",
+        "heatmap_sha256": "b5bb440faa47b938a2df60372869321ab9065eaf4816419999af81cf13f038a1"
+      },
+      "notes": "Directly inspected contact sheet and heatmap. Rejected transparent native editor presentation against the opaque TS viewport. Fixed native swapchain and snapshot opacity while preserving raw transport alpha; subsequent paired actual-editor capture is RGBA exact. No tolerance changes."
+    },
+    {
+      "cycle": 143,
+      "case_id": "editor-preview-pre-opaque-restored",
+      "profile": "gpu",
+      "reviewed_at": "2026-10-22T21:21:29.911Z",
+      "verdict": "rejected",
+      "residual_class": "structural",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 255,
+        "mean_abs_error": 62.403537326388886,
+        "mean_squared_error": 13265.438641493056,
+        "rgb_mean_squared_error": 1037.5336516203704,
+        "psnr": {
+          "kind": "finite",
+          "db": 17.970781692418303
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 6.903587457180239
+        },
+        "channel_tolerance": 2,
+        "pixels_above_tolerance": 54601
+      },
+      "ssim": {
+        "channels": [
+          0.9312554903803615,
+          0.9601009093495148,
+          0.9437679360864026,
+          0.15827302986505462
+        ],
+        "mean": 0.9450414452720931,
+        "rgba_mean": 0.7483493414203335,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": {
+        "pixel_count": 57600,
+        "cluster_error_threshold": 16,
+        "largest_error_component": 41753,
+        "error_component_count": 2,
+        "signed_bias": [
+          15.463871527777778,
+          9.07220486111111,
+          16.582899305555557,
+          -208.4951736111111
+        ],
+        "alpha_error_threshold": 8,
+        "alpha_changed_pixels": 54546,
+        "alpha_changed_fraction": 0.9469791666666667,
+        "ink_bounds": {
+          "background": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "reference": {
+            "min_x": 69,
+            "min_y": 15,
+            "max_x": 257,
+            "max_y": 156
+          },
+          "candidate": {
+            "min_x": 0,
+            "min_y": 0,
+            "max_x": 319,
+            "max_y": 179
+          },
+          "edge_deltas": [
+            -69,
+            -15,
+            62,
+            23
+          ],
+          "same_emptiness": true
+        }
+      },
+      "registration": {
+        "status": "measured",
+        "shift": {
+          "dx": 0.0546875,
+          "dy": 0.0234375,
+          "distance": 0.059498227389561786
+        },
+        "diagnostic": null,
+        "quality": {
+          "reference_rms": 0.20044186501928674,
+          "candidate_rms": 0.30437876948638276,
+          "reference_axis_ratio": 0.39333673819967163,
+          "candidate_axis_ratio": 0.38888089878081084,
+          "reference_window_energy_fraction": 0.9594280583638904,
+          "candidate_window_energy_fraction": 0.9480019028931302,
+          "active_frequencies": 3622,
+          "spectral_bins": 524288,
+          "peak_ratio": 1.9406992395301994,
+          "peak_to_sidelobe_ratio": 73.02775540198246,
+          "peak_coherence": 0.9921389542297511,
+          "sampling_step_px": 0.0078125,
+          "relative_spectral_floor": 0.001,
+          "taper_fraction": 0.125,
+          "working_bytes": 29122560
+        }
+      },
+      "reference_rgba_sha256": "87a93c2caa23f8ae949399ef383df2059f931325836043b4cf66c1d0fe40657a",
+      "candidate_rgba_sha256": "3ce722af5346d7a6ec418269aead7913b7cda88756532f36f5acd9c90dd1f725",
+      "evidence": {
+        "report": "artifacts/migration/cycle143-alpha-rejections/restored/report.json",
+        "report_sha256": "502b66f74ac9f04121086cdb04fd9765f7f529b9002263874a37907268a5957d",
+        "contact_sheet": "artifacts/migration/cycle143-alpha-rejections/restored/contact-sheet.png",
+        "contact_sheet_sha256": "8752aec41cbd61ec26494f4e25934cd6cfb36df29947c642d5df95be6254c9c0",
+        "heatmap": "artifacts/migration/cycle143-alpha-rejections/restored/heatmap.png",
+        "heatmap_sha256": "8479e0504488a6ca548a1f0055d5b20658602c76defd550e2d8cf4739dbf6c57"
+      },
+      "notes": "Directly inspected contact sheet and heatmap. Rejected transparent native editor presentation against the opaque TS viewport. Fixed native swapchain and snapshot opacity while preserving raw transport alpha; subsequent paired actual-editor capture is RGBA exact. No tolerance changes."
+    },
+    {
+      "cycle": 143,
+      "case_id": "editor-preview-depthOfField",
+      "profile": "exact",
+      "reviewed_at": "2026-10-22T21:21:29.911Z",
+      "verdict": "rejected",
+      "residual_class": "structural",
+      "metrics": {
+        "exact": false,
+        "pixel_count": 57600,
+        "max_abs_channel_error": 119,
+        "mean_abs_error": 5.039223090277778,
+        "mean_squared_error": 254.1110720486111,
+        "rgb_mean_squared_error": 338.8147627314815,
+        "psnr": {
+          "kind": "finite",
+          "db": 22.831180358528623
+        },
+        "rgba_psnr": {
+          "kind": "finite",
+          "db": 24.080567724611623
+        },
+        "channel_tolerance": 0,
+        "pixels_above_tolerance": 15837
+      },
+      "ssim": {
+        "channels": [
+          0.9440787334296343,
+          0.9801413591985901,
+          0.9739159059412229,
+          0.9999999999999756
+        ],
+        "mean": 0.9660453328564825,
+        "rgba_mean": 0.9745339996423558,
+        "window_size": 11,
+        "sigma": 1.5,
+        "boundary": "half_sample_symmetric_reflection"
+      },
+      "structural": null,
+      "registration": null,
+      "reference_rgba_sha256": "a1f45189a114e098d2701cff088a852aa93d536584a7b33adb6888cc76474d1c",
+      "candidate_rgba_sha256": "e25f6b8fff96964104e103e3bb81228ede5c1c791c1f7d29e7e3ea98455929cd",
+      "evidence": {
+        "report": "artifacts/migration/cycle143-interactions-corrected/pixels/depthOfField/report.json",
+        "report_sha256": "1014a5319cab196ab22aaee5f656c19efde1f2172d66d63d8e583920eaa50525",
+        "contact_sheet": "artifacts/migration/cycle143-interactions-corrected/pixels/depthOfField/contact-sheet.png",
+        "contact_sheet_sha256": "23245b839c33dfa3cab74adda17e70e56455210943e87b985245aab69199d34b",
+        "heatmap": "artifacts/migration/cycle143-interactions-corrected/pixels/depthOfField/heatmap.png",
+        "heatmap_sha256": "b9e7a2bea70ac9c69f73b217fe8dac74e4babb797db2962f3b0849807a80cb36"
+      },
+      "notes": "Directly inspected contact sheet and heatmap. Rejected wrong diagnostic blur from layered depth allocation. Fixed diagnostic routing to primary surfaces; subsequent paired actual-editor capture is RGBA exact."
     }
   ],
   "history": [
@@ -2451495,6 +2452384,41 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Implement M11-T6 actual editor direct-manipulation, diagnostic and installed-plugin lifecycle coverage. Retain full corpus, final paired performance and current-source exit audit requirements."
+    },
+    {
+      "cycle": 143,
+      "id": 143,
+      "time": "2026-10-22T21:21:29.911Z",
+      "updated_at": "2026-10-22T21:21:29.911Z",
+      "milestone": "M11",
+      "task": "M11-T6",
+      "increment": "paired-editor-diagnostic-and-manipulation-witness",
+      "outcome": "increment_committed_layered_verification",
+      "commit": "37fa7e26186f928ddf04f3f5556b14591dfc39b7",
+      "validation_policy": "layered-development-verification-v1",
+      "validation": {
+        "path": "artifacts/migration/cycle143-verification/report.json",
+        "sha256": "df626dd88565b47fbf3506021382c104a306c7b8e86ffca87f1445562aa88868"
+      },
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "scope": "full lefthook migration-static"
+        },
+        {
+          "id": "G6",
+          "status": "passed",
+          "scope": "18 exact paired actual-editor diagnostic/manipulation frames plus production-host recovery, 24 alpha-preserving raw frames and 2 opaque snapshots"
+        }
+      ],
+      "milestone_exit_satisfied": false,
+      "rejected_evidence": [
+        "artifacts/migration/cycle143-alpha-rejections/report.json",
+        "artifacts/migration/cycle143-interactions-corrected/report.json",
+        "artifacts/migration/cycle143-interactions-check/report.json"
+      ],
+      "next_step": "Complete M11-T6 real editor installed-plugin lifecycle coverage. Retain full corpus, owner-project preview, final paired performance and current-source milestone exit requirements."
     }
   ],
   "known_boundaries": [
