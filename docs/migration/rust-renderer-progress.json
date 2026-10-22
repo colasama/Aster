@@ -66,7 +66,7 @@
       "native_performance": "higher-median-fps-than-contemporaneous-ts",
       "preview_latency": "input-to-present-p95-no-worse-than-contemporaneous-ts",
       "historical_thresholds": "Frozen 5-percent regression limits and absolute 75/120 FPS targets remain historical information, not migration blockers.",
-      "correctness": "All functional, exact/pixel-profile, quality, IR, application and static checks remain required at their applicable milestones. Full required gates must pass before each commit."
+      "correctness": "All functional, exact/pixel-profile, quality, IR, application and static checks remain required at their applicable milestones. Development commit frequency follows layered-development-verification-v1; full required gates remain mandatory at milestone exits and final delivery."
     },
     "usage_stop": {
       "recorded_at": "2026-10-04T15:48:57.070Z",
@@ -96,9 +96,9 @@
       }
     },
     "quota_stop_policy": {
-      "remaining_percent": 5,
-      "authorized_at": "2026-10-09T14:17:52.210411+00:00",
-      "authorization": "Continue until the full migration is complete or quota remaining reaches 5%."
+      "remaining_percent": 1,
+      "authorized_at": "2026-10-22T15:06:27.358Z",
+      "authorization": "Current active goal: complete the full migration or stop at 1% remaining allowance."
     },
     "encoded_quality_policy": {
       "kind": "layered-nv12-and-uniform-reference-v1",
@@ -189,6 +189,24 @@
         "Verify with independently captured actual TS outputs",
         "Do not change the separate QuickJS WASM AI editing runtime"
       ]
+    },
+    "incremental_verification_policy": {
+      "kind": "layered-development-verification-v1",
+      "status": "approved",
+      "authorization_received": true,
+      "approved_at": "2026-10-22T19:43:55.531Z",
+      "approved_local_date": "2026-10-23",
+      "question": "是否将迁移规范第 8 节的提交规则改为：开发增量通过 G0 和受影响范围的定向验证即可提交；完整画质、性能、应用及导出验收集中在相应里程碑结束和最终交付时执行，最终完成标准不变？需要确认，因为这会修改你原先明确要求的“完整门槛全绿才能提交”。",
+      "answer": "采用分层验证，优先推进迁移（推荐）",
+      "development": "Full G0 plus targeted verification of affected behavior before development commits.",
+      "milestone_exit": "All applicable full gates before declaring the milestone done.",
+      "final_delivery": "Section 11 remains unchanged. All production preview and export paths use Rust; all required full gates pass.",
+      "evidence": "Preserve failed reports and record deferred milestone gates; targeted success never reclassifies a failed full run.",
+      "supersedes": "Full required gates before every development commit; no threshold, self-review or checkpoint-authentication changes.",
+      "authorization_evidence": {
+        "path": "artifacts/migration/cycle138-layered-verification-authorization.json",
+        "sha256": "73e04cda6b1dd03a36c36de51dce217b3a6ef5e17c31aaf3a969f58691505f12"
+      }
     }
   },
   "reference_baseline": {
@@ -370,46 +388,55 @@
     }
   },
   "last_cycle": {
-    "id": 137,
-    "time": "2026-10-22T08:29:57.884Z",
-    "updated_at": "2026-10-22T08:29:57.884Z",
+    "id": 138,
+    "time": "2026-10-22T19:54:30.426Z",
+    "updated_at": "2026-10-22T19:54:30.426Z",
     "milestone": "M11",
     "task": "M11-T1",
-    "increment": "owned-native-preview-and-paired-qualification",
-    "outcome": "paused_at_owner_quota_limit",
-    "commit": null,
-    "verification": {
-      "path": "artifacts/migration/verify-2026-10-22T07-48-26-722Z-496649fc.json",
-      "sha256": "519c78cd687deb50b43c134e8958a2f8273f48a23640ffb8481fad4495dd973f"
+    "increment": "reduce-native-preview-particle-overhead",
+    "outcome": "increment_committed_layered_verification",
+    "commit": "1c6f7cab454007d57ac9e9060404e21391967148",
+    "validation_policy": "layered-development-verification-v1",
+    "validation": {
+      "path": "artifacts/migration/cycle138-static-closeout/report.json",
+      "sha256": "1cfa9a0aad85f679770693b9c585e03ae61d731925fc5e3e11c53d83f2a2df05"
     },
-    "checkpoint": {
-      "path": "artifacts/migration/cycle137-quota-interruption.json",
-      "sha256": "5f808ff02ef3807f955706099769a2650d4fca95e5d22e73e91c29aefcede473"
+    "pixel_corpus": {
+      "path": "artifacts/migration/2026-10-22T18-41-25-068Z-4a26fe5b/G3/report.json",
+      "sha256": "facb041f3343c9bda939293f2112b48f1fe639c2ee266d7cdbc9df82536336f7"
+    },
+    "recovery": {
+      "path": "artifacts/migration/cycle138-layered-closeout/recovery/report.json",
+      "sha256": "be42dc6deb642e8fee48c57ad5bfad756bcc79596559dcd1238c7c14ed25b4ff"
+    },
+    "latest_full_verification": {
+      "path": "artifacts/migration/verify-2026-10-22T18-41-25-068Z-4a26fe5b.json",
+      "sha256": "0f1d9ed854a1b3e03b7426cfe4e1d516e487366be2d595fa180552de631de7a2"
     },
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "proof": {
-          "path": "C:\\Users\\colanns\\AppData\\Local\\Temp\\aster-migration-cycle137-qualification1\\G0\\static-results.json",
-          "sha256": "eebb94cfd384a358553a8e7f316a4a06faa1bc189d231078f7d5005b7ec7b82a"
-        }
+        "scope": "full-static"
       },
       {
         "id": "G3",
-        "status": "incomplete"
+        "status": "passed",
+        "scope": "337 cases / 1819 preview frames; runtime unchanged after capture"
       },
       {
         "id": "G4",
-        "status": "incomplete"
+        "status": "failed",
+        "scope": "latest full attempt; deferred milestone acceptance"
       },
       {
         "id": "G6",
-        "status": "incomplete"
+        "status": "failed",
+        "scope": "latest full attempt preserved; corrected targeted recovery passed with 24 exact frames"
       }
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Resume M11-T1 after owner authorization and quota check. Read ledger and latest formal report. Current G0 is green; two complete paired runs show four faster native project scenarios, three slower particle scenarios, and better input latency. Third pair was interrupted and G6 not reached. Preserve all evidence, finish native throughput work, then run full current G0/G3/G4/G6 before any implementation commit. M11 exit audit and M12 remain open."
+    "next_step": "Start M11-T2: freeze trusted installed generator runtimes into native project snapshots, bind plugin changes to snapshot/cache identity, and preserve local unavailable-generator behavior in root and nested scenes. Use G0 plus affected targeted checks for development. At M11 exit repair pre-sample focus preparation and run all required gates."
   },
   "milestones": [
     {
@@ -27377,7 +27404,7 @@
           "id": "M11-T1",
           "title": "Introduce owned lossless shared GPU preview surfaces",
           "scope": "Expose bounded BGRA surface leases from native output, synchronize GPU completion, transfer only process-local NT handles and validate real Electron import/presentation with independent pixels and lifecycle controls.",
-          "status": "in_progress",
+          "status": "done",
           "estimated_implementation_hours": 2,
           "required_gates": [
             "G0",
@@ -27386,7 +27413,13 @@
             "G6"
           ],
           "started_at": "2026-10-22T02:26:41.042Z",
-          "progress": "Current full G0 passed. Real device/producer/renderer recovery passed 24 exact frames. Two current 600-sample paired runs show four native throughput wins and three particle regressions; input p95 ~79 ms versus TS ~94 ms. Third pair interrupted at owner quota boundary; full G4/G6 and current full G3 remain incomplete. No implementation commit or task completion claimed."
+          "progress": "Owned lossless shared GPU preview surfaces, producer/consumer release ownership, bounded active-and-draining host sessions and authenticated generator storage reuse are committed. Full G0 passed. Full corpus G3 passed. Corrected recovery witness passed 24 exact frames, device loss, producer and renderer crashes, cache, resize and no residual sessions. This development completion does not claim final M11 performance or exit acceptance.",
+          "completed_at": "2026-10-22T19:54:30.426Z",
+          "commit": "1c6f7cab454007d57ac9e9060404e21391967148",
+          "validation": {
+            "path": "artifacts/migration/cycle138-static-closeout/report.json",
+            "sha256": "1cfa9a0aad85f679770693b9c585e03ae61d731925fc5e3e11c53d83f2a2df05"
+          }
         },
         {
           "id": "M11-T2",
@@ -27464,7 +27497,8 @@
             "G3",
             "G4",
             "G6"
-          ]
+          ],
+          "progress": "Full performance acceptance remains open. Attempt 2 passed numerically but was rejected for operator interference. Attempt 3 lost focus before the second latency calibration click, with no latency samples; retain failure and add bounded pre-measurement focus preparation before final qualification."
         },
         {
           "id": "M11-T8",
@@ -2449421,6 +2449455,219 @@
       },
       "implementation_committed": false,
       "milestone_exit_satisfied": false
+    },
+    {
+      "cycle": 138,
+      "id": 138,
+      "time": "2026-10-22T19:54:30.426Z",
+      "updated_at": "2026-10-22T19:54:30.426Z",
+      "milestone": "M11",
+      "task": "M11-T1",
+      "increment": "reduce-native-preview-particle-overhead",
+      "outcome": "increment_committed_layered_verification",
+      "commit": "1c6f7cab454007d57ac9e9060404e21391967148",
+      "validation_policy": "layered-development-verification-v1",
+      "validation": {
+        "path": "artifacts/migration/cycle138-static-closeout/report.json",
+        "sha256": "1cfa9a0aad85f679770693b9c585e03ae61d731925fc5e3e11c53d83f2a2df05"
+      },
+      "pixel_corpus": {
+        "path": "artifacts/migration/2026-10-22T18-41-25-068Z-4a26fe5b/G3/report.json",
+        "sha256": "facb041f3343c9bda939293f2112b48f1fe639c2ee266d7cdbc9df82536336f7"
+      },
+      "recovery": {
+        "path": "artifacts/migration/cycle138-layered-closeout/recovery/report.json",
+        "sha256": "be42dc6deb642e8fee48c57ad5bfad756bcc79596559dcd1238c7c14ed25b4ff"
+      },
+      "latest_full_verification": {
+        "path": "artifacts/migration/verify-2026-10-22T18-41-25-068Z-4a26fe5b.json",
+        "sha256": "0f1d9ed854a1b3e03b7426cfe4e1d516e487366be2d595fa180552de631de7a2"
+      },
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "scope": "full-static"
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "scope": "337 cases / 1819 preview frames; runtime unchanged after capture"
+        },
+        {
+          "id": "G4",
+          "status": "failed",
+          "scope": "latest full attempt; deferred milestone acceptance"
+        },
+        {
+          "id": "G6",
+          "status": "failed",
+          "scope": "latest full attempt preserved; corrected targeted recovery passed with 24 exact frames"
+        }
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Start M11-T2: freeze trusted installed generator runtimes into native project snapshots, bind plugin changes to snapshot/cache identity, and preserve local unavailable-generator behavior in root and nested scenes. Use G0 plus affected targeted checks for development. At M11 exit repair pre-sample focus preparation and run all required gates.",
+      "verification_attempts": [
+        {
+          "path": "artifacts/migration/verify-2026-10-22T15-57-43-648Z-162163a4.json",
+          "sha256": "58eddbc591af2490c11796b08cf69d7f429f999471783d767420394d936b880c",
+          "gates": [
+            {
+              "id": "G0",
+              "status": "passed"
+            },
+            {
+              "id": "G3",
+              "status": "passed"
+            },
+            {
+              "id": "G4",
+              "status": "failed",
+              "error": "AssertionError [ERR_ASSERTION]: Error: Matching compositor presentation timed out: 0\n    at Timeout._onTimeout (file:///D:/code/Aster/scripts/migration/preview-input-latency.mjs:162:18)\n    at listOnTimeout (node:internal/timers:635:17)\n    at process.processTimers (node:internal/timers:571:7)\n\n'failed' !== 'passed'\n\n    at runPreviewPerformanceGate (file:///D:/code/Aster/scripts/migration/preview-performance-gate.mjs:170:16)\n    at async verifyMigration (file:///D:/code/Aster/scripts/migration/verify.mjs:234:15)\n    at async file:///D:/code/Aster/scripts/migrate-verify.mjs:5:18"
+            },
+            {
+              "id": "G6",
+              "status": "incomplete",
+              "error": "Packaged preview, queue smoke, producer-crash cleanup and renderer/device recovery passed; independent input latency acceptance remains required"
+            }
+          ],
+          "diagnostic": [
+            {
+              "path": "C:/Users/colanns/AppData/Local/Temp/aster-migration-cycle138-latency-diagnostic1/report.json",
+              "sha256": "77c4c88a61012212fbfe003e19c5c787fd8fe54683ae28ef95cd0401a63a6340",
+              "status": "passed",
+              "latency_samples": 600
+            },
+            {
+              "path": "C:/Users/colanns/AppData/Local/Temp/aster-migration-cycle138-particle-latency1/report.json",
+              "sha256": "6de1b3a55fdbc4e5994640118013f973f870b75f61ec1d1fc2066aab5b6ee053",
+              "status": "passed",
+              "latency_samples": 600
+            },
+            {
+              "path": "C:/Users/colanns/AppData/Local/Temp/aster-migration-cycle138-full-native-diagnostic1/report.json",
+              "sha256": "ddeeb7f9b4d144c6aba0cbeaefcbb80216d0def1ebdb004fac876476c3c9185f",
+              "status": "passed",
+              "latency_samples": 600
+            }
+          ]
+        },
+        {
+          "path": "artifacts/migration/verify-2026-10-22T17-14-58-579Z-6754cbbb.json",
+          "sha256": "adc9eb1f82ce68a20f5180c37f32a0ab556dd01c049aa9856204f3844f0fe420",
+          "gates": [
+            {
+              "id": "G0",
+              "status": "passed"
+            },
+            {
+              "id": "G3",
+              "status": "passed"
+            },
+            {
+              "id": "G4",
+              "status": "passed"
+            },
+            {
+              "id": "G6",
+              "status": "passed"
+            }
+          ],
+          "duration_ms": 5110099,
+          "operator_acceptance": "diagnostic_only",
+          "reason": "An interrupted background artifact directory enumeration overlapped G4 round 2 TS; preserve the original passing report but do not use this run for final performance acceptance or an implementation commit.",
+          "interference": {
+            "path": "artifacts/migration/cycle138-attempt2-interference.json",
+            "sha256": "a3c4449c1539110bd4e08c7b0f4ae7015731f3df78be6bdd9474f845d7b78edf"
+          },
+          "performance": {
+            "comparisons": [
+              {
+                "name": "1080p current composition",
+                "ts_median_fps": 8.729812312669313,
+                "native_median_fps": 14.673514298976292,
+                "faster": true
+              },
+              {
+                "name": "4K current composition",
+                "ts_median_fps": 5.836008171629483,
+                "native_median_fps": 8.428150018530012,
+                "faster": true
+              },
+              {
+                "name": "20-layer 1080p composite",
+                "ts_median_fps": 8.568980287844038,
+                "native_median_fps": 15.151515151515152,
+                "faster": true
+              },
+              {
+                "name": "Blur + glow effect chain",
+                "ts_median_fps": 8.733624454148472,
+                "native_median_fps": 14.749262547246307,
+                "faster": true
+              },
+              {
+                "name": "100K GPU particles",
+                "ts_median_fps": 125,
+                "native_median_fps": 142.85714285714286,
+                "faster": true
+              },
+              {
+                "name": "500K GPU particles",
+                "ts_median_fps": 62.8930818553137,
+                "native_median_fps": 75.75757548390888,
+                "faster": true
+              },
+              {
+                "name": "1M GPU particles",
+                "ts_median_fps": 47.39336487535802,
+                "native_median_fps": 47.61904761904762,
+                "faster": true
+              }
+            ],
+            "latency": {
+              "ts_p95_ms": 94.03709999999846,
+              "native_p95_ms": 78.73973499999556
+            }
+          }
+        },
+        {
+          "path": "artifacts/migration/verify-2026-10-22T18-41-25-068Z-4a26fe5b.json",
+          "sha256": "0f1d9ed854a1b3e03b7426cfe4e1d516e487366be2d595fa180552de631de7a2",
+          "status": "failed",
+          "duration_ms": 3673564,
+          "gates": [
+            {
+              "id": "G0",
+              "status": "passed"
+            },
+            {
+              "id": "G3",
+              "status": "passed"
+            },
+            {
+              "id": "G4",
+              "status": "failed",
+              "error": "AssertionError [ERR_ASSERTION]: AssertionError [ERR_ASSERTION]: Test window lost focus during input latency capture\n    at click (file:///D:/code/Aster/scripts/migration/preview-input-latency.mjs:52:5)\n    at capturePreviewInputLatency (file:///D:/code/Aster/scripts/migration/preview-input-latency.mjs:86:5)\n    at async main (file:///D:/code/Aster/scripts/migration/preview-editor-electron.mjs:201:24)\n\n'failed' !== 'passed'\n\n    at runPreviewPerformanceGate (file:///D:/code/Aster/scripts/migration/preview-performance-gate.mjs:170:16)\n    at async verifyMigration (file:///D:/code/Aster/scripts/migration/verify.mjs:234:15)\n    at async file:///D:/code/Aster/scripts/migrate-verify.mjs:5:18"
+            },
+            {
+              "id": "G6",
+              "status": "failed",
+              "error": "AssertionError [ERR_ASSERTION]: AssertionError [ERR_ASSERTION]: Error: Error: Native preview capability absent\n    at $a (file:///D:/code/Aster/artifacts/migration/2026-10-22T18-41-25-068Z-4a26fe5b/G6/recovery/web/assets/native-preview-witness-D8huq4yz.js:5818:145034)\n    at Immediate._onImmediate (file:///D:/code/Aster/scripts/migration/preview-app-electron.mjs:208:40)\n    at process.processImmediate (node:internal/timers:534:21)\n\n'failed' !== 'passed'\n\n    at runPreviewLifecycle (file:///D:/code/Aster/scripts/migration/preview-lifecycle-gate.mjs:98:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async runPreviewAppGate (file:///D:/code/Aster/scripts/migration/preview-app-gate.mjs:84:23)\n    at async verifyMigration (file:///D:/code/Aster/scripts/migration/verify.mjs:411:15)\n    at async file:///D:/code/Aster/scripts/migrate-verify.mjs:5:18\n\n'failed' !== 'passed'\n\n    at runPreviewAppGate (file:///D:/code/Aster/scripts/migration/preview-app-gate.mjs:91:12)\n    at async verifyMigration (file:///D:/code/Aster/scripts/migration/verify.mjs:411:15)\n    at async file:///D:/code/Aster/scripts/migrate-verify.mjs:5:18"
+            }
+          ],
+          "operator_acceptance": "failed-preserved",
+          "diagnosis": "G0 and all G3 pixels passed. G4 native round 1 lost focus before the second calibration input, before any latency samples. G6 packaged foreground/background, producer-crash guard and editor capture passed; recovery witness disposed its host before reloading and therefore correctly lost availability. Correct the witness to observe crash-triggered retirement without disposing the host."
+        }
+      ],
+      "review_findings": {
+        "path": "artifacts/migration/cycle138-review-findings.json",
+        "sha256": "5632aeb0927bc10a1f0823b8bcd96dea272af483b32144ee1e54275bdddf2301"
+      },
+      "validation_environment_failure": {
+        "path": "artifacts/migration/cycle138-layered-closeout/report.json",
+        "sha256": "8cc85a0b6c37845eedf15c5e33b78e54ebf8bd4c6319d76334cac050878ec5d7"
+      }
     }
   ],
   "known_boundaries": [
@@ -2449667,483 +2449914,7 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 137,
-    "milestone": "M11",
-    "task": "M11-T1",
-    "increment": "lossless-shared-preview-surfaces",
-    "started_at": "2026-10-22T02:26:41.042Z",
-    "implementation_state": "in_progress",
-    "scope": "Expose bounded BGRA surface leases from native output, synchronize GPU completion, transfer only process-local NT handles and validate real Electron import/presentation with independent pixels and lifecycle controls.",
-    "checkpoint": {
-      "updated_at": "2026-10-22T08:29:57.884Z",
-      "implementation_state": "editor-preview-connected",
-      "evidence": {
-        "path": "artifacts/migration/cycle137-electron10/report.json",
-        "sha256": "396e5a1427d329928658fe7b81d10a20e1503d637fb5c54587b37b191b0b8b4c"
-      },
-      "checks": [
-        "12 exact GPU-canvas frames through native sidecar, application client and main-process broker",
-        "GPU surface alpha and bounded ownership test",
-        "Unregistered receiver rejection drains all GPU references and exits sidecar",
-        "11 bounded transport counterexample tests",
-        "14 verifier regression tests"
-      ],
-      "limitations": [
-        "Current runtime still needs a fresh full G0/G3/G4/G6 before committing",
-        "Native 100K particle median improved to 9.1 ms but contemporaneous TS is 8.0 ms",
-        "Independent input-to-present latency acceptance remains open"
-      ],
-      "next_step": "Resume M11-T1 after owner authorization and quota check. Read ledger and latest formal report. Current G0 is green; two complete paired runs show four faster native project scenarios, three slower particle scenarios, and better input latency. Third pair was interrupted and G6 not reached. Preserve all evidence, finish native throughput work, then run full current G0/G3/G4/G6 before any implementation commit. M11 exit audit and M12 remain open.",
-      "validation": {
-        "path": "artifacts/migration/verify-2026-10-22T05-12-10-843Z-c44ffff5.json",
-        "sha256": "4a9b2ae102f6bb77f0dea0b16703762c2ce72c4eebdfbdbbe3a1cd6163ddbd22",
-        "status": "failed",
-        "gates": [
-          {
-            "id": "G0",
-            "status": "passed",
-            "duration_ms": 302992
-          },
-          {
-            "id": "G3",
-            "status": "passed",
-            "duration_ms": 2210491
-          },
-          {
-            "id": "G4",
-            "status": "failed"
-          },
-          {
-            "id": "G6",
-            "status": "incomplete",
-            "duration_ms": 23066
-          }
-        ],
-        "source_unchanged": true
-      },
-      "project_preview": {
-        "step": {
-          "id": "preview-project-electron",
-          "command": [
-            "D:\\code\\Aster\\node_modules\\.pnpm\\electron@43.5.0\\node_modules\\electron\\dist\\electron.exe",
-            "scripts/migration/shared-preview-electron.mjs"
-          ],
-          "started_at": "2026-10-22T03:42:49.149Z",
-          "log": "artifacts/migration/2026-10-22T03-35-00-900Z-08272b3d/G3/preview-project-electron.log",
-          "status": "passed",
-          "exit_code": 0,
-          "signal": null,
-          "finished_at": "2026-10-22T03:42:52.488Z",
-          "duration_ms": 3339
-        },
-        "evidence": {
-          "path": "artifacts/migration/2026-10-22T03-35-00-900Z-08272b3d/G3/project/report.json",
-          "sha256": "fd2958bf2f47ddf1df46b026bd82fef0133a71af202a7cdbe2639e26119c4244"
-        },
-        "status": "passed",
-        "exact_frames": 12,
-        "snapshot_replacements": 3,
-        "arbitrary_time": true,
-        "gpu_only_transport": true,
-        "full_corpus": false,
-        "media": {
-          "path": "artifacts/migration/cycle137-preview-media3.json",
-          "sha256": "13f946f836662d8e278b3899d790cb76ac3f8fdb4849bd0d325e6f8f81b44f56",
-          "input": {
-            "path": "artifacts/migration/cycle137-preview-media-input.json",
-            "sha256": "cc18ba5165a19b8d9769147aaebd2a466db818a434c2db4aa6ee69b799656548"
-          },
-          "samples": 356,
-          "cases": 5,
-          "initial_time": -1,
-          "scope": "focused late-media admission and decoded-resource equality; not full preview corpus"
-        }
-      },
-      "application": {
-        "canvas": {
-          "path": "artifacts/migration/cycle137-app-preview3/report.json",
-          "sha256": "0f205ab5db65f194562b58debc2d37455aa5ad6ca90305ea49b56528d5a2063e"
-        },
-        "editor": {
-          "path": "artifacts/migration/cycle137-editor-preview4/report.json",
-          "sha256": "8093032db2ab59532ddbe1de7180219815d9ebc7e0c98d37d79f2f8734f6f26b"
-        },
-        "exact_frames": 10,
-        "exact_capture_time": 0.123456789,
-        "benchmark": {
-          "scenarios": 7,
-          "samples": 8,
-          "status": "focused-native-route-only; paired performance acceptance pending"
-        }
-      },
-      "owner_preview": {
-        "status": "in_progress",
-        "asset_materialization": "Canonical authorized legacy asset paths are copied into immutable private payloads; snapshot media reuse preserves geometry changes.",
-        "failures": [
-          {
-            "path": "artifacts/migration/cycle137-owner-native1/report.json",
-            "sha256": "801397719f1b8c14edf723e6491b75a49aabe6d8b3a36e272e605caefea0a63a"
-          },
-          {
-            "path": "artifacts/migration/cycle137-owner-native2/report.json",
-            "sha256": "75103ef7bdb5c4ef24a5cb81cbfb31c462bcb68602db384703936136b7152300"
-          },
-          {
-            "path": "artifacts/migration/cycle137-raster-cache-oracle.log",
-            "sha256": "7ed5bc363562bfb14f0e761cbc204c5efd14360ae3ef796e4e0fcd2d0deb2105"
-          }
-        ],
-        "completed": [
-          {
-            "path": "artifacts/migration/cycle137-owner-native3/report.json",
-            "sha256": "015d62b8825cbb13f5428586f1167eb86851774b8b1d8fd03a3015a030841ae5"
-          },
-          {
-            "path": "artifacts/migration/cycle137-owner-ts1/report.json",
-            "sha256": "bbff6d5f39bd7f5d4a720800a939f78dc1a8446d66510c49715cc18699bf98eb"
-          },
-          {
-            "path": "artifacts/migration/cycle137-owner-native4/report.json",
-            "sha256": "00126c697e87eb1bf12ebfa3054457c8cdeda3aceed8f99dc0fc3d2d7782539c"
-          },
-          {
-            "path": "artifacts/migration/cycle137-owner-native5/report.json",
-            "sha256": "c125ea1ee768d6671509b6555c8e09cd65b3212bf9b0dfebfcd704d02d33a562"
-          },
-          {
-            "path": "artifacts/migration/cycle137-owner-native6/report.json",
-            "sha256": "af40bf688eca650efa148f1ee44534aeff38a024d8b8875be6b829bbd5bfcc04"
-          },
-          {
-            "path": "artifacts/migration/cycle137-raster-cache-oracle2.log",
-            "sha256": "0a7ed576e823b0225404c58f481fb5d6bbcc82e9ef969ff2b2b7c75bb65c86c8"
-          },
-          {
-            "path": "artifacts/migration/cycle137-raster-cache-oracle3.log",
-            "sha256": "b33b7f6a1cdedc3446853106fc058db0887a0dd80bbf96d41d0da81d08d5d75d"
-          },
-          {
-            "path": "artifacts/migration/cycle137-cache-tests.log",
-            "sha256": "056e4d4af40f34ff8a7da810b9b304e5321e609ded941ee263d28470e758c1c2"
-          },
-          {
-            "path": "artifacts/migration/cycle137-owner-native7/report.json",
-            "sha256": "8e337cbec80b1ef4a9746c66937f9ba12c0a266189ec7ae0489cc31c68656156",
-            "purpose": "Immutable verified raster reuse; eight-sample diagnostic only"
-          }
-        ],
-        "diagnostic_samples": 8,
-        "diagnostic_1080p_median_ms": {
-          "native": 39.75,
-          "ts": 31.1,
-          "native_previous": 52
-        },
-        "required_performance_passed": false,
-        "remaining": "Matched 600-sample throughput and independent input-to-present p95; short historical diagnostics are not G4 acceptance."
-      },
-      "preview_corpus": {
-        "status": "passed",
-        "cases": 337,
-        "frames": 1819,
-        "report": "artifacts/migration/2026-10-22T05-12-10-843Z-c44ffff5/G3/corpus/report.json",
-        "self_review_pending": 0,
-        "all_references_released": true
-      },
-      "preview_performance": {
-        "status": "in_progress",
-        "required_gate_passed": false,
-        "attempts": [
-          {
-            "path": "artifacts/migration/cycle137-paired-preview1/report.json",
-            "sha256": "41a5023bfc8eb88bb654982d44bf10eff6253686550a2a00d97ef87a1e3e1e85",
-            "status": "failed",
-            "error": "AssertionError [ERR_ASSERTION]: Error: The GPU renderer is not ready for benchmarking.\n\n'failed' !== 'passed'\n\n    at runPreviewPerformanceGate (file:///D:/code/Aster/scripts/migration/preview-performance-gate.mjs:117:14)\n    at async file:///D:/code/Aster/[eval1]:1:134"
-          },
-          {
-            "path": "artifacts/migration/cycle137-paired-preview2/report.json",
-            "sha256": "1ae2e4d40ab97cf048111e98420fce80bd0eaf536d4bdcbd9966e9adbdb5d8f5",
-            "status": "failed",
-            "error": "AssertionError [ERR_ASSERTION]: Error: Error invoking remote method 'aster:native-preview-replace': Error: Native preview rejected the request: {\"schema_version\":1,\"error\":\"invalid supplied frame: images exceed GPU allocation budget\"}\n\n'failed' !== 'passed'\n\n    at runPreviewPerformanceGate (file:///D:/code/Aster/scripts/migration/preview-performance-gate.mjs:117:14)\n    at async file:///D:/code/Aster/[eval1]:1:134"
-          },
-          {
-            "path": "artifacts/migration/cycle137-paired-preview3/report.json",
-            "sha256": "8360065039a8114b9bbfd055b45672ad4a94466d0283b726df1d9cc7969c3fc0",
-            "status": "failed",
-            "error": "Native preview must exceed TS median FPS in every matched scenario",
-            "source_unchanged": true,
-            "comparisons": [
-              {
-                "name": "1080p current composition",
-                "workload_sha256": "b277bf72db53e6f657a32b5e71aec549a75ed550e0d3a75011a9401b713acfdd",
-                "ts_median_ms": 108.5,
-                "native_median_ms": 64.5,
-                "ts_median_fps": 9.216589861751151,
-                "native_median_fps": 15.503875968992247,
-                "faster": true
-              },
-              {
-                "name": "4K current composition",
-                "workload_sha256": "ceb3c5fac9d914cba06bcabcc10a1edf287215777e5554894bef20d0ef794c25",
-                "ts_median_ms": 165.70000004768372,
-                "native_median_ms": 113.69999998807907,
-                "ts_median_fps": 6.035003015764808,
-                "native_median_fps": 8.795074759057568,
-                "faster": true
-              },
-              {
-                "name": "20-layer 1080p composite",
-                "workload_sha256": "6db7b58deea6ac15942647c1e808424ca925a493f7067534519a920c4dd91f48",
-                "ts_median_ms": 110.69999992847443,
-                "native_median_ms": 62.64999997615814,
-                "ts_median_fps": 9.033423673406691,
-                "native_median_fps": 15.961691945419895,
-                "faster": true
-              },
-              {
-                "name": "Blur + glow effect chain",
-                "workload_sha256": "ce8956043b054d30a16624b3cf6a2328389087b8529ae0395a9bb6789e0445cd",
-                "ts_median_ms": 107.79999995231628,
-                "native_median_ms": 64.29999995231628,
-                "ts_median_fps": 9.276437851969712,
-                "native_median_fps": 15.552099544970169,
-                "faster": true
-              },
-              {
-                "name": "100K GPU particles",
-                "workload_sha256": "7bcf13990d9c2fe1f5a3dbbbef61b09636496eb91f599dcb250e005adb6a8d0e",
-                "ts_median_ms": 8,
-                "native_median_ms": 9.599999904632568,
-                "ts_median_fps": 125,
-                "native_median_fps": 104.16666770146954,
-                "faster": false
-              },
-              {
-                "name": "500K GPU particles",
-                "workload_sha256": "be3e5f20d55b4925a119918d87cf2a97feefe1ac0b82b702e883eafb52188195",
-                "ts_median_ms": 15.100000023841858,
-                "native_median_ms": 17.5,
-                "ts_median_fps": 66.22516545834894,
-                "native_median_fps": 57.142857142857146,
-                "faster": false
-              },
-              {
-                "name": "1M GPU particles",
-                "workload_sha256": "91438fe5504504ca2a4d3a2a3d2accf9e8b3721bc82bd9c2fb8ac45b5cdf2f3c",
-                "ts_median_ms": 20.600000023841858,
-                "native_median_ms": 23.100000023841858,
-                "ts_median_fps": 48.543689264205256,
-                "native_median_fps": 43.29004324536299,
-                "faster": false
-              }
-            ]
-          }
-        ],
-        "findings": [
-          "First attempt requested the benchmark before the loaded editor was ready; bounded readiness retry now preserves genuine execution failures.",
-          "At matched 512 MiB, TS completed all seven 600-frame scenarios. Native completed 610 warmup/measured 1080p presentations, then rejected 4K after 404 presentations because current images exceeded the remaining GPU budget. No performance gate accepted.",
-          "Native preview now uses the existing detected-device memory policy. The next paired run uses an explicit 1024 MiB on both arms and checks actual per-frame budgets. Pure native scenes skip raster IPC only before any retained-raster history exists."
-        ],
-        "next_step": "Complete independent shared-handle crash ownership and packaged worker dispatch before optimizing final presentation overhead. Four owner/effect workloads are faster; three particle workloads and input-to-present latency remain unqualified.",
-        "presentation_wait_diagnostic": {
-          "path": "artifacts/migration/cycle137-parallel-preview2/report.json",
-          "sha256": "8a778b5173ae6e6c7a0e357c02063bb8b25aafae0326183e69f884f2b1799689",
-          "status": "passed",
-          "full_gate": false,
-          "samples": 600,
-          "scenario": "100K GPU particles",
-          "median_ms": [
-            {
-              "engine": "ts",
-              "value": 8
-            },
-            {
-              "engine": "native",
-              "value": 9.100000023841858
-            }
-          ]
-        }
-      },
-      "empty_raster_pixels": {
-        "path": "artifacts/migration/cycle137-preview-empty-raster/report.json",
-        "sha256": "8f1cbfd243a56d93f2e2f9e443c0a18d1859a37a5a53074beffb29f0228eb7a4",
-        "status": "passed",
-        "cases": 5,
-        "frames": 20,
-        "scope": "diagnostic only; full G3 remains required after implementation changes"
-      },
-      "packaged_preview": {
-        "path": "artifacts/migration/cycle137-packaged-preview1/report.json",
-        "sha256": "ee53b1726b5e46ee51fa2c0a97bf9b4867728a1fb039250a397e99199a56e48c",
-        "status": "incomplete",
-        "source_unchanged": true,
-        "application": "passed",
-        "steps": [
-          {
-            "id": "preview-handle-crash",
-            "status": "passed"
-          },
-          {
-            "id": "preview-editor-capture",
-            "status": "passed"
-          }
-        ],
-        "remaining": "Packaged preview, queue smoke and producer-crash handle cleanup passed; input latency and renderer/device restart acceptance remain required"
-      },
-      "preview_recovery": {
-        "path": "artifacts/migration/cycle137-recovery2/report.json",
-        "sha256": "936cbaeb294a1a06289a833588cc017b1e7ad6e01b8a9b3e82b28b95d603a969",
-        "status": "passed",
-        "exact_frames": 24,
-        "device_loss": true,
-        "producer_crash": true,
-        "electron_renderer_crash": true,
-        "private_sessions_remaining": 0
-      },
-      "current_static": {
-        "status": "passed",
-        "evidence": {
-          "path": "C:\\Users\\colanns\\AppData\\Local\\Temp\\aster-migration-cycle137-qualification1\\G0\\static-results.json",
-          "sha256": "eebb94cfd384a358553a8e7f316a4a06faa1bc189d231078f7d5005b7ec7b82a"
-        },
-        "execution_sha256": "b70ed6e2f1676653cc8aa0940f3db2d21800563b68a0af9f72d5473eaa55288e"
-      },
-      "preview_input_latency": {
-        "status": "single-pair-passed",
-        "required_gate_passed": false,
-        "path": "artifacts/migration/cycle137-static-latency1/report.json",
-        "sha256": "5214423d609d71a639bf2653c6df01d7d1cfe8c876e86c9974bfca304d42dd91",
-        "samples_per_arm": 600,
-        "arms": [
-          {
-            "engine": "ts",
-            "summary": {
-              "count": 600,
-              "minimum": 80.81960000000254,
-              "median": 84.79130000000077,
-              "p95": 93.99295500000079,
-              "p99": 161.8626580000029,
-              "maximum": 176.5023000000001
-            },
-            "evidence": {
-              "path": "D:\\code\\Aster\\artifacts\\migration\\cycle137-static-latency1\\ts\\report.json",
-              "sha256": "2a18e5c20293cc62059a1efaeeaee841a06aee8895f00cffa8359e577946b4b0"
-            }
-          },
-          {
-            "engine": "native",
-            "summary": {
-              "count": 600,
-              "minimum": 55.20139999999083,
-              "median": 63.46495000000141,
-              "p95": 79.05753000000186,
-              "p99": 81.35457400000189,
-              "maximum": 157.13920000000508
-            },
-            "evidence": {
-              "path": "D:\\code\\Aster\\artifacts\\migration\\cycle137-static-latency1\\native\\report.json",
-              "sha256": "2a54fb67691fd05cccf7dbaff8822b0c434b5d438ffee0596bdd1ad83a822ced"
-            }
-          }
-        ],
-        "remaining": "Three rotated paired runs are required by final G4; current diagnostic does not confer acceptance."
-      },
-      "presentation_experiments": {
-        "reverted": true,
-        "execution_restored": true,
-        "execution_sha256": "ce6096e3057ffef3f86ee8895c3674503f266cf98761127bf87ea17eb457ddd5",
-        "rejected_pixels": {
-          "report": "artifacts/migration/cycle137-external-rejected/comparison/report.json",
-          "report_sha256": "9db60eb6ccc470697f3b19d4ae788f790f4a07f66efc3734fc7add2a5596156a",
-          "heatmap": "artifacts/migration/cycle137-external-rejected/comparison/heatmap.png",
-          "heatmap_sha256": "495b7869594ae69f3b747c24581665d43bd11b2d28c55f980c41efce55e8527e",
-          "contact_sheet": "artifacts/migration/cycle137-external-rejected/comparison/contact-sheet.png",
-          "contact_sheet_sha256": "086110b7349beb244742d79cef4017a830b170a3b43f6e96e7d0c852706407b7"
-        },
-        "exact_but_slower": {
-          "path": "artifacts/migration/cycle137-external-preview2/report.json",
-          "sha256": "391fc85e1f9eea4f6a0dca16ce945762ac542e4e45925662b2bf33661a36fa09",
-          "ts_median_ms": 7.899999976158142,
-          "native_median_ms": 9.199999928474426
-        }
-      },
-      "guard_buffer": {
-        "evidence": {
-          "path": "artifacts/migration/cycle137-guard-buffer-preview1/report.json",
-          "sha256": "63678dafef4c5e36fd7214b75284c17f841fb5f8f9fcb50eaeacfb640bc9df85"
-        },
-        "status": "passed",
-        "recovery": "passed",
-        "diagnostic_only": true,
-        "scenarios": [
-          {
-            "engine": "ts",
-            "wall_ms": {
-              "minimum": 5.700000047683716,
-              "median": 7.799999952316284,
-              "p95": 9.100000023841858,
-              "p99": 10,
-              "maximum": 14.099999904632568
-            }
-          },
-          {
-            "engine": "native",
-            "wall_ms": {
-              "minimum": 7.299999952316284,
-              "median": 9.100000023841858,
-              "p95": 11,
-              "p99": 11.200999928712845,
-              "maximum": 12.100000023841858
-            }
-          }
-        ],
-        "conclusion": "Recovery exact pixels passed; native 100K particle throughput still slower than TS. This diagnostic does not accept G4."
-      },
-      "benchmark_ui_isolation": {
-        "evidence": {
-          "path": "artifacts/migration/cycle137-benchmark-ui-preview1/report.json",
-          "sha256": "8707435ceede1e96107bf6c254c63fa58722a71c7d9edb2cd0bae2abe410b34e"
-        },
-        "status": "passed",
-        "recovery": "passed",
-        "diagnostic_only": true,
-        "scenarios": [
-          {
-            "engine": "ts",
-            "wall_ms": {
-              "minimum": 5.600000023841858,
-              "median": 7.699999928474426,
-              "p95": 9.5,
-              "p99": 10.101000022888181,
-              "maximum": 11
-            }
-          },
-          {
-            "engine": "native",
-            "wall_ms": {
-              "minimum": 7.799999952316284,
-              "median": 9.100000023841858,
-              "p95": 10.905000090599055,
-              "p99": 11.101000022888181,
-              "maximum": 12.100000023841858
-            }
-          }
-        ],
-        "conclusion": "Recovery exact pixels passed; native 100K particle throughput still slower than TS. This diagnostic does not accept G4."
-      },
-      "quota_stop": {
-        "evidence": {
-          "path": "artifacts/migration/cycle137-quota-interruption.json",
-          "sha256": "5f808ff02ef3807f955706099769a2650d4fca95e5d22e73e91c29aefcede473"
-        },
-        "used_percent": 85,
-        "remaining_percent": 15,
-        "implementation_committed": false,
-        "full_required_gates_passed": false
-      }
-    },
-    "interrupted_at": "2026-10-22T08:29:57.884Z"
-  },
+  "active_cycle": null,
   "execution_pause": {
     "requested_by": "owner",
     "reason": "current_goal_quota_remaining_at_or_below_15_percent",
@@ -2450151,10 +2449922,10 @@
     "usage_used_percent": 85,
     "usage_remaining_percent": 15,
     "reset_at_unix": 1793082739,
-    "execution_stopped": true,
+    "execution_stopped": false,
     "resume_instruction": "Resume M11-T1 after owner authorization and quota check. Read ledger and latest formal report. Current G0 is green; two complete paired runs show four faster native project scenarios, three slower particle scenarios, and better input latency. Third pair was interrupted and G6 not reached. Preserve all evidence, finish native throughput work, then run full current G0/G3/G4/G6 before any implementation commit. M11 exit audit and M12 remain open.",
-    "resumed_at": "2026-10-09T14:17:52.210411+00:00",
-    "resume_authorization": "Owner resumed the goal and changed the remaining-quota stop threshold from 20% to 5%.",
+    "resumed_at": "2026-10-22T15:06:27.358Z",
+    "resume_authorization": "Owner resumed the active goal and lowered the remaining-account stop threshold to 1%.",
     "effective_policy_source": "Current active goal objective; historical quota override records are preserved"
   },
   "layered_self_reviews": [
