@@ -3,8 +3,7 @@ use std::io::Cursor;
 use skrifa::bitmap::{BitmapData, BitmapGlyph, Origin};
 
 use crate::{
-    GlyphImage, GlyphImageFormat, GlyphPaint, GlyphRasterConfig, GlyphRasterError,
-    GlyphRasterRequest,
+    GlyphImage, GlyphImageFormat, GlyphRasterConfig, GlyphRasterError, GlyphRasterRequest,
 };
 
 pub(crate) struct BitmapRaster;
@@ -17,10 +16,8 @@ impl BitmapRaster {
         config: &GlyphRasterConfig,
         image: &mut GlyphImage,
     ) -> Result<(), GlyphRasterError> {
-        if !matches!(request.paint, GlyphPaint::Fill) {
-            return Err(GlyphRasterError::Unsupported(
-                "bitmap glyph strokes require verified coverage expansion",
-            ));
+        if let Some(reason) = request.paint.unsupported(true, false) {
+            return Err(GlyphRasterError::Unsupported(reason));
         }
         if bitmap.ppem_x <= 0.0
             || bitmap.ppem_y <= 0.0

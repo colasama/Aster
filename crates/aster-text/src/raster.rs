@@ -97,6 +97,46 @@ pub enum GlyphPaint {
     Stroke { width: f32 },
 }
 
+impl GlyphPaint {
+    /// Inspect the selected glyph without allocating pixels or changing raster cache leases.
+    pub fn limitation(
+        self,
+        font: &NativeFont,
+        glyph_id: u32,
+        size: f32,
+        prefer_bitmap: bool,
+    ) -> Result<Option<&'static str>, GlyphRasterError> {
+        if !size.is_finite() || size <= 0. || size > 4096. || glyph_id >= font.font.num_glyphs() {
+            return Err(GlyphRasterError::Invalid("glyph capability input"));
+        }
+        if let Self::Stroke { width } = self
+            && (!width.is_finite() || width <= 0. || width > 256.)
+        {
+            return Err(GlyphRasterError::Invalid("stroke width"));
+        }
+        let face = FontRef::from_index(&font.data, font.selection.face.index)
+            .map_err(|_| GlyphRasterError::Invalid("physical font face"))?;
+        let glyph = GlyphId::new(glyph_id);
+        let bitmap = prefer_bitmap
+            && face
+                .bitmap_strikes()
+                .glyph_for_size(Size::new(size), glyph)
+                .is_some();
+        Ok(self.unsupported(bitmap, face.color_glyphs().get(glyph).is_some()))
+    }
+
+    pub(crate) fn unsupported(self, bitmap: bool, color: bool) -> Option<&'static str> {
+        if bitmap {
+            if matches!(self, Self::Stroke { .. }) {
+                return Some("bitmap glyph strokes require verified coverage expansion");
+            }
+        } else if color {
+            return Some("layered color outlines require a verified paint graph");
+        }
+        None
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct GlyphRasterRequest {
     pub glyph_id: u32,
@@ -314,6 +354,12 @@ impl GlyphRasterizer {
                     .glyph_for_size(Size::new(request.size), glyph)
             })
             .flatten();
+        if let Some(reason) = request
+            .paint
+            .unsupported(bitmap.is_some(), face.color_glyphs().get(glyph).is_some())
+        {
+            return Err(GlyphRasterError::Unsupported(reason));
+        }
         if let Some(bitmap) = bitmap {
             BitmapRaster::render(
                 &bitmap,
@@ -322,10 +368,6 @@ impl GlyphRasterizer {
                 &self.config,
                 &mut image,
             )?;
-        } else if face.color_glyphs().get(glyph).is_some() {
-            return Err(GlyphRasterError::Unsupported(
-                "layered color outlines require a verified paint graph",
-            ));
         } else if request.hinting == GlyphHinting::Platform
             && matches!(request.paint, GlyphPaint::Fill)
         {

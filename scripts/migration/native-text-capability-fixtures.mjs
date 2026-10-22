@@ -9,7 +9,7 @@ export async function prepareTextCapabilityFixtures(context) {
   assert.equal(process.platform, "win32");
   const local = (p) => relative(context.root, p).replaceAll("\\", "/"),
     fonts = {};
-  for (const name of ["arial", "georgia", "tahoma"]) {
+  for (const name of ["arial", "georgia", "tahoma", "seguiemj", "calibri"]) {
     const path = join(context.env.SystemRoot ?? "C:/Windows", `Fonts/${name}.ttf`);
     assert((await stat(path)).size <= 4 * 1024 * 1024);
     const bytes = await readFile(path);
@@ -66,6 +66,50 @@ export async function prepareTextCapabilityFixtures(context) {
         embedded: true,
         layers: [{ text: "ABC אבג 123", reason: bidi }],
       },
+      {
+        id: "font-color-paint",
+        family: "Segoe UI Emoji",
+        font: "seguiemj",
+        layers: [
+          {
+            text: "😀",
+            reason: `layered color outlines require a verified paint graph; face ${fonts.seguiemj.sha256}#0 glyph 11680 at authored size 32`,
+            paint: {
+              size: 32,
+              stroke: 0,
+              glyph: 11680,
+              limitation: "layered color outlines require a verified paint graph",
+            },
+          },
+          {
+            text: "A",
+            reason: "requested primary family and CSS family syntax require raster qualification",
+            paint: { size: 32, stroke: 0, glyph: 36, limitation: null },
+          },
+        ],
+      },
+      {
+        id: "font-bitmap-stroke",
+        family: "Calibri",
+        font: "calibri",
+        layers: [
+          {
+            text: "A",
+            reason: `bitmap glyph strokes require verified coverage expansion; face ${fonts.calibri.sha256}#0 glyph 4 at authored size 12`,
+            paint: {
+              size: 12,
+              stroke: 2,
+              glyph: 4,
+              limitation: "bitmap glyph strokes require verified coverage expansion",
+            },
+          },
+          {
+            text: "A",
+            reason: "requested primary family and CSS family syntax require raster qualification",
+            paint: { size: 12, stroke: 0, glyph: 4, limitation: null },
+          },
+        ],
+      },
     ];
   const manifest = {
     scope: "production-font-script-capabilities-v1",
@@ -95,8 +139,8 @@ export async function prepareTextCapabilityFixtures(context) {
         ...layer.textStyle,
         fontFamily: spec.family ?? item.family,
         fontWeight: 400,
-        fontSize: 32,
-        strokeWidth: 0,
+        fontSize: spec.paint?.size ?? 32,
+        strokeWidth: spec.paint?.stroke ?? 0,
       };
       delete layer.textAnimator;
       composition.layers.push(layer);
@@ -104,6 +148,7 @@ export async function prepareTextCapabilityFixtures(context) {
         layer: layer.id,
         text: spec.text,
         reason: spec.reason,
+        ...(spec.paint ? { paint: spec.paint } : {}),
         fonts: (spec.fonts ?? (item.font ? [[item.font, item.family]] : [])).map(
           ([name, family]) => ({ family, sha256: fonts[name].sha256 }),
         ),

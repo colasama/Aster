@@ -24853,7 +24853,7 @@
               }
             },
             {
-              "status": "pending",
+              "status": "in_progress",
               "title": "Route layered color paint graphs and bitmap strokes through exact capability decisions",
               "acceptance": "The native rasterizer reports explicit unsupported reasons for unimplemented color paint graphs and bitmap strokes. Bind those reasons to the selected font/glyph and authenticated M5 output, or implement and verify them before native routing; no blanket text fallback."
             },
@@ -25743,6 +25743,246 @@
               },
               "cycle": 133,
               "commit": "fbf77597d8fd7a271b5dd04781b68baa403b9335"
+            },
+            "glyph_paint_capabilities": {
+              "status": "focused_passed_full_pending",
+              "cycle": 134,
+              "focused": {
+                "path": "artifacts/migration/cycle134-paint2/report.json",
+                "sha256": "cf87ddbc65ac68786364d771fe59b1d53135e618414b855f705d4013c9ae6d24"
+              },
+              "cases": [
+                {
+                  "id": "font-unavailable",
+                  "exact_pixels": 68
+                },
+                {
+                  "id": "font-missing-glyph",
+                  "exact_pixels": 272
+                },
+                {
+                  "id": "font-mixed-bidi",
+                  "exact_pixels": 68
+                },
+                {
+                  "id": "font-embedded-bidi",
+                  "exact_pixels": 68
+                },
+                {
+                  "id": "font-color-paint",
+                  "exact_pixels": 136
+                },
+                {
+                  "id": "font-bitmap-stroke",
+                  "exact_pixels": 136
+                }
+              ],
+              "paint_controls": [
+                {
+                  "id": "font-color-paint-0",
+                  "face": {
+                    "sha256": [
+                      124,
+                      2,
+                      68,
+                      221,
+                      142,
+                      235,
+                      124,
+                      107,
+                      222,
+                      205,
+                      252,
+                      63,
+                      158,
+                      89,
+                      131,
+                      53,
+                      39,
+                      252,
+                      24,
+                      166,
+                      109,
+                      2,
+                      149,
+                      206,
+                      71,
+                      51,
+                      144,
+                      105,
+                      105,
+                      42,
+                      43,
+                      79
+                    ],
+                    "index": 0
+                  },
+                  "glyph": 11680,
+                  "paint": {
+                    "size": 32,
+                    "stroke": 0,
+                    "glyph": 11680,
+                    "limitation": "layered color outlines require a verified paint graph"
+                  },
+                  "error": "glyph raster requires retained rendering: layered color outlines require a verified paint graph"
+                },
+                {
+                  "id": "font-color-paint-1",
+                  "face": {
+                    "sha256": [
+                      124,
+                      2,
+                      68,
+                      221,
+                      142,
+                      235,
+                      124,
+                      107,
+                      222,
+                      205,
+                      252,
+                      63,
+                      158,
+                      89,
+                      131,
+                      53,
+                      39,
+                      252,
+                      24,
+                      166,
+                      109,
+                      2,
+                      149,
+                      206,
+                      71,
+                      51,
+                      144,
+                      105,
+                      105,
+                      42,
+                      43,
+                      79
+                    ],
+                    "index": 0
+                  },
+                  "glyph": 36,
+                  "paint": {
+                    "size": 32,
+                    "stroke": 0,
+                    "glyph": 36,
+                    "limitation": null
+                  },
+                  "error": null
+                },
+                {
+                  "id": "font-bitmap-stroke-0",
+                  "face": {
+                    "sha256": [
+                      25,
+                      142,
+                      141,
+                      172,
+                      81,
+                      34,
+                      6,
+                      242,
+                      124,
+                      155,
+                      219,
+                      254,
+                      179,
+                      213,
+                      179,
+                      229,
+                      90,
+                      51,
+                      222,
+                      157,
+                      207,
+                      88,
+                      216,
+                      1,
+                      130,
+                      62,
+                      248,
+                      197,
+                      239,
+                      90,
+                      118,
+                      220
+                    ],
+                    "index": 0
+                  },
+                  "glyph": 4,
+                  "paint": {
+                    "size": 12,
+                    "stroke": 2,
+                    "glyph": 4,
+                    "limitation": "bitmap glyph strokes require verified coverage expansion"
+                  },
+                  "error": "glyph raster requires retained rendering: bitmap glyph strokes require verified coverage expansion"
+                },
+                {
+                  "id": "font-bitmap-stroke-1",
+                  "face": {
+                    "sha256": [
+                      25,
+                      142,
+                      141,
+                      172,
+                      81,
+                      34,
+                      6,
+                      242,
+                      124,
+                      155,
+                      219,
+                      254,
+                      179,
+                      213,
+                      179,
+                      229,
+                      90,
+                      51,
+                      222,
+                      157,
+                      207,
+                      88,
+                      216,
+                      1,
+                      130,
+                      62,
+                      248,
+                      197,
+                      239,
+                      90,
+                      118,
+                      220
+                    ],
+                    "index": 0
+                  },
+                  "glyph": 4,
+                  "paint": {
+                    "size": 12,
+                    "stroke": 0,
+                    "glyph": 4,
+                    "limitation": null
+                  },
+                  "error": null
+                }
+              ],
+              "attempts": [
+                {
+                  "path": "artifacts/migration/cycle134-paint1/report.json",
+                  "status": "failed",
+                  "reason": "The diagnostic native_raster flag is intentionally false; corrected the audit to authenticate raster_components, font/glyph identities and output images."
+                }
+              ],
+              "validation_logs": [
+                "artifacts/migration/cycle134-clippy2.log",
+                "artifacts/migration/cycle134-focused2.log"
+              ],
+              "note": "After the focused run, guarded f64-to-f32 underflow in authored paint probes; full current-source acceptance remains pending."
             }
           }
         },
@@ -2447021,24 +2447261,14 @@
     }
   ],
   "active_cycle": {
-    "id": 133,
+    "id": 134,
     "milestone": "M10",
     "task": "M10-T7",
-    "increment": "embedded-native-text-qualification",
-    "started_at": "2026-10-21T21:48:49.112Z",
-    "implementation_state": "committed",
-    "scope": "Qualify an ordinary embedded outline face through independent layout observations, physical font identities, exact equivalent-font controls, production GPU output and capture/replay.",
-    "updated_at": "2026-10-21T22:51:12.623Z",
-    "focused_evidence": {
-      "path": "artifacts/migration/cycle133-embedded2/report.json",
-      "sha256": "ffc878123c1aeb467f21941d0def3313ca3a7437e262f50d22461d8198b9caa3"
-    },
-    "outcome": "passed",
-    "commit": "fbf77597d8fd7a271b5dd04781b68baa403b9335",
-    "verification": {
-      "path": "artifacts/migration/verify-2026-10-21T22-03-14-452Z-eda3fb26.json",
-      "sha256": "a808b603bab3639d76611983f7557696b3703f280764bf194619f7fb0965c168"
-    }
+    "increment": "glyph-paint-capabilities",
+    "started_at": "2026-10-21T22:53:16.638Z",
+    "implementation_state": "full_verification_pending",
+    "scope": "Bind layered color outlines and bitmap stroke limitations to the selected physical font/glyph and exact authenticated retained pixels without allocating diagnostic atlases.",
+    "updated_at": "2026-10-21T23:07:22.114Z"
   },
   "execution_pause": {
     "requested_by": "owner",

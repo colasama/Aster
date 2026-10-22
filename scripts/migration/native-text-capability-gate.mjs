@@ -3,6 +3,7 @@ import { join, relative } from "node:path";
 import { M0Evidence } from "./m0-evidence.mjs";
 import { prepareTextCapabilityFixtures } from "./native-text-capability-fixtures.mjs";
 import { runNativeTextLayoutGate } from "./native-text-layout-gate.mjs";
+import { auditTextPaintCapabilities } from "./native-text-paint-audit.mjs";
 import { runNativeTextRoutingGate } from "./native-text-routing-gate.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
@@ -105,6 +106,18 @@ export async function runNativeTextCapabilityGate(context, execute = runStep) {
     }
     for (const file of Object.values(manifest.sources))
       assert.equal(await hashFile(file.path), file.sha256);
+    const cli = report.routing.runtime.binaries.find((b) =>
+      b.path.endsWith("aster-render-cli.exe"),
+    );
+    assert(cli);
+    assert.equal(await hashFile(join(context.root, cli.path)), cli.sha256);
+    report.paint_controls = await auditTextPaintCapabilities(
+      { ...context, output: join(context.output, "paint-controls") },
+      manifest,
+      join(context.root, cli.path),
+      execute,
+    );
+    assert.equal(report.paint_controls.status, "passed", report.paint_controls.error);
     assert.equal(
       await hashFile(join(context.root, manifest.template.path)),
       manifest.template.sha256,

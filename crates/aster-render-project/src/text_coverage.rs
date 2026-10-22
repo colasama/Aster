@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 
-use aster_text::{FontFaceId, FontSelection, TextDirection, TextShapeError, TextShaper};
+use aster_text::{
+    FontFaceId, FontSelection, GlyphPaint, TextDirection, TextShapeError, TextShaper,
+};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
@@ -90,7 +92,10 @@ impl TextCoverage {
                 locale,
                 &fonts,
                 &chain.deferred,
-                &chain.raster_reason
+                &chain.raster_reason,
+                style.font_size,
+                style.stroke_width,
+                style.animated,
             ))?)
         );
         if !self.reasons.contains_key(&key) {
@@ -105,7 +110,54 @@ impl TextCoverage {
                 let result =
                     shaper.shape(line, 1., TextDirection::LeftToRight, locale, &chain.fonts);
                 let error = match result {
-                    Ok(_) => {
+                    Ok(shaped) => {
+                        // Static authored paint probes qualify a capability reason, never native output.
+                        if !style.animated
+                            && style.font_size <= 4096.
+                            && (style.font_size as f32) > 0.
+                            && style.stroke_width <= 256.
+                            && (style.stroke_width == 0. || (style.stroke_width as f32) > 0.)
+                        {
+                            let paint = if style.stroke_width > 0. {
+                                GlyphPaint::Stroke {
+                                    width: style.stroke_width as f32,
+                                }
+                            } else {
+                                GlyphPaint::Fill
+                            };
+                            for glyph in &shaped.glyphs {
+                                let font = chain
+                                    .fonts
+                                    .iter()
+                                    .find(|f| f.matches_glyph(glyph))
+                                    .ok_or_else(|| {
+                                        ProjectRenderError::Invalid(
+                                            "paint capability font absent".into(),
+                                        )
+                                    })?;
+                                if let Some(limitation) = paint.limitation(
+                                    font,
+                                    glyph.glyph_id,
+                                    style.font_size as f32,
+                                    true,
+                                )? {
+                                    let digest = glyph
+                                        .face
+                                        .sha256
+                                        .iter()
+                                        .map(|v| format!("{v:02x}"))
+                                        .collect::<String>();
+                                    reason = Some(format!(
+                                        "{limitation}; face {digest}#{} glyph {} at authored size {}",
+                                        glyph.face.index, glyph.glyph_id, style.font_size
+                                    ));
+                                    break;
+                                }
+                            }
+                            if reason.is_some() {
+                                break;
+                            }
+                        }
                         offset += part.encode_utf16().count() as u32;
                         continue;
                     }

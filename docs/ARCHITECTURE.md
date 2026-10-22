@@ -683,6 +683,12 @@ bind text, locale and the resolved font chain; line separators advance the autho
 These probes allocate no glyph atlas and do not expand native raster admission. Retained-provider
 checks cover missing families, same-font valid/missing glyph controls, explicit fallback chains and
 system/embedded mixed-bidi text with exact independent pixel comparisons.
+Static authored glyph-paint probes share the rasterizer's bitmap-versus-color selection rules.
+They identify the physical face, glyph and authored font size for layered-color or bitmap-stroke
+limitations without allocating pixels or atlas leases. Their bounded cache also binds font size,
+stroke width and animation state. Real rasterizer controls distinguish ordinary outlines in a
+color font and supported bitmap fills from the unsupported paints; independent M5 pixel comparisons
+authenticate the resulting retained production routes. Animated paints remain separately qualified.
 Ordinary embedded outlines are qualified through the production project shaper and GPU session.
 An installed face is embedded under a different installed family alias; independent TS observations
 must match the original physical face exactly, while the unembedded alias must differ. The project
