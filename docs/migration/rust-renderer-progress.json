@@ -393,18 +393,18 @@
     }
   },
   "last_cycle": {
-    "id": 143,
-    "time": "2026-10-22T21:21:29.911Z",
-    "updated_at": "2026-10-22T21:21:29.911Z",
+    "id": 144,
+    "time": "2026-10-22T21:34:42.557Z",
+    "updated_at": "2026-10-22T21:34:42.557Z",
     "milestone": "M11",
     "task": "M11-T6",
-    "increment": "paired-editor-diagnostic-and-manipulation-witness",
+    "increment": "paired-editor-installed-plugin-lifecycle",
     "outcome": "increment_committed_layered_verification",
-    "commit": "37fa7e26186f928ddf04f3f5556b14591dfc39b7",
+    "commit": "477e1aecab5df1326920cc635f647e22f5d9c6a9",
     "validation_policy": "layered-development-verification-v1",
     "validation": {
-      "path": "artifacts/migration/cycle143-verification/report.json",
-      "sha256": "df626dd88565b47fbf3506021382c104a306c7b8e86ffca87f1445562aa88868"
+      "path": "artifacts/migration/cycle144-verification/report.json",
+      "sha256": "49d44e6b607a12f5ca4b0a07293f0318c6c1f0d9dfdb56836e1be33e7619051b"
     },
     "gates": [
       {
@@ -415,16 +415,16 @@
       {
         "id": "G6",
         "status": "passed",
-        "scope": "18 exact paired actual-editor diagnostic/manipulation frames plus production-host recovery, 24 alpha-preserving raw frames and 2 opaque snapshots"
+        "scope": "18 exact actual-editor plugin root/nested frames; installation, valid/rejected reload, disable/enable, safe-mode/resume, removal and live registry invalidation"
       }
     ],
     "milestone_exit_satisfied": false,
     "rejected_evidence": [
-      "artifacts/migration/cycle143-alpha-rejections/report.json",
-      "artifacts/migration/cycle143-interactions-corrected/report.json",
-      "artifacts/migration/cycle143-interactions-check/report.json"
+      "artifacts/migration/cycle144-plugins-ts-attempt1/process.json",
+      "artifacts/migration/cycle144-plugins-ts-attempt2/process.json",
+      "artifacts/migration/cycle144-plugins-paired1/report.json"
     ],
-    "next_step": "Complete M11-T6 real editor installed-plugin lifecycle coverage. Retain full corpus, owner-project preview, final paired performance and current-source milestone exit requirements."
+    "next_step": "Proceed to M11-T7 bounded pre-measurement focus preparation and paired performance qualification. Refresh complete current-source corpus/owner preview and all gates once at M11 exit under the layered policy; no intermediate full rerun."
   },
   "milestones": [
     {
@@ -27497,7 +27497,7 @@
           "id": "M11-T6",
           "title": "Verify complete native preview pixels and application lifecycle",
           "scope": "Cover corpus and owner-project preview outputs, edits, resize, stale completion, cache and teardown through real Electron presentation; self-review all non-exact results.",
-          "status": "in_progress",
+          "status": "done",
           "estimated_implementation_hours": 3,
           "required_gates": [
             "G0",
@@ -27505,13 +27505,14 @@
             "G4",
             "G6"
           ],
-          "progress": "Actual editor diagnostics, keyboard movement, drag preview/commit and undo now pass 18 paired exact comparisons at time 7/30, with per-frame native IPC proof. Fixed opaque presentation and diagnostic depth allocation; full G0 and raw-alpha host recovery pass. Invalid fallback runs and structural failures are preserved and rejected. Installed-plugin valid/rejected reload, disable/safe-mode/missing root/nested editor workflows and complete milestone exit coverage remain open.",
+          "progress": "Actual editor interaction coverage passes 18 exact frames (cycle143). Installed-plugin root/nested lifecycle now passes 18 exact paired frames including live registry invalidation, valid/rejected reload, disable/enable, safe-mode recovery and removal. Debug bridge build/pin prevents stale development executable qualification. Full G0 passes. T6 coverage implementation and affected targeted checks are complete; prior complete corpus coverage remains recorded, and current-source corpus/owner preview refresh is deferred to the M11 full exit under the approved layered policy.",
           "started_at": "2026-10-22T20:55:02.662Z",
-          "commit": "37fa7e26186f928ddf04f3f5556b14591dfc39b7",
+          "commit": "477e1aecab5df1326920cc635f647e22f5d9c6a9",
           "validation": {
-            "path": "artifacts/migration/cycle143-verification/report.json",
-            "sha256": "df626dd88565b47fbf3506021382c104a306c7b8e86ffca87f1445562aa88868"
-          }
+            "path": "artifacts/migration/cycle144-verification/report.json",
+            "sha256": "49d44e6b607a12f5ca4b0a07293f0318c6c1f0d9dfdb56836e1be33e7619051b"
+          },
+          "completed_at": "2026-10-22T21:34:42.557Z"
         },
         {
           "id": "M11-T7",
@@ -2452419,6 +2452420,41 @@
         "artifacts/migration/cycle143-interactions-check/report.json"
       ],
       "next_step": "Complete M11-T6 real editor installed-plugin lifecycle coverage. Retain full corpus, owner-project preview, final paired performance and current-source milestone exit requirements."
+    },
+    {
+      "cycle": 144,
+      "id": 144,
+      "time": "2026-10-22T21:34:42.557Z",
+      "updated_at": "2026-10-22T21:34:42.557Z",
+      "milestone": "M11",
+      "task": "M11-T6",
+      "increment": "paired-editor-installed-plugin-lifecycle",
+      "outcome": "increment_committed_layered_verification",
+      "commit": "477e1aecab5df1326920cc635f647e22f5d9c6a9",
+      "validation_policy": "layered-development-verification-v1",
+      "validation": {
+        "path": "artifacts/migration/cycle144-verification/report.json",
+        "sha256": "49d44e6b607a12f5ca4b0a07293f0318c6c1f0d9dfdb56836e1be33e7619051b"
+      },
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "scope": "full lefthook migration-static"
+        },
+        {
+          "id": "G6",
+          "status": "passed",
+          "scope": "18 exact actual-editor plugin root/nested frames; installation, valid/rejected reload, disable/enable, safe-mode/resume, removal and live registry invalidation"
+        }
+      ],
+      "milestone_exit_satisfied": false,
+      "rejected_evidence": [
+        "artifacts/migration/cycle144-plugins-ts-attempt1/process.json",
+        "artifacts/migration/cycle144-plugins-ts-attempt2/process.json",
+        "artifacts/migration/cycle144-plugins-paired1/report.json"
+      ],
+      "next_step": "Proceed to M11-T7 bounded pre-measurement focus preparation and paired performance qualification. Refresh complete current-source corpus/owner preview and all gates once at M11 exit under the layered policy; no intermediate full rerun."
     }
   ],
   "known_boundaries": [
