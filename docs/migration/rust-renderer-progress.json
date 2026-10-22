@@ -393,33 +393,33 @@
     }
   },
   "last_cycle": {
-    "id": 141,
-    "time": "2026-10-22T20:44:48.681Z",
-    "updated_at": "2026-10-22T20:44:48.681Z",
+    "id": 142,
+    "time": "2026-10-22T20:52:32.201Z",
+    "updated_at": "2026-10-22T20:52:32.201Z",
     "milestone": "M11",
-    "task": "M11-T4",
-    "increment": "exact-native-editor-snapshots",
+    "task": "M11-T5",
+    "increment": "bounded-native-preview-cache-scheduling",
     "outcome": "increment_committed_layered_verification",
-    "commit": "548eb77d8befc59ac344ff92b426fd652b6d0f2c",
+    "commit": "bf4ab60e71045c2410ea1fc5828d4dfe18ecc97e",
     "validation_policy": "layered-development-verification-v1",
     "validation": {
-      "path": "artifacts/migration/cycle141-verification-final/report.json",
-      "sha256": "cf9d0bca4c17ea5a4ae14019fe780a9398586c62b855e85ad2f487b3ede77de8"
+      "path": "artifacts/migration/cycle142-verification/report.json",
+      "sha256": "7576d19547763ae7d8ad0c26732a0854e5dd176162c7d3007d4491138a70e135"
     },
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "scope": "full-static"
+        "scope": "full-static; native cache budget, hit, wrap order and cancellation race tests"
       },
       {
         "id": "G6",
         "status": "passed",
-        "scope": "production host: 24 exact frames, 2 exact associated-alpha-normalized snapshots, cache/resize/device/producer/renderer recovery"
+        "scope": "production-host cache/resize/recovery, 24 exact frames and 2 exact normalized snapshots"
       }
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Complete M11-T5 cache budget and cancellation coverage. M11-T6 retains full editor direct-manipulation, diagnostic and installed-plugin workflows; final G4 and exit audit remain pending."
+    "next_step": "Implement M11-T6 actual editor direct-manipulation, diagnostic and installed-plugin lifecycle coverage. Retain full corpus, final paired performance and current-source exit audit requirements."
   },
   "milestones": [
     {
@@ -27471,14 +27471,22 @@
           "id": "M11-T5",
           "title": "Integrate RAM preview caching and idle prerender",
           "scope": "Cache completed native frames with existing revision/time/target scopes; preserve budget, cancellation, displayed frame and asynchronous lifetime semantics.",
-          "status": "pending",
+          "status": "done",
           "estimated_implementation_hours": 2,
           "required_gates": [
             "G0",
             "G3",
             "G4",
             "G6"
-          ]
+          ],
+          "started_at": "2026-10-22T20:45:58.074Z",
+          "completed_at": "2026-10-22T20:52:32.201Z",
+          "commit": "bf4ab60e71045c2410ea1fc5828d4dfe18ecc97e",
+          "validation": {
+            "path": "artifacts/migration/cycle142-verification/report.json",
+            "sha256": "7576d19547763ae7d8ad0c26732a0854e5dd176162c7d3007d4491138a70e135"
+          },
+          "progress": "Native cache retains existing revision/target/AA/plugin scopes and exact paused times. Idle scheduling now uses bounded iteration instead of allocating the full work-area frame list. Tests prove byte-budget shrinkage, cache hits, wrap order, and stale idle rejection on revision, quality and playback changes. Real host cache, snapshots, resize and device/producer/renderer recovery passed. Full milestone exit remains pending."
         },
         {
           "id": "M11-T6",
@@ -2451457,6 +2451465,36 @@
         "path": "artifacts/migration/cycle141-recovery-corrected/report.json",
         "sha256": "55564d35fc627d7ce5163a4344f9ab2cb994b7ebe771fd3f58b9128d9dbdca79"
       }
+    },
+    {
+      "cycle": 142,
+      "id": 142,
+      "time": "2026-10-22T20:52:32.201Z",
+      "updated_at": "2026-10-22T20:52:32.201Z",
+      "milestone": "M11",
+      "task": "M11-T5",
+      "increment": "bounded-native-preview-cache-scheduling",
+      "outcome": "increment_committed_layered_verification",
+      "commit": "bf4ab60e71045c2410ea1fc5828d4dfe18ecc97e",
+      "validation_policy": "layered-development-verification-v1",
+      "validation": {
+        "path": "artifacts/migration/cycle142-verification/report.json",
+        "sha256": "7576d19547763ae7d8ad0c26732a0854e5dd176162c7d3007d4491138a70e135"
+      },
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "scope": "full-static; native cache budget, hit, wrap order and cancellation race tests"
+        },
+        {
+          "id": "G6",
+          "status": "passed",
+          "scope": "production-host cache/resize/recovery, 24 exact frames and 2 exact normalized snapshots"
+        }
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Implement M11-T6 actual editor direct-manipulation, diagnostic and installed-plugin lifecycle coverage. Retain full corpus, final paired performance and current-source exit audit requirements."
     }
   ],
   "known_boundaries": [
