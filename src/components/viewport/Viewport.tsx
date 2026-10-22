@@ -211,6 +211,25 @@ export function Viewport() {
   const captureSnapshot = () => {
     if (!rendererReady || renderSessionGuardRef.current.active) return;
     const preview = previewRestoreRef.current;
+    const native = nativePreviewRef.current;
+    if (native) {
+      const request = createBeautyFrameRequest({
+        ...preview,
+        width: canvasRef.current?.width ?? 1,
+        height: canvasRef.current?.height ?? 1,
+      });
+      void snapshot
+        .captureAsync(() =>
+          native.snapshot(request, {
+            visualization: preview.bufferView,
+            selectedLayerId: preview.selectedLayerId,
+            memoryBudgetMb: native.memoryBudgetMb,
+            playing: false,
+          }),
+        )
+        .catch((error: unknown) => logger.error("render", "viewport_snapshot_failed", error));
+      return;
+    }
     const renderer = rendererRef.current;
     if (renderer instanceof WebGpuRenderer)
       renderer.render(

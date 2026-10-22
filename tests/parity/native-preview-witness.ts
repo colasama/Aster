@@ -91,6 +91,31 @@ async function run() {
     view.queue(request(0.123456789), options);
     await view.settled();
     if (!observedTimes.includes(0.123456789)) throw new Error("Paused preview time was quantized");
+    const beforeSnapshot = canvas.toDataURL();
+    const snapshotTime = 0.234567891;
+    const snapshot = await view.snapshot(request(snapshotTime), {
+      ...options,
+      selectedLayerId: composition.layers[0]?.id,
+    });
+    try {
+      if (observedTimes[observedTimes.length - 1] !== snapshotTime)
+        throw new Error("Comparison snapshot did not render its exact requested time");
+      if (canvas.toDataURL() !== beforeSnapshot)
+        throw new Error("Comparison snapshot changed the displayed viewport");
+      const context = snapshot.getContext("2d");
+      if (!context) throw new Error("Comparison snapshot pixels are unavailable");
+      await api.invoke("preview_witness_snapshot", {
+        generation: 0,
+        time: snapshotTime,
+        width: snapshot.width,
+        height: snapshot.height,
+        pixels: context.getImageData(0, 0, snapshot.width, snapshot.height).data.buffer,
+        pixelFormat: "rgba",
+      });
+    } finally {
+      snapshot.width = 0;
+      snapshot.height = 0;
+    }
     view.queue(request(0.125, 160, 90), options);
     await view.settled();
     if (canvas.width !== 160 || canvas.height !== 90) throw new Error("Preview resize failed");
@@ -127,6 +152,8 @@ async function run() {
       idle_preserved_canvas: true,
       cached_without_native_render: true,
       exact_paused_time: 0.123456789,
+      exact_snapshot_time: snapshotTime,
+      snapshot_preserved_canvas: true,
       resized: true,
       device_loss_recovered: true,
       producer_crash_recovered: true,

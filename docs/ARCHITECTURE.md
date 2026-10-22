@@ -746,6 +746,11 @@ remain errors. Host disposal waits for retirements already triggered by renderer
 Packaged raster workers use the application bootstrap and an external HTML resource directory so
 native path validation never depends on Electron's virtual ASAR filesystem.
 Explicit beauty captures reuse native evaluation and offscreen readback at exact requested times.
+Editor comparison snapshots serialize with foreground work, cancel idle rendering, and preserve the
+requested time, diagnostic mode and selected layer. The receiver copies the authenticated live
+VideoFrame into a separate canvas capped at 2048 pixels per side; it never reads a previous swapchain
+frame or changes the displayed viewport. Context changes and teardown discard pending comparison
+results, and temporary canvas pixels are released after publication.
 The editor benchmark uses uncached native evaluation and waits for GPU presentation; its synthetic
 compositions are materialized into authored snapshots. Exclusive benchmark ownership drains foreground
 work and suspends idle pre-rendering. Preview snapshots include the reachable composition graph,

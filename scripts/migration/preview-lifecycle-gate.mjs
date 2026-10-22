@@ -100,6 +100,18 @@ export async function runPreviewLifecycle(context, execute = runStep) {
     assert.equal(witness.clean_close, true);
     assert.equal(witness.remaining_private_sessions, 0);
     assert.equal(witness.frames.length, 24);
+    assert.equal(witness.snapshots.length, 2);
+    for (const [index, frame] of witness.snapshots.entries()) {
+      assert.equal(frame.time, 0.234567891);
+      assert.equal(frame.generation, 0);
+      assert.equal(frame.exact, true);
+      assert.equal(frame.normalization, "canvas-straight-to-reference-associated-alpha");
+      const reference = decodeRgbaPng((await inputs.bytes(references[0])).bytes);
+      const actual = decodeRgbaPng(await readFile(join(capture, `snapshot-${index}.png`)));
+      assert.equal(actual.width, reference.width);
+      assert.equal(actual.height, reference.height);
+      assert.deepEqual(actual.pixels, reference.pixels);
+    }
     assert.equal(witness.producer_crashes.length, 2);
     for (const crash of witness.producer_crashes) assert.equal(crash.producers.length, 1);
     assert.equal(witness.renderer_restart.old_sessions_released, true);
@@ -112,6 +124,7 @@ export async function runPreviewLifecycle(context, execute = runStep) {
       "idle_preserved_canvas",
       "cached_without_native_render",
       "resized",
+      "snapshot_preserved_canvas",
     ])
       for (const round of witness.rounds) assert.equal(round[field], true, field);
     for (const [index, frame] of witness.frames.entries()) {

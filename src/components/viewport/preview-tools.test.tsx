@@ -158,6 +158,47 @@ it("bounds snapshot memory, compares on demand and clears the old composition on
   expect(buttons[1].disabled).toBe(true);
 });
 
+it("publishes asynchronous snapshots only to their original live context and releases temporary pixels", async () => {
+  const drawImage = vi.fn();
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation((() => ({
+    drawImage,
+  })) as unknown as typeof HTMLCanvasElement.prototype.getContext);
+  let capture!: ReturnType<typeof useViewportSnapshot>["captureAsync"];
+  function Harness({ context }: { context: string }) {
+    const source = useRef<HTMLCanvasElement>(null);
+    const snapshot = useViewportSnapshot(source, context);
+    capture = snapshot.captureAsync;
+    return (
+      <>
+        <canvas ref={snapshot.canvasRef} />
+        <output>{String(snapshot.available)}</output>
+      </>
+    );
+  }
+  act(() => root.render(<Harness context="a" />));
+  const frame = document.createElement("canvas");
+  let finish!: (canvas: HTMLCanvasElement) => void;
+  const pending = capture(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  act(() => root.render(<Harness context="b" />));
+  await act(async () => {
+    finish(frame);
+    await pending;
+  });
+  expect(drawImage).not.toHaveBeenCalled();
+  expect(container.querySelector("output")?.textContent).toBe("false");
+  expect([frame.width, frame.height]).toEqual([0, 0]);
+  const current = document.createElement("canvas");
+  await act(async () => capture(async () => current));
+  expect(drawImage).toHaveBeenCalledOnce();
+  expect(container.querySelector("output")?.textContent).toBe("true");
+  expect([current.width, current.height]).toEqual([0, 0]);
+});
+
 it("recomputes Fit on resize and zooms from the displayed scale when leaving Fit", () => {
   let resize: () => void = () => {};
   let width = 800;

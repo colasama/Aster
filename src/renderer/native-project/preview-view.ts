@@ -40,7 +40,7 @@ export class NativePreviewView {
   #key?: string;
   #latest?: Work;
   #pump?: Promise<void>;
-  #readback?: Promise<RawVideoFrame>;
+  #capturing?: Promise<unknown>;
   #disposed = false;
   #exclusive = false;
   #memoryPreference: GpuMemoryBudgetMb = "auto";
@@ -96,18 +96,18 @@ export class NativePreviewView {
     this.#desiredKey = this.#configuration(this.#latest);
     this.#epoch++;
     this.#idleEpoch++;
-    if (this.#pump || this.#readback || this.#exclusive) return;
+    if (this.#pump || this.#capturing || this.#exclusive) return;
     this.#pump = this.#run()
       .catch(this.failed)
       .finally(() => {
         this.#pump = undefined;
-        if (this.#latest && !this.#disposed && !this.#exclusive)
+        if (this.#latest && !this.#disposed && !this.#exclusive && !this.#capturing)
           this.queue(this.#latest.request, this.#latest.options);
       });
   }
 
   async #run(): Promise<void> {
-    while (this.#latest && !this.#disposed && !this.#exclusive) {
+    while (this.#latest && !this.#disposed && !this.#exclusive && !this.#capturing) {
       const work = this.#latest;
       this.#latest = undefined;
       const epoch = this.#epoch,
@@ -291,7 +291,7 @@ export class NativePreviewView {
     request: BeautyFrameRequest,
     memoryBudgetMb: number,
   ): Promise<RendererMetrics> {
-    if (this.#disposed || this.#readback) throw new Error("Native preview is closed or capturing");
+    if (this.#disposed || this.#capturing) throw new Error("Native preview is closed or capturing");
     this.stopIdle();
     await this.#pump;
     const started = performance.now();
@@ -309,7 +309,7 @@ export class NativePreviewView {
   }
 
   async beginExclusive(): Promise<void> {
-    if (this.#disposed || this.#readback || this.#exclusive)
+    if (this.#disposed || this.#capturing || this.#exclusive)
       throw new Error("Native preview cannot enter an exclusive session");
     this.#exclusive = true;
     this.#latest = undefined;
@@ -358,12 +358,7 @@ export class NativePreviewView {
     memoryBudgetMb: number,
     destination?: ArrayBuffer,
   ): Promise<RawVideoFrame> {
-    if (this.#disposed || this.#readback || this.#exclusive)
-      return Promise.reject(new Error("Native readback is closed or busy"));
-    this.stopIdle();
-    const pending = (async () => {
-      await this.#pump;
-      if (this.#disposed) throw new Error("Native preview is closed");
+    return this.#capture(async () => {
       const result = await this.#withRecovery(
         async () => {
           await this.#ensure({
@@ -383,11 +378,42 @@ export class NativePreviewView {
         return { pixels: destination, pixelFormat: pixels.pixelFormat };
       }
       return { pixels: pixels.pixels, pixelFormat: pixels.pixelFormat };
+    });
+  }
+
+  /** Capture the requested diagnostic or beauty frame without reading or replacing the viewport. */
+  snapshot(request: BeautyFrameRequest, options: NativeViewOptions): Promise<HTMLCanvasElement> {
+    return this.#capture(async () => {
+      const target = document.createElement("canvas");
+      try {
+        const current = () => !this.#disposed;
+        const result = await this.#withRecovery(async () => {
+          await this.#ensure({ request, options });
+          return this.canvas.present(request.time, false, current, false, target);
+        }, current);
+        if (result.skipped || !current()) throw new Error("Native snapshot was cancelled");
+        return target;
+      } catch (error) {
+        target.width = 0;
+        target.height = 0;
+        throw error;
+      }
+    });
+  }
+
+  #capture<T>(operation: () => Promise<T>): Promise<T> {
+    if (this.#disposed || this.#capturing || this.#exclusive)
+      return Promise.reject(new Error("Native capture is closed or busy"));
+    this.stopIdle();
+    const pending = (async () => {
+      await this.#pump;
+      if (this.#disposed) throw new Error("Native preview is closed");
+      return operation();
     })().finally(() => {
-      this.#readback = undefined;
+      this.#capturing = undefined;
       if (this.#latest && !this.#disposed) this.queue(this.#latest.request, this.#latest.options);
     });
-    this.#readback = pending;
+    this.#capturing = pending;
     return pending;
   }
 
@@ -405,7 +431,7 @@ export class NativePreviewView {
     this.#epoch++;
     this.#idleEpoch++;
     await this.#pump;
-    await this.#readback?.catch(() => undefined);
+    await this.#capturing?.catch(() => undefined);
     this.canvas.dispose();
     if (this.#id) {
       const id = this.#id;

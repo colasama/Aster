@@ -19,6 +19,7 @@ const report = {
   status: "failed",
   scope: "application-preview-host-and-sandboxed-canvas",
   frames: [],
+  snapshots: [],
   rounds: [],
   producer_crashes: [],
 };
@@ -125,7 +126,9 @@ async function main() {
           times: config.times,
           restart: report.rounds.length === 0,
         };
-      if (command === "preview_witness_frame") {
+      if (command === "preview_witness_frame" || command === "preview_witness_snapshot") {
+        const snapshot = command === "preview_witness_snapshot";
+        const collection = snapshot ? report.snapshots : report.frames;
         const reference = decodeRgbaPng(readFileSync(config.references[args.generation]));
         const pixels = Buffer.from(args.pixels);
         assert.equal(args.width, reference.width);
@@ -136,11 +139,25 @@ async function main() {
             pixels[i] = pixels[i + 2];
             pixels[i + 2] = r;
           }
-        const path = join(config.output, `frame-${report.frames.length}.png`);
+        if (snapshot) {
+          // Canvas 2D exposes straight alpha; the frozen GPU reference contains associated RGB.
+          await writeFile(
+            join(config.output, `snapshot-${collection.length}-straight.png`),
+            encodeRgbaPng(args.width, args.height, pixels),
+            { flag: "wx" },
+          );
+          for (let i = 0; i < pixels.length; i += 4)
+            for (let channel = 0; channel < 3; channel++)
+              pixels[i + channel] = Math.round((pixels[i + channel] * pixels[i + 3]) / 255);
+        }
+        const path = join(
+          config.output,
+          `${snapshot ? "snapshot" : "frame"}-${collection.length}.png`,
+        );
         await writeFile(path, encodeRgbaPng(args.width, args.height, pixels), { flag: "wx" });
         const actual = hash(pixels),
           expected = hash(reference.pixels);
-        report.frames.push({
+        collection.push({
           generation: args.generation,
           time: args.time,
           ready: args.ready,
@@ -148,6 +165,7 @@ async function main() {
           rgba_sha256: actual,
           expected_rgba_sha256: expected,
           exact: actual === expected,
+          ...(snapshot ? { normalization: "canvas-straight-to-reference-associated-alpha" } : {}),
         });
         assert.equal(actual, expected, "Application preview pixels differ");
         return;

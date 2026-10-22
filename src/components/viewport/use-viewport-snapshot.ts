@@ -22,6 +22,9 @@ export function useViewportSnapshot(
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [capturedKey, setCapturedKey] = useState<string>();
   const [showing, setShowing] = useState(false);
+  const captureVersion = useRef(0);
+  const currentContext = useRef(contextKey);
+  currentContext.current = contextKey;
   const available = capturedKey === contextKey;
   useEffect(() => {
     setCapturedKey((key) => (key === contextKey ? key : undefined));
@@ -32,6 +35,7 @@ export function useViewportSnapshot(
       canvas.height = 0;
     }
     return () => {
+      captureVersion.current++;
       if (canvas) {
         canvas.width = 0;
         canvas.height = 0;
@@ -52,6 +56,7 @@ export function useViewportSnapshot(
     },
     hide: () => setShowing(false),
     capture: () => {
+      captureVersion.current++;
       if (
         !source.current ||
         !canvasRef.current ||
@@ -60,6 +65,24 @@ export function useViewportSnapshot(
         return;
       setCapturedKey(contextKey);
       setShowing(false);
+    },
+    captureAsync: async (load: () => Promise<HTMLCanvasElement>) => {
+      const version = ++captureVersion.current;
+      const frame = await load();
+      try {
+        if (
+          version !== captureVersion.current ||
+          contextKey !== currentContext.current ||
+          !canvasRef.current ||
+          !copyViewportSnapshot(frame, canvasRef.current)
+        )
+          return;
+        setCapturedKey(contextKey);
+        setShowing(false);
+      } finally {
+        frame.width = 0;
+        frame.height = 0;
+      }
     },
   };
 }

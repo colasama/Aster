@@ -12,6 +12,7 @@ interface PendingFrame {
   time: number;
   capture: boolean;
   display: boolean;
+  snapshot?: HTMLCanvasElement;
   current(): boolean;
   resolve(value: { skipped: boolean; pixels?: CachedPreviewFrame }): void;
   reject(error: unknown): void;
@@ -97,7 +98,13 @@ export class NativePreviewCanvas {
     });
   }
 
-  async present(time: number, capture: boolean, current: () => boolean, display = true) {
+  async present(
+    time: number,
+    capture: boolean,
+    current: () => boolean,
+    display = true,
+    snapshot?: HTMLCanvasElement,
+  ) {
     if (this.#loss) throw this.#loss;
     const identity = this.#identity;
     if (!identity || this.#disposed || this.#pending)
@@ -110,7 +117,7 @@ export class NativePreviewCanvas {
           () => reject(new Error("Native preview presentation timed out")),
           120000,
         );
-        this.#pending = { request, time, capture, display, current, resolve, reject };
+        this.#pending = { request, time, capture, display, snapshot, current, resolve, reject };
       },
     );
     try {
@@ -152,6 +159,18 @@ export class NativePreviewCanvas {
         throw new Error("Native preview delivery belongs to a different snapshot");
       if (this.#disposed || !pending.current()) {
         pending.resolve({ skipped: true });
+        return;
+      }
+      if (pending.snapshot) {
+        // Copy the authenticated frame while its lease is live, independently of the swapchain.
+        const scale = Math.min(1, 2048 / Math.max(delivery.width, delivery.height));
+        const target = pending.snapshot;
+        target.width = Math.max(1, Math.round(delivery.width * scale));
+        target.height = Math.max(1, Math.round(delivery.height * scale));
+        const context = target.getContext("2d");
+        if (!context) throw new Error("Native snapshot canvas is unavailable");
+        context.drawImage(video, 0, 0, target.width, target.height);
+        pending.resolve({ skipped: !pending.current() });
         return;
       }
       this.device.pushErrorScope("validation");

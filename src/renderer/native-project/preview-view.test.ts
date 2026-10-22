@@ -1,3 +1,5 @@
+// @vitest-environment happy-dom
+
 import { beforeEach, expect, test, vi } from "vitest";
 import { activeComposition, createDemoProject } from "../../core/project/project";
 import type { DesktopNativePreview } from "../../core/rendering/native-preview-protocol";
@@ -133,4 +135,71 @@ test("an idle lost device is replaced before the next readback and cannot be reu
   expect(replacement.present).toHaveBeenCalledTimes(1);
   expect(api.open).toHaveBeenCalledTimes(2);
   expect(view.canvas).toBe(replacement);
+});
+
+test("snapshots serialize exact diagnostic requests before newer foreground work", async () => {
+  const { view, request, canvas, api } = await fixture();
+  const options = {
+    visualization: "normal",
+    selectedLayerId: "selected",
+    memoryBudgetMb: 512,
+    playing: false,
+  };
+  let finish!: () => void;
+  canvas.present.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = () => resolve({ skipped: false });
+      }),
+  );
+  view.queue(request, options);
+  await vi.waitFor(() => expect(canvas.present).toHaveBeenCalledOnce());
+  const exact = { ...request, time: 0.123456789 };
+  const captured = view.snapshot(exact, options);
+  view.queue({ ...request, time: 0.7 }, options);
+  await expect(view.snapshot(exact, options)).rejects.toThrow("busy");
+  await expect(view.beginExclusive()).rejects.toThrow("exclusive");
+  finish();
+  const target = await captured;
+  await view.settled();
+  expect(canvas.present.mock.calls.map((args) => args[0])).toEqual([0.125, exact.time, 0.7]);
+  expect(canvas.present.mock.calls[1]).toEqual([
+    exact.time,
+    false,
+    expect.any(Function),
+    false,
+    target,
+  ]);
+  expect(api.open).toHaveBeenCalledWith(
+    expect.objectContaining({
+      visualization: "normal",
+      selectedLayerId: "selected",
+    }),
+  );
+  expect(view.presented).toHaveBeenCalledOnce();
+  await view.dispose();
+});
+
+test("disposal cancels a pending snapshot without publishing a canvas", async () => {
+  const { view, request, canvas } = await fixture();
+  let finish!: () => void;
+  canvas.present.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = () => resolve({ skipped: false });
+      }),
+  );
+  const captured = view.snapshot(request, {
+    visualization: "beauty",
+    memoryBudgetMb: 512,
+    playing: false,
+  });
+  const rejected = expect(captured).rejects.toThrow("cancelled");
+  await vi.waitFor(() => expect(canvas.present).toHaveBeenCalledOnce());
+  const disposing = view.dispose();
+  finish();
+  await rejected;
+  await disposing;
+  const target = canvas.present.mock.calls[0][4] as HTMLCanvasElement;
+  expect([target.width, target.height]).toEqual([0, 0]);
 });
