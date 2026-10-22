@@ -393,38 +393,33 @@
     }
   },
   "last_cycle": {
-    "id": 139,
-    "time": "2026-10-22T20:25:57.553Z",
-    "updated_at": "2026-10-22T20:25:57.553Z",
+    "id": 140,
+    "time": "2026-10-22T20:29:58.824Z",
+    "updated_at": "2026-10-22T20:29:58.824Z",
     "milestone": "M11",
-    "task": "M11-T2",
-    "increment": "trusted-plugin-native-preview-snapshots",
-    "outcome": "increment_committed_layered_verification",
-    "commit": "6fce2534e8524e83e45efa73056056fbfd6aa6ad",
+    "task": "M11-T3",
+    "increment": "audit-committed-preview-transport-ownership",
+    "outcome": "unchanged_source_task_completed",
+    "commit": "4a954e9b04ecb17002938ded71132798dbaa2da0",
     "validation_policy": "layered-development-verification-v1",
     "validation": {
-      "path": "artifacts/migration/cycle139-verification/report.json",
-      "sha256": "ff81e47458c1b4f6468eebacb9e9629b2ef11a60148010279142f615bae64165"
+      "path": "artifacts/migration/cycle140-transport-audit.json",
+      "sha256": "ed5907a6e79eefb101a7806d3fcef24ab09cf4944d58260940394455d57a568f"
     },
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "scope": "full-static"
-      },
-      {
-        "id": "G3",
-        "status": "passed",
-        "scope": "targeted: 3 installed audio-spectrum cases / 15 frames; authenticated visual review reuse"
+        "scope": "unchanged execution source; full cycle139 G0"
       },
       {
         "id": "G6",
         "status": "passed",
-        "scope": "targeted: production-host recovery / 24 exact frames"
+        "scope": "unchanged execution source; cycle139 production-host recovery"
       }
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Audit M11-T3 against the committed broker/receiver ownership implementation and current tests, then address exact editor snapshots and direct-manipulation diagnostics in M11-T4. Full editor installed-plugin hot reload/disable/missing coverage remains in M11-T6; final paired throughput/latency and exit audit remain open."
+    "next_step": "Implement exact native editor snapshots retaining visualization and selection; keep complete M11 integration, performance and exit gates open."
   },
   "milestones": [
     {
@@ -27434,14 +27429,22 @@
           "id": "M11-T3",
           "title": "Integrate the Electron preview broker and renderer receiver",
           "scope": "Own the sidecar, imported textures, VideoFrames and release acknowledgements; reject stale generations and cleanly drain cancellation, resize, project replacement and renderer teardown.",
-          "status": "pending",
+          "status": "done",
           "estimated_implementation_hours": 2,
           "required_gates": [
             "G0",
             "G3",
             "G4",
             "G6"
-          ]
+          ],
+          "started_at": "2026-10-22T20:29:58.824Z",
+          "completed_at": "2026-10-22T20:29:58.824Z",
+          "commit": "4a954e9b04ecb17002938ded71132798dbaa2da0",
+          "validation": {
+            "path": "artifacts/migration/cycle140-transport-audit.json",
+            "sha256": "ed5907a6e79eefb101a7806d3fcef24ab09cf4944d58260940394455d57a568f"
+          },
+          "progress": "Audited committed broker, client, host and receiver ownership against unchanged execution identity and current full G0 / real-host recovery. No implementation changes or new pixel results. Full M11 exit remains pending."
         },
         {
           "id": "M11-T4",
@@ -2451355,6 +2451358,36 @@
         "artifacts/migration/cycle139-plugin-ts-tests.log",
         "artifacts/migration/cycle139-generator-availability-tests2.log"
       ]
+    },
+    {
+      "cycle": 140,
+      "id": 140,
+      "time": "2026-10-22T20:29:58.824Z",
+      "updated_at": "2026-10-22T20:29:58.824Z",
+      "milestone": "M11",
+      "task": "M11-T3",
+      "increment": "audit-committed-preview-transport-ownership",
+      "outcome": "unchanged_source_task_completed",
+      "commit": "4a954e9b04ecb17002938ded71132798dbaa2da0",
+      "validation_policy": "layered-development-verification-v1",
+      "validation": {
+        "path": "artifacts/migration/cycle140-transport-audit.json",
+        "sha256": "ed5907a6e79eefb101a7806d3fcef24ab09cf4944d58260940394455d57a568f"
+      },
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "scope": "unchanged execution source; full cycle139 G0"
+        },
+        {
+          "id": "G6",
+          "status": "passed",
+          "scope": "unchanged execution source; cycle139 production-host recovery"
+        }
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Implement exact native editor snapshots retaining visualization and selection; keep complete M11 integration, performance and exit gates open."
     }
   ],
   "known_boundaries": [
