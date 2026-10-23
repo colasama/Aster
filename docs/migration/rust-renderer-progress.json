@@ -393,64 +393,89 @@
     }
   },
   "last_cycle": {
-    "id": 154,
-    "time": "2026-10-23T03:14:18.313Z",
-    "updated_at": "2026-10-23T03:14:18.313Z",
+    "id": 155,
+    "time": "2026-10-23T03:35:12.467Z",
+    "updated_at": "2026-10-23T03:35:12.467Z",
     "milestone": "M12",
-    "task": "M12-T3",
-    "increment": "native-queue-historical-project-and-media-admission",
+    "task": "M12-T4",
+    "increment": "native-project-export-process-control-and-receipts",
     "outcome": "development_increment_passed",
-    "commit": "7416d0b43b5e6b47b21f7f08e7b4a27ea8dc5c1b",
+    "commit": "d382363ed78e55b89e2357f62ae1a0ac46b5f3ee",
     "validation": {
-      "path": "artifacts/migration/cycle154b-validation/report.json",
-      "sha256": "5cd0080db64eb71b5d5431cd3dff9d2b22990aa573bf857bc054230732b35bb0"
+      "path": "artifacts/migration/cycle155b-validation/report.json",
+      "sha256": "432edbb3ec15ffb3c10ba9fcaeaf56c18ad3b446d62ff71346a771a5d27a8cdd"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
-        "id": "queue-project-targeted",
+        "id": "queue-process-targeted",
         "status": "passed",
-        "duration_ms": 2194
+        "duration_ms": 1701
       },
       {
         "id": "project-native-build",
         "status": "passed",
-        "duration_ms": 174781
+        "duration_ms": 1062
       },
       {
         "id": "project-electron-build",
         "status": "passed",
-        "duration_ms": 943
+        "duration_ms": 1025
       },
       {
         "id": "project-raster-build",
         "status": "passed",
-        "duration_ms": 349
+        "duration_ms": 346
       },
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 347172
+        "duration_ms": 246784
       }
     ],
-    "targeted_queue": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle154b-validation\\queue\\report.json",
-      "sha256": "0e4c0bd1499bb3499da9b037ad30d4b24403aebe7ebe2ff66792c9034a9a4db4",
-      "exact_cases": 15,
-      "disabled_generator_cases": 2,
-      "historical_schemas": [
-        3,
-        4
+    "targeted_process": {
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle155b-validation\\process\\report.json",
+      "sha256": "47343aaf51090dfe8113b440efed17a4839fcd1a623fe5dbd1826369251bec88",
+      "cases": [
+        {
+          "id": "still",
+          "status": "passed"
+        },
+        {
+          "id": "sequence",
+          "status": "passed"
+        },
+        {
+          "id": "video",
+          "status": "passed"
+        },
+        {
+          "id": "muted",
+          "status": "passed"
+        },
+        {
+          "id": "pause-resume",
+          "status": "passed"
+        },
+        {
+          "id": "cancel-after-pause",
+          "status": "passed"
+        },
+        {
+          "id": "changed-request-rejected",
+          "status": "passed"
+        },
+        {
+          "id": "changed-job-configuration-rejected",
+          "status": "passed"
+        }
       ],
-      "sequence_frames": 4100,
-      "large_document_bytes_above": 67108864
+      "pause_resume_exact": true
     },
-    "retained_failed_attempts": [
-      {
-        "path": "artifacts/migration/cycle154-validation/queue/report.json",
-        "reason": "Historical source identity passed project admission but the decoder expected a byte identity. Preserve source metadata and grant the decoder a SHA-256 digest only after project locator and frozen-byte authentication."
-      }
-    ],
+    "superseded_validation": {
+      "path": "artifacts/migration/cycle155-validation/report.json",
+      "reason": "Earlier passing source lacked complete immutable job configuration binding. Retained as historical evidence only; the final current-source run includes configuration mutation rejection."
+    },
     "deferred_gates": [
       "G1",
       "G2",
@@ -460,7 +485,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Start M12-T4: implement the native project queue worker with lease-correlated progress and pause/resume/cancel, cleanup and atomic multi-output publication. Preserve supported long-job ranges through bounded scheduling and qualify production media limits; then route the production queue without TS GPU fallback."
+    "next_step": "Continue M12-T4: compose the native queue host worker around the verified output process, immutable media lease and atomic output publisher. Preserve cancellation through preparation/publication and existing PNG sequence naming; qualify long jobs with bounded scheduling rather than silently reducing the supported queue range."
   },
   "milestones": [
     {
@@ -27695,7 +27720,7 @@
           "id": "M12-T4",
           "title": "Implement the native project queue worker",
           "scope": "Drive native project outputs from Electron main with correlated progress, pause/resume/cancel, cleanup and atomic multi-output publication.",
-          "status": "pending",
+          "status": "in_progress",
           "estimated_implementation_hours": 3,
           "required_gates": [
             "G0",
@@ -27705,7 +27730,14 @@
             "G4",
             "G5",
             "G6"
-          ]
+          ],
+          "started_at": "2026-10-23T03:16:09.417Z",
+          "progress": "The native output process adapter is implemented: immutable job configuration and project/request hashes are rechecked before launch; bounded progress and completion receipts bind source, dimensions, rational clock, frames, encoder drain and PNG identities. Pause acknowledgements are correlated, stale acknowledgements ignored, and cancellation retains process ownership until pipe closure. Real still/sequence/H.264 exports, audio inclusion/exclusion, two pause/resume boundaries with exact image equality, cancellation and input/configuration tamper rejection pass. Full G0 passes. Queue-wide scheduling, atomic multi-output publication, media lease cleanup and supported long-job admission remain open before production routing.",
+          "validation": {
+            "path": "artifacts/migration/cycle155b-validation/report.json",
+            "sha256": "432edbb3ec15ffb3c10ba9fcaeaf56c18ad3b446d62ff71346a771a5d27a8cdd"
+          },
+          "commit": "d382363ed78e55b89e2357f62ae1a0ac46b5f3ee"
         },
         {
           "id": "M12-T5",
@@ -2679902,6 +2679934,102 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Start M12-T4: implement the native project queue worker with lease-correlated progress and pause/resume/cancel, cleanup and atomic multi-output publication. Preserve supported long-job ranges through bounded scheduling and qualify production media limits; then route the production queue without TS GPU fallback."
+    },
+    {
+      "cycle": 155,
+      "id": 155,
+      "time": "2026-10-23T03:35:12.467Z",
+      "updated_at": "2026-10-23T03:35:12.467Z",
+      "milestone": "M12",
+      "task": "M12-T4",
+      "increment": "native-project-export-process-control-and-receipts",
+      "outcome": "development_increment_passed",
+      "commit": "d382363ed78e55b89e2357f62ae1a0ac46b5f3ee",
+      "validation": {
+        "path": "artifacts/migration/cycle155b-validation/report.json",
+        "sha256": "432edbb3ec15ffb3c10ba9fcaeaf56c18ad3b446d62ff71346a771a5d27a8cdd"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "queue-process-targeted",
+          "status": "passed",
+          "duration_ms": 1701
+        },
+        {
+          "id": "project-native-build",
+          "status": "passed",
+          "duration_ms": 1062
+        },
+        {
+          "id": "project-electron-build",
+          "status": "passed",
+          "duration_ms": 1025
+        },
+        {
+          "id": "project-raster-build",
+          "status": "passed",
+          "duration_ms": 346
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 246784
+        }
+      ],
+      "targeted_process": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle155b-validation\\process\\report.json",
+        "sha256": "47343aaf51090dfe8113b440efed17a4839fcd1a623fe5dbd1826369251bec88",
+        "cases": [
+          {
+            "id": "still",
+            "status": "passed"
+          },
+          {
+            "id": "sequence",
+            "status": "passed"
+          },
+          {
+            "id": "video",
+            "status": "passed"
+          },
+          {
+            "id": "muted",
+            "status": "passed"
+          },
+          {
+            "id": "pause-resume",
+            "status": "passed"
+          },
+          {
+            "id": "cancel-after-pause",
+            "status": "passed"
+          },
+          {
+            "id": "changed-request-rejected",
+            "status": "passed"
+          },
+          {
+            "id": "changed-job-configuration-rejected",
+            "status": "passed"
+          }
+        ],
+        "pause_resume_exact": true
+      },
+      "superseded_validation": {
+        "path": "artifacts/migration/cycle155-validation/report.json",
+        "reason": "Earlier passing source lacked complete immutable job configuration binding. Retained as historical evidence only; the final current-source run includes configuration mutation rejection."
+      },
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Continue M12-T4: compose the native queue host worker around the verified output process, immutable media lease and atomic output publisher. Preserve cancellation through preparation/publication and existing PNG sequence naming; qualify long jobs with bounded scheduling rather than silently reducing the supported queue range."
     }
   ],
   "known_boundaries": [
