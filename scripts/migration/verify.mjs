@@ -31,6 +31,7 @@ import { selectRequiredGates } from "./performance-policy.mjs";
 import { runPreviewAppGate } from "./preview-app-gate.mjs";
 import { runPreviewPerformanceGate } from "./preview-performance-gate.mjs";
 import { runStep } from "./process.mjs";
+import { runProductionPixelGate } from "./production-pixel-gate.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { runSharedPreviewGate } from "./shared-preview-gate.mjs";
 import { hashFile, ownerProject, sourceProvenance } from "./source.mjs";
@@ -154,7 +155,7 @@ export async function verifyMigration(options, dependencies = {}) {
     let projectCorpus;
     for (const id of gateOrder) {
       if (id === "G0") report.gates.push(await runStaticGate(context, quick, execute));
-      else if (id === "G1" && milestone.id === "M9") {
+      else if (id === "G1" && ["M9", "M12"].includes(milestone.id)) {
         report.gates.push(
           quick
             ? {
@@ -167,7 +168,7 @@ export async function verifyMigration(options, dependencies = {}) {
                 execute,
               ),
         );
-      } else if (id === "G2" && milestone.id === "M9") {
+      } else if (id === "G2" && ["M9", "M12"].includes(milestone.id)) {
         const gate = quick
           ? {
               id,
@@ -186,7 +187,7 @@ export async function verifyMigration(options, dependencies = {}) {
             sha256: await hashFile(path),
           };
         }
-      } else if (id === "G3" && milestone.id === "M9") {
+      } else if (id === "G3" && ["M9", "M12"].includes(milestone.id)) {
         report.gates.push(
           quick
             ? { id, status: "skipped", reason: "Quick mode omits native project pixel comparisons" }
@@ -196,7 +197,9 @@ export async function verifyMigration(options, dependencies = {}) {
                   status: "failed",
                   error: "A passed current native project corpus run is required",
                 }
-              : await (dependencies.runNativeProjectPixelGate ?? runNativeProjectPixelGate)(
+              : await (milestone.id === "M12"
+                  ? (dependencies.runProductionPixelGate ?? runProductionPixelGate)
+                  : (dependencies.runNativeProjectPixelGate ?? runNativeProjectPixelGate))(
                   { ...context, output: join(output, "G3"), source: report.source, projectCorpus },
                   execute,
                 ),
@@ -355,7 +358,7 @@ export async function verifyMigration(options, dependencies = {}) {
             build,
           });
         }
-      } else if (id === "G5" && milestone.id === "M9") {
+      } else if (id === "G5" && ["M9", "M12"].includes(milestone.id)) {
         report.gates.push(
           quick
             ? {

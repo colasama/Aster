@@ -714,6 +714,13 @@ matching physical fonts and a reviewed perceptual GPU comparison. Retained cases
 pixels and explicit capability tasks in the migration ledger. Diagnostic shaping or atlas success
 alone cannot confer text acceptance; native preview acceptance remains separate.
 
+Final production pixel verification combines two independently complete paths: the current native
+authored-project corpus and desktop native preview. Both must pass their existing pixel and
+self-review rules. The aggregate pins the project-corpus report and each child report, checks source
+identity and rejects partial coverage or reports changed during execution. M12 uses native project/IR,
+corpus and project-export gates; this pixel aggregate alone does not establish performance,
+application delivery or final migration acceptance.
+
 Native preview transport reserves one to three lossless BGRA sharing surfaces before rendering.
 Each surface remains immutable while a consumer owns its lease. DX12 completion precedes publication,
 and an owned duplicate NT handle is bound to the importing process identity. An independent bounded
