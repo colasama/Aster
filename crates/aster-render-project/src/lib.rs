@@ -29,6 +29,8 @@ mod raster_provider;
 mod raster_transport;
 pub use raster_provider::{NativeRasterProvider, RasterProviderOptions, RasterProviderReady};
 mod session;
+mod timings;
+pub use timings::{ProjectExportTimings, ProjectPreparationTimings};
 mod text;
 mod text_capture;
 mod text_coverage;

@@ -54,6 +54,7 @@ pub struct ProjectExportReport {
     pub transport: &'static str,
     pub transport_reason: Option<String>,
     pub encoder: EncoderStatistics,
+    pub timings: crate::ProjectExportTimings,
 }
 
 struct PacketSink {
@@ -227,9 +228,15 @@ impl NativeProjectExport {
             total_frames: count,
             elapsed_ms: started.elapsed().as_millis(),
         });
+        let mut timings = crate::ProjectExportTimings {
+            setup_ms: started.elapsed().as_secs_f64() * 1000.0,
+            ..Default::default()
+        };
         let produce = (|| -> Result<(), ProjectRenderError> {
             for (index, frame) in self.schedule.frames.iter().enumerate() {
+                let phase = Instant::now();
                 self.control.wait()?;
+                timings.control_wait_ms += phase.elapsed().as_secs_f64() * 1000.0;
                 let prepared = self.session.prepare(
                     &frame,
                     &self.settings,
@@ -239,12 +246,18 @@ impl NativeProjectExport {
                         None => Ok(ProjectRasterFrame::default()),
                     },
                 )?;
+                timings.preparation.accumulate(&prepared.timings);
+                let phase = Instant::now();
                 let rendered = self.session.render(&prepared, &self.control.cancellation)?;
+                timings.render_submit_ms += phase.elapsed().as_secs_f64() * 1000.0;
+                let phase = Instant::now();
                 let packets = if shared {
                     #[cfg(windows)]
                     {
                         let surface = self.session.gpu.renderer.share_nv12(&rendered)?;
+                        timings.output_completion_ms += phase.elapsed().as_secs_f64() * 1000.0;
                         if let Some(observer) = observer.as_deref_mut() {
+                            let phase = Instant::now();
                             observer.observe(
                                 index as u64,
                                 &frame,
@@ -253,12 +266,16 @@ impl NativeProjectExport {
                                 &mut self.session.gpu.renderer,
                                 None,
                             )?;
+                            timings.observer_ms += phase.elapsed().as_secs_f64() * 1000.0;
                         }
-                        encoder.push_shared(
+                        let phase = Instant::now();
+                        let packets = encoder.push_shared(
                             index as u64,
                             surface,
                             self.control.cancellation.as_ref(),
-                        )?
+                        )?;
+                        timings.encoder_submit_ms += phase.elapsed().as_secs_f64() * 1000.0;
+                        packets
                     }
                     #[cfg(not(windows))]
                     {
@@ -268,7 +285,9 @@ impl NativeProjectExport {
                     }
                 } else {
                     let pixels = self.session.gpu.renderer.read_nv12(&rendered)?;
+                    timings.output_completion_ms += phase.elapsed().as_secs_f64() * 1000.0;
                     if let Some(observer) = observer.as_deref_mut() {
+                        let phase = Instant::now();
                         observer.observe(
                             index as u64,
                             &frame,
@@ -277,10 +296,18 @@ impl NativeProjectExport {
                             &mut self.session.gpu.renderer,
                             Some(&pixels),
                         )?;
+                        timings.observer_ms += phase.elapsed().as_secs_f64() * 1000.0;
                     }
-                    encoder.push(index as u64, &pixels, self.control.cancellation.as_ref())?
+                    let phase = Instant::now();
+                    let packets =
+                        encoder.push(index as u64, &pixels, self.control.cancellation.as_ref())?;
+                    timings.encoder_submit_ms += phase.elapsed().as_secs_f64() * 1000.0;
+                    packets
                 };
+                let phase = Instant::now();
                 sink.push(packets)?;
+                timings.packet_publish_ms += phase.elapsed().as_secs_f64() * 1000.0;
+                timings.frames += 1;
                 progress(ProjectExportProgress {
                     stage: "render",
                     rendered_frames: index as u64 + 1,
@@ -288,8 +315,15 @@ impl NativeProjectExport {
                     elapsed_ms: started.elapsed().as_millis(),
                 });
             }
+            let phase = Instant::now();
             self.control.wait()?;
-            sink.push(encoder.finish(self.control.cancellation.as_ref())?)?;
+            timings.control_wait_ms += phase.elapsed().as_secs_f64() * 1000.0;
+            let phase = Instant::now();
+            let packets = encoder.finish(self.control.cancellation.as_ref())?;
+            timings.encoder_drain_ms = phase.elapsed().as_secs_f64() * 1000.0;
+            let phase = Instant::now();
+            sink.push(packets)?;
+            timings.packet_publish_ms += phase.elapsed().as_secs_f64() * 1000.0;
             let statistics = encoder.statistics();
             if !statistics.drain_completed
                 || statistics.accepted_frames != count
@@ -301,6 +335,7 @@ impl NativeProjectExport {
             }
             Ok(())
         })();
+        let completion = Instant::now();
         let produce = produce.and_then(|()| sink.finish());
         if produce.is_err() {
             self.control.cancellation.cancel();
@@ -323,6 +358,7 @@ impl NativeProjectExport {
             (Err(error), _) => return Err(error),
             (Ok(()), result) => result?,
         };
+        timings.mux_completion_ms = completion.elapsed().as_secs_f64() * 1000.0;
         Ok(ProjectExportReport {
             output: mux.output_path,
             frames: count,
@@ -336,6 +372,7 @@ impl NativeProjectExport {
             },
             transport_reason,
             encoder: encoder.statistics(),
+            timings,
         })
     }
 }

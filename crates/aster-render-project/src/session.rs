@@ -12,7 +12,7 @@ use aster_render_ir::{
 };
 use aster_renderer::{DecodedTexturePixels, RenderedFrame, SuppliedFrame};
 use aster_video::CancellationToken;
-use std::{collections::BTreeSet, sync::Arc};
+use std::{collections::BTreeSet, sync::Arc, time::Instant};
 
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -24,6 +24,7 @@ pub struct ProjectFrameSettings {
 
 /// A frame is published only after acquisition, native planning and execution validation succeed.
 pub struct PreparedProjectFrame {
+    pub timings: crate::ProjectPreparationTimings,
     pub bundle: NativeBundle,
     pub frame: SuppliedFrame,
     pub registry: ResourceRegistry,
@@ -107,6 +108,7 @@ impl NativeProjectSession {
             &ProjectResourceRequests,
         ) -> Result<ProjectRasterFrame, ProjectRenderError>,
     ) -> Result<PreparedProjectFrame, ProjectRenderError> {
+        let started = Instant::now();
         if cancellation.is_cancelled() {
             return Err(aster_video::FfmpegError::Cancelled.into());
         }
@@ -130,6 +132,18 @@ impl NativeProjectSession {
             context.visualization = self.gpu.configure_visualization(context.visualization)?;
         }
         let mut files = self.files.acquire(frame, &context, true, cancellation)?;
+        let mut timings = crate::ProjectPreparationTimings {
+            file_media_ms: started.elapsed().as_secs_f64() * 1000.0,
+            ..Default::default()
+        };
+        let phase = Instant::now();
+        let mut raster_exchange_ms = 0.0;
+        let acquire_rasters = |requests: &ProjectResourceRequests| {
+            let exchange = Instant::now();
+            let result = acquire_rasters(requests);
+            raster_exchange_ms = exchange.elapsed().as_secs_f64() * 1000.0;
+            result
+        };
         let limits = self.files.document.limits.clone();
         let has_text = files.requests.operations.iter().any(|operation| {
             matches!(operation,
@@ -162,23 +176,32 @@ impl NativeProjectSession {
             rasters.validate(&files.requests, limits.render_project_pixel_bytes)?;
             (rasters, Vec::new(), Vec::new())
         };
+        timings.raster_text_ms = phase.elapsed().as_secs_f64() * 1000.0;
+        timings.raster_exchange_ms = raster_exchange_ms;
+        let phase = Instant::now();
         let materials = self.materials.acquire(
             &self.files.document,
             &frame.composition_id,
             frame.time,
             cancellation,
         )?;
+        timings.materials_ms = phase.elapsed().as_secs_f64() * 1000.0;
+        let phase = Instant::now();
         let audio = self
             .audio
             .analysis_frame(frame.time, cancellation)?
             .into_iter()
             .map(f32::to_bits)
             .collect::<Vec<_>>();
+        timings.audio_ms = phase.elapsed().as_secs_f64() * 1000.0;
+        let phase = Instant::now();
         let device = self.gpu.begin(
             &files.requests,
             Some(&audio),
             context.surface.memory_budget_mb,
         )?;
+        timings.gpu_setup_ms = phase.elapsed().as_secs_f64() * 1000.0;
+        let phase = Instant::now();
         for (id, hash) in rasters.bindings {
             if files.bindings.insert(id, hash).is_some() {
                 return Err(ProjectRenderError::Invalid(
@@ -270,6 +293,8 @@ impl NativeProjectSession {
             .ok_or_else(|| {
                 ProjectRenderError::Invalid("combined resource budget overflow".into())
             })?;
+        timings.plan_inputs_ms = phase.elapsed().as_secs_f64() * 1000.0;
+        let phase = Instant::now();
         let bundle = self.files.document.scene.plan_project_frame_allocated(
             frame,
             &scene,
@@ -278,6 +303,8 @@ impl NativeProjectSession {
             budget.clone(),
             &mut self.gpu,
         )?;
+        timings.plan_ms = phase.elapsed().as_secs_f64() * 1000.0;
+        let phase = Instant::now();
         let mut registry = ResourceRegistry::new(ResourceLimits {
             budget_bytes: budget.max_bundle_bytes as u64,
             max_resources: budget.max_bundle_resources,
@@ -329,7 +356,10 @@ impl NativeProjectSession {
         self.generation = self.generation.checked_add(1).ok_or_else(|| {
             ProjectRenderError::Invalid("project frame generation exhausted".into())
         })?;
+        timings.admission_ms = phase.elapsed().as_secs_f64() * 1000.0;
+        timings.total_ms = started.elapsed().as_secs_f64() * 1000.0;
         Ok(PreparedProjectFrame {
+            timings,
             bundle,
             frame: supplied,
             registry,

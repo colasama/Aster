@@ -603,6 +603,15 @@ decoding and the completed warm-up are excluded; no measured work is subtracted.
 witnesses are forbidden in timed observations. Native monotonic millisecond receipts provide
 ordered frame intervals and total elapsed time; FFprobe and artifact hashing follow completion.
 
+Native export receipts also contain aggregate `timings` from monotonic host clocks. Preparation
+separates file/media acquisition, raster/text work, materials, audio analysis, GPU setup, plan inputs,
+native planning and admission. `raster_exchange_ms` is a subset of raster/text work, not an additional
+phase. Export counters separate render submission, output completion, diagnostic observers, encoder
+submission/drain, packet publication, control waits and final mux completion. Output completion may
+include GPU execution waits; these are not GPU timestamp measurements. The counters add no waits or
+readbacks, exclude completed warm-up frames, and do not subtract any work from end-to-end throughput.
+Progress callbacks, frame destruction and small orchestration gaps remain in total elapsed time.
+
 One observation, including a short smoke run, cannot establish G4. Final acceptance still requires
 contemporaneous paired retained-TS observations, complete workload coverage, matching audio/video
 parameters, stable hardware and binaries, higher native median FPS, and separate G5 quality.
