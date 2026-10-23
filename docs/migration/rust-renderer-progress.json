@@ -393,60 +393,58 @@
     }
   },
   "last_cycle": {
-    "id": 152,
-    "time": "2026-10-23T02:25:01.715Z",
-    "updated_at": "2026-10-23T02:25:01.715Z",
+    "id": 153,
+    "time": "2026-10-23T02:45:15.402Z",
+    "updated_at": "2026-10-23T02:45:15.402Z",
     "milestone": "M12",
     "task": "M12-T3",
-    "increment": "native-queue-project-assembly-and-retained-inputs",
+    "increment": "native-queue-legacy-input-and-raster-scope",
     "outcome": "development_increment_passed",
-    "commit": "523f09bf2900f682d5dc88775c15eb13ec7f924c",
+    "commit": "a38dc147a05a9d3253f14eb870a15a6084e2c387",
     "validation": {
-      "path": "artifacts/migration/cycle152c-validation/report.json",
-      "sha256": "316431aaa122fec890699c1d2f07ce20ff67b2506d155dd9b6b708a61eee15ee"
+      "path": "artifacts/migration/cycle153b-validation/report.json",
+      "sha256": "5d72124a224dcada236b5b238fd2269d1aa0f7442ae45b97c95b3a360108b654"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
         "id": "queue-project-targeted",
         "status": "passed",
-        "duration_ms": 2194
+        "duration_ms": 2197
       },
       {
         "id": "project-native-build",
         "status": "passed",
-        "duration_ms": 3096
+        "duration_ms": 1069
       },
       {
         "id": "project-electron-build",
         "status": "passed",
-        "duration_ms": 997
+        "duration_ms": 975
       },
       {
         "id": "project-raster-build",
         "status": "passed",
-        "duration_ms": 351
+        "duration_ms": 349
       },
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 250718
+        "duration_ms": 313304
       }
     ],
     "targeted_queue": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle152c-validation\\queue\\report.json",
-      "sha256": "f581d0eed7fe93f48cfaed5bf47c2dd438a2ba80974c7dd86e8f0a2410b0d4ce",
-      "exact_cases": 7,
-      "disabled_generator": true
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle153b-validation\\queue\\report.json",
+      "sha256": "6173a5eee84228b1f8f2d1cc07762d029f413deb911362c893011ffbff3bd740",
+      "exact_cases": 12,
+      "disabled_generator": true,
+      "sequence_frames": 4100,
+      "large_document_bytes_above": 67108864
     },
     "retained_failed_attempts": [
       {
-        "path": "artifacts/migration/cycle152-validation/queue/report.json",
-        "reason": "Retained sidecar I/O yielded before Electron privileged protocol registration; corrected startup ordering."
-      },
-      {
-        "path": "artifacts/migration/cycle152b-validation/G0/static-results.json",
-        "reason": "In-process Vite parser build changed NODE_ENV for subsequent tests; moved build to an isolated subprocess."
+        "path": "artifacts/migration/cycle153-validation/queue/report.json",
+        "reason": "Large input fixture uses a historical shape-only project without sources. Admit its empty source catalog so native schema upgrades can run; current-schema missing catalogs still fail."
       }
     ],
     "deferred_gates": [
@@ -458,7 +456,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Continue M12-T3: qualify legacy snapshot media, fonts/material paths and input-size/sequence budgets against existing queue capabilities. Preserve supported queue behavior before selecting the native production worker in M12-T4."
+    "next_step": "Continue M12-T3: use the existing Rust runtime schema upgrader for historical queue documents and preserve embedded media with locator-derived legacy identities. Qualify immutable composition metadata before completing input preparation, then implement native queue worker routing in M12-T4."
   },
   "milestones": [
     {
@@ -27681,12 +27679,12 @@
             "G6"
           ],
           "started_at": "2026-10-23T01:43:41.553Z",
-          "progress": "Native queue project assembly materializes captured media, selects the composition dependency graph, freezes trusted plugin packages and carries unavailable-generator states into native export. Authenticated job-local PSD pixel fallback reaches the retained raster service. Seven real prepared exports (PNG, SVG, compressed PSD, PSD pixel fallback, image sequence, video, audio spectrum) are pixel-exact against original native exports; disabled generator execution, admission and cleanup checks pass. Legacy input compatibility and queue-vs-native input limits remain to qualify before task completion; production worker routing belongs to M12-T4.",
+          "progress": "Immutable project/media/plugin assembly and PSD fallback are implemented. Retained raster admission authenticates the complete project then hydrates only SVG/PSD, leaving ordinary footage and long sequences native. Selected folder assignments, embedded font/material data, historical shape-only catalogs and queue document bounds are preserved. Twelve real exports are pixel-exact, including 4100-frame sequence admission, an input above 64 MiB, embedded footage without a media snapshot, text and lighting; disabled plugin and full G0 checks pass. Historical media snapshots still require native schema normalization and locator-derived source identity handling before T3 completion. Production queue routing remains M12-T4.",
           "validation": {
-            "path": "artifacts/migration/cycle152c-validation/report.json",
-            "sha256": "316431aaa122fec890699c1d2f07ce20ff67b2506d155dd9b6b708a61eee15ee"
+            "path": "artifacts/migration/cycle153b-validation/report.json",
+            "sha256": "5d72124a224dcada236b5b238fd2269d1aa0f7442ae45b97c95b3a360108b654"
           },
-          "commit": "523f09bf2900f682d5dc88775c15eb13ec7f924c"
+          "commit": "a38dc147a05a9d3253f14eb870a15a6084e2c387"
         },
         {
           "id": "M12-T4",
@@ -2679761,6 +2679759,73 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Continue M12-T3: qualify legacy snapshot media, fonts/material paths and input-size/sequence budgets against existing queue capabilities. Preserve supported queue behavior before selecting the native production worker in M12-T4."
+    },
+    {
+      "cycle": 153,
+      "id": 153,
+      "time": "2026-10-23T02:45:15.402Z",
+      "updated_at": "2026-10-23T02:45:15.402Z",
+      "milestone": "M12",
+      "task": "M12-T3",
+      "increment": "native-queue-legacy-input-and-raster-scope",
+      "outcome": "development_increment_passed",
+      "commit": "a38dc147a05a9d3253f14eb870a15a6084e2c387",
+      "validation": {
+        "path": "artifacts/migration/cycle153b-validation/report.json",
+        "sha256": "5d72124a224dcada236b5b238fd2269d1aa0f7442ae45b97c95b3a360108b654"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "queue-project-targeted",
+          "status": "passed",
+          "duration_ms": 2197
+        },
+        {
+          "id": "project-native-build",
+          "status": "passed",
+          "duration_ms": 1069
+        },
+        {
+          "id": "project-electron-build",
+          "status": "passed",
+          "duration_ms": 975
+        },
+        {
+          "id": "project-raster-build",
+          "status": "passed",
+          "duration_ms": 349
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 313304
+        }
+      ],
+      "targeted_queue": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle153b-validation\\queue\\report.json",
+        "sha256": "6173a5eee84228b1f8f2d1cc07762d029f413deb911362c893011ffbff3bd740",
+        "exact_cases": 12,
+        "disabled_generator": true,
+        "sequence_frames": 4100,
+        "large_document_bytes_above": 67108864
+      },
+      "retained_failed_attempts": [
+        {
+          "path": "artifacts/migration/cycle153-validation/queue/report.json",
+          "reason": "Large input fixture uses a historical shape-only project without sources. Admit its empty source catalog so native schema upgrades can run; current-schema missing catalogs still fail."
+        }
+      ],
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Continue M12-T3: use the existing Rust runtime schema upgrader for historical queue documents and preserve embedded media with locator-derived legacy identities. Qualify immutable composition metadata before completing input preparation, then implement native queue worker routing in M12-T4."
     }
   ],
   "known_boundaries": [
