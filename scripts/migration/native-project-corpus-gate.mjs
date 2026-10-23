@@ -5,6 +5,7 @@ import { captureAssignments } from "../parity/provenance.mjs";
 import { M0Evidence } from "./m0-evidence.mjs";
 import { auditProjectCorpusCheckpoint } from "./native-project-corpus-checkpoint.mjs";
 import { prepareProjectCorpusInputs } from "./native-project-corpus-inputs.mjs";
+import { ProjectPlanComparison } from "./native-project-plan-comparison.mjs";
 import { prepareNativeProjectRuntime } from "./native-project-runtime.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
@@ -23,6 +24,7 @@ export async function runNativeProjectCorpusGate(context, execute = runStep) {
     cases: [],
     full_coverage: false,
   };
+  let comparator;
   try {
     report.source = await sourceProvenance(root);
     if (context.source) assert.equal(report.source.source_sha256, context.source.source_sha256);
@@ -40,6 +42,7 @@ export async function runNativeProjectCorpusGate(context, execute = runStep) {
     report.required_samples = inputs.expected.reduce((sum, item) => sum + item.samples.length, 0);
     const reader = new M0Evidence(root),
       frames = [];
+    comparator = new ProjectPlanComparison(context, reader, prepared.binary, execute);
     for (const [index, expected] of inputs.expected.entries()) {
       const job = inputs.jobs[index];
       const entry = { id: expected.id, status: "failed", samples: [] };
@@ -93,43 +96,9 @@ export async function runNativeProjectCorpusGate(context, execute = runStep) {
         await reader.bytes(sample.reference_plan.path, sample.reference_plan.sha256);
         const png = await reader.image(local(join(directory, "candidate.png")), frame.png_sha256);
         assert.equal(png.rgba_sha256, frame.rgba_sha256);
-        const comparison = join(output, "comparisons", `${expected.id}-${sampleIndex}.json`);
-        const step = await execute(
-          {
-            id: `plan-${expected.id}-${sampleIndex}`,
-            file: prepared.binary,
-            args: [
-              "plan-diff",
-              "--a",
-              join(root, sample.reference_plan.path),
-              "--a-resources",
-              join(root, sample.reference_resources),
-              "--b",
-              join(directory, "plan.fpln"),
-              "--b-resources",
-              join(job.out, "resources"),
-              "--out",
-              comparison,
-            ],
-            timeout_ms: 120_000,
-          },
-          { ...context, print: undefined },
+        entry.samples.push(
+          await comparator.compare(expected, sample, sampleIndex, frame, directory, job, receipt),
         );
-        const measured = await reader.json(local(comparison));
-        assert.equal(measured.kind, "plan_diff");
-        assert.equal(measured.a_sha256, sample.reference_plan.sha256);
-        assert.equal(measured.b_sha256, frame.plan_sha256);
-        assert.equal(measured.relative, 1e-5);
-        assert.equal(measured.absolute, 1e-6);
-        assert.equal(step.exit_code, measured.equal ? 0 : 1);
-        assert.equal(step.status, measured.equal ? "passed" : "failed");
-        assert(!step.error && !step.signal);
-        entry.samples.push({
-          sample: sample.sample,
-          comparison: { path: local(comparison), sha256: await hashFile(comparison) },
-          equal: measured.equal,
-          step,
-        });
         if (sample.sample.kind === "declared")
           frames.push({
             case_id: expected.id,
@@ -176,6 +145,8 @@ export async function runNativeProjectCorpusGate(context, execute = runStep) {
         : "failed";
   } catch (error) {
     report.error = error.stack ?? String(error);
+  } finally {
+    await comparator?.close();
   }
   await writeAtomicJson(join(output, "report.json"), report);
   return report;

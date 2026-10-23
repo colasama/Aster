@@ -1237,6 +1237,15 @@ is no longer available; an existing mismatched executable still fails. Historica
 grants current acceptance: G2's current native `plan-diff` independently decodes every reference plan
 and resource closure. Candidate checkpoint binaries remain mandatory and authenticated separately.
 
+After native glyph admission, a comparison-only plan may name an already reviewed native/TS text
+pair identically. Admission reauthenticates the completed text gate, per-glyph layout, physical fonts,
+project identities and both exact GPU pixel hashes. The original Rust plan, resources, PNG and failed
+raw comparison remain intact. Only the qualified source, raster frame and pixel leaves are mapped;
+affected typed stage buffers are rehashed without changing headers, binary payloads or other values.
+The ordinary strict plan comparator then checks this separate view. Unsupported nesting or temporal
+glyph structures fail closed. Checkpoint audits reconstruct the view from original artifacts and
+authenticate every retained comparison command; they never trust a stored substitution alone.
+
 ## Frame flow
 
 1. UI gestures produce serializable operations; they do not mutate render state directly.

@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFile, stat } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { M0Evidence, sha256, validSha } from "./m0-evidence.mjs";
+import { buildQualifiedTextPlan } from "./native-project-text-plan.mjs";
+import { loadQualifiedProjectText } from "./native-project-text-qualification.mjs";
 
 // Bind retained project captures to their original invocations, inputs and content-addressed resources.
 export class CorpusCheckpointAudit {
@@ -40,14 +42,75 @@ export class CorpusCheckpointAudit {
     return relative(this.root, resolve(this.root, path)).replaceAll("\\", "/");
   }
 
-  async step(step, command, result) {
+  async step(step, command, result, exitCode = 0) {
     assert.deepEqual(step.command, command, "Original invocation differs");
-    assert.equal(step.status, "passed");
-    assert.equal(step.exit_code, 0);
+    assert.equal(step.status, exitCode === 0 ? "passed" : "failed");
+    assert.equal(step.exit_code, exitCode);
     assert(!step.error && !step.signal);
     const lines = (await this.reader.bytes(step.log)).bytes.toString("utf8").split(/\r?\n/);
     assert.equal(lines[0], `Command: ${JSON.stringify(command)}`);
     assert.deepEqual(JSON.parse(lines.filter((line) => line.startsWith("{")).at(-1)), result);
+  }
+
+  async qualifiedText(row, input, binary) {
+    const { raw, substitution } = row.native_text_substitution;
+    const original = await this.reader.json(raw.comparison.path, raw.comparison.sha256);
+    assert.equal(original.kind, "plan_diff");
+    assert.equal(original.equal, false);
+    assert.equal(original.a_sha256, input.reference_sha256);
+    assert.equal(original.b_sha256, input.frame.plan_sha256);
+    assert.equal(original.relative, 1e-5);
+    assert.equal(original.absolute, 1e-6);
+    await this.step(
+      raw.step,
+      [
+        binary,
+        "plan-diff",
+        "--a",
+        input.reference,
+        "--a-resources",
+        input.reference_resources,
+        "--b",
+        input.candidate,
+        "--b-resources",
+        input.candidate_resources,
+        "--out",
+        join(this.root, raw.comparison.path),
+      ],
+      original,
+      1,
+    );
+    this.textQualification ??= await loadQualifiedProjectText(this.reader);
+    const rebuilt = await buildQualifiedTextPlan(
+      { root: this.root },
+      this.reader,
+      this.codecs,
+      this.textQualification,
+      input,
+    );
+    const proof = await this.reader.json(substitution.path, substitution.sha256);
+    assert.deepEqual(proof, {
+      ...rebuilt.proof,
+      plan: { ...rebuilt.proof.plan, path: substitution.plan.path },
+    });
+    assert.deepEqual(proof.plan, substitution.plan);
+    const bytes = await this.reader.bytes(substitution.plan.path, substitution.plan.sha256);
+    assert.deepEqual(bytes.bytes, Buffer.from(rebuilt.canonical.bytes));
+    const messages = await this.reader.json(
+      this.local(join(dirname(substitution.plan.path), "resources.json")),
+    );
+    assert.deepEqual(
+      messages,
+      [...rebuilt.canonical.packets.values()]
+        .map((p) => p.message)
+        .sort((a, b) => a.hash.localeCompare(b.hash)),
+    );
+    await this.resourceSet(
+      this.local(join(dirname(substitution.plan.path), "resources.json")),
+      substitution.resources,
+      this.codecs.decodeFramePlan(bytes.bytes),
+    );
+    return substitution;
   }
 
   async resourceSet(path, directory, plan, expectedHash) {
@@ -179,13 +242,30 @@ export class CorpusCheckpointAudit {
         meta.frame_plan.files["resources.json"],
       );
       const measured = await this.reader.json(row.comparison.path, row.comparison.sha256);
+      const qualified = row.native_text_substitution
+        ? await this.qualifiedText(
+            row,
+            {
+              case_id: expected.id,
+              authored_sha256: receipt.project.authored_sha256,
+              time: sample.sample.time,
+              frame,
+              reference: join(this.root, sample.reference_plan.path),
+              reference_sha256: sample.reference_plan.sha256,
+              reference_resources: join(this.root, sample.reference_resources),
+              candidate: join(directory, "plan.fpln"),
+              candidate_resources: join(job.out, "resources"),
+            },
+            binary,
+          )
+        : undefined;
       assert.equal(measured.schema_version, 1);
       assert.equal(measured.kind, "plan_diff");
       assert.equal(measured.status, "passed");
       assert.equal(measured.equal, true);
       assert.equal(measured.first_difference, null);
       assert.equal(measured.a_sha256, sample.reference_plan.sha256);
-      assert.equal(measured.b_sha256, frame.plan_sha256);
+      assert.equal(measured.b_sha256, qualified?.plan.sha256 ?? frame.plan_sha256);
       assert.equal(measured.relative, 1e-5);
       assert.equal(measured.absolute, 1e-6);
       assert(measured.compared_plans > 0);
@@ -199,9 +279,9 @@ export class CorpusCheckpointAudit {
           "--a-resources",
           join(this.root, sample.reference_resources),
           "--b",
-          join(directory, "plan.fpln"),
+          qualified ? join(this.root, qualified.plan.path) : join(directory, "plan.fpln"),
           "--b-resources",
-          join(job.out, "resources"),
+          qualified ? join(this.root, qualified.resources) : join(job.out, "resources"),
           "--out",
           join(this.root, row.comparison.path),
         ],
