@@ -20,6 +20,9 @@ pub struct ProjectRenderLimits {
     pub render_project_input_bytes: usize,
     #[arg(long, default_value_t = 4096)]
     pub render_project_frames: usize,
+    /// Maximum time-addressed export length; frame requests are generated on demand.
+    #[arg(long, default_value_t = 10_000_000)]
+    pub render_export_frames: usize,
     #[arg(long, default_value_t = 268_435_456)]
     pub render_project_pixel_bytes: usize,
     #[command(flatten)]
@@ -48,6 +51,8 @@ impl NativeProjectDocument {
         if !(32..=268_435_456).contains(&limits.render_project_input_bytes)
             || limits.render_project_frames == 0
             || limits.render_project_frames > 65_536
+            || limits.render_export_frames == 0
+            || limits.render_export_frames > 10_000_000
             || limits.render_project_pixel_bytes == 0
             || limits.render_project_pixel_bytes > 1_073_741_824
         {

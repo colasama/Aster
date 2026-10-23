@@ -266,9 +266,10 @@ impl ExportProjectArgs {
                 .min(provider.ready.maximum_dimension);
         }
         control.wait()?;
-        let (session, identity) = self.runtime.open_schedule(
+        let (session, identity) = self.runtime.open_export(
             document,
-            crate::project_runtime::ProjectScheduleAdmission {
+            crate::project_runtime::ProjectExportAdmission {
+                control: control.clone(),
                 frames: schedule.frames.clone(),
                 unavailable_generators: configuration.unavailable_generators,
             },

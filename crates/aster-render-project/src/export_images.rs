@@ -51,7 +51,7 @@ impl NativeProjectImageExport {
         for (index, frame) in self.schedule.frames.iter().enumerate() {
             self.control.wait()?;
             let prepared = self.session.prepare(
-                frame,
+                &frame,
                 &self.settings,
                 &self.control.cancellation,
                 |requests| match &mut self.raster_provider {
@@ -62,7 +62,7 @@ impl NativeProjectImageExport {
             let rendered = self.session.render(&prepared, &self.control.cancellation)?;
             // Lossless file delivery requires readback; pixels never cross the host IPC boundary.
             let rgba = self.session.gpu.renderer.read_rgba(&rendered)?;
-            output.write_frame(index as u64, frame, rgba)?;
+            output.write_frame(index as u64, &frame, rgba)?;
             progress(ProjectExportProgress {
                 stage: "render",
                 rendered_frames: index as u64 + 1,

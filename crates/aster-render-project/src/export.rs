@@ -223,7 +223,7 @@ impl NativeProjectExport {
             for (index, frame) in self.schedule.frames.iter().enumerate() {
                 self.control.wait()?;
                 let prepared = self.session.prepare(
-                    frame,
+                    &frame,
                     &self.settings,
                     &self.control.cancellation,
                     |requests| match &mut self.raster_provider {
@@ -239,7 +239,7 @@ impl NativeProjectExport {
                         if let Some(observer) = observer.as_deref_mut() {
                             observer.observe(
                                 index as u64,
-                                frame,
+                                &frame,
                                 &prepared,
                                 &rendered,
                                 &mut self.session.gpu.renderer,
@@ -263,7 +263,7 @@ impl NativeProjectExport {
                     if let Some(observer) = observer.as_deref_mut() {
                         observer.observe(
                             index as u64,
-                            frame,
+                            &frame,
                             &prepared,
                             &rendered,
                             &mut self.session.gpu.renderer,

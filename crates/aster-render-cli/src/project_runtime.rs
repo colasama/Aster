@@ -4,7 +4,7 @@ use aster_render::NativeBackend;
 use aster_render_project::{
     NativeProjectAudio, NativeProjectDocument, NativeProjectFileMedia, NativeProjectGenerators,
     NativeProjectGpu, NativeProjectMaterials, NativeProjectSession, ProjectAudioLimits,
-    ProjectFrameSettings, ProjectRenderLimits,
+    ProjectExportControl, ProjectExportFrames, ProjectFrameSettings, ProjectRenderLimits,
 };
 use aster_renderer::{NativeOptions, NativeRenderer};
 use aster_video::CancellationToken;
@@ -52,6 +52,7 @@ pub(crate) struct ProjectIdentity {
 
 enum ProjectAdmission {
     Schedule(ProjectScheduleAdmission),
+    Export(ProjectExportAdmission),
     #[cfg(windows)]
     Preview(ProjectPreviewAdmission),
 }
@@ -59,6 +60,12 @@ enum ProjectAdmission {
 pub(crate) struct ProjectScheduleAdmission {
     pub frames: Vec<FramePlanRequest>,
     pub unavailable_generators: Vec<aster_eval::UnavailableGenerator>,
+}
+
+pub(crate) struct ProjectExportAdmission {
+    pub frames: ProjectExportFrames,
+    pub unavailable_generators: Vec<aster_eval::UnavailableGenerator>,
+    pub control: ProjectExportControl,
 }
 
 #[cfg(windows)]
@@ -90,10 +97,10 @@ impl ProjectRuntimeArgs {
         )
     }
 
-    pub fn open_schedule(
+    pub fn open_export(
         &self,
         document: NativeProjectDocument,
-        admission: ProjectScheduleAdmission,
+        admission: ProjectExportAdmission,
         settings: &ProjectFrameSettings,
         plugins: &[PathBuf],
         renderer: Option<NativeRenderer>,
@@ -101,7 +108,7 @@ impl ProjectRuntimeArgs {
     ) -> Result<(NativeProjectSession, ProjectIdentity), Box<dyn std::error::Error>> {
         self.open_admitted(
             document,
-            ProjectAdmission::Schedule(admission),
+            ProjectAdmission::Export(admission),
             settings,
             plugins,
             renderer,
@@ -138,19 +145,30 @@ impl ProjectRuntimeArgs {
         renderer: Option<NativeRenderer>,
         cancellation: &CancellationToken,
     ) -> Result<(NativeProjectSession, ProjectIdentity), Box<dyn std::error::Error>> {
-        let frames = match &admission {
-            ProjectAdmission::Schedule(admission) => admission.frames.as_slice(),
+        let first = match &admission {
+            ProjectAdmission::Schedule(admission) => {
+                let first = admission
+                    .frames
+                    .first()
+                    .ok_or("native project schedule is empty")?;
+                if admission.frames.iter().any(|frame| {
+                    frame.composition_id != first.composition_id
+                        || frame.snapshot_scope != first.snapshot_scope
+                        || frame.project_revision != first.project_revision
+                }) {
+                    return Err(
+                        "native project schedule changes composition or snapshot identity".into(),
+                    );
+                }
+                first.clone()
+            }
+            ProjectAdmission::Export(admission) => admission
+                .frames
+                .first()
+                .ok_or("native export schedule is empty")?,
             #[cfg(windows)]
-            ProjectAdmission::Preview(admission) => std::slice::from_ref(&admission.frame),
+            ProjectAdmission::Preview(admission) => admission.frame.clone(),
         };
-        let first = frames.first().ok_or("native project schedule is empty")?;
-        if frames.iter().any(|frame| {
-            frame.composition_id != first.composition_id
-                || frame.snapshot_scope != first.snapshot_scope
-                || frame.project_revision != first.project_revision
-        }) {
-            return Err("native project schedule changes composition or snapshot identity".into());
-        }
         let identity = ProjectIdentity {
             authored_sha256: document.authored_sha256.clone(),
             runtime_sha256: document.runtime_sha256.clone(),
@@ -170,13 +188,21 @@ impl ProjectRuntimeArgs {
             cancellation,
         )?;
         let files = match &admission {
-            ProjectAdmission::Schedule(_) => NativeProjectFileMedia::new(
+            ProjectAdmission::Schedule(admission) => NativeProjectFileMedia::new(
                 document,
-                frames,
+                &admission.frames,
                 &settings.resources,
                 tools,
                 self.media.clone(),
                 cancellation,
+            )?,
+            ProjectAdmission::Export(admission) => NativeProjectFileMedia::new_export(
+                document,
+                &admission.frames,
+                &settings.resources,
+                tools,
+                self.media.clone(),
+                &admission.control,
             )?,
             #[cfg(windows)]
             ProjectAdmission::Preview(admission) => NativeProjectFileMedia::new_preview(
@@ -204,6 +230,9 @@ impl ProjectRuntimeArgs {
             #[cfg(windows)]
             ProjectAdmission::Preview(preview) => {
                 catalog.with_unavailable(preview.unavailable_generators.clone())?
+            }
+            ProjectAdmission::Export(export) => {
+                catalog.with_unavailable(export.unavailable_generators.clone())?
             }
             ProjectAdmission::Schedule(schedule) => {
                 catalog.with_unavailable(schedule.unavailable_generators.clone())?

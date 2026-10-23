@@ -5,6 +5,7 @@ mod document;
 mod export;
 mod export_audio;
 mod export_control;
+mod export_frames;
 mod export_images;
 mod export_schedule;
 pub use audio::{NativeProjectAudio, ProjectAudioLimits, ProjectAudioReceipt};
@@ -12,6 +13,7 @@ pub use export::{
     NativeProjectExport, ProjectExportObserver, ProjectExportProgress, ProjectExportReport,
 };
 pub use export_control::ProjectExportControl;
+pub use export_frames::ProjectExportFrames;
 pub use export_images::{NativeProjectImageExport, ProjectImageExportReport, ProjectImageOutput};
 pub use export_schedule::{ProjectExportFormat, ProjectExportSchedule, ProjectExportSettings};
 mod file_media;

@@ -1,4 +1,4 @@
-use crate::{NativeProjectDocument, ProjectRenderError};
+use crate::{NativeProjectDocument, ProjectExportControl, ProjectExportFrames, ProjectRenderError};
 use aster_eval::{
     BundleMediaPixels, BundleResources, FramePlanRequest, ProjectResourceRequests,
     ResourcePreparationOperation, ResourceRequestContext,
@@ -39,7 +39,41 @@ impl NativeProjectFileMedia {
                 "job frame count exceeds limit".into(),
             ));
         }
-        let scope = frames[0].snapshot_scope.clone();
+        let (ids, scope) =
+            Self::scheduled_sources(&document, frames.iter().cloned(), context, || {
+                if cancellation.is_cancelled() {
+                    return Err(aster_video::FfmpegError::Cancelled.into());
+                }
+                Ok(())
+            })?;
+        Self::from_sources(document, ids, scope, tools, limits, cancellation)
+    }
+
+    pub fn new_export(
+        document: NativeProjectDocument,
+        frames: &ProjectExportFrames,
+        context: &ResourceRequestContext,
+        tools: ProjectMediaTools,
+        limits: ProjectMediaLimits,
+        control: &ProjectExportControl,
+    ) -> Result<Self, ProjectRenderError> {
+        if frames.is_empty() || frames.len() > document.limits.render_export_frames {
+            return Err(ProjectRenderError::Invalid(
+                "export frame count exceeds limit".into(),
+            ));
+        }
+        let (ids, scope) =
+            Self::scheduled_sources(&document, frames.iter(), context, || control.wait())?;
+        Self::from_sources(document, ids, scope, tools, limits, &control.cancellation)
+    }
+
+    fn scheduled_sources(
+        document: &NativeProjectDocument,
+        frames: impl Iterator<Item = FramePlanRequest>,
+        context: &ResourceRequestContext,
+        mut wait: impl FnMut() -> Result<(), ProjectRenderError>,
+    ) -> Result<(BTreeSet<String>, String), ProjectRenderError> {
+        let mut scope = None;
         let mut ids = BTreeSet::new();
         let mut contexts = vec![context.clone()];
         if !matches!(
@@ -54,19 +88,15 @@ impl NativeProjectFileMedia {
             contexts.push(fallback);
         }
         for frame in frames {
-            if cancellation.is_cancelled() {
-                return Err(aster_media_native::MediaError::from(
-                    aster_video::FfmpegError::Cancelled,
-                )
-                .into());
-            }
-            if frame.snapshot_scope != scope {
+            wait()?;
+            let scope = scope.get_or_insert_with(|| frame.snapshot_scope.clone());
+            if frame.snapshot_scope != *scope {
                 return Err(ProjectRenderError::Invalid(
                     "job snapshot scope changed".into(),
                 ));
             }
             for context in &contexts {
-                let prepared = document.resource_requests(frame, context)?;
+                let prepared = document.resource_requests(&frame, context)?;
                 for operation in prepared.operations {
                     if let ResourcePreparationOperation::Media {
                         source_id: Some(id),
@@ -78,7 +108,9 @@ impl NativeProjectFileMedia {
                 }
             }
         }
-        Self::from_sources(document, ids, scope, tools, limits, cancellation)
+        let scope =
+            scope.ok_or_else(|| ProjectRenderError::Invalid("job schedule is empty".into()))?;
+        Ok((ids, scope))
     }
 
     /// A preview can seek to any time within one immutable composition snapshot.
@@ -300,5 +332,72 @@ impl NativeProjectFileMedia {
                 .map(|(frame, pixels)| BundleMediaPixels { frame, pixels })
                 .collect(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{ProjectExportFormat, ProjectExportSettings, ProjectRenderLimits};
+    use aster_render_ir::{AntiAliasing, RationalFrameRate};
+    use clap::Parser;
+
+    #[derive(Parser)]
+    struct Options {
+        #[command(flatten)]
+        limits: ProjectRenderLimits,
+    }
+
+    #[test]
+    fn export_preflight_checks_control_without_materializing_remaining_frames()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../examples/projects/minimal-golden.aster.json");
+        let document =
+            NativeProjectDocument::open(&path, Options::try_parse_from(["test"])?.limits)?;
+        let schedule = document.export_schedule(ProjectExportSettings {
+            format: ProjectExportFormat::Mp4,
+            composition: "22222222-2222-4222-8222-222222222222".into(),
+            start_time: 0.0,
+            start_frame: Some(0),
+            frame_count: Some(2),
+            size: None,
+            frame_rate: Some(RationalFrameRate {
+                numerator: 60,
+                denominator: 1,
+            }),
+            bitrate_bps: 20_000_000,
+            anti_aliasing: AntiAliasing::Off,
+        })?;
+        let mut frames = schedule.frames;
+        frames.count = 10_000_000;
+        let mut boundaries = 0;
+        let result = NativeProjectFileMedia::scheduled_sources(
+            &document,
+            frames.iter(),
+            &ResourceRequestContext {
+                visualization: aster_eval::BufferVisualization::Beauty,
+                locale: "en-US".into(),
+                layouts: BTreeMap::new(),
+                surface: aster_eval::SurfaceRequest {
+                    revision: 1,
+                    max_texture_dimension: 4096,
+                    memory_budget_mb: Some(512.),
+                    render_scale: 1.,
+                },
+                maximum_raster_dimension: 8192,
+                maximum_raster_pixels: 67_108_864,
+            },
+            || {
+                boundaries += 1;
+                if boundaries == 2 {
+                    return Err(aster_video::FfmpegError::Cancelled.into());
+                }
+                Ok(())
+            },
+        );
+        assert!(result.is_err());
+        assert_eq!(boundaries, 2);
+        Ok(())
     }
 }

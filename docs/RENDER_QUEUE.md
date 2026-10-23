@@ -72,6 +72,11 @@ frame count, encoder drain and image receipts before accepting a normal process 
 are correlated with the latest request; resume and cancel invalidate stale acknowledgements.
 Cancellation keeps the process lease until its pipes close, with bounded forced process-tree cleanup
 if cooperative shutdown stalls. Queue-wide scheduling and publication own the surrounding output set.
+Export schedules generate frame requests by index with constant resident clock storage, up to the
+queue's 10,000,000-frame bound; explicit diagnostic schedules retain their separate smaller limit.
+Media preflight streams those requests and checks pause/cancel between evaluations, preserving exact
+absolute frame times and admitting only sources selected in the requested range. Preflight time still
+scales with frame count; image receipt storage and long-output delivery require separate qualification.
 
 Native output admission streams completed encoded files into the existing publication transaction.
 PNG receipts bind every frame, hash and extent; sequence members retain the queue's captured naming

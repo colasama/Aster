@@ -1,4 +1,4 @@
-use crate::{NativeProjectDocument, ProjectRenderError};
+use crate::{NativeProjectDocument, ProjectExportFrames, ProjectRenderError};
 use aster_eval::FramePlanRequest;
 use aster_render_ir::{
     AntiAliasing, DecodeLimits, ExportVideoConfig, Extent2d, FrameRate, RationalFrameRate,
@@ -31,7 +31,7 @@ pub struct ProjectExportSettings {
 
 pub struct ProjectExportSchedule {
     pub format: ProjectExportFormat,
-    pub frames: Vec<FramePlanRequest>,
+    pub frames: ProjectExportFrames,
     pub video: ExportVideoConfig,
     pub start_time: f64,
     pub composition_duration: f64,
@@ -109,7 +109,7 @@ impl NativeProjectDocument {
             rate.validate()?;
         }
         if settings.start_frame.is_some_and(|frame| {
-            frame > 9_007_199_254_740_991 - self.limits.render_project_frames as u64
+            frame > 9_007_199_254_740_991 - self.limits.render_export_frames as u64
                 || settings.start_time != 0.
         }) {
             return Err(ProjectRenderError::Invalid(
@@ -135,7 +135,7 @@ impl NativeProjectDocument {
                 "PNG still export requires exactly one frame".into(),
             ));
         }
-        if count < 1. || count > maximum || count > self.limits.render_project_frames as f64 {
+        if count < 1. || count > maximum || count > self.limits.render_export_frames as f64 {
             return Err(ProjectRenderError::Invalid(
                 "export frame count exceeds composition or job budget".into(),
             ));
@@ -156,27 +156,21 @@ impl NativeProjectDocument {
                 .ok_or_else(|| ProjectRenderError::Invalid("export height overflow".into()))?,
         };
         render_target.validate(&limits)?;
-        let frames = (0..count as u64)
-            .map(|index| FramePlanRequest {
+        let frames = ProjectExportFrames {
+            template: FramePlanRequest {
                 snapshot_scope: format!("native-project:{}", self.authored_sha256),
                 project_revision: 0,
                 composition_id: settings.composition.clone(),
-                time: settings.start_frame.map_or_else(
-                    || {
-                        start_time
-                            + index as f64 * f64::from(rate.denominator) / f64::from(rate.numerator)
-                    },
-                    |first| {
-                        (first + index) as f64 * f64::from(rate.denominator)
-                            / f64::from(rate.numerator)
-                    },
-                ),
+                time: start_time,
                 target: size,
                 render_target,
                 anti_aliasing: settings.anti_aliasing,
                 shadows_enabled: true,
-            })
-            .collect();
+            },
+            rate,
+            start_frame: settings.start_frame,
+            count: count as usize,
+        };
         Ok(ProjectExportSchedule {
             format: settings.format,
             frames,
