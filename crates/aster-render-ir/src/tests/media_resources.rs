@@ -1,7 +1,7 @@
 use crate::{
     CompositionIdentity, FrameTime, IrError, MediaFrameDescriptor, MediaKind, MediaSample,
     MediaSourceDescriptor, MediaTextureFormat, PutResource, ResourceDescriptor, ResourceHash,
-    ResourceKind, ResourceLimits, ResourceRegistry,
+    ResourceKind, ResourceLimits, ResourceRegistry, VerifiedResource,
 };
 
 struct MediaFixture;
@@ -38,6 +38,59 @@ impl MediaFixture {
             },
         ))
     }
+}
+
+#[test]
+fn retained_media_proofs_preserve_exact_descriptor_charge_and_per_registry_dependencies()
+-> Result<(), IrError> {
+    let (source, frame) = MediaFixture::requests()?;
+    let source_bytes = crate::canonical::CanonicalJson::encode(&source.descriptor)?.len() as u64;
+    let frame_bytes = crate::canonical::CanonicalJson::encode(&frame.descriptor)?.len() as u64;
+    let source = VerifiedResource::new(source.kind, source.descriptor, vec![])?;
+    let frame = VerifiedResource::new(frame.kind, frame.descriptor, vec![])?;
+    let limits = ResourceLimits {
+        budget_bytes: source_bytes + frame_bytes,
+        ..Default::default()
+    };
+    let mut first = ResourceRegistry::new(limits.clone())?;
+    let mut second = ResourceRegistry::new(limits)?;
+    first.put_verified(source.clone())?;
+    first.put_verified(frame.clone())?;
+    assert_eq!(first.statistics().used_bytes, source_bytes + frame_bytes);
+    assert!(matches!(
+        second.put_verified(frame.clone()),
+        Err(IrError::MissingResource(_))
+    ));
+    assert_eq!(second.statistics().used_bytes, 0);
+    for registry in [&mut first, &mut second] {
+        registry.put_verified(source.clone())?;
+        registry.put_verified(frame.clone())?;
+        assert!(std::ptr::eq(
+            registry.descriptor(&frame.request().hash)?,
+            &frame.request().descriptor
+        ));
+        assert!(matches!(
+            registry.evict(&source.request().hash),
+            Err(IrError::ResourceInUse(_))
+        ));
+        registry.evict(&frame.request().hash)?;
+        assert_eq!(registry.statistics().used_bytes, source_bytes);
+        registry.evict(&source.request().hash)?;
+        assert_eq!(registry.statistics().used_bytes, 0);
+        registry.put_verified(source.clone())?;
+        registry.put_verified(frame.clone())?;
+        assert_eq!(registry.statistics().used_bytes, source_bytes + frame_bytes);
+    }
+    let mut tiny = ResourceRegistry::new(ResourceLimits {
+        budget_bytes: source_bytes - 1,
+        ..Default::default()
+    })?;
+    assert!(matches!(
+        tiny.put_verified(source),
+        Err(IrError::ResourceBudgetExceeded { .. })
+    ));
+    assert_eq!(tiny.statistics().used_bytes, 0);
+    Ok(())
 }
 
 #[test]

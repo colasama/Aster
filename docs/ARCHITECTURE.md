@@ -1124,6 +1124,11 @@ GPU submissions through their mapped buffers; immutable cache hits do not add a 
 The child process and its temporary profile belong to the job and are removed when it ends. This
 boundary carries no host-authored scene plans and does not stage a complete job's raster frames.
 
+Immutable native resource proofs share their validated descriptor, payload and exact admission-byte
+charge across cache and registry owners. Repeated registration does not clone or canonicalize the
+descriptor again. Each registry still checks its own budget, dependency pins and leases; eviction
+releases that registry's charge without invalidating another owner's proof.
+
 `FfmpegExportBackend::mux_h264` accepts a bounded sequence of ordered Annex-B access units from
 the native encoder. It copies H.264 into MP4, assigns rational frame timestamps and BT.709 limited
 range metadata, and optionally encodes the supplied audio track as AAC. Raw-frame export and

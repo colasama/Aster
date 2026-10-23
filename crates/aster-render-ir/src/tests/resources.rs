@@ -16,12 +16,18 @@ fn verified_content_shares_storage_but_keeps_registry_limits_and_untrusted_check
     let proof = VerifiedResource::new(request.kind, request.descriptor.clone(), bytes)?;
     assert_eq!(proof.request(), &request);
     assert_eq!(proof.bytes().as_ptr(), pointer);
+    let clone = proof.clone();
+    assert!(std::ptr::eq(clone.request(), proof.request()));
     let mut registry = ResourceRegistry::new(ResourceLimits {
         budget_bytes: 4,
         ..Default::default()
     })?;
     registry.put_verified(proof.clone())?;
     assert_eq!(registry.resolve(&request.hash)?.as_ptr(), pointer);
+    assert!(std::ptr::eq(
+        registry.descriptor(&request.hash)?,
+        &proof.request().descriptor,
+    ));
     assert_eq!(
         registry.put_verified(proof.clone())?,
         PutOutcome::AlreadyPresent

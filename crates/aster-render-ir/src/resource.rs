@@ -112,11 +112,17 @@ pub struct PutResource {
 }
 
 /// In-process immutable content proof. No deserializer or mutable access can forge the
-/// association between its descriptor, bytes and computed hash.
+/// association between its descriptor, bytes and computed hash. Clones share the descriptor
+/// and exact budget charge as well as the payload; each registry owns its admission state.
 #[derive(Clone)]
 pub struct VerifiedResource {
+    content: Arc<VerifiedContent>,
+}
+
+struct VerifiedContent {
     request: PutResource,
-    bytes: Arc<Vec<u8>>,
+    bytes: Vec<u8>,
+    accounted_bytes: u64,
 }
 
 impl VerifiedResource {
@@ -126,22 +132,33 @@ impl VerifiedResource {
         bytes: Vec<u8>,
     ) -> Result<Self, IrError> {
         let hash = ResourceHash::for_resource(kind, &descriptor, &bytes)?;
+        let accounted_bytes = u64::try_from(match &descriptor {
+            ResourceDescriptor::Buffer(_)
+            | ResourceDescriptor::RasterPixels(_)
+            | ResourceDescriptor::TexturePixels(_)
+            | ResourceDescriptor::EncodedTexture(_) => bytes.len(),
+            _ => CanonicalJson::encode(&descriptor)?.len(),
+        })
+        .map_err(|_| IrError::ArithmeticOverflow)?;
         Ok(Self {
-            request: PutResource {
-                hash,
-                kind,
-                descriptor,
-            },
-            bytes: Arc::new(bytes),
+            content: Arc::new(VerifiedContent {
+                request: PutResource {
+                    hash,
+                    kind,
+                    descriptor,
+                },
+                bytes,
+                accounted_bytes,
+            }),
         })
     }
 
     pub fn request(&self) -> &PutResource {
-        &self.request
+        &self.content.request
     }
 
     pub fn bytes(&self) -> &[u8] {
-        &self.bytes
+        &self.content.bytes
     }
 }
 
@@ -190,10 +207,8 @@ pub struct ResourceStatistics {
 }
 
 struct ResourceEntry {
-    descriptor: ResourceDescriptor,
-    bytes: Arc<Vec<u8>>,
+    verified: VerifiedResource,
     pins: usize,
-    accounted_bytes: u64,
 }
 
 pub struct ResourceRegistry {
@@ -232,7 +247,7 @@ impl ResourceRegistry {
     pub fn put(&mut self, request: PutResource, bytes: Vec<u8>) -> Result<PutOutcome, IrError> {
         request.hash.validate()?;
         let verified = VerifiedResource::new(request.kind, request.descriptor, bytes)?;
-        if verified.request.hash != request.hash {
+        if verified.request().hash != request.hash {
             return Err(IrError::HashMismatch);
         }
         self.put_verified(verified)
@@ -241,21 +256,17 @@ impl ResourceRegistry {
     /// Content was authenticated once, but every admission still enforces this registry's
     /// budgets, dependencies and pins. Eviction never invalidates a retained immutable proof.
     pub fn put_verified(&mut self, verified: VerifiedResource) -> Result<PutOutcome, IrError> {
-        let VerifiedResource { request, bytes } = verified;
+        let request = verified.request();
         if let Some(existing) = self.entries.get(&request.hash) {
-            if existing.descriptor != request.descriptor || existing.bytes != bytes {
+            if !Arc::ptr_eq(&existing.verified.content, &verified.content)
+                && (existing.verified.request().descriptor != request.descriptor
+                    || existing.verified.bytes() != verified.bytes())
+            {
                 return Err(IrError::ResourceConflict);
             }
             return Ok(PutOutcome::AlreadyPresent);
         }
-        let requested = u64::try_from(match &request.descriptor {
-            ResourceDescriptor::Buffer(_)
-            | ResourceDescriptor::RasterPixels(_)
-            | ResourceDescriptor::TexturePixels(_)
-            | ResourceDescriptor::EncodedTexture(_) => bytes.len(),
-            _ => CanonicalJson::encode(&request.descriptor)?.len(),
-        })
-        .map_err(|_| IrError::ArithmeticOverflow)?;
+        let requested = verified.content.accounted_bytes;
         let total = self
             .used_bytes
             .checked_add(requested)
@@ -275,7 +286,8 @@ impl ResourceRegistry {
                 .entries
                 .get_mut(&frame.source)
                 .ok_or_else(|| IrError::MissingResource(frame.source.0.clone()))?;
-            let ResourceDescriptor::MediaSource(descriptor) = &source.descriptor else {
+            let ResourceDescriptor::MediaSource(descriptor) = &source.verified.request().descriptor
+            else {
                 return Err(IrError::ResourceConflict);
             };
             frame.validate_source(descriptor)?;
@@ -289,7 +301,8 @@ impl ResourceRegistry {
                 .entries
                 .get_mut(&pixels.frame)
                 .ok_or_else(|| IrError::MissingResource(pixels.frame.0.clone()))?;
-            let ResourceDescriptor::MediaFrame(descriptor) = &frame.descriptor else {
+            let ResourceDescriptor::MediaFrame(descriptor) = &frame.verified.request().descriptor
+            else {
                 return Err(IrError::ResourceConflict);
             };
             pixels.validate_frame(descriptor)?;
@@ -297,15 +310,8 @@ impl ResourceRegistry {
             self.raster_pixels
                 .insert(pixels.frame.clone(), request.hash.clone());
         }
-        self.entries.insert(
-            request.hash,
-            ResourceEntry {
-                descriptor: request.descriptor,
-                bytes,
-                pins: 0,
-                accounted_bytes: requested,
-            },
-        );
+        self.entries
+            .insert(request.hash.clone(), ResourceEntry { verified, pins: 0 });
         self.used_bytes = total;
         Ok(PutOutcome::Inserted)
     }
@@ -316,14 +322,14 @@ impl ResourceRegistry {
             .entries
             .get(hash)
             .ok_or_else(|| IrError::MissingResource(hash.0.clone()))?;
-        Ok(&resource.bytes)
+        Ok(resource.verified.bytes())
     }
 
     pub fn descriptor(&self, hash: &ResourceHash) -> Result<&ResourceDescriptor, IrError> {
         hash.validate()?;
         self.entries
             .get(hash)
-            .map(|entry| &entry.descriptor)
+            .map(|entry| &entry.verified.request().descriptor)
             .ok_or_else(|| IrError::MissingResource(hash.0.clone()))
     }
 
@@ -407,14 +413,14 @@ impl ResourceRegistry {
         }
         let used = self
             .used_bytes
-            .checked_sub(entry.accounted_bytes)
+            .checked_sub(entry.verified.content.accounted_bytes)
             .ok_or(IrError::ArithmeticOverflow)?;
-        let dependency = match &entry.descriptor {
+        let dependency = match &entry.verified.request().descriptor {
             ResourceDescriptor::MediaFrame(frame) => Some(frame.source.clone()),
             ResourceDescriptor::RasterPixels(pixels) => Some(pixels.frame.clone()),
             _ => None,
         };
-        if let ResourceDescriptor::RasterPixels(pixels) = &entry.descriptor {
+        if let ResourceDescriptor::RasterPixels(pixels) = &entry.verified.request().descriptor {
             self.raster_pixels.remove(&pixels.frame);
         }
         if let Some(source) = dependency {
