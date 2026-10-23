@@ -393,44 +393,40 @@
     }
   },
   "last_cycle": {
-    "id": 147,
-    "time": "2026-10-23T00:51:22.456Z",
-    "updated_at": "2026-10-23T00:51:22.456Z",
-    "milestone": "M11",
-    "task": "M11-T7",
-    "supporting_task": "M11-T8",
-    "increment": "complete-preview-exit-after-fresh-pixel-reviews",
-    "outcome": "milestone_completed_full_verification",
-    "commit": "3f73659bb4fb49e4e398e5174dd6a61d7a3ba78d",
+    "id": 148,
+    "time": "2026-10-23T01:07:01.367Z",
+    "updated_at": "2026-10-23T01:07:01.367Z",
+    "milestone": "M12",
+    "task": "M12-T1",
+    "increment": "native-export-audio-selection",
+    "outcome": "development_increment_passed",
+    "commit": "6d23f3051916e92b00587228036f79608509d144",
     "validation": {
-      "path": "artifacts/migration/verify-2026-10-22T23-21-31-614Z-5a9874bb.json",
-      "sha256": "a2122e0223706a4e1dc1270b7b8d4aef0d699b18d07da8f8bcc119447721ed96"
+      "path": "artifacts/migration/cycle148-validation/report.json",
+      "sha256": "a539902a66cb2aec665efc81e43cfff308f0b454e7bf45e2aac465721bb44c9f"
     },
+    "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 282309
+        "duration_ms": 343891
       },
       {
-        "id": "G3",
-        "status": "passed",
-        "duration_ms": 2271926
-      },
-      {
-        "id": "G4",
-        "status": "passed",
-        "duration_ms": 2416597
-      },
-      {
-        "id": "G6",
-        "status": "passed",
-        "duration_ms": 403578
+        "id": "targeted-native-export-lifecycle",
+        "status": "passed"
       }
     ],
-    "new_review_evidence_records": 1819,
-    "milestone_exit_satisfied": true,
-    "next_step": "Start M12: route all production preview and export through native project evaluation, retain isolated TS reference tooling and declared M5 capabilities, then complete all final gates."
+    "deferred_gates": [
+      "G1",
+      "G2",
+      "G3",
+      "G4",
+      "G5",
+      "G6"
+    ],
+    "milestone_exit_satisfied": false,
+    "next_step": "Acknowledge native pause requests at safe processing boundaries, preserving cancellation and preventing stale pause acknowledgments from changing resumed queue state."
   },
   "milestones": [
     {
@@ -27578,7 +27574,7 @@
     {
       "id": "M12",
       "title": "Retire the TS GPU renderer",
-      "status": "pending",
+      "status": "in_progress",
       "gates": [
         "G0",
         "G1",
@@ -27588,7 +27584,160 @@
         "G5",
         "G6"
       ],
-      "tasks": []
+      "tasks": [
+        {
+          "id": "M12-T1",
+          "title": "Complete native export audio and control semantics",
+          "scope": "Honor immutable includeAudio selection and acknowledge pauses at safe native processing boundaries; retain cancellation and atomic publication behavior.",
+          "status": "in_progress",
+          "estimated_implementation_hours": 2,
+          "required_gates": [
+            "G0",
+            "G1",
+            "G2",
+            "G3",
+            "G4",
+            "G5",
+            "G6"
+          ],
+          "started_at": "2026-10-23T00:52:32.391Z",
+          "progress": "Native whole-project export now honors --no-audio at WAV/mux staging while retaining native audio inputs for visual evaluation. Real spectrum exports with and without audio have identical plans, RGB and NV12 at four selected frames. Pause acknowledgment remains the next increment.",
+          "validation": {
+            "path": "artifacts/migration/cycle148-validation/report.json",
+            "sha256": "a539902a66cb2aec665efc81e43cfff308f0b454e7bf45e2aac465721bb44c9f"
+          },
+          "commit": "6d23f3051916e92b00587228036f79608509d144"
+        },
+        {
+          "id": "M12-T2",
+          "title": "Render native PNG stills and sequences",
+          "scope": "Reuse one native project session for bounded time-addressed PNG outputs, with control, progress and complete-output receipts.",
+          "status": "pending",
+          "estimated_implementation_hours": 3,
+          "required_gates": [
+            "G0",
+            "G1",
+            "G2",
+            "G3",
+            "G4",
+            "G5",
+            "G6"
+          ]
+        },
+        {
+          "id": "M12-T3",
+          "title": "Materialize immutable native queue projects",
+          "scope": "Bind queue project snapshots to authorized immutable media, retained raster capabilities and trusted installed-plugin packages.",
+          "status": "pending",
+          "estimated_implementation_hours": 3,
+          "required_gates": [
+            "G0",
+            "G1",
+            "G2",
+            "G3",
+            "G4",
+            "G5",
+            "G6"
+          ]
+        },
+        {
+          "id": "M12-T4",
+          "title": "Implement the native project queue worker",
+          "scope": "Drive native project outputs from Electron main with correlated progress, pause/resume/cancel, cleanup and atomic multi-output publication.",
+          "status": "pending",
+          "estimated_implementation_hours": 3,
+          "required_gates": [
+            "G0",
+            "G1",
+            "G2",
+            "G3",
+            "G4",
+            "G5",
+            "G6"
+          ]
+        },
+        {
+          "id": "M12-T5",
+          "title": "Select native preview and isolate the TS oracle",
+          "scope": "Make production preview native by default, preserve Canvas2D compatibility behavior and isolate the retained TS GPU renderer to explicit reference tooling.",
+          "status": "pending",
+          "estimated_implementation_hours": 3,
+          "required_gates": [
+            "G0",
+            "G1",
+            "G2",
+            "G3",
+            "G4",
+            "G5",
+            "G6"
+          ]
+        },
+        {
+          "id": "M12-T6",
+          "title": "Retire every production TS render entry point",
+          "scope": "Route foreground/background queue, automation, capture and supported output types through native project rendering; remove silent TS GPU fallbacks.",
+          "status": "pending",
+          "estimated_implementation_hours": 3,
+          "required_gates": [
+            "G0",
+            "G1",
+            "G2",
+            "G3",
+            "G4",
+            "G5",
+            "G6"
+          ]
+        },
+        {
+          "id": "M12-T7",
+          "title": "Compose final production migration gates",
+          "scope": "Wire current native G1/G2/G3/G4/G5/G6 evidence and a complete retirement audit into the full M12 verifier.",
+          "status": "pending",
+          "estimated_implementation_hours": 3,
+          "required_gates": [
+            "G0",
+            "G1",
+            "G2",
+            "G3",
+            "G4",
+            "G5",
+            "G6"
+          ]
+        },
+        {
+          "id": "M12-T8",
+          "title": "Qualify delivery workflows and synchronize documentation",
+          "scope": "Check real application outputs, media/plugin lifecycle, failure/restart behavior and synchronize architecture, queue, media, benchmark and capability documentation.",
+          "status": "pending",
+          "estimated_implementation_hours": 3,
+          "required_gates": [
+            "G0",
+            "G1",
+            "G2",
+            "G3",
+            "G4",
+            "G5",
+            "G6"
+          ]
+        },
+        {
+          "id": "M12-T9",
+          "title": "Complete final migration acceptance",
+          "scope": "Run and audit every required gate on the primary machine, authenticate reviews and production routing, then mark M0-M12 and the ledger done only after section 11 holds.",
+          "status": "pending",
+          "estimated_implementation_hours": 1,
+          "required_gates": [
+            "G0",
+            "G1",
+            "G2",
+            "G3",
+            "G4",
+            "G5",
+            "G6"
+          ]
+        }
+      ],
+      "started_at": "2026-10-23T00:52:32.391Z"
     }
   ],
   "tolerance_overrides": [
@@ -2679329,6 +2679478,43 @@
       "new_review_evidence_records": 1819,
       "milestone_exit_satisfied": true,
       "next_step": "Start M12: route all production preview and export through native project evaluation, retain isolated TS reference tooling and declared M5 capabilities, then complete all final gates."
+    },
+    {
+      "cycle": 148,
+      "id": 148,
+      "time": "2026-10-23T01:07:01.367Z",
+      "updated_at": "2026-10-23T01:07:01.367Z",
+      "milestone": "M12",
+      "task": "M12-T1",
+      "increment": "native-export-audio-selection",
+      "outcome": "development_increment_passed",
+      "commit": "6d23f3051916e92b00587228036f79608509d144",
+      "validation": {
+        "path": "artifacts/migration/cycle148-validation/report.json",
+        "sha256": "a539902a66cb2aec665efc81e43cfff308f0b454e7bf45e2aac465721bb44c9f"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 343891
+        },
+        {
+          "id": "targeted-native-export-lifecycle",
+          "status": "passed"
+        }
+      ],
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Acknowledge native pause requests at safe processing boundaries, preserving cancellation and preventing stale pause acknowledgments from changing resumed queue state."
     }
   ],
   "known_boundaries": [
