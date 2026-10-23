@@ -393,167 +393,101 @@
     }
   },
   "last_cycle": {
-    "id": 184,
-    "time": "2026-10-23T12:38:18.132Z",
-    "updated_at": "2026-10-23T12:38:18.132Z",
+    "id": 185,
+    "time": "2026-10-23T12:54:56.151Z",
+    "updated_at": "2026-10-23T12:54:56.151Z",
     "milestone": "M12",
     "task": "M12-T9",
-    "increment": "attribute-native-project-export-phase-costs",
+    "increment": "skip-audio-analysis-without-generator-consumers",
     "outcome": "progress",
-    "commit": "dbfba487c0366bef68208c82ecd44b1cb546a6d2",
+    "commit": "6b8f99ac9341f9a5771b11d8a6074a065a3f9110",
     "validation": {
-      "path": "artifacts/migration/cycle184-validation/report.json",
-      "sha256": "1ce24f5697aad1efb955f673ea646b597132db1ed79cddd969fbec5dd8813402"
+      "path": "artifacts/migration/cycle185-validation/report.json",
+      "sha256": "28ef72a5f43256560e129a8af6fb618e6539e31aeb0178f7d5fc4a5c79d05a5d"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
-        "id": "native-phase-receipts",
+        "id": "generator-demand",
         "status": "passed",
-        "scope": "Complete-frame counts, finite nonnegative clocks, nested phase accounting and zero observers in timed runs"
+        "scope": "Three generator availability tests, including generator-free, hidden unreferenced and missing-instance snapshots; project and CLI cargo check"
       },
       {
         "id": "exact-cache-witnesses-and-export-lifecycle",
-        "status": "passed"
+        "status": "passed",
+        "scope": "Eight owner frames in both cache settings and eight audio-reactive historical frames across both output audio selections"
       },
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 316119
+        "duration_ms": 383629
       }
     ],
     "measurements": [
       {
         "id": "owner-opening",
         "frames": 714,
-        "fps": 14.801301851199238,
+        "fps": 15.710607960921513,
         "per_frame_ms": {
-          "total_ms": 32.638383893557425,
-          "file_media_ms": 4.841265686274508,
-          "raster_text_ms": 13.341832773109244,
-          "raster_exchange_ms": 12.423547198879552,
-          "materials_ms": 0.25943655462184895,
-          "audio_ms": 3.834620308123252,
-          "gpu_setup_ms": 0.05788333333333333,
-          "plan_inputs_ms": 0.23119719887955156,
-          "plan_ms": 8.980659663865541,
-          "admission_ms": 1.0909725490196078
-        },
-        "timings": {
-          "frames": 714,
-          "setup_ms": 454.7432,
-          "control_wait_ms": 0.37450000000000105,
-          "preparation": {
-            "total_ms": 23303.8061,
-            "file_media_ms": 3456.663699999999,
-            "raster_text_ms": 9526.0686,
-            "raster_exchange_ms": 8870.4127,
-            "materials_ms": 185.23770000000013,
-            "audio_ms": 2737.918900000002,
-            "gpu_setup_ms": 41.3287,
-            "plan_inputs_ms": 165.0747999999998,
-            "plan_ms": 6412.190999999996,
-            "admission_ms": 778.9544
-          },
-          "render_submit_ms": 5702.814700000002,
-          "output_completion_ms": 16954.12619999999,
-          "observer_ms": 0,
-          "encoder_submit_ms": 1002.1709999999997,
-          "packet_publish_ms": 2.9637000000000016,
-          "encoder_drain_ms": 7.028300000000001,
-          "mux_completion_ms": 89.94770000000001
+          "total_ms": 28.852014145658227,
+          "file_media_ms": 4.809545378151261,
+          "raster_text_ms": 13.26106022408963,
+          "raster_exchange_ms": 12.363543277310917,
+          "materials_ms": 0.2614581232492999,
+          "audio_ms": 0.00008627450980392199,
+          "gpu_setup_ms": 0.059036554621848654,
+          "plan_inputs_ms": 0.2336774509803921,
+          "plan_ms": 9.117743977591024,
+          "admission_ms": 1.108953081232493
         }
       },
       {
         "id": "owner-main",
         "frames": 300,
-        "fps": 26.47370278856336,
+        "fps": 29.42041776993233,
         "per_frame_ms": {
-          "total_ms": 27.14493666666667,
-          "file_media_ms": 1.4288446666666665,
-          "raster_text_ms": 15.943839000000004,
-          "raster_exchange_ms": 14.795611333333346,
-          "materials_ms": 0.3050526666666666,
-          "audio_ms": 3.89973233333333,
-          "gpu_setup_ms": 0.10779533333333326,
-          "plan_inputs_ms": 0.24761500000000003,
-          "plan_ms": 3.9818716666666676,
-          "admission_ms": 1.2296523333333327
-        },
-        "timings": {
-          "frames": 300,
-          "setup_ms": 334.3331,
-          "control_wait_ms": 0.17920000000000005,
-          "preparation": {
-            "total_ms": 8143.481000000001,
-            "file_media_ms": 428.6534,
-            "raster_text_ms": 4783.151700000001,
-            "raster_exchange_ms": 4438.6834000000035,
-            "materials_ms": 91.51579999999997,
-            "audio_ms": 1169.919699999999,
-            "gpu_setup_ms": 32.33859999999998,
-            "plan_inputs_ms": 74.28450000000001,
-            "plan_ms": 1194.5615000000003,
-            "admission_ms": 368.8956999999998
-          },
-          "render_submit_ms": 271.2787,
-          "output_completion_ms": 1872.7888999999998,
-          "observer_ms": 0,
-          "encoder_submit_ms": 365.85850000000005,
-          "packet_publish_ms": 1.2556000000000007,
-          "encoder_drain_ms": 1.6693,
-          "mux_completion_ms": 45.926899999999996
+          "total_ms": 23.298821000000004,
+          "file_media_ms": 1.4261920000000008,
+          "raster_text_ms": 16.102276333333325,
+          "raster_exchange_ms": 14.975735666666663,
+          "materials_ms": 0.29133033333333375,
+          "audio_ms": 0.00011599999999999985,
+          "gpu_setup_ms": 0.11049399999999998,
+          "plan_inputs_ms": 0.2516090000000002,
+          "plan_ms": 3.922320333333333,
+          "admission_ms": 1.1940309999999987
         }
       },
       {
         "id": "composite-1080p",
         "frames": 600,
-        "fps": 162.95491580662684,
+        "fps": 163.3986928104575,
         "per_frame_ms": {
-          "total_ms": 0.631735333333333,
-          "file_media_ms": 0.055741166666666675,
-          "raster_text_ms": 0.002087000000000002,
-          "raster_exchange_ms": 0.000378,
-          "materials_ms": 0.02055066666666667,
-          "audio_ms": 0.0008665000000000014,
-          "gpu_setup_ms": 0.011673,
-          "plan_inputs_ms": 0.001157166666666666,
-          "plan_ms": 0.4675056666666662,
-          "admission_ms": 0.07167216666666677
-        },
-        "timings": {
-          "frames": 600,
-          "setup_ms": 299.5497,
-          "control_wait_ms": 0.2945000000000005,
-          "preparation": {
-            "total_ms": 379.0411999999998,
-            "file_media_ms": 33.444700000000005,
-            "raster_text_ms": 1.2522000000000013,
-            "raster_exchange_ms": 0.2268,
-            "materials_ms": 12.330400000000001,
-            "audio_ms": 0.5199000000000008,
-            "gpu_setup_ms": 7.003799999999999,
-            "plan_inputs_ms": 0.6942999999999996,
-            "plan_ms": 280.5033999999997,
-            "admission_ms": 43.00330000000006
-          },
-          "render_submit_ms": 202.01490000000013,
-          "output_completion_ms": 1896.0852999999981,
-          "observer_ms": 0,
-          "encoder_submit_ms": 712.879100000001,
-          "packet_publish_ms": 2.0808999999999997,
-          "encoder_drain_ms": 1.8400999999999998,
-          "mux_completion_ms": 33.0063
+          "total_ms": 0.6140888333333333,
+          "file_media_ms": 0.06392866666666665,
+          "raster_text_ms": 0.0022211666666666634,
+          "raster_exchange_ms": 0.0004493333333333337,
+          "materials_ms": 0.02046266666666666,
+          "audio_ms": 0.000032833333333333235,
+          "gpu_setup_ms": 0.010780166666666664,
+          "plan_inputs_ms": 0.0013344999999999952,
+          "plan_ms": 0.4473379999999999,
+          "admission_ms": 0.06754149999999996
         }
       }
     ],
     "observation": {
-      "path": "artifacts/migration/cycle184-validation/observation/report.json",
-      "sha256": "f06bdc46ad533c6b2405e98817e8d1922f415db78d0be2cf1fd3375288a75159"
+      "path": "artifacts/migration/cycle185-validation/observation/report.json",
+      "sha256": "90742b3ea7d1948b982f6e2c56959c58c29ab4f98148827b5a7a81be72ac3aae"
+    },
+    "audio_reactive_history": {
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle184-validation\\lifecycle\\report.json",
+      "sha256": "4748812cde22b6fe6eed9a7e48ebc297e467697a3b665db2953d6d41c8b59779",
+      "exact_frames": 8
     },
     "self_review": {
       "result": "exact",
-      "scope": "Eight owner frames preserve submitted plans, RGB and NV12 against cycle 183 with both cache settings. Audio-reactive and other lifecycle witnesses remain exact. No references or tolerances changed."
+      "scope": "Owner and reactive-audio submitted plans, RGB and NV12 remain exact against cycle 184. No references or tolerances changed."
     },
     "deferred_gates": [
       "G1",
@@ -564,7 +498,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Remove unconditional per-frame 16-spectrum audio analysis when no admitted generator in the immutable project requests audio analysis. Preserve nested/inactive generator conservatism, unknown/unavailable admission behavior, audio mux selection and exact audio-reactive plans. Then remeasure owner throughput and complete balanced/current G0-G6 when ready."
+    "next_step": "Close the remaining small owner export throughput gap, then run balanced current-source performance and the full M12 exit. Preserve conservative generator allocation semantics and independent audio mixing/output selection."
   },
   "milestones": [
     {
@@ -27920,7 +27854,7 @@
             "files": [
               {
                 "path": "docs/ARCHITECTURE.md",
-                "sha256": "cbda31ecc50f0ecae75d1f218a293f2a79d620b8a8d26165da0fbb04ba22fa0f"
+                "sha256": "5f047897ba5e4a7259dd0824baab68dfd76ca0dd91b6a2c28650e4e57048c410"
               },
               {
                 "path": "docs/RENDER_QUEUE.md",
@@ -27955,8 +27889,8 @@
                 "sha256": "aac78a611e01df31ef2368a15a2ed9c9cd502b4bd0d1238d7e6134761f515360"
               }
             ],
-            "review": "Reviewed against native production routing, immutable queue/media ownership, codec and raster boundaries, restart/control behavior and current paired performance policy. Advanced-rendering roadmap remains explicitly future scope; project format and plugin ABI are unchanged. Resource-proof ownership/accounting paragraph re-reviewed after cycle 180; current hash pinned. Native nested-plan ownership and boundary validation paragraph re-reviewed after cycle 181; current hash pinned. Identical-limit native validation reuse reviewed after cycle 182; current hash pinned. Canonical JSON ownership and byte stability reviewed after cycle 183; current hash pinned. Native host-phase timing methodology reviewed after cycle 184; current hash pinned.",
-            "updated_at": "2026-10-23T12:38:18.132Z"
+            "review": "Reviewed against native production routing, immutable queue/media ownership, codec and raster boundaries, restart/control behavior and current paired performance policy. Advanced-rendering roadmap remains explicitly future scope; project format and plugin ABI are unchanged. Resource-proof ownership/accounting paragraph re-reviewed after cycle 180; current hash pinned. Native nested-plan ownership and boundary validation paragraph re-reviewed after cycle 181; current hash pinned. Identical-limit native validation reuse reviewed after cycle 182; current hash pinned. Canonical JSON ownership and byte stability reviewed after cycle 183; current hash pinned. Native host-phase timing methodology reviewed after cycle 184; current hash pinned. Snapshot-wide conservative generator demand and typed nested-plan admission documentation reviewed after cycle 185; current hash pinned.",
+            "updated_at": "2026-10-23T12:54:56.151Z"
           },
           "delivery_evidence": {
             "process": {
@@ -27998,12 +27932,12 @@
             "G6"
           ],
           "started_at": "2026-10-23T11:03:56.171Z",
-          "commit": "dbfba487c0366bef68208c82ecd44b1cb546a6d2",
+          "commit": "6b8f99ac9341f9a5771b11d8a6074a065a3f9110",
           "validation": {
-            "path": "artifacts/migration/cycle184-validation/report.json",
-            "sha256": "1ce24f5697aad1efb955f673ea646b597132db1ed79cddd969fbec5dd8813402"
+            "path": "artifacts/migration/cycle185-validation/report.json",
+            "sha256": "28ef72a5f43256560e129a8af6fb618e6539e31aeb0178f7d5fc4a5c79d05a5d"
           },
-          "progress": "Native export receipts now attribute preparation, raster exchange, rendering/output completion and encoder/mux host time without additional GPU waits/readbacks. Full owner observations locate about 3.9 ms/frame in unconditional audio analysis, including projects with no audio-analysis generators. Main raster/text preparation is about 15.9 ms/frame (exchange 14.8); native planning about 4.0 and materials only 0.3. Eight historical/cache-toggle witnesses and reactive-audio lifecycle are exact; full G0 passes. Next increment should skip unused analysis based on the immutable project and admitted generator contracts, retaining audio-reactive behavior. Complete final M12 gates remain open."
+          "progress": "Immutable snapshots without any generator now omit per-frame audio analysis. Any generator, including hidden, nested, inactive or unavailable instances, conservatively retains the previous behavior because frame audio can affect allocation even when the declared program does not request analysis. Owner opening improves from 14.8013 to 15.7106 FPS and main from 26.4737 to 29.4204 FPS in single full-range observations. Eight owner history/cache-toggle witnesses and eight reactive history witnesses are exact; full lifecycle and G0 pass. Final balanced performance and all full M12 gates remain open."
         }
       ],
       "started_at": "2026-10-23T00:52:32.391Z"
@@ -2682916,6 +2682850,115 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Remove unconditional per-frame 16-spectrum audio analysis when no admitted generator in the immutable project requests audio analysis. Preserve nested/inactive generator conservatism, unknown/unavailable admission behavior, audio mux selection and exact audio-reactive plans. Then remeasure owner throughput and complete balanced/current G0-G6 when ready."
+    },
+    {
+      "cycle": 185,
+      "id": 185,
+      "time": "2026-10-23T12:54:56.151Z",
+      "updated_at": "2026-10-23T12:54:56.151Z",
+      "milestone": "M12",
+      "task": "M12-T9",
+      "increment": "skip-audio-analysis-without-generator-consumers",
+      "outcome": "progress",
+      "commit": "6b8f99ac9341f9a5771b11d8a6074a065a3f9110",
+      "validation": {
+        "path": "artifacts/migration/cycle185-validation/report.json",
+        "sha256": "28ef72a5f43256560e129a8af6fb618e6539e31aeb0178f7d5fc4a5c79d05a5d"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "generator-demand",
+          "status": "passed",
+          "scope": "Three generator availability tests, including generator-free, hidden unreferenced and missing-instance snapshots; project and CLI cargo check"
+        },
+        {
+          "id": "exact-cache-witnesses-and-export-lifecycle",
+          "status": "passed",
+          "scope": "Eight owner frames in both cache settings and eight audio-reactive historical frames across both output audio selections"
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 383629
+        }
+      ],
+      "measurements": [
+        {
+          "id": "owner-opening",
+          "frames": 714,
+          "fps": 15.710607960921513,
+          "per_frame_ms": {
+            "total_ms": 28.852014145658227,
+            "file_media_ms": 4.809545378151261,
+            "raster_text_ms": 13.26106022408963,
+            "raster_exchange_ms": 12.363543277310917,
+            "materials_ms": 0.2614581232492999,
+            "audio_ms": 0.00008627450980392199,
+            "gpu_setup_ms": 0.059036554621848654,
+            "plan_inputs_ms": 0.2336774509803921,
+            "plan_ms": 9.117743977591024,
+            "admission_ms": 1.108953081232493
+          }
+        },
+        {
+          "id": "owner-main",
+          "frames": 300,
+          "fps": 29.42041776993233,
+          "per_frame_ms": {
+            "total_ms": 23.298821000000004,
+            "file_media_ms": 1.4261920000000008,
+            "raster_text_ms": 16.102276333333325,
+            "raster_exchange_ms": 14.975735666666663,
+            "materials_ms": 0.29133033333333375,
+            "audio_ms": 0.00011599999999999985,
+            "gpu_setup_ms": 0.11049399999999998,
+            "plan_inputs_ms": 0.2516090000000002,
+            "plan_ms": 3.922320333333333,
+            "admission_ms": 1.1940309999999987
+          }
+        },
+        {
+          "id": "composite-1080p",
+          "frames": 600,
+          "fps": 163.3986928104575,
+          "per_frame_ms": {
+            "total_ms": 0.6140888333333333,
+            "file_media_ms": 0.06392866666666665,
+            "raster_text_ms": 0.0022211666666666634,
+            "raster_exchange_ms": 0.0004493333333333337,
+            "materials_ms": 0.02046266666666666,
+            "audio_ms": 0.000032833333333333235,
+            "gpu_setup_ms": 0.010780166666666664,
+            "plan_inputs_ms": 0.0013344999999999952,
+            "plan_ms": 0.4473379999999999,
+            "admission_ms": 0.06754149999999996
+          }
+        }
+      ],
+      "observation": {
+        "path": "artifacts/migration/cycle185-validation/observation/report.json",
+        "sha256": "90742b3ea7d1948b982f6e2c56959c58c29ab4f98148827b5a7a81be72ac3aae"
+      },
+      "audio_reactive_history": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle184-validation\\lifecycle\\report.json",
+        "sha256": "4748812cde22b6fe6eed9a7e48ebc297e467697a3b665db2953d6d41c8b59779",
+        "exact_frames": 8
+      },
+      "self_review": {
+        "result": "exact",
+        "scope": "Owner and reactive-audio submitted plans, RGB and NV12 remain exact against cycle 184. No references or tolerances changed."
+      },
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Close the remaining small owner export throughput gap, then run balanced current-source performance and the full M12 exit. Preserve conservative generator allocation semantics and independent audio mixing/output selection."
     }
   ],
   "known_boundaries": [
