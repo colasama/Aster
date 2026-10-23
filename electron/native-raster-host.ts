@@ -40,7 +40,7 @@ async function main() {
   assert(
     Number.isSafeInteger(config.maximumJsonBytes) &&
       config.maximumJsonBytes >= 32 &&
-      config.maximumJsonBytes <= 67108864,
+      config.maximumJsonBytes <= 268435456,
   );
   assert(
     Number.isSafeInteger(config.maximumPixelBytes) &&

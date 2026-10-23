@@ -54,8 +54,33 @@ export class NativeRasterProject {
     const project: unknown = directory
       ? await this.#loadBundle(path)
       : JSON.parse(bytes.toString("utf8"));
+    this.#retainRasterImports(project);
     await this.#authorize(project, directory ? path : dirname(path), 0, { nodes: 0 });
     return project;
+  }
+
+  #retainRasterImports(value: unknown) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return;
+    const document = value as Record<string, unknown>;
+    const imports = document.mediaImports as
+      | { version?: unknown; entries?: unknown; payloads?: unknown }
+      | undefined;
+    if (!imports) return;
+    assert(
+      imports.version === 1 && Array.isArray(imports.entries) && Array.isArray(imports.payloads),
+      "Invalid raster project media catalog",
+    );
+    // Rust owns footage decoding. The isolated browser only hydrates retained SVG/PSD pixels;
+    // admitting native sequence containers here would duplicate I/O and impose save-file limits.
+    const entries = imports.entries.filter(
+      (entry: { kind?: string }) => entry?.kind === "svg" || entry?.kind === "psd",
+    );
+    const payloads = new Set(entries.map((entry) => entry.payloadId));
+    document.mediaImports = {
+      ...imports,
+      entries,
+      payloads: imports.payloads.filter((payload: { id?: string }) => payloads.has(payload?.id)),
+    };
   }
 
   #loadBundle(path: string): Promise<unknown> {

@@ -27,7 +27,7 @@ export class NativeQueueAssetStore {
     directory: string,
     authorizedPaths: readonly string[],
     readonly maximumBytes = 2_147_483_648,
-    readonly maximumFiles = 50_000,
+    readonly maximumFiles = 100_000,
   ) {
     if (
       !Number.isSafeInteger(maximumBytes) ||
@@ -35,7 +35,7 @@ export class NativeQueueAssetStore {
       maximumBytes > 2_147_483_648 ||
       !Number.isSafeInteger(maximumFiles) ||
       maximumFiles < 1 ||
-      maximumFiles > 50_000
+      maximumFiles > 100_000
     )
       throw new Error("Invalid native queue asset bounds");
     this.#root = resolve(directory);

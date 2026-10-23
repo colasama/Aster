@@ -2,7 +2,10 @@ import { createHash } from "node:crypto";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { antiAliasingScale } from "../src/core/rendering/anti-aliasing.js";
-import type { RenderJobManifest } from "../src/core/rendering/render-queue.js";
+import {
+  MAX_RENDER_SNAPSHOT_BYTES,
+  type RenderJobManifest,
+} from "../src/core/rendering/render-queue.js";
 import {
   EMPTY_RENDER_MEDIA_SNAPSHOT,
   parseRenderMediaManifest,
@@ -25,7 +28,7 @@ export async function prepareNativeQueueProject(options: {
   await mkdir(directory);
   try {
     const { manifest, runtime } = options;
-    if (Buffer.byteLength(manifest.projectSnapshot) > 67_108_864)
+    if (Buffer.byteLength(manifest.projectSnapshot) > MAX_RENDER_SNAPSHOT_BYTES)
       throw new Error("Native queue project exceeds input budget");
     const document = selectNativeQueueDocument(
       JSON.parse(manifest.projectSnapshot),
@@ -51,7 +54,7 @@ export async function prepareNativeQueueProject(options: {
     const project = join(directory, "project.json"),
       request = join(directory, "export.json");
     const projectBytes = JSON.stringify(document);
-    if (Buffer.byteLength(projectBytes) > 67_108_864)
+    if (Buffer.byteLength(projectBytes) > MAX_RENDER_SNAPSHOT_BYTES)
       throw new Error("Prepared queue project exceeds input budget");
     const requestBytes = JSON.stringify({
       settings: {
@@ -93,6 +96,16 @@ export async function prepareNativeQueueProject(options: {
       requestSha256: digest(requestBytes),
       authoredSnapshotSha256: digest(manifest.projectSnapshot),
       mediaSnapshotSha256: digest(manifest.renderMediaSnapshot ?? EMPTY_RENDER_MEDIA_SNAPSHOT),
+      runtimeArguments: [
+        "--render-project-input-bytes",
+        String(MAX_RENDER_SNAPSHOT_BYTES),
+        "--media-catalog-input-bytes",
+        String(MAX_RENDER_SNAPSHOT_BYTES),
+        "--media-sequence-frames",
+        "100000",
+        "--project-media-files",
+        "100000",
+      ],
     };
   } catch (error) {
     await rm(directory, { recursive: true, force: true });

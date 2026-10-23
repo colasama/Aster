@@ -138,7 +138,7 @@ impl NativeRasterProvider {
         if !(1..=300_000).contains(&options.timeout_ms)
             || options.arguments.len() > 32
             || options.arguments.iter().any(|s| s.len() > 32768)
-            || !(32..=67_108_864).contains(&limits.render_project_input_bytes)
+            || !(32..=268_435_456).contains(&limits.render_project_input_bytes)
             || limits.render_project_pixel_bytes == 0
             || limits.render_project_pixel_bytes > 1_073_741_824
             || options.cache_bytes > limits.render_project_pixel_bytes

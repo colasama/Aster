@@ -45,7 +45,7 @@ pub struct NativeProjectDocument {
 
 impl NativeProjectDocument {
     pub fn open(path: &Path, limits: ProjectRenderLimits) -> Result<Self, ProjectRenderError> {
-        if !(32..=67_108_864).contains(&limits.render_project_input_bytes)
+        if !(32..=268_435_456).contains(&limits.render_project_input_bytes)
             || limits.render_project_frames == 0
             || limits.render_project_frames > 65_536
             || limits.render_project_pixel_bytes == 0

@@ -5,10 +5,22 @@ import { dirname, join, resolve } from "node:path";
 import { expect, test } from "vitest";
 import type { RenderJobManifest } from "../src/core/rendering/render-queue";
 import { mediaBytesIdentity } from "../src/importers/media-import-identity";
+import { selectNativeQueueDocument } from "./native-queue-media";
 import { prepareNativeQueueProject } from "./native-queue-project";
 import { readRetainedQueueMedia } from "./native-raster-retained-media";
 
 const runtime = { executable: "electron", host: "host", bundle: "bundle", bridge: "bridge" };
+
+test("historical shape-only snapshots retain native upgrade admission without a source catalog", () => {
+  const document = {
+    schemaVersion: 3,
+    compositions: [{ id: "main", layers: [{ kind: "shape" }] }],
+  };
+  expect(selectNativeQueueDocument(document, "main").sources).toEqual([]);
+  expect(() =>
+    selectNativeQueueDocument({ ...document, schemaVersion: 10, sources: undefined }, "main"),
+  ).toThrow("source or composition catalog");
+});
 const digest = (bytes: string) => createHash("sha256").update(bytes).digest("hex");
 const manifestFor = (document: unknown, media?: unknown): RenderJobManifest => ({
   id: "job",
@@ -51,6 +63,9 @@ test("queue project freezes inline media, nested dependencies and trusted plugin
     };
     const plugin = { pluginId: "com.example.cloud", nodeType: "cloud" };
     const document = {
+      folders: [{ id: "folder", name: "Media" }],
+      itemFolderIds: { main: "folder", nested: "folder", image: "folder", unused: "folder" },
+      fonts: [{ id: "font", dataUrl: "data:font/woff2;base64,AQID" }],
       sources: [source, { ...source, id: "unused" }],
       compositions: [
         {
@@ -80,6 +95,9 @@ test("queue project freezes inline media, nested dependencies and trusted plugin
     const prepared = JSON.parse(await readFile(result.project, "utf8"));
     expect(prepared.compositions.map((c: { id: string }) => c.id)).toEqual(["main", "nested"]);
     expect(prepared.sources).toHaveLength(1);
+    expect(prepared.itemFolderIds).toEqual({ main: "folder", nested: "folder", image: "folder" });
+    expect(prepared.fonts).toEqual(document.fonts);
+    expect(result.runtimeArguments).toContain("268435456");
     expect(prepared.sources[0].dataUrl).toBeUndefined();
     const storage = prepared.mediaImports.payloads[0].storage;
     expect(await readFile(join(result.directory, storage.relativePath))).toEqual(bytes);

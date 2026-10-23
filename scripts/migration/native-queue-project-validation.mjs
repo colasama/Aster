@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
-import { mkdir, readdir, readFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { encodeRgbaPng } from "../parity/png.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile } from "./source.mjs";
@@ -49,14 +50,54 @@ export async function validateNativeQueueProjects(context, prepared) {
       "media-image-sequence",
       "video-24000-1001",
       "scene-audio-spectrum-bars",
+      "queue-embedded-source",
+      "queue-large-sequence",
+      "queue-large-document",
+      "layer-text",
+      "scene-lighting-directional",
     ]) {
-      const fixture = corpus.cases.find((c) => c.id === id);
+      const fixtureId =
+        {
+          "queue-embedded-source": "media-png",
+          "queue-large-sequence": "media-image-sequence",
+          "queue-large-document": "minimal-golden",
+        }[id] ?? id;
+      const fixture = corpus.cases.find((c) => c.id === fixtureId);
       assert(fixture, id);
-      const originalPath = resolve(root, fixture.project),
-        original = JSON.parse(await readFile(originalPath));
+      let originalPath = resolve(root, fixture.project);
+      const original = JSON.parse(await readFile(originalPath));
+      if (id === "queue-large-sequence") {
+        const payload = original.mediaImports.payloads[0],
+          source = original.sources[0];
+        const png = encodeRgbaPng(
+          2,
+          2,
+          Buffer.from([255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 255, 255]),
+        );
+        payload.startFrame = 0;
+        payload.endFrame = 4099;
+        source.startFrame = 0;
+        source.endFrame = 4099;
+        source.width = 2;
+        source.height = 2;
+        payload.frames = Array.from({ length: 4100 }, (_, frame) => ({
+          frame,
+          name: `sequence-${String(frame).padStart(4, "0")}.png`,
+          size: png.length,
+          lastModified: 0,
+          type: "image/png",
+          storage: {
+            kind: "inline",
+            byteIdentity: mediaBytesIdentity(png),
+            data: png.toString("base64"),
+          },
+        }));
+        originalPath = join(output, `${id}-source.json`);
+        await writeAtomicJson(originalPath, original);
+      }
       const media = { version: 1, entries: [], payloads: [] };
-      const payloads = new Map(original.mediaImports.payloads.map((p) => [p.id, p]));
-      for (const entry of original.mediaImports.entries) {
+      const payloads = new Map((original.mediaImports?.payloads ?? []).map((p) => [p.id, p]));
+      for (const entry of original.mediaImports?.entries ?? []) {
         const payload = payloads.get(entry.payloadId),
           source = original.sources.find((s) => s.id === entry.sourceId);
         const base = {
@@ -166,6 +207,19 @@ export async function validateNativeQueueProjects(context, prepared) {
         priority: 0,
         createdAt: new Date().toISOString(),
       };
+      if (id === "queue-embedded-source") {
+        const clone = structuredClone(original),
+          payload = clone.mediaImports.payloads[0];
+        clone.sources[0].dataUrl = `data:${clone.sources[0].mimeType};base64,${payload.storage.data}`;
+        delete clone.mediaImports;
+        manifest.projectSnapshot = JSON.stringify(clone);
+        delete manifest.renderMediaSnapshot;
+      }
+      if (id === "queue-large-document") {
+        manifest.projectSnapshot = " ".repeat(67_108_865) + manifest.projectSnapshot;
+        originalPath = join(output, `${id}-source.json`);
+        await writeFile(originalPath, manifest.projectSnapshot);
+      }
       const resolvePlugins = async (references) => ({
         packages: await Promise.all(
           references.map(async (reference) => {
@@ -224,6 +278,7 @@ export async function validateNativeQueueProjects(context, prepared) {
               join(root, "build/ffmpeg/ffprobe.exe"),
               "--dxcompiler",
               join(root, "node_modules/electron/dist/dxcompiler.dll"),
+              ...queue.runtimeArguments,
             ],
           },
           context,

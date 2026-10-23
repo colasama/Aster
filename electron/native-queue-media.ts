@@ -191,6 +191,12 @@ export function selectNativeQueueDocument(
   if (!value || typeof value !== "object" || Array.isArray(value))
     throw new Error("Invalid queue project");
   const document = value as NativeQueueDocument;
+  if (
+    document.sources === undefined &&
+    Number(document.schemaVersion) >= 1 &&
+    Number(document.schemaVersion) < 4
+  )
+    document.sources = [];
   if (!Array.isArray(document.sources) || !Array.isArray(document.compositions))
     throw new Error("Queue project has no source or composition catalog");
   const compositions = new Map(
@@ -219,6 +225,11 @@ export function selectNativeQueueDocument(
   if (document.sources.length !== sourceIds.size)
     throw new Error("Queue source dependency is missing");
   document.activeCompositionId = compositionId;
+  const items = new Set([...selected, ...sourceIds]);
+  if (document.itemFolderIds && typeof document.itemFolderIds === "object")
+    document.itemFolderIds = Object.fromEntries(
+      Object.entries(document.itemFolderIds).filter(([id]) => items.has(id)),
+    );
   delete document.mediaImports;
   return document;
 }

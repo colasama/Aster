@@ -52,6 +52,11 @@ captures stay in a bounded, SHA-256-authenticated job-local sidecar, admitted by
 service without granting additional file access. Trusted installed plugin packages are frozen;
 disabled, missing and safe-mode generators are explicitly classified in native export admission.
 The authored queue snapshot remains unchanged. Production queue-worker selection is a separate step.
+Preparation retains embedded fonts and material/environment textures and removes folder assignments
+only for pruned project items. Captured documents use the queue's 256 MiB input bound; prepared
+projects carry explicit native input and sequence admission arguments. The retained raster service
+authenticates the full project before projecting its media catalog to SVG/PSD, so native footage and
+long image sequences do not pass through the browser's save-file hydration limits.
 
 Each job pairs the persistence-safe project document with a versioned `RenderMediaManifest` keyed by
 source ID and content identity. Embedded still/video/audio data remains in the document. At enqueue,
