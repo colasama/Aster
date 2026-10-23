@@ -393,34 +393,34 @@
     }
   },
   "last_cycle": {
-    "id": 153,
-    "time": "2026-10-23T02:45:15.402Z",
-    "updated_at": "2026-10-23T02:45:15.402Z",
+    "id": 154,
+    "time": "2026-10-23T03:14:18.313Z",
+    "updated_at": "2026-10-23T03:14:18.313Z",
     "milestone": "M12",
     "task": "M12-T3",
-    "increment": "native-queue-legacy-input-and-raster-scope",
+    "increment": "native-queue-historical-project-and-media-admission",
     "outcome": "development_increment_passed",
-    "commit": "a38dc147a05a9d3253f14eb870a15a6084e2c387",
+    "commit": "7416d0b43b5e6b47b21f7f08e7b4a27ea8dc5c1b",
     "validation": {
-      "path": "artifacts/migration/cycle153b-validation/report.json",
-      "sha256": "5d72124a224dcada236b5b238fd2269d1aa0f7442ae45b97c95b3a360108b654"
+      "path": "artifacts/migration/cycle154b-validation/report.json",
+      "sha256": "5cd0080db64eb71b5d5431cd3dff9d2b22990aa573bf857bc054230732b35bb0"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
         "id": "queue-project-targeted",
         "status": "passed",
-        "duration_ms": 2197
+        "duration_ms": 2194
       },
       {
         "id": "project-native-build",
         "status": "passed",
-        "duration_ms": 1069
+        "duration_ms": 174781
       },
       {
         "id": "project-electron-build",
         "status": "passed",
-        "duration_ms": 975
+        "duration_ms": 943
       },
       {
         "id": "project-raster-build",
@@ -430,21 +430,25 @@
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 313304
+        "duration_ms": 347172
       }
     ],
     "targeted_queue": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle153b-validation\\queue\\report.json",
-      "sha256": "6173a5eee84228b1f8f2d1cc07762d029f413deb911362c893011ffbff3bd740",
-      "exact_cases": 12,
-      "disabled_generator": true,
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle154b-validation\\queue\\report.json",
+      "sha256": "0e4c0bd1499bb3499da9b037ad30d4b24403aebe7ebe2ff66792c9034a9a4db4",
+      "exact_cases": 15,
+      "disabled_generator_cases": 2,
+      "historical_schemas": [
+        3,
+        4
+      ],
       "sequence_frames": 4100,
       "large_document_bytes_above": 67108864
     },
     "retained_failed_attempts": [
       {
-        "path": "artifacts/migration/cycle153-validation/queue/report.json",
-        "reason": "Large input fixture uses a historical shape-only project without sources. Admit its empty source catalog so native schema upgrades can run; current-schema missing catalogs still fail."
+        "path": "artifacts/migration/cycle154-validation/queue/report.json",
+        "reason": "Historical source identity passed project admission but the decoder expected a byte identity. Preserve source metadata and grant the decoder a SHA-256 digest only after project locator and frozen-byte authentication."
       }
     ],
     "deferred_gates": [
@@ -456,7 +460,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Continue M12-T3: use the existing Rust runtime schema upgrader for historical queue documents and preserve embedded media with locator-derived legacy identities. Qualify immutable composition metadata before completing input preparation, then implement native queue worker routing in M12-T4."
+    "next_step": "Start M12-T4: implement the native project queue worker with lease-correlated progress and pause/resume/cancel, cleanup and atomic multi-output publication. Preserve supported long-job ranges through bounded scheduling and qualify production media limits; then route the production queue without TS GPU fallback."
   },
   "milestones": [
     {
@@ -27667,7 +27671,7 @@
           "id": "M12-T3",
           "title": "Materialize immutable native queue projects",
           "scope": "Bind queue project snapshots to authorized immutable media, retained raster capabilities and trusted installed-plugin packages.",
-          "status": "in_progress",
+          "status": "done",
           "estimated_implementation_hours": 3,
           "required_gates": [
             "G0",
@@ -27679,12 +27683,13 @@
             "G6"
           ],
           "started_at": "2026-10-23T01:43:41.553Z",
-          "progress": "Immutable project/media/plugin assembly and PSD fallback are implemented. Retained raster admission authenticates the complete project then hydrates only SVG/PSD, leaving ordinary footage and long sequences native. Selected folder assignments, embedded font/material data, historical shape-only catalogs and queue document bounds are preserved. Twelve real exports are pixel-exact, including 4100-frame sequence admission, an input above 64 MiB, embedded footage without a media snapshot, text and lighting; disabled plugin and full G0 checks pass. Historical media snapshots still require native schema normalization and locator-derived source identity handling before T3 completion. Production queue routing remains M12-T4.",
+          "progress": "Immutable project/media/plugin assembly is complete. Rust upgrades historical private queue copies; receipts bind authored and normalized hashes. Legacy locator identities and frozen bytes are authenticated separately, and native decoders receive verified byte digests. Composition dimensions, rational clock and frame range are checked. Fifteen exact real exports cover historical image/video/audio, advanced media, PSD fallback, 4100-frame sequence admission, inputs above 64 MiB, text and lighting. Two disabled-plugin checks and full G0 pass. Production queue routing, long-job streaming and delivery qualification remain in M12-T4 and later tasks.",
           "validation": {
-            "path": "artifacts/migration/cycle153b-validation/report.json",
-            "sha256": "5d72124a224dcada236b5b238fd2269d1aa0f7442ae45b97c95b3a360108b654"
+            "path": "artifacts/migration/cycle154b-validation/report.json",
+            "sha256": "5cd0080db64eb71b5d5431cd3dff9d2b22990aa573bf857bc054230732b35bb0"
           },
-          "commit": "a38dc147a05a9d3253f14eb870a15a6084e2c387"
+          "commit": "7416d0b43b5e6b47b21f7f08e7b4a27ea8dc5c1b",
+          "completed_at": "2026-10-23T03:14:18.313Z"
         },
         {
           "id": "M12-T4",
@@ -2679826,6 +2679831,77 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Continue M12-T3: use the existing Rust runtime schema upgrader for historical queue documents and preserve embedded media with locator-derived legacy identities. Qualify immutable composition metadata before completing input preparation, then implement native queue worker routing in M12-T4."
+    },
+    {
+      "cycle": 154,
+      "id": 154,
+      "time": "2026-10-23T03:14:18.313Z",
+      "updated_at": "2026-10-23T03:14:18.313Z",
+      "milestone": "M12",
+      "task": "M12-T3",
+      "increment": "native-queue-historical-project-and-media-admission",
+      "outcome": "development_increment_passed",
+      "commit": "7416d0b43b5e6b47b21f7f08e7b4a27ea8dc5c1b",
+      "validation": {
+        "path": "artifacts/migration/cycle154b-validation/report.json",
+        "sha256": "5cd0080db64eb71b5d5431cd3dff9d2b22990aa573bf857bc054230732b35bb0"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "queue-project-targeted",
+          "status": "passed",
+          "duration_ms": 2194
+        },
+        {
+          "id": "project-native-build",
+          "status": "passed",
+          "duration_ms": 174781
+        },
+        {
+          "id": "project-electron-build",
+          "status": "passed",
+          "duration_ms": 943
+        },
+        {
+          "id": "project-raster-build",
+          "status": "passed",
+          "duration_ms": 349
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 347172
+        }
+      ],
+      "targeted_queue": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle154b-validation\\queue\\report.json",
+        "sha256": "0e4c0bd1499bb3499da9b037ad30d4b24403aebe7ebe2ff66792c9034a9a4db4",
+        "exact_cases": 15,
+        "disabled_generator_cases": 2,
+        "historical_schemas": [
+          3,
+          4
+        ],
+        "sequence_frames": 4100,
+        "large_document_bytes_above": 67108864
+      },
+      "retained_failed_attempts": [
+        {
+          "path": "artifacts/migration/cycle154-validation/queue/report.json",
+          "reason": "Historical source identity passed project admission but the decoder expected a byte identity. Preserve source metadata and grant the decoder a SHA-256 digest only after project locator and frozen-byte authentication."
+        }
+      ],
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Start M12-T4: implement the native project queue worker with lease-correlated progress and pause/resume/cancel, cleanup and atomic multi-output publication. Preserve supported long-job ranges through bounded scheduling and qualify production media limits; then route the production queue without TS GPU fallback."
     }
   ],
   "known_boundaries": [
