@@ -26,9 +26,9 @@ pub(crate) struct ExportProjectArgs {
     out: PathBuf,
     #[arg(long, value_enum, default_value = "mp4")]
     format: ProjectExportFormat,
-    /// Aggregate PNG output bound; a sequence is published only after every frame succeeds.
-    #[arg(long, default_value_t = 4_294_967_296)]
-    image_output_bytes: u64,
+    /// Optional aggregate PNG disk budget; sequences publish only after every frame succeeds.
+    #[arg(long)]
+    image_output_bytes: Option<u64>,
     /// Stream PNG frame identities to an exclusive private JSONL file instead of stdout arrays.
     #[arg(long)]
     image_receipts: Option<PathBuf>,

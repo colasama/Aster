@@ -94,6 +94,11 @@ validates every frame clock and PNG identity, and retains only the receipt handl
 Publication streams the same authenticated journal again to recheck staged files. It never retains a
 per-frame file list or frame set for native outputs. Legacy diagnostic stdout image arrays remain
 bounded to 65,536 frames; queue exports always select the streamed protocol.
+PNG disk output has no fixed aggregate byte cap by default: encoded frames and receipts stream
+to private files with checked 64-bit accounting. The CLI accepts an optional `--image-output-bytes`
+budget and rejects an over-budget frame before writing it. This changes no decoded-frame memory
+budget or frame-count limit; failed writes, exhausted disk space and cancellation still discard
+incomplete staging without publishing partial sequences.
 
 Native output admission streams completed encoded files into the existing publication transaction.
 PNG receipts bind every frame, hash and extent; sequence members retain the queue's captured naming

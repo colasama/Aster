@@ -13,7 +13,7 @@ pub(crate) struct PngOutput {
     format: ProjectExportFormat,
     size: Extent2d,
     count: u64,
-    budget: u64,
+    budget: Option<u64>,
     bytes: u64,
     published: bool,
     pub frames: Vec<PngFrameReceipt>,
@@ -39,7 +39,7 @@ impl PngOutput {
         format: ProjectExportFormat,
         size: Extent2d,
         count: u64,
-        budget: u64,
+        budget: Option<u64>,
         receipt_path: Option<PathBuf>,
     ) -> Result<Self, ProjectRenderError> {
         if format == ProjectExportFormat::Mp4
@@ -51,8 +51,7 @@ impl PngOutput {
                     65_536
                 }
             || (format == ProjectExportFormat::Png && count != 1)
-            || budget == 0
-            || budget > 17_179_869_184
+            || budget == Some(0)
         {
             return Err(ProjectRenderError::Invalid(
                 "invalid PNG output bounds".into(),
@@ -116,7 +115,7 @@ impl ProjectImageOutput for PngOutput {
         let bytes = self
             .bytes
             .checked_add(png.len() as u64)
-            .filter(|bytes| *bytes <= self.budget)
+            .filter(|bytes| self.budget.is_none_or(|budget| *bytes <= budget))
             .ok_or_else(|| ProjectRenderError::Invalid("PNG output byte budget exceeded".into()))?;
         let name = format!("frame_{index:06}.png");
         let mut file = fs::OpenOptions::new()

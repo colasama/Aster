@@ -49,7 +49,7 @@ fn sequence_preserves_odd_dimensions_and_alpha_until_atomic_publication()
         ProjectExportFormat::PngSequence,
         fixture.frame.target,
         2,
-        4096,
+        Some(4096),
         None,
     )?;
     output.write_frame(0, &fixture.frame, fixture.rgba.clone())?;
@@ -93,7 +93,7 @@ fn failed_images_remove_staging_and_preserve_racing_destinations()
                 format,
                 fixture.frame.target,
                 1,
-                1,
+                Some(1),
                 None,
             )?;
             assert!(
@@ -110,7 +110,7 @@ fn failed_images_remove_staging_and_preserve_racing_destinations()
                 format,
                 fixture.frame.target,
                 1,
-                4096,
+                Some(4096),
                 None,
             )?;
             output.write_frame(0, &fixture.frame, fixture.rgba.clone())?;
@@ -125,7 +125,7 @@ fn failed_images_remove_staging_and_preserve_racing_destinations()
                 format,
                 fixture.frame.target,
                 1,
-                4096,
+                Some(4096),
                 None
             )
             .is_err()
@@ -147,7 +147,7 @@ fn streamed_receipts_bind_complete_images_and_clean_failed_long_jobs()
             ProjectExportFormat::PngSequence,
             fixture.frame.target,
             10_000_000,
-            4096,
+            Some(4096),
             Some(receipt_path.clone()),
         )?;
         output.write_frame(0, &fixture.frame, fixture.rgba.clone())?;
@@ -161,7 +161,7 @@ fn streamed_receipts_bind_complete_images_and_clean_failed_long_jobs()
         ProjectExportFormat::PngSequence,
         fixture.frame.target,
         2,
-        4096,
+        Some(4096),
         Some(receipt_path.clone()),
     )?;
     for index in 0..2 {
@@ -180,5 +180,89 @@ fn streamed_receipts_bind_complete_images_and_clean_failed_long_jobs()
     assert_eq!(bytes.iter().filter(|b| **b == b'\n').count(), 2);
     drop(output);
     assert!(receipt_path.try_exists()?);
+    Ok(())
+}
+
+#[test]
+fn streamed_png_accounting_crosses_old_disk_caps_and_enforces_explicit_budgets()
+-> Result<(), Box<dyn std::error::Error>> {
+    let fixture = Fixture::new()?;
+    let encoded = PngCodec::encode(&RgbaImage {
+        width: fixture.frame.target.width,
+        height: fixture.frame.target.height,
+        pixels: fixture.rgba.clone(),
+    })?;
+    let frame_bytes = encoded.len() as u64;
+    // Seed only the byte counter to exercise large totals without writing gigabytes of fixtures.
+    for preceding in [4_294_967_296, 17_179_869_184] {
+        for budget in [None, Some(preceding + frame_bytes)] {
+            let destination = fixture.root.join("sequence");
+            let receipt_path = fixture.root.join("frames.jsonl");
+            {
+                let mut output = PngOutput::new(
+                    destination.clone(),
+                    ProjectExportFormat::PngSequence,
+                    fixture.frame.target,
+                    2,
+                    budget,
+                    Some(receipt_path.clone()),
+                )?;
+                output.bytes = preceding;
+                output.write_frame(0, &fixture.frame, fixture.rgba.clone())?;
+                assert_eq!(output.bytes, preceding + frame_bytes);
+                assert!(output.frames.is_empty());
+                if budget.is_some() {
+                    assert!(
+                        output
+                            .write_frame(1, &fixture.frame, fixture.rgba.clone())
+                            .is_err()
+                    );
+                    assert_eq!(output.written, 1);
+                    assert!(output.finish().is_err());
+                } else {
+                    output.write_frame(1, &fixture.frame, fixture.rgba.clone())?;
+                    output.finish()?;
+                    assert_eq!(fs::read(destination.join("frame_000001.png"))?, encoded);
+                }
+            }
+            if budget.is_some() {
+                assert!(!destination.try_exists()?);
+                assert!(!receipt_path.try_exists()?);
+            } else {
+                fs::remove_dir_all(destination)?;
+                fs::remove_file(receipt_path)?;
+            }
+            assert_eq!(fs::read_dir(&fixture.root)?.count(), 0);
+        }
+    }
+    {
+        let mut output = PngOutput::new(
+            fixture.root.join("overflow"),
+            ProjectExportFormat::Png,
+            fixture.frame.target,
+            1,
+            None,
+            None,
+        )?;
+        output.bytes = u64::MAX;
+        assert!(
+            output
+                .write_frame(0, &fixture.frame, fixture.rgba.clone())
+                .is_err()
+        );
+        assert_eq!(output.written, 0);
+    }
+    assert!(
+        PngOutput::new(
+            fixture.root.join("zero-budget"),
+            ProjectExportFormat::Png,
+            fixture.frame.target,
+            1,
+            Some(0),
+            None,
+        )
+        .is_err()
+    );
+    assert_eq!(fs::read_dir(&fixture.root)?.count(), 0);
     Ok(())
 }
