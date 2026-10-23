@@ -67,7 +67,7 @@ beforeEach(() => {
       fillRect: vi.fn(),
     } as unknown as CanvasRenderingContext2D;
   } as unknown as typeof HTMLCanvasElement.prototype.getContext);
-  // Exercise the real presentation backend without requiring a GPU in the DOM test environment.
+  // Without the desktop native API, production preview goes directly to Canvas compatibility.
   vi.spyOn(WebGpuRenderer, "create").mockRejectedValue("Test Canvas fallback");
   container = document.createElement("div");
   document.body.append(container);
@@ -129,7 +129,7 @@ it("keeps rendered pixels and targets stable through zoom, Fit, panel resize and
   expect(heightWrites).not.toHaveBeenCalled();
   expect(resize).not.toHaveBeenCalled();
   expect(render).not.toHaveBeenCalled();
-  expect(WebGpuRenderer.create).toHaveBeenCalledOnce();
+  expect(WebGpuRenderer.create).not.toHaveBeenCalled();
 });
 
 it("resizes and redraws for preview quality and composition dimensions without recreating the renderer", async () => {
@@ -156,5 +156,5 @@ it("resizes and redraws for preview quality and composition dimensions without r
   };
   await renderViewport();
   expect([canvas.width, canvas.height]).toEqual([1280, 720]);
-  expect(WebGpuRenderer.create).toHaveBeenCalledOnce();
+  expect(WebGpuRenderer.create).not.toHaveBeenCalled();
 });

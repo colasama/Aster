@@ -537,7 +537,10 @@ the download button writes the complete wall/CPU/GPU min, median, p95, p99, and 
 schema-versioned JSON with adapter metadata.
 
 Native preview qualification runs three contemporaneous TS/native pairs in alternating order at
-matched 1024 MiB budgets and beauty quality. Each scenario retains all 600 raw wall and CPU samples,
+matched quality using the normal application bundle for Rust and a separate `reference`-mode bundle
+for the retained TS viewport. Both bundles are built before timed sampling; the reference application
+route is development-only. Both engines use 1024 MiB budgets and beauty quality. Each scenario
+retains all 600 raw wall and CPU samples,
 plus 600 GPU samples when available. Empty GPU sample arrays indicate unavailable GPU timing;
 their zero summaries do not establish zero GPU cost. Acceptance uses measured wall throughput.
 Reported distributions are recomputed from those samples. Every scenario's median FPS across the

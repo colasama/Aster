@@ -30,6 +30,16 @@ export async function runEditorInteractionGate(context, execute = runStep) {
   try {
     report.source = await sourceProvenance(root);
     report.binary = await pin(join(root, "target/release/aster-render-cli.exe"));
+    const referenceBuild = await execute(
+      {
+        id: "editor-reference-build",
+        file: "pnpm",
+        args: ["exec", "vite", "build", "--mode", "reference"],
+      },
+      context,
+    );
+    report.steps.push(referenceBuild);
+    assert.equal(referenceBuild.status, "passed");
     const arms = [];
     for (const engine of ["ts", "native"]) {
       const directory = join(output, engine);

@@ -732,13 +732,17 @@ serializes these controls and bounds queued work.
 after Electron reports that every process and GPU reference has finished. Renderer IPC receives
 the shared texture and frame identity, never the raw NT handle. GPU copies and explicit readbacks
 preserve associated RGB and alpha. The editor swapchain and comparison snapshots are opaque,
-displaying associated RGB over black to match the retained TS viewport. The opt-in capability flag `ASTER_NATIVE_PREVIEW=1` connects
-the editor to application-owned private project snapshots; IPC clients cannot select executables or
+displaying associated RGB over black to match the retained TS viewport. Native preview is enabled by
+default and connects the editor to application-owned private project snapshots; IPC clients cannot select executables or
 filesystem destinations. The sandboxed preload transfers owned VideoFrames to the GPU canvas, which
 checks snapshot identity and validation before closing them. Electron retains their underlying
 resources until GPU use finishes. The broker acknowledges presentation only after
 `allReferencesReleased` and the native lease-release reply; bounded drain failures terminate the
 producer. This provides the GPU completion boundary without another renderer-process queue wait.
+`ASTER_NATIVE_PREVIEW=0` selects the unchanged Canvas 2D compatibility path, without an implicit TS
+GPU fallback. TS viewport creation requires a separate `vite build --mode reference` bundle in
+`dist-reference` and the development-only `ASTER_REFERENCE_RENDERER=1` application route. Packaged
+applications ignore that reference route. The legacy queue host remains a separate migration task.
 Explicit pixel captures also wait for their mapped readback buffer. A replaceable foreground queue rejects
 stale edits while idle pre-rendering fills the bounded RAM cache without changing the displayed frame.
 The native idle scheduler iterates only its budgeted frame window, without allocating a list for the

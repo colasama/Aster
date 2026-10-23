@@ -73,6 +73,8 @@ import { RenderQueueStore } from "./render-queue-store.js";
 
 const DEVELOPMENT_URL = "http://127.0.0.1:1420";
 const backgroundAutomation = process.argv.includes("--automation-background");
+const referenceRenderer = !app.isPackaged && process.env.ASTER_REFERENCE_RENDERER === "1";
+const editorBundle = referenceRenderer ? "dist-reference" : "dist";
 const BRIDGE_COMMANDS = new Set([
   "clear_autosave",
   "install_plugin",
@@ -1154,9 +1156,11 @@ async function createWindow(
     return { action: "deny" };
   });
   window.webContents.on("will-navigate", (event, url) => {
-    const productionEntry = pathToFileURL(join(app.getAppPath(), "dist", "index.html")).toString();
+    const productionEntry = pathToFileURL(
+      join(app.getAppPath(), editorBundle, "index.html"),
+    ).toString();
     const allowed =
-      app.isPackaged || backgroundAutomation
+      app.isPackaged || backgroundAutomation || referenceRenderer
         ? url === productionEntry || url.startsWith(`${productionEntry}#`)
         : new URL(url).origin === new URL(DEVELOPMENT_URL).origin;
     if (!allowed) event.preventDefault();
@@ -1209,8 +1213,8 @@ async function createWindow(
       });
   });
   if (restored?.maximized) window.maximize();
-  if (app.isPackaged || backgroundAutomation)
-    await window.loadFile(join(app.getAppPath(), "dist", "index.html"));
+  if (app.isPackaged || backgroundAutomation || referenceRenderer)
+    await window.loadFile(join(app.getAppPath(), editorBundle, "index.html"));
   else await window.loadURL(DEVELOPMENT_URL);
   logger.debug("window", "created", { rendererId: window.webContents.id });
   return window;
@@ -1431,8 +1435,7 @@ if (hasSingleInstanceLock)
       }
       if (previewRuntime) {
         nativePreviewHost = new NativePreviewHost({
-          // Enable explicitly selected sessions until complete editor acceptance.
-          enabled: process.env.ASTER_NATIVE_PREVIEW === "1",
+          enabled: !referenceRenderer && process.env.ASTER_NATIVE_PREVIEW !== "0",
           temporaryRoot: join(app.getPath("temp"), "aster-native-preview"),
           binary: previewRuntime.binary,
           compiler: previewRuntime.compiler,

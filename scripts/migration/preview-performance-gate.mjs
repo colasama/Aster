@@ -157,6 +157,11 @@ export async function runPreviewPerformanceGate(context, execute = runStep) {
       },
       { id: "preview-perf-web-build", file: "pnpm", args: ["exec", "vite", "build"] },
       {
+        id: "preview-perf-reference-build",
+        file: "pnpm",
+        args: ["exec", "vite", "build", "--mode", "reference"],
+      },
+      {
         id: "preview-perf-raster-build",
         file: process.execPath,
         args: ["scripts/build-native-raster.mjs"],

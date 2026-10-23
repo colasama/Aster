@@ -23,6 +23,16 @@ export async function runEditorPluginGate(context, execute = runStep) {
   await mkdir(output, { recursive: true });
   try {
     report.source = await sourceProvenance(root);
+    const referenceBuild = await execute(
+      {
+        id: "plugin-reference-build",
+        file: "pnpm",
+        args: ["exec", "vite", "build", "--mode", "reference"],
+      },
+      context,
+    );
+    report.steps.push(referenceBuild);
+    assert.equal(referenceBuild.status, "passed");
     // The development editor prefers the debug bridge even when the renderer is a release build.
     const bridgeBuild = await execute(
       { id: "editor-plugin-bridge", file: "cargo", args: ["build", "-p", "aster-desktop-bridge"] },

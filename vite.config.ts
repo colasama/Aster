@@ -32,7 +32,10 @@ export default defineConfig(({ command, mode }) => {
   return {
     base: "./",
     plugins: [react()],
-    define: { __APP_VERSION__: JSON.stringify(appVersion) },
+    define: {
+      __APP_VERSION__: JSON.stringify(appVersion),
+      __ASTER_TS_REFERENCE__: mode === "reference",
+    },
 
     // Aster's editor has a broad, GPU-oriented module graph. Vite's request-by-request transform
     // waterfall made a cold Electron window wait tens of seconds before React could mount, while
@@ -45,6 +48,7 @@ export default defineConfig(({ command, mode }) => {
     build:
       command === "build"
         ? {
+            outDir: mode === "reference" ? "dist-reference" : "dist",
             rolldownOptions: {
               output: {
                 codeSplitting: {

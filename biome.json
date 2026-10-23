@@ -9,6 +9,7 @@
       "!artifacts",
       "!artifacts-final",
       "!dist",
+      "!dist-reference",
       "!dist-electron",
       "!node_modules",
       "!release",

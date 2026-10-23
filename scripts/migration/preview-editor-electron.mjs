@@ -15,7 +15,7 @@ import { writeAtomicJson } from "./report.mjs";
 const root = process.cwd(),
   output = process.env.ASTER_PREVIEW_EDITOR_OUTPUT;
 const engine = process.env.ASTER_PREVIEW_ENGINE ?? "native";
-assert(["native", "ts"].includes(engine));
+assert(["native", "ts", "canvas"].includes(engine));
 const report = {
   status: "failed",
   scope: "development-editor-native-preview",
@@ -50,7 +50,9 @@ await new Promise((resolve, reject) => {
 });
 const port = server.address().port;
 await new Promise((resolve) => server.close(resolve));
-process.env.ASTER_NATIVE_PREVIEW = engine === "native" ? "1" : "0";
+process.env.ASTER_REFERENCE_RENDERER = engine === "ts" ? "1" : "0";
+delete process.env.ASTER_NATIVE_PREVIEW;
+if (engine === "canvas") process.env.ASTER_NATIVE_PREVIEW = "0";
 process.env.ASTER_AUTOMATION_ENABLED = "1";
 process.env.ASTER_AUTOMATION_PORT = String(port);
 process.env.ASTER_FFMPEG_PATH = join(root, "build/ffmpeg/ffmpeg.exe");
@@ -86,6 +88,9 @@ async function main() {
     const editor = BrowserWindow.getAllWindows().find((window) =>
       window.webContents.getURL().endsWith("/index.html"),
     );
+    assert(editor);
+    report.editor_url = editor.webContents.getURL();
+    assert(report.editor_url.includes(engine === "ts" ? "/dist-reference/" : "/dist/"));
     if (latencySamples > 0) {
       assert(editor);
       await editor.webContents.executeJavaScript(`window.asterDesktop.updatePreferences({

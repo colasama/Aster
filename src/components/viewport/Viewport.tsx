@@ -360,7 +360,8 @@ export function Viewport() {
         setRendererReady(true);
         return;
       }
-      return WebGpuRenderer.create(canvas, invalidate);
+      if (__ASTER_TS_REFERENCE__) return WebGpuRenderer.create(canvas, invalidate);
+      return new CanvasFallbackRenderer(canvas, invalidate);
     })()
       .catch((error: unknown) => {
         logger.error("viewport", "webgpu_fallback_activated", error);
