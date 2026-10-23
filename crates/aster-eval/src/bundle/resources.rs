@@ -1,7 +1,7 @@
 use crate::{EvaluationError, NativePlan};
 use aster_render_ir::{
-    BufferResourceDescriptor, ContractLevel, DecodeLimits, ElementType, MediaTextureFormat,
-    PrecompositionMediaPixels, ResourceDescriptor, ResourceHash, ResourceKind, VerifiedResource,
+    ContractLevel, DecodeLimits, ElementType, MediaTextureFormat, PrecompositionMediaPixels,
+    ResourceDescriptor, ResourceHash, ResourceKind, VerifiedResource,
 };
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -108,17 +108,10 @@ impl BundleResources {
             ));
         }
         let mut dependencies = self.dependencies(&plan.metadata.resources)?;
-        let bytes = plan.encode(&DecodeLimits::default())?;
-        let length = u32::try_from(bytes.len())
-            .map_err(|_| EvaluationError::InvalidScene("bundle plan byte overflow".into()))?;
-        let resource = VerifiedResource::new(
-            ResourceKind::Buffer,
-            ResourceDescriptor::Buffer(BufferResourceDescriptor {
-                element_type: ElementType::U8,
-                element_count: length,
-                byte_length: length,
-            }),
-            bytes,
+        let resource = VerifiedResource::from_plan(
+            plan.metadata.clone(),
+            &plan.blobs.iter().map(Vec::as_slice).collect::<Vec<_>>(),
+            &DecodeLimits::default(),
         )
         .map_err(|e| EvaluationError::InvalidScene(e.to_string()))?;
         let hash = self.add(resource)?;

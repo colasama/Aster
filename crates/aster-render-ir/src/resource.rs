@@ -7,7 +7,10 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::{ElementType, FramePlanSliceV1, IrError, ResourceDescriptor, canonical::CanonicalJson};
+use crate::{
+    DecodeLimits, ElementType, FplnCodec, FramePlanSliceV1, IrError, OwnedFpln, ResourceDescriptor,
+    canonical::CanonicalJson,
+};
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(transparent)]
@@ -121,8 +124,13 @@ pub struct VerifiedResource {
 
 struct VerifiedContent {
     request: PutResource,
-    bytes: Vec<u8>,
+    payload: VerifiedPayload,
     accounted_bytes: u64,
+}
+
+enum VerifiedPayload {
+    Bytes(Vec<u8>),
+    Plan(Arc<OwnedFpln>),
 }
 
 impl VerifiedResource {
@@ -147,7 +155,7 @@ impl VerifiedResource {
                     kind,
                     descriptor,
                 },
-                bytes,
+                payload: VerifiedPayload::Bytes(bytes),
                 accounted_bytes,
             }),
         })
@@ -158,7 +166,37 @@ impl VerifiedResource {
     }
 
     pub fn bytes(&self) -> &[u8] {
-        &self.content.bytes
+        match &self.content.payload {
+            VerifiedPayload::Bytes(bytes) => bytes,
+            VerifiedPayload::Plan(plan) => &plan.bytes,
+        }
+    }
+
+    /// Encode and retain a native plan together; caller-owned mutable metadata is never trusted.
+    pub fn from_plan(
+        metadata: FramePlanSliceV1,
+        blobs: &[&[u8]],
+        limits: &DecodeLimits,
+    ) -> Result<Self, IrError> {
+        let plan = FplnCodec::encode_owned(metadata, blobs, limits)?;
+        let length = u32::try_from(plan.bytes.len()).map_err(|_| IrError::ArithmeticOverflow)?;
+        let descriptor = ResourceDescriptor::Buffer(BufferResourceDescriptor {
+            element_type: ElementType::U8,
+            element_count: length,
+            byte_length: length,
+        });
+        let hash = ResourceHash::for_resource(ResourceKind::Buffer, &descriptor, &plan.bytes)?;
+        Ok(Self {
+            content: Arc::new(VerifiedContent {
+                request: PutResource {
+                    hash,
+                    kind: ResourceKind::Buffer,
+                    descriptor,
+                },
+                payload: VerifiedPayload::Plan(Arc::new(plan)),
+                accounted_bytes: u64::from(length),
+            }),
+        })
     }
 }
 
@@ -331,6 +369,28 @@ impl ResourceRegistry {
             .get(hash)
             .map(|entry| &entry.verified.request().descriptor)
             .ok_or_else(|| IrError::MissingResource(hash.0.clone()))
+    }
+
+    /// The retained plan is immutable and resource-owned; smaller caller limits still apply.
+    pub fn resolve_plan(
+        &self,
+        hash: &ResourceHash,
+        limits: &DecodeLimits,
+    ) -> Result<Arc<OwnedFpln>, IrError> {
+        hash.validate()?;
+        let entry = self
+            .entries
+            .get(hash)
+            .ok_or_else(|| IrError::MissingResource(hash.0.clone()))?;
+        match &entry.verified.content.payload {
+            VerifiedPayload::Plan(plan) => {
+                plan.validate_limits(limits)?;
+                Ok(Arc::clone(plan))
+            }
+            VerifiedPayload::Bytes(bytes) => {
+                Ok(Arc::new(FplnCodec::decode(bytes.clone(), limits)?))
+            }
+        }
     }
 
     pub fn validate_references(&self, plan: &FramePlanSliceV1) -> Result<(), IrError> {

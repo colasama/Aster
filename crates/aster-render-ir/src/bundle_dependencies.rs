@@ -1,8 +1,11 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+};
 
 use crate::{
-    DecodeLimits, FplnCodec, FramePlanSliceV1, IrError, OwnedFpln, PlanSlice,
-    PrecompositionEffectRecord, PrecompositionGeneratorRecord, ResourceHash, ResourceRegistry,
+    DecodeLimits, FramePlanSliceV1, IrError, OwnedFpln, PlanSlice, PrecompositionEffectRecord,
+    PrecompositionGeneratorRecord, ResourceHash, ResourceRegistry,
 };
 
 #[derive(Default)]
@@ -94,7 +97,7 @@ impl BundleDependencies {
         root: &FramePlanSliceV1,
         registry: &ResourceRegistry,
         limits: &DecodeLimits,
-        mut visit: impl FnMut(ResourceHash, OwnedFpln, usize),
+        mut visit: impl FnMut(ResourceHash, Arc<OwnedFpln>, usize),
     ) -> Result<usize, IrError> {
         let resources = root.resources.iter().collect::<BTreeSet<_>>();
         self.extend(root);
@@ -103,8 +106,8 @@ impl BundleDependencies {
                 continue;
             }
             let bytes = registry.resolve(&hash)?;
-            let nested = FplnCodec::decode(bytes.to_vec(), limits)?;
-            // Decode already enforces canonical JSON, contiguous ranges, zero padding and
+            let nested = registry.resolve_plan(&hash, limits)?;
+            // Admission or decode enforces canonical JSON, contiguous ranges, zero padding and
             // every typed blob invariant. Reconstruction is only needed by explicit audits.
             if (self.roundtrip && nested.reencode(limits)? != bytes)
                 || nested

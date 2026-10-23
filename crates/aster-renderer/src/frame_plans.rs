@@ -1,8 +1,8 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use aster_render_ir::{
-    BundleDependencies, DecodeLimits, FplnCodec, FramePlanSliceV1, IrError, OwnedFpln,
-    ResourceHash, ResourceRegistry,
+    BundleDependencies, DecodeLimits, FramePlanSliceV1, IrError, OwnedFpln, ResourceHash,
+    ResourceRegistry,
 };
 
 /// Immutable decoded plans retained only while assembling one supplied frame.
@@ -26,7 +26,7 @@ impl FramePlans {
             |hash, plan, bytes| {
                 if bytes <= limits.max_container_bytes.saturating_sub(retained_bytes) {
                     retained_bytes += bytes;
-                    plans.insert(hash, Arc::new(plan));
+                    plans.insert(hash, plan);
                 }
             },
         )?;
@@ -46,9 +46,6 @@ impl FramePlans {
             return Ok(Arc::clone(plan));
         }
         // Retention pressure does not relax validation or reject otherwise valid frames.
-        Ok(Arc::new(FplnCodec::decode(
-            registry.resolve(hash)?.to_vec(),
-            &self.limits,
-        )?))
+        registry.resolve_plan(hash, &self.limits)
     }
 }

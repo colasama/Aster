@@ -52,11 +52,24 @@ impl DecodeLimits {
 #[derive(Debug)]
 pub struct OwnedFpln {
     pub metadata: FramePlanSliceV1,
-    bytes: Vec<u8>,
+    pub(crate) bytes: Vec<u8>,
     ranges: Vec<Range<usize>>,
 }
 
 impl OwnedFpln {
+    /// Only immutable in-process proofs may use this without rechecking canonical bytes and blobs.
+    pub(crate) fn validate_limits(&self, limits: &DecodeLimits) -> Result<(), IrError> {
+        limits.validate()?;
+        let header = WireHeader::read(&self.bytes)?;
+        if self.bytes.len() > limits.max_container_bytes
+            || header.metadata_bytes as usize > limits.max_metadata_bytes
+            || header.blob_count as usize > limits.max_blobs
+        {
+            return Err(IrError::LimitExceeded("header length or count".to_owned()));
+        }
+        self.metadata.validate(limits)
+    }
+
     pub fn blob(&self, index: usize) -> Result<&[u8], IrError> {
         let range = self.ranges.get(index).ok_or(IrError::BlobCountMismatch)?;
         self.bytes

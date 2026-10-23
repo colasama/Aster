@@ -10,6 +10,7 @@ use payload::Payload;
 use references::PlanReferences;
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::sync::Arc;
 use structure::Structure;
 
 #[derive(Clone, Debug)]
@@ -185,7 +186,7 @@ impl PlanComparison {
         root: &FramePlanSliceV1,
         resources: &ResourceRegistry,
         limits: &DecodeLimits,
-    ) -> Result<BTreeMap<ResourceHash, OwnedFpln>, IrError> {
+    ) -> Result<BTreeMap<ResourceHash, Arc<OwnedFpln>>, IrError> {
         resources.validate_references(root)?;
         let mut nested = BTreeMap::new();
         BundleDependencies::default().validate_with(root, resources, limits, |hash, plan, _| {
@@ -214,7 +215,7 @@ impl PlanComparison {
     fn check_contracts(
         &self,
         metadata: &FramePlanSliceV1,
-        nested: &BTreeMap<ResourceHash, OwnedFpln>,
+        nested: &BTreeMap<ResourceHash, Arc<OwnedFpln>>,
     ) -> Result<(), IrError> {
         let mut copy = metadata.clone();
         let mut valid = true;
