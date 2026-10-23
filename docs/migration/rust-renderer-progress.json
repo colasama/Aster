@@ -393,69 +393,68 @@
     }
   },
   "last_cycle": {
-    "id": 166,
-    "time": "2026-10-23T06:26:47.813Z",
-    "updated_at": "2026-10-23T06:26:47.813Z",
+    "id": 167,
+    "time": "2026-10-23T06:42:31.763Z",
+    "updated_at": "2026-10-23T06:42:31.763Z",
     "milestone": "M12",
     "task": "M12-T6",
-    "increment": "streamed-png-output-budget",
+    "increment": "streaming-file-media-admission",
     "outcome": "progress",
-    "commit": "3c1cd12e912e6b0ce1fbf860916f7971fbeb25e2",
+    "commit": "f57cd7844aa53c05c22783cb8cc8c3f26a7ed405",
     "validation": {
-      "path": "artifacts/migration/cycle166-validation/report.json",
-      "sha256": "9df8801d7d0d4f0b3183ee5147fa8048c9018a4cc5c1cca8e56ba5d3c839eaa3"
+      "path": "artifacts/migration/cycle167-validation/report.json",
+      "sha256": "3c3276da376bad0d57a88558ad74745271acde5107d69b08a4fb731aad5508dd"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
+        "id": "queue-project-targeted",
+        "status": "passed",
+        "duration_ms": 2350
+      },
+      {
         "id": "project-native-build",
         "status": "passed",
-        "duration_ms": 150739
+        "duration_ms": 163712
       },
       {
         "id": "project-electron-build",
         "status": "passed",
-        "duration_ms": 1077
+        "duration_ms": 1045
       },
       {
         "id": "project-raster-build",
         "status": "passed",
-        "duration_ms": 360
-      },
-      {
-        "id": "native-queue-application",
-        "status": "passed",
-        "duration_ms": 9610
+        "duration_ms": 358
       },
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 262318
+        "duration_ms": 346753
       }
     ],
-    "png_budget": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle166-validation\\budgets\\report.json",
-      "sha256": "c6c5290005f13335e7c22dea848458a9e2d168924a895e00edc556fe21f55cba",
-      "cases": 6,
-      "exact_frames": 4,
-      "optional_20_gib_budget": true,
-      "large_accounting": "Rust seeded counter regression across 4/16 GiB; no full multi-gigabyte delivery run",
-      "expected_rejections": [
-        "retained-large-budget",
-        "native-zero-budget",
-        "native-exhausted-budget"
-      ]
+    "queue": {
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle167-validation\\queue\\report.json",
+      "sha256": "e72f2b9caafdd26597f0596424512d252dacda3fb94a752e3d2ed4bcd760df34",
+      "exact_cases": 15,
+      "disabled_plugin_cases": 2,
+      "historical_receipt_match": {
+        "path": "artifacts/migration/cycle154b-validation/queue/report.json",
+        "sha256": "0e4c0bd1499bb3499da9b037ad30d4b24403aebe7ebe2ff66792c9034a9a4db4",
+        "cases": 15
+      }
     },
-    "application": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle166-validation\\application\\report.json",
-      "sha256": "4c5dc80552cfe4f5482743f1056ae058a9dc476ab0f8753b4fb01b5bb3a8d1d3",
-      "native_jobs": 3,
-      "default_routing": true,
-      "temporary_jobs_cleaned": true
+    "file_admission": {
+      "chunk_bytes": 65536,
+      "encoded_file_vector_retained": false,
+      "authenticated_length_accounting": true,
+      "inline_bytes_preserved": true,
+      "decoder_snapshot_streaming": false
     },
     "self_review": {
       "result": "exact",
-      "compared_frames": 4
+      "compared_frames": 15,
+      "scope": "Paired authored/prepared queue outputs have identical RGBA hashes and match preserved historical native receipts; disabled-plugin checks assert intended feature omission rather than pixel parity."
     },
     "deferred_gates": [
       "G1",
@@ -466,7 +465,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Continue M12-T6 with source media budgets, supported dimensions/codecs and timeout qualification, then foreground/packaged workflows and final gate composition."
+    "next_step": "Continue M12-T6 by streaming authenticated video decoder snapshots, then qualify source limits and remaining production workflows before final gates."
   },
   "milestones": [
     {
@@ -27760,13 +27759,13 @@
             "G5",
             "G6"
           ],
-          "remaining_qualification": "Audit source media byte budgets, supported dimensions/codecs and timeouts against the retained production contract; qualify foreground and packaged workflows and compose final complete corpus/export/application gates. PNG aggregate output cap is resolved; actual multi-gigabyte delivery was not claimed by this increment.",
-          "progress": "Native production entry-point retirement is implemented through cycle 165. PNG export now streams without a default fixed aggregate disk cap, retaining optional caller budgets, checked 64-bit totals, frame bounds and atomic cleanup. Real default and 20 GiB-budget PNG outputs exactly match the prior native executable; zero/exhausted budgets reject and clean staging, and Rust accounting tests cross the former 4/16 GiB boundaries without materializing giant fixtures. Actual application still/sequence/H.264-AAC exports and full G0 pass. Source media/decoded budgets, remaining timeouts, foreground/packaged workflows and complete final gates remain open.",
+          "remaining_qualification": "Stream native video decoder snapshots while preserving authentication and cancellation; then qualify file-source budgets, supported dimensions/codecs and timeouts. Finish foreground/packaged workflows and final complete corpus/export/application gates.",
+          "progress": "Production entry-point retirement and optional aggregate PNG disk budgets are implemented. File-media admission now authenticates SHA-256 and portable identities in 64 KiB chunks and passes path/length/digest metadata to native decoder grants without an encoded-file byte vector. Source and cumulative byte accounting use authenticated length; inline and historical inline locator validation retain required bytes. Fifteen queue preparation export comparisons remain exact and match prior native receipt hashes; two disabled-plugin cases and full G0 pass. Native video decoder snapshots still read encoded files in full; complete that streaming path before increasing source budgets. Source limits, dimensions/codecs, timeouts, foreground/packaged workflows and final gates remain open.",
           "started_at": "2026-10-23T06:07:55.277Z",
-          "commit": "3c1cd12e912e6b0ce1fbf860916f7971fbeb25e2",
+          "commit": "f57cd7844aa53c05c22783cb8cc8c3f26a7ed405",
           "validation": {
-            "path": "artifacts/migration/cycle166-validation/report.json",
-            "sha256": "9df8801d7d0d4f0b3183ee5147fa8048c9018a4cc5c1cca8e56ba5d3c839eaa3"
+            "path": "artifacts/migration/cycle167-validation/report.json",
+            "sha256": "3c3276da376bad0d57a88558ad74745271acde5107d69b08a4fb731aad5508dd"
           }
         },
         {
@@ -2681097,6 +2681096,82 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Continue M12-T6 with source media budgets, supported dimensions/codecs and timeout qualification, then foreground/packaged workflows and final gate composition."
+    },
+    {
+      "cycle": 167,
+      "id": 167,
+      "time": "2026-10-23T06:42:31.763Z",
+      "updated_at": "2026-10-23T06:42:31.763Z",
+      "milestone": "M12",
+      "task": "M12-T6",
+      "increment": "streaming-file-media-admission",
+      "outcome": "progress",
+      "commit": "f57cd7844aa53c05c22783cb8cc8c3f26a7ed405",
+      "validation": {
+        "path": "artifacts/migration/cycle167-validation/report.json",
+        "sha256": "3c3276da376bad0d57a88558ad74745271acde5107d69b08a4fb731aad5508dd"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "queue-project-targeted",
+          "status": "passed",
+          "duration_ms": 2350
+        },
+        {
+          "id": "project-native-build",
+          "status": "passed",
+          "duration_ms": 163712
+        },
+        {
+          "id": "project-electron-build",
+          "status": "passed",
+          "duration_ms": 1045
+        },
+        {
+          "id": "project-raster-build",
+          "status": "passed",
+          "duration_ms": 358
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 346753
+        }
+      ],
+      "queue": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle167-validation\\queue\\report.json",
+        "sha256": "e72f2b9caafdd26597f0596424512d252dacda3fb94a752e3d2ed4bcd760df34",
+        "exact_cases": 15,
+        "disabled_plugin_cases": 2,
+        "historical_receipt_match": {
+          "path": "artifacts/migration/cycle154b-validation/queue/report.json",
+          "sha256": "0e4c0bd1499bb3499da9b037ad30d4b24403aebe7ebe2ff66792c9034a9a4db4",
+          "cases": 15
+        }
+      },
+      "file_admission": {
+        "chunk_bytes": 65536,
+        "encoded_file_vector_retained": false,
+        "authenticated_length_accounting": true,
+        "inline_bytes_preserved": true,
+        "decoder_snapshot_streaming": false
+      },
+      "self_review": {
+        "result": "exact",
+        "compared_frames": 15,
+        "scope": "Paired authored/prepared queue outputs have identical RGBA hashes and match preserved historical native receipts; disabled-plugin checks assert intended feature omission rather than pixel parity."
+      },
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Continue M12-T6 by streaming authenticated video decoder snapshots, then qualify source limits and remaining production workflows before final gates."
     }
   ],
   "known_boundaries": [
