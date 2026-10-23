@@ -82,6 +82,12 @@ File admission hashes encoded data in 64 KiB chunks and retains only its canonic
 byte identities for decoder grants. Inline payloads retain authenticated bytes; historical inline
 locator validation retains the bytes it needs. Decoders still authenticate their granted input before
 use. File-source accounting uses the authenticated length even when admission retains no byte vector.
+Video decoders copy granted file or inline input into a private seekable snapshot in 64 KiB chunks,
+verify the complete identity before probing, and stop between chunks when cancelled. Cache hits
+reauthenticate the current grant into a discard sink before reusing the private snapshot and frame
+index. No full encoded-file vector is required by video decoding; existing source, snapshot cache,
+frame-index and decoded-window budgets still apply. Failed writes or authentication discard the
+private staging file before any probe or decode process can consume it.
 New grants preserve the shared decoded-frame cache and video clocks; they cannot replace existing
 grants or reset snapshot byte limits. A failed admission poisons the session and leaves the private
 output unpublished. Unused sources outside the requested range are never opened by the decoder.

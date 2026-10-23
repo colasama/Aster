@@ -1,3 +1,4 @@
+mod video_stream;
 use std::{collections::BTreeMap, fs::File, io::Read, path::PathBuf, sync::Arc};
 
 use aster_render_ir::ResourceHash;

@@ -13,6 +13,8 @@ mod ffmpeg;
 mod process;
 mod still;
 mod video_snapshot;
+mod video_snapshot_input;
+pub use video_snapshot_input::VideoSnapshotInput;
 mod webp_header;
 pub use video_snapshot::{PresentationFrame, VideoSnapshot};
 #[cfg(test)]

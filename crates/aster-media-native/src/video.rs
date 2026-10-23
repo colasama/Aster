@@ -6,7 +6,7 @@ use aster_render_ir::{
 };
 use aster_video::{
     CancellationToken, ColorMetadata, ColorPrimaries, DecodeLimits, FfmpegBackend, FfprobeBackend,
-    MatrixCoefficients, ProbeLimits, Timebase, TransferFunction, VideoSnapshot,
+    MatrixCoefficients, ProbeLimits, Timebase, TransferFunction, VideoSnapshot, VideoSnapshotInput,
 };
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -118,15 +118,12 @@ impl NativeVideoDecoder {
                 "video source required for metadata".into(),
             ));
         }
-        let bytes = self.grants.read(
+        let (snapshot, _) = self.snapshot(
             source,
             &descriptor.authorization_scope,
-            None,
             &descriptor.content_identity,
-            self.limits.video_max_source_bytes,
             cancellation,
         )?;
-        let snapshot = self.snapshot(source, &bytes.bytes, cancellation)?;
         Ok(NativeVideoSourceInfo {
             width: snapshot.stream.width,
             height: snapshot.stream.height,
@@ -270,15 +267,12 @@ impl NativeVideoDecoder {
         }
         let requested = VideoTime::new(requested_time)?;
         let uploaded = VideoTime::new(uploaded_time)?;
-        let source = self.grants.read(
+        let (snapshot, source_sha256) = self.snapshot(
             &frame.source,
             &source.authorization_scope,
-            None,
             &source.content_identity,
-            self.limits.video_max_source_bytes,
             cancellation,
         )?;
-        let snapshot = self.snapshot(&frame.source, &source.bytes, cancellation)?;
         let stream = &snapshot.stream;
         if stream.width != frame.width || stream.height != frame.height {
             return Err(MediaError::Unsupported(
@@ -325,7 +319,7 @@ impl NativeVideoDecoder {
             receipt: NativeImageReceipt {
                 frame: hash.clone(),
                 source: frame.source.clone(),
-                source_sha256: source.sha256,
+                source_sha256,
                 rgba_sha256: format!("{:x}", Sha256::digest(&bytes)),
                 width: frame.width,
                 height: frame.height,
@@ -369,30 +363,52 @@ impl NativeVideoDecoder {
     fn snapshot(
         &mut self,
         hash: &ResourceHash,
-        bytes: &[u8],
+        scope: &str,
+        identity: &str,
         cancellation: &CancellationToken,
-    ) -> Result<Arc<VideoSnapshot>, MediaError> {
-        // The grant and complete source digest were checked before lookup. Only the private
-        // snapshot/index is retained; caller paths and decoded pixels remain independently bounded.
+    ) -> Result<(Arc<VideoSnapshot>, String), MediaError> {
         self.clock = self.clock.saturating_add(1);
         if let Some(cached) = self.sources.get_mut(hash) {
+            // Reauthenticate the caller source before reusing our private snapshot and index.
+            let source = self.grants.copy_video_to(
+                hash,
+                scope,
+                identity,
+                self.limits.video_max_source_bytes,
+                cancellation,
+                &mut std::io::sink(),
+            )?;
             cached.age = self.clock;
             self.source_stats.hits = self.source_stats.hits.saturating_add(1);
-            return Ok(Arc::clone(&cached.snapshot));
+            return Ok((Arc::clone(&cached.snapshot), source.sha256));
         }
-        let snapshot = Arc::new(self.probe.video_snapshot(
-            bytes,
+        let mut input =
+            VideoSnapshotInput::new(self.limits.video_max_source_bytes, cancellation.clone())?;
+        let source = self.grants.copy_video_to(
+            hash,
+            scope,
+            identity,
+            self.limits.video_max_source_bytes,
+            cancellation,
+            &mut input,
+        )?;
+        let snapshot = Arc::new(self.probe.video_snapshot_input(
+            input,
             self.limits.video_max_pixel_bytes / 4,
             cancellation,
         )?);
         self.source_stats.probes = self.source_stats.probes.saturating_add(1);
-        let retained_bytes = bytes.len() as u64
-            + (snapshot.frames.capacity() * std::mem::size_of::<aster_video::PresentationFrame>())
-                as u64;
+        let retained_bytes = source
+            .bytes
+            .checked_add(
+                (snapshot.frames.capacity() * std::mem::size_of::<aster_video::PresentationFrame>())
+                    as u64,
+            )
+            .ok_or_else(|| MediaError::Limit("video snapshot accounting overflow".into()))?;
         if self.limits.video_snapshot_cache_entries == 0
             || retained_bytes > self.limits.video_snapshot_cache_bytes
         {
-            return Ok(snapshot);
+            return Ok((snapshot, source.sha256));
         }
         while self.sources.len() >= self.limits.video_snapshot_cache_entries
             || self.source_stats.resident_bytes
@@ -419,6 +435,6 @@ impl NativeVideoDecoder {
         );
         self.source_stats.resident_bytes += retained_bytes;
         self.source_stats.entries = self.sources.len();
-        Ok(snapshot)
+        Ok((snapshot, source.sha256))
     }
 }

@@ -1,5 +1,6 @@
 use std::{io::Write, process::Stdio};
 
+use crate::VideoSnapshotInput;
 use aster_storage::AtomicFile;
 use serde::{Deserialize, Serialize};
 
@@ -76,13 +77,24 @@ impl FfprobeBackend {
                 limit: self.limits.max_media_bytes,
             });
         }
-        let (file, mut writer) =
-            AtomicFile::stage(&std::env::temp_dir().join("aster-video-snapshot.mp4"))
-                .map_err(|e| FfmpegError::ProcessIo(e.to_string()))?;
-        writer
+        let mut input = VideoSnapshotInput::new(self.limits.max_media_bytes, cancellation.clone())?;
+        input
             .write_all(bytes)
-            .map_err(|e| FfmpegError::ProcessIo(e.to_string()))?;
-        drop(writer);
+            .map_err(|error| FfmpegError::ProcessIo(error.to_string()))?;
+        self.video_snapshot_input(input, max_pixels, cancellation)
+    }
+
+    /// Probe only after the caller has authenticated the complete private input.
+    pub fn video_snapshot_input(
+        &self,
+        input: VideoSnapshotInput,
+        max_pixels: u64,
+        cancellation: &CancellationToken,
+    ) -> Result<VideoSnapshot, FfmpegError> {
+        if cancellation.is_cancelled() {
+            return Err(FfmpegError::Cancelled);
+        }
+        let file = input.into_file(self.limits.max_media_bytes)?;
         let mut args = [
             "-v",
             "error",
