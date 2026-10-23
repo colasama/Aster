@@ -109,15 +109,15 @@ export function assertExportCoverage(corpus, exports) {
   }
   assert.equal(exports.lifecycle.status, "passed");
   assert.equal(exports.lifecycle.source_unchanged, true);
-  assert.deepEqual(
-    exports.lifecycle.controls.map((control) => control.kind).sort(),
-    [
-      "cancel",
-      "cancel-owner-audio",
-      "existing-output-preserved",
-      "pause-resume",
-      "witness-budget-abort-preserves-no-output",
-    ].sort(),
-  );
+  const controls = exports.lifecycle.controls.map((control) => control.kind);
+  assert.equal(new Set(controls).size, controls.length, "duplicate lifecycle control evidence");
+  for (const kind of [
+    "cancel",
+    "cancel-owner-audio",
+    "existing-output-preserved",
+    "pause-resume",
+    "witness-budget-abort-preserves-no-output",
+  ])
+    assert(controls.includes(kind), `missing lifecycle control evidence: ${kind}`);
   return { cases: ids.length, reviewed_native_frames: frames };
 }

@@ -3,11 +3,22 @@ use aster_eval::FramePlanRequest;
 use aster_render_ir::{
     AntiAliasing, DecodeLimits, ExportVideoConfig, Extent2d, FrameRate, RationalFrameRate,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize, clap::ValueEnum)]
+#[serde(rename_all = "kebab-case")]
+pub enum ProjectExportFormat {
+    #[default]
+    Mp4,
+    Png,
+    PngSequence,
+}
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ProjectExportSettings {
+    #[serde(default)]
+    pub format: ProjectExportFormat,
     pub composition: String,
     pub start_time: f64,
     pub start_frame: Option<u64>,
@@ -19,6 +30,7 @@ pub struct ProjectExportSettings {
 }
 
 pub struct ProjectExportSchedule {
+    pub format: ProjectExportFormat,
     pub frames: Vec<FramePlanRequest>,
     pub video: ExportVideoConfig,
     pub start_time: f64,
@@ -90,7 +102,12 @@ impl NativeProjectDocument {
             bitrate_bps: settings.bitrate_bps,
         };
         let limits = DecodeLimits::default();
-        video.validate(&limits)?;
+        if settings.format == ProjectExportFormat::Mp4 {
+            video.validate(&limits)?;
+        } else {
+            size.validate(&limits)?;
+            rate.validate()?;
+        }
         if settings.start_frame.is_some_and(|frame| {
             frame > 9_007_199_254_740_991 - self.limits.render_project_frames as u64
                 || settings.start_time != 0.
@@ -113,6 +130,11 @@ impl NativeProjectDocument {
             |first| (duration * fps).ceil() - first as f64,
         );
         let count = settings.frame_count.map(|n| n as f64).unwrap_or(maximum);
+        if settings.format == ProjectExportFormat::Png && count != 1. {
+            return Err(ProjectRenderError::Invalid(
+                "PNG still export requires exactly one frame".into(),
+            ));
+        }
         if count < 1. || count > maximum || count > self.limits.render_project_frames as f64 {
             return Err(ProjectRenderError::Invalid(
                 "export frame count exceeds composition or job budget".into(),
@@ -156,6 +178,7 @@ impl NativeProjectDocument {
             })
             .collect();
         Ok(ProjectExportSchedule {
+            format: settings.format,
             frames,
             video,
             start_time,

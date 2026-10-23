@@ -2,6 +2,7 @@ mod bundle;
 mod compare;
 #[cfg(all(test, windows))]
 mod encoder_qualification;
+mod export_images;
 mod export_project;
 mod export_witness;
 mod ir;
@@ -48,7 +49,7 @@ enum Command {
     #[cfg(windows)]
     #[command(hide = true)]
     PreviewHandleGuard(preview_guard::PreviewGuardArgs),
-    /// Export an authored project using native evaluation, rendering, audio and hardware encoding.
+    /// Export native project frames as PNG images or hardware-encoded MP4 with optional audio.
     Export(Box<export_project::ExportProjectArgs>),
     /// Compare lossless RGBA pixels against a fixed tolerance profile.
     Compare(CompareArgs),

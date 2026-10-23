@@ -1095,6 +1095,15 @@ safe boundary, including audio staging. Controllers must match that identifier t
 pause request and ignore stale receipts after resume or cancellation. Notifications run outside the
 control lock, and cancellation releases a paused worker without publishing an unfinished MP4.
 The production application's export selection remains capability-gated separately.
+`--format png` exports one frame (the default frame count is one); `--format png-sequence` exports
+the selected range into a new directory with zero-based `frame_000000.png` member names. Both reuse
+one native project session and the same pause/cancel controls. Image output preserves RGBA and accepts
+odd dimensions independently of MP4's NV12 constraints. Lossless PNG delivery reads the final GPU
+texture inside the native process and encodes it there; full-frame RGBA never crosses Electron IPC.
+The bounded output transaction publishes only after all frames succeed, preserves existing outputs,
+and removes its private staging on failure. Receipts bind each PNG and decoded RGBA hash to its exact
+rational frame time, dimensions, project and adapter. PNG exports do not mix or encode an audio track,
+while audio-reactive evaluation still uses the native audio inputs.
 `--start-frame` evaluates each absolute index directly through the rational output rate, matching
 the TS export clock bit for bit; it is mutually exclusive with an arbitrary `--start` time offset.
 Optional `--witness` and `--witness-frames` capture bounded RGB, NV12 and native-plan evidence from

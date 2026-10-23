@@ -3,8 +3,9 @@ use aster_encode::EncoderOptions;
 use aster_eval::{BufferVisualization, ResourceRequestContext, SurfaceRequest};
 use aster_render_ir::{AntiAliasing, DecodeLimits, Extent2d, RationalFrameRate};
 use aster_render_project::{
-    NativeProjectDocument, NativeProjectExport, NativeRasterProvider, ProjectExportControl,
-    ProjectExportSettings, ProjectFrameSettings, RasterProviderOptions,
+    NativeProjectDocument, NativeProjectExport, NativeProjectImageExport, NativeRasterProvider,
+    ProjectExportControl, ProjectExportFormat, ProjectExportSettings, ProjectFrameSettings,
+    RasterProviderOptions,
 };
 use aster_video::ExportLimits;
 use clap::Args;
@@ -23,6 +24,11 @@ pub(crate) struct ExportProjectArgs {
     composition: String,
     #[arg(long)]
     out: PathBuf,
+    #[arg(long, value_enum, default_value = "mp4")]
+    format: ProjectExportFormat,
+    /// Aggregate PNG output bound; a sequence is published only after every frame succeeds.
+    #[arg(long, default_value_t = 4_294_967_296)]
+    image_output_bytes: u64,
     /// Optional raster-provider, font/surface settings and installed plugin paths; no frame plans.
     #[arg(long)]
     request: Option<PathBuf>,
@@ -103,10 +109,27 @@ struct ExportReceipt {
     witness: Option<crate::export_witness::WitnessReceipt>,
 }
 
+#[derive(Serialize)]
+struct ImageExportReceipt {
+    schema_version: u32,
+    status: &'static str,
+    format: ProjectExportFormat,
+    project: crate::project_runtime::ProjectIdentity,
+    adapter: aster_render::AdapterDiagnostics,
+    size: Extent2d,
+    frame_rate: RationalFrameRate,
+    output: PathBuf,
+    report: aster_render_project::ProjectImageExportReport,
+    images: Vec<crate::export_images::PngFrameReceipt>,
+}
+
 impl ExportProjectArgs {
     pub fn run(self) -> Result<ExitCode, Box<dyn std::error::Error>> {
         if self.out.try_exists()? {
             return Err("export destination already exists".into());
+        }
+        if self.format != ProjectExportFormat::Mp4 && self.witness.is_some() {
+            return Err("PNG exports do not use video encoder witnesses".into());
         }
         let control = ProjectExportControl::default().with_pause_observer(|request_id| {
             if let Ok(message) = serde_json::to_string(&PauseReceipt {
@@ -163,10 +186,13 @@ impl ExportProjectArgs {
         }
         let document = NativeProjectDocument::open(&self.project, self.runtime.project.clone())?;
         let schedule = document.export_schedule(ProjectExportSettings {
+            format: self.format,
             composition: self.composition,
             start_time: self.start.unwrap_or(0.),
             start_frame: self.start_frame,
-            frame_count: self.frames,
+            frame_count: self
+                .frames
+                .or((self.format == ProjectExportFormat::Png).then_some(1)),
             size: self
                 .width
                 .zip(self.height)
@@ -185,6 +211,17 @@ impl ExportProjectArgs {
                 _ => AntiAliasing::Off,
             },
         })?;
+        let image_output = if self.format != ProjectExportFormat::Mp4 {
+            Some(crate::export_images::PngOutput::new(
+                self.out.clone(),
+                self.format,
+                schedule.video.size,
+                schedule.frames.len() as u64,
+                self.image_output_bytes,
+            )?)
+        } else {
+            None
+        };
         let mut settings = configuration.settings.unwrap_or(ProjectFrameSettings {
             resources: ResourceRequestContext {
                 visualization: BufferVisualization::Beauty,
@@ -237,6 +274,36 @@ impl ExportProjectArgs {
         )?;
         let video = schedule.video.clone();
         let adapter = session.gpu.renderer.diagnostics.clone();
+        if let Some(mut output) = image_output {
+            let report = NativeProjectImageExport {
+                session,
+                schedule,
+                settings,
+                raster_provider: provider,
+                control,
+            }
+            .run(&mut output, |progress| {
+                if let Ok(message) = serde_json::to_string(&progress) {
+                    println!("{message}");
+                }
+            })?;
+            println!(
+                "{}",
+                serde_json::to_string(&ImageExportReceipt {
+                    schema_version: 1,
+                    status: "passed",
+                    format: self.format,
+                    project: identity,
+                    adapter,
+                    size: video.size,
+                    frame_rate: video.frame_rate,
+                    output: self.out,
+                    report,
+                    images: std::mem::take(&mut output.frames),
+                })?
+            );
+            return Ok(ExitCode::SUCCESS);
+        }
         let mut witness = self
             .witness
             .as_ref()

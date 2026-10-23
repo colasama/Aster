@@ -110,6 +110,11 @@ impl NativeProjectExport {
         mut progress: impl FnMut(ProjectExportProgress),
         mut observer: Option<&mut dyn ProjectExportObserver>,
     ) -> Result<ProjectExportReport, ProjectRenderError> {
+        if self.schedule.format != crate::ProjectExportFormat::Mp4 {
+            return Err(ProjectRenderError::Invalid(
+                "video export requires an MP4 schedule".into(),
+            ));
+        }
         self.control.wait()?;
         if self.output.try_exists()? {
             return Err(ProjectRenderError::Invalid(

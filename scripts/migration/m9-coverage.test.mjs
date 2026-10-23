@@ -119,6 +119,12 @@ test("exit coverage rejects omitted schedules, supplied plans and missing pixel 
 test("export coverage requires both arms, native acceptance, complete frames and lifecycle", () => {
   const check = (f) => assertExportCoverage(f.corpus, f.exports);
   assert.deepEqual(check(fixture()), { cases: 1, reviewed_native_frames: 2 });
+  const extended = fixture();
+  extended.exports.lifecycle.controls.push(
+    { kind: "paused-cancel" },
+    { kind: "png-failed-budget" },
+  );
+  assert.deepEqual(check(extended), { cases: 1, reviewed_native_frames: 2 });
   for (const attack of [
     (f) => {
       f.exports.status = "incomplete";
@@ -144,6 +150,7 @@ test("export coverage requires both arms, native acceptance, complete frames and
       f.exports.cases[0].review.frames[0].reviewed = false;
     },
     (f) => f.exports.lifecycle.controls.pop(),
+    (f) => f.exports.lifecycle.controls.push(f.exports.lifecycle.controls[0]),
   ]) {
     const f = fixture();
     attack(f);

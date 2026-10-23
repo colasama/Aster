@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { captureAssignments } from "../parity/provenance.mjs";
+import { runProjectImageLifecycle } from "./native-project-image-lifecycle.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile, sourceProvenance } from "./source.mjs";
 export async function runProjectExportLifecycle(context, prepared) {
@@ -288,6 +289,10 @@ export async function runProjectExportLifecycle(context, prepared) {
     report.cases.push({ id: "audio-selection-preserves-reactive-visuals", exports: audioExports });
     context.print?.(
       "Audio selection passed: identical reactive plans, RGB and NV12; selected mux tracks",
+    );
+    await runProjectImageLifecycle({ output, cli, run, argumentsFor, report });
+    context.print?.(
+      "PNG still/sequence passed: exact video RGB, odd size, alpha, controls and atomic output",
     );
     let pauseError;
     let requestedPauses = 0;

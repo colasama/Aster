@@ -4,7 +4,7 @@ use super::{NativeRenderer, RenderedFrame};
 use crate::RenderError;
 
 impl NativeRenderer {
-    /// Explicit diagnostic readback. Preview and encoder integrations consume the texture directly.
+    /// Explicit lossless-output or diagnostic readback. Preview and encoders consume the texture directly.
     pub fn read_rgba(&self, frame: &RenderedFrame) -> Result<Vec<u8>, RenderError> {
         self.read_texture_rgba(&frame.texture, frame.size, true)
     }
