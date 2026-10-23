@@ -393,88 +393,70 @@
     }
   },
   "last_cycle": {
-    "id": 155,
-    "time": "2026-10-23T03:35:12.467Z",
-    "updated_at": "2026-10-23T03:35:12.467Z",
+    "id": 156,
+    "time": "2026-10-23T03:47:19.593Z",
+    "updated_at": "2026-10-23T03:47:19.593Z",
     "milestone": "M12",
     "task": "M12-T4",
-    "increment": "native-project-export-process-control-and-receipts",
+    "increment": "native-output-file-admission-and-atomic-publication",
     "outcome": "development_increment_passed",
-    "commit": "d382363ed78e55b89e2357f62ae1a0ac46b5f3ee",
+    "commit": "342f5ab36448875ebddc28f5a2864b20fe0a3b9f",
     "validation": {
-      "path": "artifacts/migration/cycle155b-validation/report.json",
-      "sha256": "432edbb3ec15ffb3c10ba9fcaeaf56c18ad3b446d62ff71346a771a5d27a8cdd"
+      "path": "artifacts/migration/cycle156-validation/report.json",
+      "sha256": "3dff4443dc61f9de2904374452029da04de4d0932102b3b074f32d847e8d5d48"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
         "id": "queue-process-targeted",
         "status": "passed",
-        "duration_ms": 1701
+        "duration_ms": 1732
       },
       {
         "id": "project-native-build",
         "status": "passed",
-        "duration_ms": 1062
+        "duration_ms": 1096
       },
       {
         "id": "project-electron-build",
         "status": "passed",
-        "duration_ms": 1025
+        "duration_ms": 1041
       },
       {
         "id": "project-raster-build",
         "status": "passed",
-        "duration_ms": 346
+        "duration_ms": 342
       },
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 246784
+        "duration_ms": 248319
       }
     ],
     "targeted_process": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle155b-validation\\process\\report.json",
-      "sha256": "47343aaf51090dfe8113b440efed17a4839fcd1a623fe5dbd1826369251bec88",
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle156-validation\\process\\report.json",
+      "sha256": "9f40837e1dfcbcde2fa6d350025633e8b803745d3fa00a7dd66370de6efff559",
+      "cases": 8
+    },
+    "targeted_publication": {
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle156-validation\\publication\\report.json",
+      "sha256": "83a6c8082f58067de4cf77156bc40a2f40d03c54744fe51408b17a7b31fdc627",
       "cases": [
         {
-          "id": "still",
+          "id": "atomic-mixed-native-outputs",
+          "status": "passed",
+          "incomplete_publish_rejected": true,
+          "exact": true
+        },
+        {
+          "id": "cancel-during-native-publication-restores-all-originals",
           "status": "passed"
         },
         {
-          "id": "sequence",
-          "status": "passed"
-        },
-        {
-          "id": "video",
-          "status": "passed"
-        },
-        {
-          "id": "muted",
-          "status": "passed"
-        },
-        {
-          "id": "pause-resume",
-          "status": "passed"
-        },
-        {
-          "id": "cancel-after-pause",
-          "status": "passed"
-        },
-        {
-          "id": "changed-request-rejected",
-          "status": "passed"
-        },
-        {
-          "id": "changed-job-configuration-rejected",
+          "id": "changed-staged-video-rejected",
           "status": "passed"
         }
-      ],
-      "pause_resume_exact": true
-    },
-    "superseded_validation": {
-      "path": "artifacts/migration/cycle155-validation/report.json",
-      "reason": "Earlier passing source lacked complete immutable job configuration binding. Retained as historical evidence only; the final current-source run includes configuration mutation rejection."
+      ]
     },
     "deferred_gates": [
       "G1",
@@ -485,7 +467,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Continue M12-T4: compose the native queue host worker around the verified output process, immutable media lease and atomic output publisher. Preserve cancellation through preparation/publication and existing PNG sequence naming; qualify long jobs with bounded scheduling rather than silently reducing the supported queue range."
+    "next_step": "Continue M12-T4: compose a native queue host worker from immutable project preparation, verified output processes and atomic mixed-output publication. Integrate bounded progress, pause/resume/cancel through preparation and publication, preserve media leases until cleanup, and qualify long-job scheduling before production routing."
   },
   "milestones": [
     {
@@ -27732,12 +27714,12 @@
             "G6"
           ],
           "started_at": "2026-10-23T03:16:09.417Z",
-          "progress": "The native output process adapter is implemented: immutable job configuration and project/request hashes are rechecked before launch; bounded progress and completion receipts bind source, dimensions, rational clock, frames, encoder drain and PNG identities. Pause acknowledgements are correlated, stale acknowledgements ignored, and cancellation retains process ownership until pipe closure. Real still/sequence/H.264 exports, audio inclusion/exclusion, two pause/resume boundaries with exact image equality, cancellation and input/configuration tamper rejection pass. Full G0 passes. Queue-wide scheduling, atomic multi-output publication, media lease cleanup and supported long-job admission remain open before production routing.",
+          "progress": "The native output process adapter and atomic file publication boundary are implemented. Closed native PNG/video outputs stream into private staging with receipt, hash, extent and sequence-number validation; admitted files are rehashed before publishing the complete output set. Cancellation during copy or publication preserves existing destinations. Failed rollback retains original backups, and backup cleanup cannot roll back committed outputs. Eight real process checks, three real mixed-output publication checks and full G0 pass. Queue host orchestration, media-lease lifecycle and bounded long-job scheduling remain open before production routing.",
           "validation": {
-            "path": "artifacts/migration/cycle155b-validation/report.json",
-            "sha256": "432edbb3ec15ffb3c10ba9fcaeaf56c18ad3b446d62ff71346a771a5d27a8cdd"
+            "path": "artifacts/migration/cycle156-validation/report.json",
+            "sha256": "3dff4443dc61f9de2904374452029da04de4d0932102b3b074f32d847e8d5d48"
           },
-          "commit": "d382363ed78e55b89e2357f62ae1a0ac46b5f3ee"
+          "commit": "342f5ab36448875ebddc28f5a2864b20fe0a3b9f"
         },
         {
           "id": "M12-T5",
@@ -2680030,6 +2680012,84 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Continue M12-T4: compose the native queue host worker around the verified output process, immutable media lease and atomic output publisher. Preserve cancellation through preparation/publication and existing PNG sequence naming; qualify long jobs with bounded scheduling rather than silently reducing the supported queue range."
+    },
+    {
+      "cycle": 156,
+      "id": 156,
+      "time": "2026-10-23T03:47:19.593Z",
+      "updated_at": "2026-10-23T03:47:19.593Z",
+      "milestone": "M12",
+      "task": "M12-T4",
+      "increment": "native-output-file-admission-and-atomic-publication",
+      "outcome": "development_increment_passed",
+      "commit": "342f5ab36448875ebddc28f5a2864b20fe0a3b9f",
+      "validation": {
+        "path": "artifacts/migration/cycle156-validation/report.json",
+        "sha256": "3dff4443dc61f9de2904374452029da04de4d0932102b3b074f32d847e8d5d48"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "queue-process-targeted",
+          "status": "passed",
+          "duration_ms": 1732
+        },
+        {
+          "id": "project-native-build",
+          "status": "passed",
+          "duration_ms": 1096
+        },
+        {
+          "id": "project-electron-build",
+          "status": "passed",
+          "duration_ms": 1041
+        },
+        {
+          "id": "project-raster-build",
+          "status": "passed",
+          "duration_ms": 342
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 248319
+        }
+      ],
+      "targeted_process": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle156-validation\\process\\report.json",
+        "sha256": "9f40837e1dfcbcde2fa6d350025633e8b803745d3fa00a7dd66370de6efff559",
+        "cases": 8
+      },
+      "targeted_publication": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle156-validation\\publication\\report.json",
+        "sha256": "83a6c8082f58067de4cf77156bc40a2f40d03c54744fe51408b17a7b31fdc627",
+        "cases": [
+          {
+            "id": "atomic-mixed-native-outputs",
+            "status": "passed",
+            "incomplete_publish_rejected": true,
+            "exact": true
+          },
+          {
+            "id": "cancel-during-native-publication-restores-all-originals",
+            "status": "passed"
+          },
+          {
+            "id": "changed-staged-video-rejected",
+            "status": "passed"
+          }
+        ]
+      },
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Continue M12-T4: compose a native queue host worker from immutable project preparation, verified output processes and atomic mixed-output publication. Integrate bounded progress, pause/resume/cancel through preparation and publication, preserve media leases until cleanup, and qualify long-job scheduling before production routing."
     }
   ],
   "known_boundaries": [
