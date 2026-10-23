@@ -393,24 +393,24 @@
     }
   },
   "last_cycle": {
-    "id": 148,
-    "time": "2026-10-23T01:07:01.367Z",
-    "updated_at": "2026-10-23T01:07:01.367Z",
+    "id": 149,
+    "time": "2026-10-23T01:19:56.738Z",
+    "updated_at": "2026-10-23T01:19:56.738Z",
     "milestone": "M12",
     "task": "M12-T1",
-    "increment": "native-export-audio-selection",
-    "outcome": "development_increment_passed",
-    "commit": "6d23f3051916e92b00587228036f79608509d144",
+    "increment": "native-export-pause-acknowledgment",
+    "outcome": "task_completed_development_verification",
+    "commit": "ab8cfbc08435a8418b7d4b0d47e658278d8fc5d9",
     "validation": {
-      "path": "artifacts/migration/cycle148-validation/report.json",
-      "sha256": "a539902a66cb2aec665efc81e43cfff308f0b454e7bf45e2aac465721bb44c9f"
+      "path": "artifacts/migration/cycle149-validation/report.json",
+      "sha256": "e73e296dce850bc50597c36fe56296545316a918bec3374668125b829183d250"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 343891
+        "duration_ms": 333065
       },
       {
         "id": "targeted-native-export-lifecycle",
@@ -426,7 +426,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Acknowledge native pause requests at safe processing boundaries, preserving cancellation and preventing stale pause acknowledgments from changing resumed queue state."
+    "next_step": "Implement native PNG still/sequence output with one retained project session, bounded lossless output, safe-boundary controls and atomic publication."
   },
   "milestones": [
     {
@@ -27589,7 +27589,7 @@
           "id": "M12-T1",
           "title": "Complete native export audio and control semantics",
           "scope": "Honor immutable includeAudio selection and acknowledge pauses at safe native processing boundaries; retain cancellation and atomic publication behavior.",
-          "status": "in_progress",
+          "status": "done",
           "estimated_implementation_hours": 2,
           "required_gates": [
             "G0",
@@ -27601,12 +27601,13 @@
             "G6"
           ],
           "started_at": "2026-10-23T00:52:32.391Z",
-          "progress": "Native whole-project export now honors --no-audio at WAV/mux staging while retaining native audio inputs for visual evaluation. Real spectrum exports with and without audio have identical plans, RGB and NV12 at four selected frames. Pause acknowledgment remains the next increment.",
+          "progress": "Output audio selection and correlated safe-boundary pause receipts are implemented. Real native exports validate unchanged reactive plans/RGB/NV12 when muted, repeated acknowledged pause/resume, cancellation, controller disconnect, malformed controls and atomic cleanup. Queue integration remains explicitly owned by M12-T4.",
           "validation": {
-            "path": "artifacts/migration/cycle148-validation/report.json",
-            "sha256": "a539902a66cb2aec665efc81e43cfff308f0b454e7bf45e2aac465721bb44c9f"
+            "path": "artifacts/migration/cycle149-validation/report.json",
+            "sha256": "e73e296dce850bc50597c36fe56296545316a918bec3374668125b829183d250"
           },
-          "commit": "6d23f3051916e92b00587228036f79608509d144"
+          "commit": "ab8cfbc08435a8418b7d4b0d47e658278d8fc5d9",
+          "completed_at": "2026-10-23T01:19:56.738Z"
         },
         {
           "id": "M12-T2",
@@ -2679515,6 +2679516,43 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Acknowledge native pause requests at safe processing boundaries, preserving cancellation and preventing stale pause acknowledgments from changing resumed queue state."
+    },
+    {
+      "cycle": 149,
+      "id": 149,
+      "time": "2026-10-23T01:19:56.738Z",
+      "updated_at": "2026-10-23T01:19:56.738Z",
+      "milestone": "M12",
+      "task": "M12-T1",
+      "increment": "native-export-pause-acknowledgment",
+      "outcome": "task_completed_development_verification",
+      "commit": "ab8cfbc08435a8418b7d4b0d47e658278d8fc5d9",
+      "validation": {
+        "path": "artifacts/migration/cycle149-validation/report.json",
+        "sha256": "e73e296dce850bc50597c36fe56296545316a918bec3374668125b829183d250"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 333065
+        },
+        {
+          "id": "targeted-native-export-lifecycle",
+          "status": "passed"
+        }
+      ],
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Implement native PNG still/sequence output with one retained project session, bounded lossless output, safe-boundary controls and atomic publication."
     }
   ],
   "known_boundaries": [
