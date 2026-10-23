@@ -393,48 +393,109 @@
     }
   },
   "last_cycle": {
-    "id": 178,
-    "time": "2026-10-23T10:45:13.112Z",
-    "updated_at": "2026-10-23T10:45:13.112Z",
+    "id": 179,
+    "time": "2026-10-23T11:01:54.562Z",
+    "updated_at": "2026-10-23T11:01:54.562Z",
     "milestone": "M12",
-    "task": "M12-T7",
-    "increment": "bind-complete-m12-exit-evidence",
+    "task": "M12-T8",
+    "increment": "qualify-delivery-and-synchronize-documentation",
     "outcome": "progress",
-    "commit": "f62b316e905d1222c815883bdd2641a49d05ff10",
+    "commit": "a72ffa91b04e77cd182f7f33e9815f7474a76335",
     "validation": {
-      "path": "artifacts/migration/cycle178-validation/report.json",
-      "sha256": "e1e27d40e6203763451ab171ef9f41be7445f1b2017aeb572625465475ef0243"
+      "path": "artifacts/migration/cycle179b-validation/report.json",
+      "sha256": "efd74dc12f05152c86b2e6b59eb7e527534eb9a4940ed9e57fe94277b8a839bd"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
-        "id": "exit-composition-targeted",
+        "id": "delivery-workflows",
+        "status": "passed"
+      },
+      {
+        "id": "application-delivery-targeted",
         "status": "passed",
-        "duration_ms": 801
+        "duration_ms": 236464
       },
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 252206
+        "duration_ms": 251725
       }
     ],
-    "retirement_reader": {
-      "status": "passed",
-      "output_kinds": [
-        "still",
-        "pngSequence",
-        "mp4"
-      ],
-      "native_jobs": 3,
-      "application": {
-        "path": "artifacts/migration/cycle177b-validation/G6/report.json",
-        "sha256": "d2e15871d5c85769bccb82227af66bd20fb138f7b984c2274a3798e191acac6c"
+    "delivery_evidence": {
+      "process": {
+        "path": "artifacts/migration/cycle179b-validation/process/report.json",
+        "sha256": "f3026f2872ba39eaea92b3445a3114c3d4395ca5215e4bcb5dd704e08c1ca5ca"
       },
-      "checked_files": 19
+      "publication": {
+        "path": "artifacts/migration/cycle179b-validation/publication/report.json",
+        "sha256": "83a6c8082f58067de4cf77156bc40a2f40d03c54744fe51408b17a7b31fdc627"
+      },
+      "host": {
+        "path": "artifacts/migration/cycle179b-validation/host/report.json",
+        "sha256": "029f541513b108a28e60acd5f2c3ff3d3777818c8fb1d9d14451c2b6001c2eb4"
+      },
+      "long-control": {
+        "path": "artifacts/migration/cycle179b-validation/long-control/report.json",
+        "sha256": "be2889bcebb22f040f1825fef63d7346bcf28308e76f6cba72c3d59a7e99d5bd"
+      },
+      "G6": {
+        "path": "artifacts/migration/cycle179b-validation/G6/report.json",
+        "sha256": "c49e1150df6cd85f5832e75a88e53a9ecf29c94b5fd4e3947e417d98b64d37c2"
+      }
     },
+    "documentation": {
+      "status": "passed",
+      "files": [
+        {
+          "path": "docs/ARCHITECTURE.md",
+          "sha256": "26644da61c740c9f61a8a088837099deb5c5b63bc2d58e518bb2187d1dc34a6d"
+        },
+        {
+          "path": "docs/RENDER_QUEUE.md",
+          "sha256": "b3e431d800c91469b240066fbf39d999af9feb1590ee708b2a8029293be73920"
+        },
+        {
+          "path": "docs/MEDIA_BACKENDS.md",
+          "sha256": "1f743c0a8828b6b85812b4ea37cf098fbc72c4cee0cf2a963fee22ba2ce2e859"
+        },
+        {
+          "path": "docs/MEDIA_IMPORT.md",
+          "sha256": "7f54dd0d6da0dd7b8b494c90712d519bfb82e85c798d74ec8db2cfbf69ec8ec0"
+        },
+        {
+          "path": "docs/BENCHMARKS.md",
+          "sha256": "7dbc9f49bf59b232b497091c4982cfbd477079cdac9178e811b16ae6462999c9"
+        },
+        {
+          "path": "docs/PRODUCTION_RENDER_CONTRACT.md",
+          "sha256": "fd021192ae289cfb272a29b2d6cdc2307e2fabc6f4f098d879c4e7ee2c410896"
+        },
+        {
+          "path": "docs/PLUGINS.md",
+          "sha256": "3f52b14c8d999563fe9df2c34d3f479c96a400efba6a186e72ea9ababc9dd2b6"
+        },
+        {
+          "path": "docs/ADVANCED_RENDERING.md",
+          "sha256": "efd606831e4344d014bf2450c654fee61d5117d0306cbeba098fa80d7893e10f"
+        },
+        {
+          "path": "docs/migration/VERIFICATION.md",
+          "sha256": "aac78a611e01df31ef2368a15a2ed9c9cd502b4bd0d1238d7e6134761f515360"
+        }
+      ],
+      "review": "Reviewed against native production routing, immutable queue/media ownership, codec and raster boundaries, restart/control behavior and current paired performance policy. Advanced-rendering roadmap remains explicitly future scope; project format and plugin ABI are unchanged."
+    },
+    "failed_attempts": [
+      {
+        "path": "artifacts/migration/cycle179-validation/host/report.json",
+        "sha256": "69fc57ef3521638ef6b90027ab1bd28392e313469678b192f45fcd78a5988c6c",
+        "reason": "Restart test compared persisted normalized manifest against pre-enqueue input, which omitted default AA and empty media manifest. Corrected the assertion to compare the captured durable manifest before shutdown; runtime code unchanged. Fresh full delivery qualification passes."
+      }
+    ],
     "self_review": {
-      "result": "not-applicable",
-      "scope": "Verifier-only composition; no runtime, shader, reference or tolerance changes. Existing accepted review identities are authenticated."
+      "result": "exact",
+      "scope": "Editor/plugin/recovery witnesses and native PNG delivery match their exact references. No runtime rendering, reference or tolerance changes."
     },
     "quota": {
       "remaining_percent": 49
@@ -448,7 +509,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "M12-T8: qualify native queue delivery and restart/control workflows, synchronize affected documentation and pin its reviewed contents; then complete full performance and final acceptance."
+    "next_step": "M12-T9: improve the two owner export workloads, then run and self-review the complete current M12 gates and final exit audit. Current owner native observations 14.003/23.416 FPS remain below TS 16.041/29.853; no final performance or milestone acceptance is claimed."
   },
   "milestones": [
     {
@@ -27781,7 +27842,7 @@
           "id": "M12-T8",
           "title": "Qualify delivery workflows and synchronize documentation",
           "scope": "Check real application outputs, media/plugin lifecycle, failure/restart behavior and synchronize architecture, queue, media, benchmark and capability documentation.",
-          "status": "pending",
+          "status": "done",
           "estimated_implementation_hours": 3,
           "required_gates": [
             "G0",
@@ -27791,7 +27852,79 @@
             "G4",
             "G5",
             "G6"
-          ]
+          ],
+          "started_at": "2026-10-23T10:45:44.314Z",
+          "completed_at": "2026-10-23T11:01:54.562Z",
+          "commit": "a72ffa91b04e77cd182f7f33e9815f7474a76335",
+          "validation": {
+            "path": "artifacts/migration/cycle179b-validation/report.json",
+            "sha256": "efd74dc12f05152c86b2e6b59eb7e527534eb9a4940ed9e57fe94277b8a839bd"
+          },
+          "documentation": {
+            "status": "passed",
+            "files": [
+              {
+                "path": "docs/ARCHITECTURE.md",
+                "sha256": "26644da61c740c9f61a8a088837099deb5c5b63bc2d58e518bb2187d1dc34a6d"
+              },
+              {
+                "path": "docs/RENDER_QUEUE.md",
+                "sha256": "b3e431d800c91469b240066fbf39d999af9feb1590ee708b2a8029293be73920"
+              },
+              {
+                "path": "docs/MEDIA_BACKENDS.md",
+                "sha256": "1f743c0a8828b6b85812b4ea37cf098fbc72c4cee0cf2a963fee22ba2ce2e859"
+              },
+              {
+                "path": "docs/MEDIA_IMPORT.md",
+                "sha256": "7f54dd0d6da0dd7b8b494c90712d519bfb82e85c798d74ec8db2cfbf69ec8ec0"
+              },
+              {
+                "path": "docs/BENCHMARKS.md",
+                "sha256": "7dbc9f49bf59b232b497091c4982cfbd477079cdac9178e811b16ae6462999c9"
+              },
+              {
+                "path": "docs/PRODUCTION_RENDER_CONTRACT.md",
+                "sha256": "fd021192ae289cfb272a29b2d6cdc2307e2fabc6f4f098d879c4e7ee2c410896"
+              },
+              {
+                "path": "docs/PLUGINS.md",
+                "sha256": "3f52b14c8d999563fe9df2c34d3f479c96a400efba6a186e72ea9ababc9dd2b6"
+              },
+              {
+                "path": "docs/ADVANCED_RENDERING.md",
+                "sha256": "efd606831e4344d014bf2450c654fee61d5117d0306cbeba098fa80d7893e10f"
+              },
+              {
+                "path": "docs/migration/VERIFICATION.md",
+                "sha256": "aac78a611e01df31ef2368a15a2ed9c9cd502b4bd0d1238d7e6134761f515360"
+              }
+            ],
+            "review": "Reviewed against native production routing, immutable queue/media ownership, codec and raster boundaries, restart/control behavior and current paired performance policy. Advanced-rendering roadmap remains explicitly future scope; project format and plugin ABI are unchanged."
+          },
+          "delivery_evidence": {
+            "process": {
+              "path": "artifacts/migration/cycle179b-validation/process/report.json",
+              "sha256": "f3026f2872ba39eaea92b3445a3114c3d4395ca5215e4bcb5dd704e08c1ca5ca"
+            },
+            "publication": {
+              "path": "artifacts/migration/cycle179b-validation/publication/report.json",
+              "sha256": "83a6c8082f58067de4cf77156bc40a2f40d03c54744fe51408b17a7b31fdc627"
+            },
+            "host": {
+              "path": "artifacts/migration/cycle179b-validation/host/report.json",
+              "sha256": "029f541513b108a28e60acd5f2c3ff3d3777818c8fb1d9d14451c2b6001c2eb4"
+            },
+            "long-control": {
+              "path": "artifacts/migration/cycle179b-validation/long-control/report.json",
+              "sha256": "be2889bcebb22f040f1825fef63d7346bcf28308e76f6cba72c3d59a7e99d5bd"
+            },
+            "G6": {
+              "path": "artifacts/migration/cycle179b-validation/G6/report.json",
+              "sha256": "c49e1150df6cd85f5832e75a88e53a9ecf29c94b5fd4e3947e417d98b64d37c2"
+            }
+          },
+          "progress": "Current real native process, atomic mixed-output publication, durable host pause/resume/cancel, authorization cleanup and shutdown/reload/retry qualification pass. Retry preserves the persisted normalized job and uses a fresh lease. Long-schedule startup/pause/cancel remains bounded without claiming full ten-million-frame delivery. Fresh packaged foreground/background, all 18 editor and 18 plugin pixels, recovery/device/producer/renderer lifecycle, archive retirement and actual still/sequence/H264-AAC application outputs pass. Nine reviewed documents are pinned, replacing stale TS production descriptions and preserving explicit retained-reference/future capability scope. Full G0 passes. Independent current performance/latency and all full final gates remain M12-T9."
         },
         {
           "id": "M12-T9",
@@ -2682095,6 +2682228,126 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "M12-T8: qualify native queue delivery and restart/control workflows, synchronize affected documentation and pin its reviewed contents; then complete full performance and final acceptance."
+    },
+    {
+      "cycle": 179,
+      "id": 179,
+      "time": "2026-10-23T11:01:54.562Z",
+      "updated_at": "2026-10-23T11:01:54.562Z",
+      "milestone": "M12",
+      "task": "M12-T8",
+      "increment": "qualify-delivery-and-synchronize-documentation",
+      "outcome": "progress",
+      "commit": "a72ffa91b04e77cd182f7f33e9815f7474a76335",
+      "validation": {
+        "path": "artifacts/migration/cycle179b-validation/report.json",
+        "sha256": "efd74dc12f05152c86b2e6b59eb7e527534eb9a4940ed9e57fe94277b8a839bd"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "delivery-workflows",
+          "status": "passed"
+        },
+        {
+          "id": "application-delivery-targeted",
+          "status": "passed",
+          "duration_ms": 236464
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 251725
+        }
+      ],
+      "delivery_evidence": {
+        "process": {
+          "path": "artifacts/migration/cycle179b-validation/process/report.json",
+          "sha256": "f3026f2872ba39eaea92b3445a3114c3d4395ca5215e4bcb5dd704e08c1ca5ca"
+        },
+        "publication": {
+          "path": "artifacts/migration/cycle179b-validation/publication/report.json",
+          "sha256": "83a6c8082f58067de4cf77156bc40a2f40d03c54744fe51408b17a7b31fdc627"
+        },
+        "host": {
+          "path": "artifacts/migration/cycle179b-validation/host/report.json",
+          "sha256": "029f541513b108a28e60acd5f2c3ff3d3777818c8fb1d9d14451c2b6001c2eb4"
+        },
+        "long-control": {
+          "path": "artifacts/migration/cycle179b-validation/long-control/report.json",
+          "sha256": "be2889bcebb22f040f1825fef63d7346bcf28308e76f6cba72c3d59a7e99d5bd"
+        },
+        "G6": {
+          "path": "artifacts/migration/cycle179b-validation/G6/report.json",
+          "sha256": "c49e1150df6cd85f5832e75a88e53a9ecf29c94b5fd4e3947e417d98b64d37c2"
+        }
+      },
+      "documentation": {
+        "status": "passed",
+        "files": [
+          {
+            "path": "docs/ARCHITECTURE.md",
+            "sha256": "26644da61c740c9f61a8a088837099deb5c5b63bc2d58e518bb2187d1dc34a6d"
+          },
+          {
+            "path": "docs/RENDER_QUEUE.md",
+            "sha256": "b3e431d800c91469b240066fbf39d999af9feb1590ee708b2a8029293be73920"
+          },
+          {
+            "path": "docs/MEDIA_BACKENDS.md",
+            "sha256": "1f743c0a8828b6b85812b4ea37cf098fbc72c4cee0cf2a963fee22ba2ce2e859"
+          },
+          {
+            "path": "docs/MEDIA_IMPORT.md",
+            "sha256": "7f54dd0d6da0dd7b8b494c90712d519bfb82e85c798d74ec8db2cfbf69ec8ec0"
+          },
+          {
+            "path": "docs/BENCHMARKS.md",
+            "sha256": "7dbc9f49bf59b232b497091c4982cfbd477079cdac9178e811b16ae6462999c9"
+          },
+          {
+            "path": "docs/PRODUCTION_RENDER_CONTRACT.md",
+            "sha256": "fd021192ae289cfb272a29b2d6cdc2307e2fabc6f4f098d879c4e7ee2c410896"
+          },
+          {
+            "path": "docs/PLUGINS.md",
+            "sha256": "3f52b14c8d999563fe9df2c34d3f479c96a400efba6a186e72ea9ababc9dd2b6"
+          },
+          {
+            "path": "docs/ADVANCED_RENDERING.md",
+            "sha256": "efd606831e4344d014bf2450c654fee61d5117d0306cbeba098fa80d7893e10f"
+          },
+          {
+            "path": "docs/migration/VERIFICATION.md",
+            "sha256": "aac78a611e01df31ef2368a15a2ed9c9cd502b4bd0d1238d7e6134761f515360"
+          }
+        ],
+        "review": "Reviewed against native production routing, immutable queue/media ownership, codec and raster boundaries, restart/control behavior and current paired performance policy. Advanced-rendering roadmap remains explicitly future scope; project format and plugin ABI are unchanged."
+      },
+      "failed_attempts": [
+        {
+          "path": "artifacts/migration/cycle179-validation/host/report.json",
+          "sha256": "69fc57ef3521638ef6b90027ab1bd28392e313469678b192f45fcd78a5988c6c",
+          "reason": "Restart test compared persisted normalized manifest against pre-enqueue input, which omitted default AA and empty media manifest. Corrected the assertion to compare the captured durable manifest before shutdown; runtime code unchanged. Fresh full delivery qualification passes."
+        }
+      ],
+      "self_review": {
+        "result": "exact",
+        "scope": "Editor/plugin/recovery witnesses and native PNG delivery match their exact references. No runtime rendering, reference or tolerance changes."
+      },
+      "quota": {
+        "remaining_percent": 49
+      },
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "M12-T9: improve the two owner export workloads, then run and self-review the complete current M12 gates and final exit audit. Current owner native observations 14.003/23.416 FPS remain below TS 16.041/29.853; no final performance or milestone acceptance is claimed."
     }
   ],
   "known_boundaries": [
