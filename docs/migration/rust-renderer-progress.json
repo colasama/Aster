@@ -393,65 +393,70 @@
     }
   },
   "last_cycle": {
-    "id": 172,
-    "time": "2026-10-23T08:17:26.948Z",
-    "updated_at": "2026-10-23T08:17:26.948Z",
+    "id": 173,
+    "time": "2026-10-23T08:34:06.440Z",
+    "updated_at": "2026-10-23T08:34:06.440Z",
     "milestone": "M12",
     "task": "M12-T7",
-    "increment": "native-project-export-performance-observation",
+    "increment": "pair-authored-project-exports-with-retained-ts",
     "outcome": "progress",
-    "commit": "33475d2dcafce698305ec0afa96e6b8b20809e29",
+    "commit": "9d08ae31a1c28e0601238e6782e9acd0131ebdd5",
     "validation": {
-      "path": "artifacts/migration/cycle172b-validation/report.json",
-      "sha256": "a70c979cdfe45d49317eb2547cb3508b937767cb83a0713dcdb23776b0b0c442"
+      "path": "artifacts/migration/cycle173-validation/report.json",
+      "sha256": "0867febeaa2084986cc1b78ef96bf4c8358264904bd8dafc009d3c9ab91bc0fe"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
-        "id": "project-native-build",
+        "id": "production-performance-routing",
         "status": "passed",
-        "duration_ms": 136750
-      },
-      {
-        "id": "project-electron-build",
-        "status": "passed",
-        "duration_ms": 957
-      },
-      {
-        "id": "project-raster-build",
-        "status": "passed",
-        "duration_ms": 345
+        "duration_ms": 1596
       },
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 328031
+        "duration_ms": 250781
       }
     ],
-    "observations": [
-      {
-        "id": "owner-opening",
-        "frames": 10,
-        "fps": 8.39630562552477,
-        "elapsed_ms": 1191
-      },
-      {
-        "id": "composite-1080p",
-        "frames": 10,
-        "fps": 26.385224274406333,
-        "elapsed_ms": 379
-      }
+    "paired_smoke": {
+      "path": "artifacts/migration/cycle173-validation/paired/report.json",
+      "sha256": "2bbe05cb55d4b466ab5e38b03dbf65a1916f3768bbca6994f38c90f7fcae6d21",
+      "status": "incomplete",
+      "execution_complete": true,
+      "full_coverage": false,
+      "workloads": [
+        {
+          "id": "owner-opening",
+          "ts_median_fps": 33.84356758622518,
+          "rust_median_fps": 7.712765957446809,
+          "higher_native_median_fps": false
+        },
+        {
+          "id": "composite-1080p",
+          "ts_median_fps": 41.10377054673322,
+          "rust_median_fps": 25.57561486132915,
+          "higher_native_median_fps": false
+        }
+      ]
+    },
+    "wired_gates": [
+      "G1",
+      "G2",
+      "G3-project-and-preview",
+      "G4-project-export-and-preview",
+      "G5"
+    ],
+    "pending_composition": [
+      "G6-delivery-and-retirement",
+      "M12-exit"
     ],
     "self_review": {
-      "result": "exact",
-      "scope": "Eight warm/cold RGB and NV12 witness frames match byte-for-byte; no non-exact pixel acceptance or tolerance change."
+      "result": "not_required",
+      "scope": "Verification and benchmark documentation only; no runtime or pixel behavior changed and no new pixel acceptance claimed."
     },
-    "failed_attempts": [
-      {
-        "path": "artifacts/migration/cycle172-validation/lifecycle/report.json",
-        "reason": "Warm-up rendered targets before NV12 reservation; fixed by reserving reusable output resources first."
-      }
-    ],
+    "quota": {
+      "remaining_percent": 62
+    },
     "deferred_gates": [
       "G1",
       "G2",
@@ -461,7 +466,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Continue M12-T7 with balanced paired authored-project export measurements and combined preview performance, then delivery/retirement and final exit authentication."
+    "next_step": "Continue M12-T7 with complete-range production export measurements, address measured owner-project per-frame overhead if required, and compose delivery/retirement plus final exit authentication."
   },
   "milestones": [
     {
@@ -27781,13 +27786,13 @@
             "G6"
           ],
           "started_at": "2026-10-23T07:41:38.714Z",
-          "commit": "33475d2dcafce698305ec0afa96e6b8b20809e29",
+          "commit": "9d08ae31a1c28e0601238e6782e9acd0131ebdd5",
           "validation": {
-            "path": "artifacts/migration/cycle172b-validation/report.json",
-            "sha256": "a70c979cdfe45d49317eb2547cb3508b937767cb83a0713dcdb23776b0b0c442"
+            "path": "artifacts/migration/cycle173-validation/report.json",
+            "sha256": "0867febeaa2084986cc1b78ef96bf4c8358264904bd8dafc009d3c9ab91bc0fe"
           },
-          "progress": "M12 G1/G2/G3/G5 routing is implemented. Actual Rust-authored project export observations now use ten completed same-session RGBA warm-ups and native monotonic receipts through durable output, with authenticated workload/codec/audio/hardware/source identities. Eight cold/warm RGB/NV12 witness frames are exact and cancellation cleans output. Owner-opening and composite-1080p ten-frame observations, all export lifecycle checks and full G0 pass. Balanced paired export aggregation, combined preview G4, G6 delivery/retirement and M12 exit remain open; no full performance or milestone acceptance is claimed.",
-          "remaining_qualification": "Compose balanced paired Rust-project exports against retained TS, preview FPS/latency, G6 delivery/retirement and M12 exit."
+          "progress": "M12 G1/G2/G3/G4/G5 routing is implemented. G4 now serially composes balanced Rust-authored-project/retained-TS export pairs with existing complete preview throughput and latency. Original protocols, inputs, audio, active GPU, hardware, binaries and on-disk evidence are authenticated. Two short balanced pairs for owner-opening/composite-1080p, targeted rejection/routing tests and full G0 pass. Smoke remains incomplete and native median FPS is lower in both ten-frame cases; no performance acceptance is claimed. G6 delivery/retirement and M12 exit remain unimplemented; complete gates remain pending.",
+          "remaining_qualification": "Measure full authored-project workloads and improve owner per-frame performance if necessary, compose G6 delivery/retirement and M12 exit, then run all complete gates."
         },
         {
           "id": "M12-T8",
@@ -2681615,6 +2681620,83 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Continue M12-T7 with balanced paired authored-project export measurements and combined preview performance, then delivery/retirement and final exit authentication."
+    },
+    {
+      "cycle": 173,
+      "id": 173,
+      "time": "2026-10-23T08:34:06.440Z",
+      "updated_at": "2026-10-23T08:34:06.440Z",
+      "milestone": "M12",
+      "task": "M12-T7",
+      "increment": "pair-authored-project-exports-with-retained-ts",
+      "outcome": "progress",
+      "commit": "9d08ae31a1c28e0601238e6782e9acd0131ebdd5",
+      "validation": {
+        "path": "artifacts/migration/cycle173-validation/report.json",
+        "sha256": "0867febeaa2084986cc1b78ef96bf4c8358264904bd8dafc009d3c9ab91bc0fe"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "production-performance-routing",
+          "status": "passed",
+          "duration_ms": 1596
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 250781
+        }
+      ],
+      "paired_smoke": {
+        "path": "artifacts/migration/cycle173-validation/paired/report.json",
+        "sha256": "2bbe05cb55d4b466ab5e38b03dbf65a1916f3768bbca6994f38c90f7fcae6d21",
+        "status": "incomplete",
+        "execution_complete": true,
+        "full_coverage": false,
+        "workloads": [
+          {
+            "id": "owner-opening",
+            "ts_median_fps": 33.84356758622518,
+            "rust_median_fps": 7.712765957446809,
+            "higher_native_median_fps": false
+          },
+          {
+            "id": "composite-1080p",
+            "ts_median_fps": 41.10377054673322,
+            "rust_median_fps": 25.57561486132915,
+            "higher_native_median_fps": false
+          }
+        ]
+      },
+      "wired_gates": [
+        "G1",
+        "G2",
+        "G3-project-and-preview",
+        "G4-project-export-and-preview",
+        "G5"
+      ],
+      "pending_composition": [
+        "G6-delivery-and-retirement",
+        "M12-exit"
+      ],
+      "self_review": {
+        "result": "not_required",
+        "scope": "Verification and benchmark documentation only; no runtime or pixel behavior changed and no new pixel acceptance claimed."
+      },
+      "quota": {
+        "remaining_percent": 62
+      },
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Continue M12-T7 with complete-range production export measurements, address measured owner-project per-frame overhead if required, and compose delivery/retirement plus final exit authentication."
     }
   ],
   "known_boundaries": [
