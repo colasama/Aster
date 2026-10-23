@@ -9,6 +9,34 @@ use aster_types::editor::{Field, Generator, Project};
 use std::{collections::BTreeMap, error::Error, fs, path::PathBuf};
 
 struct Fixture;
+
+#[test]
+fn generator_demand_is_snapshot_wide_and_independent_of_visibility_or_admission()
+-> Result<(), Box<dyn Error>> {
+    let compile = |document| {
+        SceneProject::compile(
+            document,
+            &SceneLimits::default(),
+            &EvaluationLimits::default(),
+            &ExpressionLimits::default(),
+        )
+    };
+    let mut document = Fixture::project()?;
+    assert!(compile(document.clone())?.has_generators());
+    document.compositions[0].layers[0].kind = "solid".into();
+    // A stale generator field on a non-generator layer does not create a consumer.
+    assert!(!compile(document.clone())?.has_generators());
+    let mut child = document.compositions[0].clone();
+    child.id = "inactive-child".into();
+    child.layers[0].kind = "generator".into();
+    child.layers[0].visible = false;
+    child.layers[0].generator = Field::default();
+    document.compositions.push(child);
+    // Keep the existing path even for unreachable or malformed generator instances.
+    assert!(compile(document)?.has_generators());
+    Ok(())
+}
+
 impl Fixture {
     fn project() -> Result<Project, Box<dyn Error>> {
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))

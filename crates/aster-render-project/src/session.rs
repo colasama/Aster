@@ -41,6 +41,7 @@ pub struct NativeProjectSession {
     materials: NativeProjectMaterials,
     pub(crate) audio: NativeProjectAudio,
     catalog: GeneratorCatalog,
+    analyze_audio: bool,
     pub gpu: NativeProjectGpu,
     generation: u64,
     pending: Option<u64>,
@@ -62,11 +63,13 @@ impl NativeProjectSession {
                 "audio and visual snapshots differ".into(),
             ));
         }
+        let analyze_audio = files.document.scene.has_generators();
         Ok(Self {
             files,
             materials,
             audio,
             catalog,
+            analyze_audio,
             gpu,
             generation: 0,
             pending: None,
@@ -187,17 +190,22 @@ impl NativeProjectSession {
         )?;
         timings.materials_ms = phase.elapsed().as_secs_f64() * 1000.0;
         let phase = Instant::now();
-        let audio = self
-            .audio
-            .analysis_frame(frame.time, cancellation)?
-            .into_iter()
-            .map(f32::to_bits)
-            .collect::<Vec<_>>();
+        let audio = if self.analyze_audio {
+            Some(
+                self.audio
+                    .analysis_frame(frame.time, cancellation)?
+                    .into_iter()
+                    .map(f32::to_bits)
+                    .collect::<Vec<_>>(),
+            )
+        } else {
+            None
+        };
         timings.audio_ms = phase.elapsed().as_secs_f64() * 1000.0;
         let phase = Instant::now();
         let device = self.gpu.begin(
             &files.requests,
-            Some(&audio),
+            audio.as_deref(),
             context.surface.memory_budget_mb,
         )?;
         timings.gpu_setup_ms = phase.elapsed().as_secs_f64() * 1000.0;
@@ -270,7 +278,7 @@ impl NativeProjectSession {
             packets: files.resources,
             pixels: files.pixels,
             temporal: rasters.temporal,
-            audio: Some(audio),
+            audio,
             generator_device: device,
             surface_request: context.surface,
             surface_limits: limits.surfaces,

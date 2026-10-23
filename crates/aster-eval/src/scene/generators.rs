@@ -11,6 +11,17 @@ pub struct GeneratorFrameSettings {
     pub audio: Option<Vec<u32>>,
 }
 impl SceneProject {
+    /// Conservative snapshot-wide demand: hidden, nested and currently inactive generators
+    /// still keep analysis available for later seeks and shader allocation.
+    pub fn has_generators(&self) -> bool {
+        self.project.compositions.iter().any(|composition| {
+            composition
+                .layers
+                .iter()
+                .any(|layer| layer.kind == "generator")
+        })
+    }
+
     pub fn plan_generators(
         &self,
         header: FrameHeaderSlice,

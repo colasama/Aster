@@ -1059,13 +1059,17 @@ at the existing execution boundary, while retained raster derivations remain in 
 In-process native producers retain the encoder's validated metadata and blob ranges when executing
 their own root and generator plans. This avoids an immediate JSON decode and canonical re-encode;
 the same encoder still checks all caller limits and typed blob invariants and produces identical
-FPLN bytes. External containers and nested resource plans continue through the strict decoder.
+FPLN bytes. External containers and byte resources without native proofs continue through the strict
+decoder; immutable native nested-plan proofs retain their validated metadata with caller limits.
 
 Native audio acquisition selects audible root-composition sources independently of visual
 visibility, authenticates source bytes, and decodes bounded PCM into a job-owned cache. The mixer
 preserves separate audio/video solo groups, source time remapping, reversal, channel levels, pan,
 Float32 accumulation, and export clipping. Its 48 kHz mono windows feed the native audio-analysis
-ABI. Input component gates compare material bytes, ordered media bindings, PCM mixes and analysis
+ABI. A native session skips analysis when its immutable project snapshot contains no generator
+layers. Any generator, including hidden, nested, inactive or unavailable instances, conservatively
+retains the existing analysis path. Audio mixing and output-track selection remain independent.
+Input component gates compare material bytes, ordered media bindings, PCM mixes and analysis
 windows with independent retained TS results. These gates do not establish final pixel parity or
 complete project export, and production rendering remains capability-gated until those gates pass.
 
