@@ -9,6 +9,53 @@ use super::Fixture;
 
 struct PlanFixture;
 
+#[test]
+fn proof_remembers_actual_constructor_limits_and_rechecks_changed_limits() -> Result<(), IrError> {
+    let mut fixture = Fixture::new()?;
+    fixture.metadata.resources.clear();
+    fixture.metadata.header.render_target.width = 20_000;
+    for blob in &mut fixture.blobs {
+        blob[..4].copy_from_slice(&20_000_f32.to_le_bytes());
+    }
+    let limits = DecodeLimits {
+        max_dimension: 20_000,
+        max_resource_references: 0,
+        ..Default::default()
+    };
+    let borrowed = fixture.blobs.iter().map(Vec::as_slice).collect::<Vec<_>>();
+    assert!(
+        VerifiedResource::from_plan(
+            fixture.metadata.clone(),
+            &borrowed,
+            &DecodeLimits::default(),
+        )
+        .is_err()
+    );
+    let proof = VerifiedResource::from_plan(fixture.metadata, &borrowed, &limits)?;
+    let hash = proof.request().hash.clone();
+    let mut registry = ResourceRegistry::new(Default::default())?;
+    registry.put_verified(proof)?;
+    let first = registry.resolve_plan(&hash, &limits)?;
+    assert!(
+        registry
+            .resolve_plan(&hash, &DecodeLimits::default())
+            .is_err()
+    );
+    let larger = DecodeLimits {
+        max_dimension: 21_000,
+        ..limits.clone()
+    };
+    let second = registry.resolve_plan(&hash, &larger)?;
+    assert!(Arc::ptr_eq(&first, &second));
+    assert_eq!(first.reencode(&limits)?, registry.resolve(&hash)?);
+    let invalid = DecodeLimits {
+        max_metadata_bytes: 0,
+        ..limits
+    };
+    assert!(registry.resolve_plan(&hash, &invalid).is_err());
+    Ok(())
+}
+
 impl PlanFixture {
     fn raw(bytes: Vec<u8>) -> Result<VerifiedResource, IrError> {
         let length = u32::try_from(bytes.len()).map_err(|_| IrError::ArithmeticOverflow)?;

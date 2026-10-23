@@ -130,7 +130,10 @@ struct VerifiedContent {
 
 enum VerifiedPayload {
     Bytes(Vec<u8>),
-    Plan(Arc<OwnedFpln>),
+    Plan {
+        plan: Arc<OwnedFpln>,
+        validated_limits: DecodeLimits,
+    },
 }
 
 impl VerifiedResource {
@@ -168,7 +171,7 @@ impl VerifiedResource {
     pub fn bytes(&self) -> &[u8] {
         match &self.content.payload {
             VerifiedPayload::Bytes(bytes) => bytes,
-            VerifiedPayload::Plan(plan) => &plan.bytes,
+            VerifiedPayload::Plan { plan, .. } => &plan.bytes,
         }
     }
 
@@ -193,7 +196,10 @@ impl VerifiedResource {
                     kind: ResourceKind::Buffer,
                     descriptor,
                 },
-                payload: VerifiedPayload::Plan(Arc::new(plan)),
+                payload: VerifiedPayload::Plan {
+                    plan: Arc::new(plan),
+                    validated_limits: limits.clone(),
+                },
                 accounted_bytes: u64::from(length),
             }),
         })
@@ -383,8 +389,15 @@ impl ResourceRegistry {
             .get(hash)
             .ok_or_else(|| IrError::MissingResource(hash.0.clone()))?;
         match &entry.verified.content.payload {
-            VerifiedPayload::Plan(plan) => {
-                plan.validate_limits(limits)?;
+            VerifiedPayload::Plan {
+                plan,
+                validated_limits,
+            } => {
+                // Only the constructor can bind this immutable plan to successful validation.
+                // Any different caller limits take the full metadata validation path.
+                if limits != validated_limits {
+                    plan.validate_limits(limits)?;
+                }
                 Ok(Arc::clone(plan))
             }
             VerifiedPayload::Bytes(bytes) => {

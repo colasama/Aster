@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use crate::{FramePlanSliceV1, IrError, canonical::CanonicalJson, wire::WireHeader};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DecodeLimits {
     pub max_container_bytes: usize,
     pub max_metadata_bytes: usize,

@@ -1131,8 +1131,10 @@ releases that registry's charge without invalidating another owner's proof.
 Native nested plans retain their validated typed metadata with the encoded resource bytes. The
 constructor owns encoding and validation; callers cannot attach mutable metadata to an existing
 proof. Frame traversal shares these immutable plans while rechecking caller limits and complete
-resource closure. External byte resources still undergo full decoding, and explicit round-trip
-audits reconstruct the same wire bytes. Retention belongs to the bounded frame resource bundle.
+resource closure. Identical caller limits reuse the constructor's validation proof; any different
+limits revalidate metadata and lengths. External byte resources still undergo full decoding, and
+explicit round-trip audits reconstruct the same wire bytes. Retention belongs to the bounded frame
+resource bundle.
 
 `FfmpegExportBackend::mux_h264` accepts a bounded sequence of ordered Annex-B access units from
 the native encoder. It copies H.264 into MP4, assigns rational frame timestamps and BT.709 limited
