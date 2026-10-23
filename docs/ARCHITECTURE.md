@@ -1001,6 +1001,10 @@ corpus, with additional nested text/SVG cases and explicit corruption controls. 
 complete resource acquisition and final frame assembly remain separate steps.
 
 `aster-render-project` owns bounded native project loading and input acquisition for a job.
+The CLI's `normalize-project` command exposes the existing Rust runtime schema upgrades to the
+main-process queue preparer, publishing a new file atomically with authenticated input/output
+receipts. Queue-only legacy footage recipes preserve locator-based source identities while native
+media acquisition verifies frozen storage bytes separately; they do not authorize external files.
 File media is admitted from the native ordered requests, decoded through authenticated source
 snapshots, and bound to native instance identities and source clocks. Descriptor/plan resources
 and decoded frame pixels have separate byte budgets: the plan budget does not represent decoded

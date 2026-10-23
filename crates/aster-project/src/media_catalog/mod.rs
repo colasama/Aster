@@ -1,3 +1,4 @@
+mod legacy;
 mod model;
 mod sequence;
 use crate::{MediaSourceReader, MediaSourceSnapshot, ProjectError};
@@ -231,7 +232,19 @@ impl ProjectMediaBinding {
                 ProjectMediaPayload::Still(p)
                 | ProjectMediaPayload::Video(p)
                 | ProjectMediaPayload::Audio(p),
-            ) => (&p.storage, Some(p.content_identity.as_str())),
+            ) => {
+                if let Some(legacy) = &p.legacy_locator {
+                    if frame.is_some() {
+                        return Err(ProjectError::InvalidMedia(
+                            "ordinary payload cannot authorize a sequence member",
+                        ));
+                    }
+                    let snapshot = reader.read(&p.storage, None, max_bytes)?;
+                    legacy.verify(&self.source, &p.storage, &snapshot.bytes)?;
+                    return Ok(snapshot);
+                }
+                (&p.storage, Some(p.content_identity.as_str()))
+            }
             Some(ProjectMediaPayload::Svg(p)) => (&p.storage, Some(p.content_identity.as_str())),
             Some(ProjectMediaPayload::Psd(p)) => (&p.storage, Some(p.document_identity.as_str())),
             Some(ProjectMediaPayload::ImageSequence(p)) => {
@@ -276,5 +289,7 @@ impl ProjectMediaBinding {
     }
 }
 
+#[cfg(test)]
+mod legacy_tests;
 #[cfg(test)]
 mod tests;

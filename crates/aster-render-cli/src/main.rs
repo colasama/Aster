@@ -8,6 +8,7 @@ mod export_witness;
 mod ir;
 mod native_stills;
 mod native_textures;
+mod normalize_project;
 mod plan_diff;
 mod plan_input;
 mod plan_project;
@@ -46,6 +47,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Upgrade an authored project using the native schema migrations without rendering.
+    NormalizeProject(normalize_project::NormalizeProjectArgs),
     #[cfg(windows)]
     #[command(hide = true)]
     PreviewHandleGuard(preview_guard::PreviewGuardArgs),
@@ -88,6 +91,7 @@ struct Failure {
 impl Cli {
     fn run(self) -> Result<ExitCode, Box<dyn std::error::Error>> {
         match self.command {
+            Command::NormalizeProject(arguments) => arguments.run(),
             #[cfg(windows)]
             Command::PreviewHandleGuard(arguments) => arguments.run(),
             Command::Export(arguments) => arguments.run(),

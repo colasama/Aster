@@ -147,11 +147,29 @@ impl NativeProjectMediaSession {
             if sources.contains_key(&source_id) {
                 return Err(MediaError::Authorization("duplicate project source".into()));
             }
+            let maximum = if kind == MediaKind::Video {
+                limits.video.video_max_source_bytes
+            } else {
+                limits.still.still_max_source_bytes
+            };
+            let mut ordinary = if kind == MediaKind::Sequence {
+                None
+            } else {
+                Some(binding.read(reader, None, maximum)?)
+            };
+            // The project authenticates historical locator identities before granting decoder bytes.
+            let content_identity = match (binding.payload.as_deref(), ordinary.as_ref()) {
+                (
+                    Some(ProjectMediaPayload::Still(p) | ProjectMediaPayload::Video(p)),
+                    Some(snapshot),
+                ) if p.legacy_locator.is_some() => format!("sha256:{}", snapshot.sha256),
+                _ => binding.source.content_identity.clone(),
+            };
             let resource = VerifiedResource::new(
                 ResourceKind::MediaSource,
                 ResourceDescriptor::MediaSource(MediaSourceDescriptor {
                     source_id: CompositionIdentity::Unicode(source_id.clone()),
-                    content_identity: binding.source.content_identity.clone(),
+                    content_identity,
                     authorization_scope: scope.to_owned(),
                     media_kind: kind,
                 }),
@@ -197,12 +215,10 @@ impl NativeProjectMediaSession {
                 if cancellation.is_cancelled() {
                     return Err(aster_video::FfmpegError::Cancelled.into());
                 }
-                let maximum = if kind == MediaKind::Video {
-                    limits.video.video_max_source_bytes
-                } else {
-                    limits.still.still_max_source_bytes
+                let bytes = match ordinary.take() {
+                    Some(snapshot) => snapshot,
+                    None => binding.read(reader, member, maximum)?,
                 };
-                let bytes = binding.read(reader, member, maximum)?;
                 if let Some(frame) = member {
                     identities.insert(frame, bytes.byte_identity.clone());
                 }

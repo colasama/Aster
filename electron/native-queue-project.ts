@@ -14,13 +14,14 @@ import { freezePreviewPlugins, type ResolvePreviewPlugins } from "./native-previ
 import type { PreviewSnapshotRuntime } from "./native-preview-snapshot.js";
 import { NativeQueueAssetStore } from "./native-queue-assets.js";
 import { materializeNativeQueueMedia, selectNativeQueueDocument } from "./native-queue-media.js";
+import { normalizeNativeQueueDocument } from "./native-queue-normalize.js";
 
 /** Publish a new private project only after every captured media/plugin input has been prepared. */
 export async function prepareNativeQueueProject(options: {
   directory: string;
   manifest: RenderJobManifest;
   authorizedPaths: readonly string[];
-  runtime: PreviewSnapshotRuntime;
+  runtime: PreviewSnapshotRuntime & { renderer: string };
   resolvePlugins?: ResolvePreviewPlugins;
 }) {
   const directory = resolve(options.directory);
@@ -30,10 +31,34 @@ export async function prepareNativeQueueProject(options: {
     const { manifest, runtime } = options;
     if (Buffer.byteLength(manifest.projectSnapshot) > MAX_RENDER_SNAPSHOT_BYTES)
       throw new Error("Native queue project exceeds input budget");
-    const document = selectNativeQueueDocument(
-      JSON.parse(manifest.projectSnapshot),
-      manifest.compositionId,
-    );
+    let authored = JSON.parse(manifest.projectSnapshot);
+    if (Number.isInteger(authored?.schemaVersion) && authored.schemaVersion < 10)
+      authored = await normalizeNativeQueueDocument(
+        directory,
+        manifest.projectSnapshot,
+        runtime.renderer,
+      );
+    const document = selectNativeQueueDocument(authored, manifest.compositionId);
+    const composition = document.compositions.find((c) => c.id === manifest.compositionId);
+    if (
+      !composition ||
+      composition.width !== manifest.width ||
+      composition.height !== manifest.height ||
+      composition.frameRate?.numerator !== manifest.frameRate.numerator ||
+      composition.frameRate?.denominator !== manifest.frameRate.denominator ||
+      !Number.isSafeInteger(manifest.startFrame) ||
+      manifest.startFrame < 0 ||
+      !Number.isSafeInteger(manifest.endFrameExclusive) ||
+      manifest.endFrameExclusive <= manifest.startFrame ||
+      !Number.isFinite(composition.duration) ||
+      manifest.endFrameExclusive >
+        Math.ceil(
+          (composition.duration * manifest.frameRate.numerator) / manifest.frameRate.denominator,
+        )
+    )
+      throw new Error(
+        "Queue dimensions, clock or frame range differ from the immutable composition",
+      );
     const media = parseRenderMediaManifest(
       manifest.renderMediaSnapshot ?? EMPTY_RENDER_MEDIA_SNAPSHOT,
     );

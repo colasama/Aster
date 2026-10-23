@@ -3,13 +3,20 @@ import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { expect, test } from "vitest";
+import { sourceContentIdentity } from "../src/core/media/source-content-identity";
 import type { RenderJobManifest } from "../src/core/rendering/render-queue";
 import { mediaBytesIdentity } from "../src/importers/media-import-identity";
 import { selectNativeQueueDocument } from "./native-queue-media";
 import { prepareNativeQueueProject } from "./native-queue-project";
 import { readRetainedQueueMedia } from "./native-raster-retained-media";
 
-const runtime = { executable: "electron", host: "host", bundle: "bundle", bridge: "bridge" };
+const runtime = {
+  renderer: "renderer",
+  executable: "electron",
+  host: "host",
+  bundle: "bundle",
+  bridge: "bridge",
+};
 
 test("historical shape-only snapshots retain native upgrade admission without a source catalog", () => {
   const document = {
@@ -22,23 +29,33 @@ test("historical shape-only snapshots retain native upgrade admission without a 
   ).toThrow("source or composition catalog");
 });
 const digest = (bytes: string) => createHash("sha256").update(bytes).digest("hex");
-const manifestFor = (document: unknown, media?: unknown): RenderJobManifest => ({
-  id: "job",
-  compositionId: "main",
-  compositionName: "Main",
-  projectRevision: 1,
-  projectSnapshot: JSON.stringify(document),
-  ...(media ? { renderMediaSnapshot: JSON.stringify(media) } : {}),
-  width: 320,
-  height: 180,
-  frameRate: { numerator: 30, denominator: 1 },
-  startFrame: 0,
-  endFrameExclusive: 1,
-  outputs: [],
-  priority: 0,
-  createdAt: "2026-01-01T00:00:00.000Z",
-  antiAliasing: "ssaa2x",
-});
+const manifestFor = (document: unknown, media?: unknown): RenderJobManifest => {
+  const prepared = structuredClone(document) as { compositions: Record<string, unknown>[] };
+  prepared.compositions = prepared.compositions.map((composition) => ({
+    width: 320,
+    height: 180,
+    duration: 1,
+    frameRate: { numerator: 30, denominator: 1 },
+    ...composition,
+  }));
+  return {
+    id: "job",
+    compositionId: "main",
+    compositionName: "Main",
+    projectRevision: 1,
+    projectSnapshot: JSON.stringify(prepared),
+    ...(media ? { renderMediaSnapshot: JSON.stringify(media) } : {}),
+    width: 320,
+    height: 180,
+    frameRate: { numerator: 30, denominator: 1 },
+    startFrame: 0,
+    endFrameExclusive: 1,
+    outputs: [],
+    priority: 0,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    antiAliasing: "ssaa2x",
+  };
+};
 async function withDirectory(action: (root: string) => Promise<void>) {
   const root = await mkdtemp(join(tmpdir(), "aster-queue-project-"));
   try {
@@ -80,6 +97,7 @@ test("queue project freezes inline media, nested dependencies and trusted plugin
       ],
     };
     const manifest = manifestFor(document);
+    const originalSnapshot = manifest.projectSnapshot;
     const options = {
       directory: join(root, "job"),
       manifest,
@@ -91,7 +109,7 @@ test("queue project freezes inline media, nested dependencies and trusted plugin
       }),
     };
     const result = await prepareNativeQueueProject(options);
-    expect(manifest.projectSnapshot).toBe(JSON.stringify(document));
+    expect(manifest.projectSnapshot).toBe(originalSnapshot);
     const prepared = JSON.parse(await readFile(result.project, "utf8"));
     expect(prepared.compositions.map((c: { id: string }) => c.id)).toEqual(["main", "nested"]);
     expect(prepared.sources).toHaveLength(1);
@@ -236,4 +254,68 @@ test("PSD fallback is authenticated and cannot grant an external locator", async
     await expect(
       readRetainedQueueMedia(prepared.project, { ...input, sha256: digest(changed) }),
     ).rejects.toThrow("only PSD fallback");
+  }));
+
+test("legacy locator identities preserve distinct source metadata while sharing frozen bytes", async () =>
+  withDirectory(async (root) => {
+    const sources = [2, 3].map((width) => {
+      const source = {
+        id: `image-${width}`,
+        kind: "still",
+        name: "legacy.png",
+        mimeType: "image/png",
+        width,
+        height: 1,
+        dataUrl: "data:image/png;base64,AQID",
+        contentIdentity: "",
+      };
+      source.contentIdentity = sourceContentIdentity(source);
+      return source;
+    });
+    const manifest = manifestFor({
+      sources,
+      compositions: [
+        { id: "main", layers: sources.map((source) => ({ kind: "image", sourceId: source.id })) },
+      ],
+    });
+    const result = await prepareNativeQueueProject({
+      directory: join(root, "legacy"),
+      manifest,
+      authorizedPaths: [],
+      runtime,
+    });
+    const prepared = JSON.parse(await readFile(result.project, "utf8"));
+    expect(
+      prepared.sources.map((source: { contentIdentity: string }) => source.contentIdentity),
+    ).toEqual(sources.map((source) => source.contentIdentity));
+    const payloads = prepared.mediaImports.payloads;
+    expect(payloads[0].storage).toEqual(payloads[1].storage);
+    expect(
+      payloads.every(
+        (payload: { legacyLocator: { kind: string; prefix: string } }) =>
+          payload.legacyLocator.kind === "inline" &&
+          payload.legacyLocator.prefix === "data:image/png;base64,",
+      ),
+    ).toBe(true);
+  }));
+
+test("queue preparation rejects changed composition dimensions, rational clock and frame range", async () =>
+  withDirectory(async (root) => {
+    const original = manifestFor({ sources: [], compositions: [{ id: "main", layers: [] }] });
+    for (const [index, change] of [
+      { width: 640 },
+      { frameRate: { numerator: 24, denominator: 1 } },
+      { endFrameExclusive: 31 },
+    ].entries()) {
+      const directory = join(root, `invalid-${index}`);
+      await expect(
+        prepareNativeQueueProject({
+          directory,
+          manifest: { ...original, ...change },
+          authorizedPaths: [],
+          runtime,
+        }),
+      ).rejects.toThrow("immutable composition");
+      await expect(stat(directory)).rejects.toThrow();
+    }
   }));

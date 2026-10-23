@@ -8,6 +8,8 @@ pub struct FootagePayload {
     pub content_identity: String,
     pub mime_type: String,
     pub storage: ProjectMediaStorage,
+    #[serde(default)]
+    pub legacy_locator: Option<super::legacy::LegacyMediaLocator>,
 }
 
 #[derive(Clone, Deserialize)]

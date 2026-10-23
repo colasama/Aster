@@ -17,6 +17,9 @@ export async function validateNativeQueueProjects(context, prepared) {
   const { mediaBytesIdentity } = await import(
     pathToFileURL(join(root, "dist-electron/src/importers/media-import-identity.js"))
   );
+  const { sourceContentIdentity } = await import(
+    pathToFileURL(join(root, "dist-electron/src/core/media/source-content-identity.js"))
+  );
   const psdModule = join(output, "psd-runtime", "psd.js");
   const parserBuild = await runStep(
     {
@@ -35,6 +38,7 @@ export async function validateNativeQueueProjects(context, prepared) {
   const corpus = JSON.parse(await readFile(join(root, "tests/parity/corpus.json")));
   const provider = prepared.rasterProvider;
   const runtime = {
+    renderer: prepared.binary,
     executable: provider.executable,
     host: provider.arguments[0],
     bundle: provider.bundle,
@@ -55,12 +59,18 @@ export async function validateNativeQueueProjects(context, prepared) {
       "queue-large-document",
       "layer-text",
       "scene-lighting-directional",
+      "queue-schema3-image",
+      "queue-schema3-video",
+      "queue-schema4-audio",
     ]) {
       const fixtureId =
         {
           "queue-embedded-source": "media-png",
           "queue-large-sequence": "media-image-sequence",
           "queue-large-document": "minimal-golden",
+          "queue-schema3-image": "media-png",
+          "queue-schema3-video": "video-24000-1001",
+          "queue-schema4-audio": "scene-audio-spectrum-bars",
         }[id] ?? id;
       const fixture = corpus.cases.find((c) => c.id === fixtureId);
       assert(fixture, id);
@@ -200,7 +210,7 @@ export async function validateNativeQueueProjects(context, prepared) {
         renderMediaSnapshot: JSON.stringify(media),
         width: 320,
         height: 180,
-        frameRate: { numerator: 30, denominator: 1 },
+        frameRate: original.compositions.find((c) => c.id === fixture.composition).frameRate,
         startFrame: 15,
         endFrameExclusive: 16,
         outputs: [],
@@ -219,6 +229,36 @@ export async function validateNativeQueueProjects(context, prepared) {
         manifest.projectSnapshot = " ".repeat(67_108_865) + manifest.projectSnapshot;
         originalPath = join(output, `${id}-source.json`);
         await writeFile(originalPath, manifest.projectSnapshot);
+      }
+      if (id.startsWith("queue-schema")) {
+        const clone = structuredClone(original);
+        for (const source of clone.sources) {
+          const entry = clone.mediaImports.entries.find((e) => e.sourceId === source.id);
+          const payload = clone.mediaImports.payloads.find((p) => p.id === entry.payloadId);
+          source.dataUrl = `data:${source.mimeType};base64,${payload.storage.data}`;
+          source.contentIdentity = sourceContentIdentity(source);
+        }
+        clone.schemaVersion = id.startsWith("queue-schema3") ? 3 : 4;
+        if (clone.schemaVersion === 3) {
+          for (const composition of clone.compositions)
+            for (const layer of composition.layers) {
+              if (!layer.sourceId) continue;
+              const source = clone.sources.find((s) => s.id === layer.sourceId);
+              layer.asset = {
+                name: source.name,
+                mimeType: source.mimeType,
+                width: source.width,
+                height: source.height,
+                dataUrl: source.dataUrl,
+                ...(source.duration ? { duration: source.duration } : {}),
+              };
+              delete layer.sourceId;
+            }
+          delete clone.sources;
+        }
+        delete clone.mediaImports;
+        manifest.projectSnapshot = JSON.stringify(clone);
+        delete manifest.renderMediaSnapshot;
       }
       const resolvePlugins = async (references) => ({
         packages: await Promise.all(

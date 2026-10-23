@@ -57,6 +57,13 @@ only for pruned project items. Captured documents use the queue's 256 MiB input 
 projects carry explicit native input and sequence admission arguments. The retained raster service
 authenticates the full project before projecting its media catalog to SVG/PSD, so native footage and
 long image sequences do not pass through the browser's save-file hydration limits.
+Historical documents are upgraded by `aster-render-cli normalize-project` using the same Rust
+runtime schema migrations as native rendering. The receipt binds both document hashes and the
+normalized byte count; publication never overwrites an existing file. Preparation checks dimensions,
+rational frame rate and range against the selected immutable composition. Legacy locator-derived
+source identities remain distinct from frozen byte identities: an export-private `legacyLocator`
+recipe preserves source metadata while native acquisition independently authenticates the copied
+bytes and reconstructs the original locator identity. Its text values grant no filesystem access.
 
 Each job pairs the persistence-safe project document with a versioned `RenderMediaManifest` keyed by
 source ID and content identity. Embedded still/video/audio data remains in the document. At enqueue,

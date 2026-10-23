@@ -1,3 +1,4 @@
+import { sourceContentIdentity } from "../src/core/media/source-content-identity.js";
 import {
   mediaBytesIdentity,
   mediaIdentityByteLength,
@@ -17,11 +18,18 @@ export interface NativeQueueSource extends Record<string, unknown> {
   dataUrl?: string;
   runtimeUrl?: string;
   relativePath?: string;
+  width?: number;
+  height?: number;
+  duration?: number;
 }
 export interface NativeQueueDocument extends Record<string, unknown> {
   sources: NativeQueueSource[];
   compositions: Array<{
     id: string;
+    width: number;
+    height: number;
+    duration: number;
+    frameRate: { numerator: number; denominator: number };
     layers: Array<{
       kind: string;
       sourceId?: string;
@@ -74,7 +82,23 @@ export async function materializeNativeQueueMedia(
             : undefined;
       if (!locator) throw new Error(`Queue source ${source.id} has no immutable media locator`);
       const extension = mediaExtension(source.name, source.mimeType);
-      const storage = await assets.locator(locator, extension, source.contentIdentity);
+      const identityLocator =
+        source.dataUrl ??
+        source.relativePath ??
+        source.runtimeUrl ??
+        (locator.kind === "inline" ? locator.dataUrl : locator.url);
+      const legacy =
+        sourceContentIdentity({ ...source, dataUrl: identityLocator }) === source.contentIdentity;
+      const legacyLocator = legacy
+        ? identityLocator.startsWith("data:")
+          ? { kind: "inline", prefix: identityLocator.slice(0, identityLocator.indexOf(",") + 1) }
+          : { kind: "text", value: identityLocator }
+        : undefined;
+      const storage = await assets.locator(
+        locator,
+        extension,
+        legacy ? undefined : source.contentIdentity,
+      );
       entries.push(base);
       persisted.push({
         id: payloadId,
@@ -83,6 +107,7 @@ export async function materializeNativeQueueMedia(
         mimeType: source.mimeType,
         extension,
         storage,
+        ...(legacyLocator ? { legacyLocator } : {}),
       });
     } else if (entry.kind === "svg") {
       const bytes = Buffer.from(entry.parsed.sanitized, "utf8");
