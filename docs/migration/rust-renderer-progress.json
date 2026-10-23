@@ -393,83 +393,72 @@
     }
   },
   "last_cycle": {
-    "id": 161,
-    "time": "2026-10-23T05:21:55.157Z",
-    "updated_at": "2026-10-23T05:21:55.157Z",
+    "id": 162,
+    "time": "2026-10-23T05:31:28.999Z",
+    "updated_at": "2026-10-23T05:31:28.999Z",
     "milestone": "M12",
     "task": "M12-T4",
-    "increment": "bounded-long-audio-admission-and-rf64-export-staging",
-    "outcome": "development_increment_passed",
-    "commit": "ae14ee5844628fc1dfaedc3b848bb87cbc3ff784",
+    "increment": "application-native-queue-routing",
+    "outcome": "task_implementation_completed",
+    "commit": "5d0940639062e806e2fb10c6ca59d4d15ba8030a",
     "validation": {
-      "path": "artifacts/migration/cycle161b-validation/report.json",
-      "sha256": "37ad9f835f72c6aa4a1a456904cf4716da7d405088609841d5a3ad291080e31c"
+      "path": "artifacts/migration/cycle162b-validation/report.json",
+      "sha256": "9d6c71a44a4d2fe5ff5cabbef2bc3f41bc87d809425ae2dbe71775e4cb052a5d"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
-        "id": "queue-process-targeted",
+        "id": "frontend-build",
         "status": "passed",
-        "duration_ms": 3307
+        "duration_ms": 1002
       },
       {
         "id": "project-native-build",
         "status": "passed",
-        "duration_ms": 982
+        "duration_ms": 958
       },
       {
         "id": "project-electron-build",
         "status": "passed",
-        "duration_ms": 1018
+        "duration_ms": 962
       },
       {
         "id": "project-raster-build",
         "status": "passed",
-        "duration_ms": 347
+        "duration_ms": 335
+      },
+      {
+        "id": "native-queue-application",
+        "status": "passed",
+        "duration_ms": 9031
       },
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 311973
+        "duration_ms": 259717
       }
     ],
-    "evidence": {
-      "host": {
-        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle161b-validation\\host\\report.json",
-        "sha256": "87677cad7aaa52ee6a8e6ace0461e6fdff9f1ae97752dec38cf1a03788172eb2",
-        "cases": 3
-      },
-      "process": {
-        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle161b-validation\\process\\report.json",
-        "sha256": "e8820e4906f9905357fd4e0682d525caf02108edf9484dd137a0ad067ecbf030",
-        "cases": 8
-      },
-      "publication": {
-        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle161b-validation\\publication\\report.json",
-        "sha256": "83a6c8082f58067de4cf77156bc40a2f40d03c54744fe51408b17a7b31fdc627",
-        "cases": 3
-      },
-      "wave": {
-        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle161b-validation\\wave\\report.json",
-        "sha256": "cc86cd13a3dd0ca73c5973d30ee9e197f653d838fe43912ec3f6b49ad181c79a",
-        "cases": 2
-      },
-      "audio": {
-        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle161b-validation\\audio\\report.json",
-        "sha256": "89d92873413482bf594ff5eead3a2f4883117536bce9bae688a2ce1f59541b1a",
-        "cases": 1
-      }
+    "application": {
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle162b-validation\\application\\report.json",
+      "sha256": "f98d17fe9bcd8077cdf8f0a2dbec6894b760724bc710b00da6872b5692ecee41",
+      "native_jobs": 3,
+      "hidden_host_calls": 0,
+      "sequence_frames": 12,
+      "video_frames": 12,
+      "audio": true,
+      "temporary_jobs_cleaned": true,
+      "persisted_completions": 3
     },
     "failed_attempts": [
       {
-        "path": "artifacts/migration/cycle161-validation/audio/long-0-png.log",
-        "sha256": "c2b5dc908426c186d7ef07c29936d5b038ffb2be087a9ed33e72a840c77a154a",
-        "cause": "Qualification request used plugin directory instead of plugin.toml; repaired request and reran affected verification plus full G0"
+        "path": "artifacts/migration/cycle162-validation/native-queue-application.log",
+        "sha256": "d6e8f26db028f49a7e0da17436ca4d0a6a01294a2acdec2eced9e3074a36d401",
+        "cause": "Qualification launcher omitted background application's required parent IPC channel; repaired launcher and reran actual application plus full G0"
       }
     ],
     "self_review": {
       "result": "exact",
-      "scope": "Six-minute audio source, 310-second PNG and decoded audio comparison to prior native binary with explicit duration override; no non-exact pixels"
+      "scope": "PNG still equals the first sequence PNG byte for byte; this routing check does not replace final corpus quality acceptance"
     },
     "deferred_gates": [
       "G1",
@@ -480,7 +469,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Wire the native queue host into application main-process routing behind the migration capability gate, exercise actual application export, and finish M12-T4 qualification before final production retirement."
+    "next_step": "Start M12-T5: select native preview by default and isolate TS GPU rendering to explicit reference tooling. M12-T6 retains default queue retirement and production capability qualification."
   },
   "milestones": [
     {
@@ -27715,7 +27704,7 @@
           "id": "M12-T4",
           "title": "Implement the native project queue worker",
           "scope": "Drive native project outputs from Electron main with correlated progress, pause/resume/cancel, cleanup and atomic multi-output publication.",
-          "status": "in_progress",
+          "status": "done",
           "estimated_implementation_hours": 3,
           "required_gates": [
             "G0",
@@ -27727,12 +27716,13 @@
             "G6"
           ],
           "started_at": "2026-10-23T03:16:09.417Z",
-          "progress": "Native queue execution has durable lifecycle, exact frame clocks, streamed image receipts and on-demand visual source admission. Audio source admission now uses a 24-hour ceiling independently of PCM budgets (1 GiB for queues); export WAV staging retains short RIFF bytes and supports RF64 above 4 GiB. A six-minute source exported at 310 seconds matches the previous verified native renderer exactly in PNG and decoded AAC PCM. Packaged FFmpeg probes production RIFF/RF64 headers with a sparse >4 GiB payload. Eight process, three publication and three host checks plus full G0 pass. Production application routing, retained media/output limits and milestone-exit qualification remain open.",
+          "progress": "Native project queue worker implementation is complete: immutable inputs and plugins, correlated progress/control, retained media leases, atomic mixed-output publication, cancellation/cleanup, exact lazy frame schedules, incremental media admission, streamed receipts and bounded audio staging. Application main selects NativeQueueHostFactory with ASTER_NATIVE_QUEUE=1 and uses its application-owned runtime and plugin resolver. The actual background application completes PNG still, 12-frame sequence and 12-frame H.264/AAC jobs through native workers, persists all completion records, uses no hidden-host IPC and clears its temporary jobs. G0 passes. Default route retirement, remaining production capability/limit coverage and full milestone gates remain M12-T5 through M12-T9 work.",
           "validation": {
-            "path": "artifacts/migration/cycle161b-validation/report.json",
-            "sha256": "37ad9f835f72c6aa4a1a456904cf4716da7d405088609841d5a3ad291080e31c"
+            "path": "artifacts/migration/cycle162b-validation/report.json",
+            "sha256": "9d6c71a44a4d2fe5ff5cabbef2bc3f41bc87d809425ae2dbe71775e4cb052a5d"
           },
-          "commit": "ae14ee5844628fc1dfaedc3b848bb87cbc3ff784"
+          "commit": "5d0940639062e806e2fb10c6ca59d4d15ba8030a",
+          "completed_at": "2026-10-23T05:31:28.999Z"
         },
         {
           "id": "M12-T5",
@@ -27764,7 +27754,8 @@
             "G4",
             "G5",
             "G6"
-          ]
+          ],
+          "remaining_qualification": "Switch the default queue route, remove production hidden TS hosts, qualify supported media/output dimensions, byte budgets and timeouts, and document explicit capability failures. Current opt-in native queue is qualified for the recorded targeted application cases; final full corpus/export/application gates remain required."
         },
         {
           "id": "M12-T7",
@@ -2680634,6 +2680625,86 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Wire the native queue host into application main-process routing behind the migration capability gate, exercise actual application export, and finish M12-T4 qualification before final production retirement."
+    },
+    {
+      "cycle": 162,
+      "id": 162,
+      "time": "2026-10-23T05:31:28.999Z",
+      "updated_at": "2026-10-23T05:31:28.999Z",
+      "milestone": "M12",
+      "task": "M12-T4",
+      "increment": "application-native-queue-routing",
+      "outcome": "task_implementation_completed",
+      "commit": "5d0940639062e806e2fb10c6ca59d4d15ba8030a",
+      "validation": {
+        "path": "artifacts/migration/cycle162b-validation/report.json",
+        "sha256": "9d6c71a44a4d2fe5ff5cabbef2bc3f41bc87d809425ae2dbe71775e4cb052a5d"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "frontend-build",
+          "status": "passed",
+          "duration_ms": 1002
+        },
+        {
+          "id": "project-native-build",
+          "status": "passed",
+          "duration_ms": 958
+        },
+        {
+          "id": "project-electron-build",
+          "status": "passed",
+          "duration_ms": 962
+        },
+        {
+          "id": "project-raster-build",
+          "status": "passed",
+          "duration_ms": 335
+        },
+        {
+          "id": "native-queue-application",
+          "status": "passed",
+          "duration_ms": 9031
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 259717
+        }
+      ],
+      "application": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle162b-validation\\application\\report.json",
+        "sha256": "f98d17fe9bcd8077cdf8f0a2dbec6894b760724bc710b00da6872b5692ecee41",
+        "native_jobs": 3,
+        "hidden_host_calls": 0,
+        "sequence_frames": 12,
+        "video_frames": 12,
+        "audio": true,
+        "temporary_jobs_cleaned": true,
+        "persisted_completions": 3
+      },
+      "failed_attempts": [
+        {
+          "path": "artifacts/migration/cycle162-validation/native-queue-application.log",
+          "sha256": "d6e8f26db028f49a7e0da17436ca4d0a6a01294a2acdec2eced9e3074a36d401",
+          "cause": "Qualification launcher omitted background application's required parent IPC channel; repaired launcher and reran actual application plus full G0"
+        }
+      ],
+      "self_review": {
+        "result": "exact",
+        "scope": "PNG still equals the first sequence PNG byte for byte; this routing check does not replace final corpus quality acceptance"
+      },
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Start M12-T5: select native preview by default and isolate TS GPU rendering to explicit reference tooling. M12-T6 retains default queue retirement and production capability qualification."
     }
   ],
   "known_boundaries": [
