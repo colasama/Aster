@@ -48,7 +48,7 @@ pub(crate) struct ExportProjectArgs {
     no_audio: bool,
     #[arg(long,default_value="off",value_parser=["off","fxaa","ssaa2x","ssaa4x"])]
     aa: String,
-    /// Receive bounded newline-delimited {"action":"pause"|"resume"|"cancel"} controls.
+    /// Receive newline-delimited pause/resume/cancel controls; pause may carry a request_id.
     #[arg(long)]
     control_stdin: bool,
     /// Optional atomic capture of selected native pre-encode frames for verification.
@@ -78,9 +78,18 @@ struct ExportConfiguration {
 #[derive(Deserialize)]
 #[serde(tag = "action", rename_all = "lowercase", deny_unknown_fields)]
 enum Control {
-    Pause,
+    Pause {
+        #[serde(default)]
+        request_id: Option<u64>,
+    },
     Resume,
     Cancel,
+}
+
+#[derive(Serialize)]
+struct PauseReceipt {
+    stage: &'static str,
+    request_id: Option<u64>,
 }
 
 #[derive(Serialize)]
@@ -99,7 +108,14 @@ impl ExportProjectArgs {
         if self.out.try_exists()? {
             return Err("export destination already exists".into());
         }
-        let control = ProjectExportControl::default();
+        let control = ProjectExportControl::default().with_pause_observer(|request_id| {
+            if let Ok(message) = serde_json::to_string(&PauseReceipt {
+                stage: "paused",
+                request_id,
+            }) {
+                println!("{message}");
+            }
+        });
         if self.control_stdin {
             let reader = control.clone();
             std::thread::spawn(move || {
@@ -118,8 +134,8 @@ impl ExportProjectArgs {
                             return Err("invalid export control length".into());
                         }
                         match serde_json::from_slice::<Control>(&line)? {
-                            Control::Pause => reader.pause(true)?,
-                            Control::Resume => reader.pause(false)?,
+                            Control::Pause { request_id } => reader.pause(true, request_id)?,
+                            Control::Resume => reader.pause(false, None)?,
                             Control::Cancel => {
                                 reader.cancellation.cancel();
                                 return Ok(());

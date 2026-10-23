@@ -289,35 +289,83 @@ export async function runProjectExportLifecycle(context, prepared) {
     context.print?.(
       "Audio selection passed: identical reactive plans, RGB and NV12; selected mux tracks",
     );
-    let pausePromise, pauseError;
+    let pauseError;
+    let requestedPauses = 0;
+    const pausePromises = [];
+    const settledPauses = [];
     const pauseArgs = await argumentsFor("minimal-golden", "pause-resume", 100);
     const paused = await run("pause-resume", cli, pauseArgs, (value, child, rows) => {
-      if (value.rendered_frames === 1 && !pausePromise) {
-        child.stdin.write('{"action":"pause"}\n');
-        pausePromise = (async () => {
-          await delay(500);
-          const count = rows.filter((r) => r.rendered_frames).length;
-          await delay(400);
-          const after = rows.filter((r) => r.rendered_frames).length;
-          child.stdin.write('{"action":"resume"}\n');
-          assert.equal(after, count, "frames advanced while paused");
-          assert(count < 100);
-          return { settled_frames: count, pause_observation_ms: 400 };
-        })().catch((error) => {
-          pauseError = error;
-          return null;
-        });
+      if (
+        value.rendered_frames > 0 &&
+        requestedPauses === settledPauses.length &&
+        requestedPauses < 2
+      ) {
+        requestedPauses++;
+        child.stdin.write(`${JSON.stringify({ action: "pause", request_id: requestedPauses })}\n`);
+      }
+      if (value.stage === "paused") {
+        pausePromises.push(
+          (async () => {
+            assert.equal(value.request_id, requestedPauses);
+            const count = rows.filter((r) => r.rendered_frames).length;
+            await delay(400);
+            const after = rows.filter((r) => r.rendered_frames).length;
+            assert.equal(after, count, "frames advanced while paused");
+            assert(count < 100);
+            settledPauses.push({
+              request_id: value.request_id,
+              settled_frames: count,
+              pause_observation_ms: 400,
+            });
+            child.stdin.write('{"action":"resume"}\n');
+          })().catch((error) => {
+            pauseError = error;
+            child.stdin.write('{"action":"cancel"}\n');
+          }),
+        );
       }
     });
     assert.equal(paused.code, 0, paused.stdout);
-    assert(pausePromise);
-    await pausePromise;
+    await Promise.all(pausePromises);
     if (pauseError) throw pauseError;
+    assert.deepEqual(
+      settledPauses.map((p) => p.request_id),
+      [1, 2],
+    );
+    assert.deepEqual(
+      paused.rows.filter((r) => r.stage === "paused").map((r) => r.request_id),
+      [1, 2],
+    );
     report.controls.push({
       kind: "pause-resume",
-      ...(await pausePromise),
+      acknowledgments: settledPauses,
       receipt: paused.rows.at(-1),
     });
+    for (const action of ["cancel", "disconnect", "malformed"]) {
+      const name = `paused-${action}`;
+      const args = await argumentsFor("minimal-golden", name, 100);
+      const result = await run(name, cli, args, (value, child) => {
+        if (value.rendered_frames === 1) child.stdin.write('{"action":"pause","request_id":3}\n');
+        if (value.stage === "paused") {
+          if (action === "disconnect") child.stdin.end();
+          else
+            child.stdin.write(
+              action === "cancel" ? '{"action":"cancel"}\n' : '{"action":"invalid"}\n',
+            );
+        }
+      });
+      assert.equal(result.code, 2, result.stdout + result.stderr);
+      assert.deepEqual(
+        result.rows.filter((r) => r.stage === "paused").map((r) => r.request_id),
+        [3],
+      );
+      assert(!(await readdir(output)).includes(`${name}.mp4`));
+      assert(!(await readdir(output)).includes(`${name}-witness`));
+      report.controls.push({ kind: name, result: result.rows });
+    }
+    context.print?.(
+      "Pause acknowledgments passed: repeated pause/resume, cancellation, disconnect and invalid control",
+    );
     const cancelArgs = await argumentsFor("layer-text", "cancelled", 60);
     const cancelled = await run("cancelled", cli, cancelArgs, (value, child) => {
       if (value.rendered_frames === 1) child.stdin.write('{"action":"cancel"}\n');

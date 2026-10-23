@@ -1089,8 +1089,12 @@ Rendering and encoding use shared GPU NV12 surfaces when available, with an expl
 NV12 readback fallback. Packet indices, timestamps, durations and encoder drain receipts are checked
 before the producer can finish the mux stream. Optional newline-delimited stdin controls pause,
 resume or cancel the job; malformed controls or a disconnected controller cancel it. Pausing holds
-the next acquisition boundary without changing the schedule, and cancellation cannot publish an
-unfinished MP4. The production application's export selection remains capability-gated separately.
+the next acquisition boundary without changing the schedule. A pause control may include a numeric
+`request_id`; the processing thread emits `{stage: "paused", request_id}` only after reaching a
+safe boundary, including audio staging. Controllers must match that identifier to their outstanding
+pause request and ignore stale receipts after resume or cancellation. Notifications run outside the
+control lock, and cancellation releases a paused worker without publishing an unfinished MP4.
+The production application's export selection remains capability-gated separately.
 `--start-frame` evaluates each absolute index directly through the rational output rate, matching
 the TS export clock bit for bit; it is mutually exclusive with an arbitrary `--start` time offset.
 Optional `--witness` and `--witness-frames` capture bounded RGB, NV12 and native-plan evidence from
