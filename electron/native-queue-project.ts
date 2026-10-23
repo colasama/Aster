@@ -16,6 +16,12 @@ import { NativeQueueAssetStore } from "./native-queue-assets.js";
 import { materializeNativeQueueMedia, selectNativeQueueDocument } from "./native-queue-media.js";
 import { normalizeNativeQueueDocument } from "./native-queue-normalize.js";
 
+/** Snapshot strings have separate receipts; hash only the small immutable job configuration here. */
+export function nativeQueueConfigurationIdentity(manifest: RenderJobManifest): string {
+  const { projectSnapshot: _project, renderMediaSnapshot: _media, ...configuration } = manifest;
+  return createHash("sha256").update(JSON.stringify(configuration)).digest("hex");
+}
+
 /** Publish a new private project only after every captured media/plugin input has been prepared. */
 export async function prepareNativeQueueProject(options: {
   directory: string;
@@ -119,6 +125,7 @@ export async function prepareNativeQueueProject(options: {
       request,
       projectSha256: digest(projectBytes),
       requestSha256: digest(requestBytes),
+      configurationSha256: nativeQueueConfigurationIdentity(manifest),
       authoredSnapshotSha256: digest(manifest.projectSnapshot),
       mediaSnapshotSha256: digest(manifest.renderMediaSnapshot ?? EMPTY_RENDER_MEDIA_SNAPSHOT),
       runtimeArguments: [

@@ -65,6 +65,14 @@ source identities remain distinct from frozen byte identities: an export-private
 recipe preserves source metadata while native acquisition independently authenticates the copied
 bytes and reconstructs the original locator identity. Its text values grant no filesystem access.
 
+The native queue export adapter binds the complete job configuration and rechecks the prepared
+project and request hashes before launching each output. It consumes bounded JSON progress and
+verifies the project identity, dimensions, clock,
+frame count, encoder drain and image receipts before accepting a normal process close. Pause notices
+are correlated with the latest request; resume and cancel invalidate stale acknowledgements.
+Cancellation keeps the process lease until its pipes close, with bounded forced process-tree cleanup
+if cooperative shutdown stalls. Queue-wide scheduling and publication own the surrounding output set.
+
 Each job pairs the persistence-safe project document with a versioned `RenderMediaManifest` keyed by
 source ID and content identity. Embedded still/video/audio data remains in the document. At enqueue,
 every linked local source is copied and SHA-256 verified into a content-addressed, job-owned snapshot
