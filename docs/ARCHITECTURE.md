@@ -194,7 +194,10 @@ remains sequential to bound working memory. Browser raster payloads retain their
 
 The migration's `aster-render-ir` crate owns typed frame-plan transport and its generated schema.
 TS DataView and Rust owned-buffer codecs share a canonical FPLN container with aligned binary blobs
-and separate content-addressed resource operations. The initial contract carries an explicit
+and separate content-addressed resource operations. Canonical JSON sorts the serializer-owned
+object tree, including nested objects under insertion-order dependency features, and writes it once;
+resource hashes and FPLN metadata retain the same lexical ordering, escaping and numeric bytes.
+The initial contract carries an explicit
 partial post-process uniform slice. Production root post-processing now builds this slice from exact
 request time and caller snapshot identity, then uploads the supplied bytes through a separate
 executor. An additional owned scene-buffer slice carries evaluated camera-space vertices, lighting,
