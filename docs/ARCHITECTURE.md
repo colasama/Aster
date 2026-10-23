@@ -1116,6 +1116,14 @@ failed jobs remove unpublished staging and never replace existing output. Explic
 budgets bound disk output independently of frame resource budgets. PNG readback is diagnostic and
 does not define the production preview or encoding path.
 
+Beauty video exports retain at most one next-frame file-media acquisition while the preceding
+submitted frame executes on the GPU. This CPU-only prefetch owns its original request, settings,
+session identity and generation; stale or foreign acquisitions cannot enter frame planning. Each
+acquisition keeps the existing source, descriptor and decoded-pixel budgets. No next-frame GPU
+allocation or rendering occurs until the preceding output lease is released. Raster acquisition,
+GPU submission, observers, encoding, progress and pause acknowledgments retain their ordered frame
+boundaries. Diagnostic views use the sequential path because their fallback requires GPU allocation.
+
 Jobs may select an on-demand retained raster process instead of supplying frame manifests. Rust
 owns the loaded project, frame schedule and ordered resource requests. The isolated Electron host
 loads the same authored project identity and supplies font layouts and text/SVG/PSD pixels through

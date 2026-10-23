@@ -14,7 +14,9 @@ use aster_renderer::{DecodedTexturePixels, RenderedFrame, SuppliedFrame};
 use aster_video::CancellationToken;
 use std::{collections::BTreeSet, sync::Arc, time::Instant};
 
-#[derive(serde::Deserialize)]
+mod prefetch;
+
+#[derive(Clone, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ProjectFrameSettings {
     pub resources: ResourceRequestContext,
@@ -88,13 +90,26 @@ impl NativeProjectSession {
             &ProjectResourceRequests,
         ) -> Result<ProjectRasterFrame, ProjectRenderError>,
     ) -> Result<PreparedProjectFrame, ProjectRenderError> {
+        self.prepare_inputs(frame, settings, None, cancellation, acquire_rasters)
+    }
+
+    fn prepare_inputs(
+        &mut self,
+        frame: &FramePlanRequest,
+        settings: &ProjectFrameSettings,
+        files: Option<(crate::ProjectFileMediaFrame, f64)>,
+        cancellation: &CancellationToken,
+        acquire_rasters: impl FnOnce(
+            &ProjectResourceRequests,
+        ) -> Result<ProjectRasterFrame, ProjectRenderError>,
+    ) -> Result<PreparedProjectFrame, ProjectRenderError> {
         self.pending = None;
         if self.poisoned || frame.composition_id != self.audio.composition_id {
             return Err(ProjectRenderError::Invalid(
                 "native project session is not ready for this composition".into(),
             ));
         }
-        let result = self.prepare_frame(frame, settings, cancellation, acquire_rasters);
+        let result = self.prepare_frame(frame, settings, files, cancellation, acquire_rasters);
         match &result {
             Ok(prepared) => self.pending = Some(prepared.generation),
             Err(_) => self.poisoned = true,
@@ -106,6 +121,7 @@ impl NativeProjectSession {
         &mut self,
         frame: &FramePlanRequest,
         settings: &ProjectFrameSettings,
+        files: Option<(crate::ProjectFileMediaFrame, f64)>,
         cancellation: &CancellationToken,
         acquire_rasters: impl FnOnce(
             &ProjectResourceRequests,
@@ -134,9 +150,15 @@ impl NativeProjectSession {
                 .begin(&requests, None, context.surface.memory_budget_mb)?;
             context.visualization = self.gpu.configure_visualization(context.visualization)?;
         }
-        let mut files = self.files.acquire(frame, &context, true, cancellation)?;
+        let (mut files, prefetched_ms) = match files {
+            Some(files) => files,
+            None => (
+                self.files.acquire(frame, &context, true, cancellation)?,
+                0.0,
+            ),
+        };
         let mut timings = crate::ProjectPreparationTimings {
-            file_media_ms: started.elapsed().as_secs_f64() * 1000.0,
+            file_media_ms: prefetched_ms + started.elapsed().as_secs_f64() * 1000.0,
             ..Default::default()
         };
         let phase = Instant::now();
@@ -365,7 +387,7 @@ impl NativeProjectSession {
             ProjectRenderError::Invalid("project frame generation exhausted".into())
         })?;
         timings.admission_ms = phase.elapsed().as_secs_f64() * 1000.0;
-        timings.total_ms = started.elapsed().as_secs_f64() * 1000.0;
+        timings.total_ms = prefetched_ms + started.elapsed().as_secs_f64() * 1000.0;
         Ok(PreparedProjectFrame {
             timings,
             bundle,

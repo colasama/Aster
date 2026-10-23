@@ -606,7 +606,9 @@ ordered frame intervals and total elapsed time; FFprobe and artifact hashing fol
 Native export receipts also contain aggregate `timings` from monotonic host clocks. Preparation
 separates file/media acquisition, raster/text work, materials, audio analysis, GPU setup, plan inputs,
 native planning and admission. `raster_exchange_ms` is a subset of raster/text work, not an additional
-phase. Export counters separate render submission, output completion, diagnostic observers, encoder
+phase. One-frame file-media prefetch is charged once to the consuming frame's acquisition and total
+preparation counters, even though it overlaps the preceding frame's GPU execution. Export counters
+separate render submission, output completion, diagnostic observers, encoder
 submission/drain, packet publication, control waits and final mux completion. Output completion may
 include GPU execution waits; these are not GPU timestamp measurements. The counters add no waits or
 readbacks, exclude completed warm-up frames, and do not subtract any work from end-to-end throughput.

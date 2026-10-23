@@ -233,23 +233,43 @@ impl NativeProjectExport {
             ..Default::default()
         };
         let produce = (|| -> Result<(), ProjectRenderError> {
+            let mut prefetched = None;
             for (index, frame) in self.schedule.frames.iter().enumerate() {
                 let phase = Instant::now();
                 self.control.wait()?;
                 timings.control_wait_ms += phase.elapsed().as_secs_f64() * 1000.0;
-                let prepared = self.session.prepare(
-                    &frame,
-                    &self.settings,
-                    &self.control.cancellation,
-                    |requests| match &mut self.raster_provider {
+                let acquire_rasters = |requests: &aster_eval::ProjectResourceRequests| {
+                    match &mut self.raster_provider {
                         Some(provider) => provider.acquire(requests, &self.control.cancellation),
                         None => Ok(ProjectRasterFrame::default()),
-                    },
-                )?;
+                    }
+                };
+                let prepared = match prefetched.take() {
+                    Some(files) => self.session.prepare_prefetched(
+                        files,
+                        &self.control.cancellation,
+                        acquire_rasters,
+                    )?,
+                    None => self.session.prepare(
+                        &frame,
+                        &self.settings,
+                        &self.control.cancellation,
+                        acquire_rasters,
+                    )?,
+                };
                 timings.preparation.accumulate(&prepared.timings);
                 let phase = Instant::now();
                 let rendered = self.session.render(&prepared, &self.control.cancellation)?;
                 timings.render_submit_ms += phase.elapsed().as_secs_f64() * 1000.0;
+                // Keep one bounded CPU acquisition ahead while this frame executes on the GPU.
+                // Its own request/settings are consumed only after this output is published.
+                if let Some(next) = self.schedule.frames.get(index + 1) {
+                    prefetched = self.session.prefetch_file_media(
+                        &next,
+                        &self.settings,
+                        &self.control.cancellation,
+                    )?;
+                }
                 let phase = Instant::now();
                 let packets = if shared {
                     #[cfg(windows)]
