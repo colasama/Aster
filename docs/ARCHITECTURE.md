@@ -1226,6 +1226,17 @@ quality, and verifies audio, pause, cancellation and temporary-file cleanup. Enc
 alternatives use the actual export's RGB and NV12 witnesses, with separate numeric checks and
 self-reviews; supplied-plan replay checkpoints cannot establish native project export coverage.
 
+Frozen project references retain their original complete producer inventory independently of the
+current application host. Audits preserve matching bytes from the checkout and recover changed host
+files only from the recorded Git commit with the exact original SHA-256. Historical renderer files
+and shader fragments still match the checkout; the paired benchmark driver and type-only presenter
+import are explicit host exceptions. The shared shader catalog may add native programs but cannot
+alter a historical definition. Reports distinguish original producer files from current candidate
+sources. A historical capture validator's original identity is retained even when its executable
+is no longer available; an existing mismatched executable still fails. Historical validation never
+grants current acceptance: G2's current native `plan-diff` independently decodes every reference plan
+and resource closure. Candidate checkpoint binaries remain mandatory and authenticated separately.
+
 ## Frame flow
 
 1. UI gestures produce serializable operations; they do not mutate render state directly.

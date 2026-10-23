@@ -35,6 +35,7 @@ export async function runNativeProjectCorpusGate(context, execute = runStep) {
     report.binaries = prepared.binaries;
     const inputs = await prepareProjectCorpusInputs(context, prepared);
     report.reference = inputs.reference;
+    report.reference_source = inputs.referenceSource;
     report.required_cases = inputs.expected.length;
     report.required_samples = inputs.expected.reduce((sum, item) => sum + item.samples.length, 0);
     const reader = new M0Evidence(root),

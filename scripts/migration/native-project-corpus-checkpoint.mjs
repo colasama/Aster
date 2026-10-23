@@ -130,6 +130,7 @@ export async function auditProjectCorpusCheckpoint(context) {
     assert.equal(report.source.source_sha256, report.source_after.source_sha256);
     report.source_unchanged = true;
     report.reference = inputs.reference;
+    report.reference_source = inputs.referenceSource;
     report.candidates = prior.candidates;
     report.required_cases = inputs.expected.length;
     report.required_samples = prior.required_samples;

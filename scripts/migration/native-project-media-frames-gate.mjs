@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import { readFile, stat } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative } from "node:path";
 import { captureSource, digest } from "../parity/provenance.mjs";
+import {
+  historicalProjectValidator,
+  preserveFrozenProjectSource,
+} from "./frozen-project-source.mjs";
 import { M0Evidence, sha256 } from "./m0-evidence.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
@@ -28,34 +32,18 @@ export async function auditProjectMediaFrames(context, execute = runStep) {
     join(context.root, task.plan_reference_manifest.path),
     task.plan_reference_manifest.sha256,
   );
-  const validator = await proof(
-    join(context.root, task.capture_validator.path),
-    task.capture_validator.sha256,
-  );
   const capture = JSON.parse((await reader.bytes(captureProof.path)).bytes);
   assert.equal(capture.status, "passed");
   assert.equal(capture.source_unchanged, true);
+  // Current G2 independently decodes every frozen plan and resource closure with plan-diff.
+  const { identity: validator, proof: validatorProof } = await historicalProjectValidator(
+    reader,
+    task.capture_validator,
+    capture.source,
+  );
+  const frozenSource = await preserveFrozenProjectSource(context, capture.source, reader);
   const current = await captureSource(context.root);
-  const candidateRasterFiles = [
-    "electron/native-raster-host.ts",
-    "electron/native-raster-preload.cts",
-    "electron/native-raster-project.ts",
-    "electron/native-raster-wire.ts",
-    "src/renderer/native-project/raster-service-protocol.ts",
-    "src/renderer/native-project/raster-service.ts",
-    "src/renderer/native-project/retained-raster-provider.ts",
-    "src/renderer/native-project/retained-raster-types.ts",
-  ];
-  // These new native-request consumers are not imported by the frozen TS reference producer.
-  // Every original producer file must still match; candidate additions retain separate proofs.
-  assert(
-    candidateRasterFiles.every((path) => !capture.source.files.some((file) => file.path === path)),
-  );
-  assert.deepEqual(
-    current.files.filter((file) => !candidateRasterFiles.includes(file.path)),
-    capture.source.files,
-    "TS reference producer files changed",
-  );
+  const historicalPaths = new Set(capture.source.files.map((file) => file.path));
   // The retained TS reference keeps its original bridge identity. Fresh native candidate
   // execution must not claim that a rebuilt bridge produced those frozen observations.
   assert.equal(
@@ -67,14 +55,14 @@ export async function auditProjectMediaFrames(context, execute = runStep) {
     }),
   );
   assert.deepEqual(capture.source_after, capture.source);
-  const sources = [captureProof, manifestProof, validator];
+  const sources = [captureProof, manifestProof, ...(validatorProof ? [validatorProof] : [])];
   const candidateAdditions = [];
-  for (const file of current.files.filter((file) => candidateRasterFiles.includes(file.path))) {
+  for (const file of current.files.filter((file) => !historicalPaths.has(file.path))) {
     const entry = await proof(join(context.root, file.path), file.sha256);
     candidateAdditions.push(entry);
     sources.push(entry);
   }
-  for (const file of capture.source.files)
+  for (const file of frozenSource.files)
     sources.push(await proof(join(context.root, file.path), file.sha256));
   const manifest = JSON.parse((await reader.bytes(manifestProof.path)).bytes);
   assert.equal(manifest.kind, "ts-plan-reference");
@@ -220,7 +208,9 @@ export async function auditProjectMediaFrames(context, execute = runStep) {
       renderer_source_sha256: capture.source.renderer_source_sha256,
       bridge_sha256: capture.source.bridge_sha256,
       validator,
-      current_ts_files_match: true,
+      frozen_source: frozenSource,
+      current_ts_files_match: frozenSource.current_ts_files_match,
+      plan_validation: "Every reference is independently decoded by the current G2 plan-diff",
     },
     candidate_execution: "fresh-native-project-media-test",
     candidate_additions: candidateAdditions,

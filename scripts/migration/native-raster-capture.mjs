@@ -3,6 +3,7 @@ import { readFile, stat } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
 import electron from "electron";
 import { build, createServer, preview } from "vite";
+import { preserveFrozenProjectSource } from "./frozen-project-source.mjs";
 import { M0Evidence, sha256 } from "./m0-evidence.mjs";
 import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
@@ -27,7 +28,7 @@ export async function captureNativeRasters(context, options = {}) {
   assert.deepEqual(manifest.source, capture.source);
   assert.equal(manifest.scope, "full");
   assert.equal(manifest.source_verified, true);
-  for (const file of capture.source.files) await reader.bytes(file.path, file.sha256);
+  const referenceSource = await preserveFrozenProjectSource(context, capture.source, reader);
   const runtime = await createServer({
     root: context.root,
     configFile: false,
@@ -42,6 +43,7 @@ export async function captureNativeRasters(context, options = {}) {
       ? "native-ordered-retained-raster-resources"
       : "native-root-retained-raster-resources",
     source,
+    reference_source: referenceSource,
     observations: [],
   };
   try {

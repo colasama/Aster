@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { dirname, join, relative } from "node:path";
 import { createServer } from "vite";
-import { captureAssignments, captureSource } from "../parity/provenance.mjs";
+import { captureAssignments } from "../parity/provenance.mjs";
+import { preserveFrozenProjectSource } from "./frozen-project-source.mjs";
 import { M0Evidence } from "./m0-evidence.mjs";
 import { writeAtomicJson } from "./report.mjs";
 
@@ -26,14 +27,7 @@ export async function prepareProjectCorpusInputs(context, prepared) {
   assert.equal(manifest.random_times_per_case, 64);
   assert.deepEqual(manifest.source, capture.source);
   assert.deepEqual(manifest.source_after, capture.source);
-  const current = await captureSource(root);
-  const currentFiles = new Map(current.files.map((file) => [file.path, file.sha256]));
-  for (const file of capture.source.files)
-    assert.equal(
-      currentFiles.get(file.path),
-      file.sha256,
-      `Frozen TS producer changed: ${file.path}`,
-    );
+  const referenceSource = await preserveFrozenProjectSource(context, capture.source, reader);
   const corpusFile = await reader.bytes("tests/parity/corpus.json", manifest.corpus_sha256);
   const corpus = JSON.parse(corpusFile.bytes);
   assert.equal(manifest.required_cases, corpus.cases.length);
@@ -150,5 +144,13 @@ export async function prepareProjectCorpusInputs(context, prepared) {
   await reader.stable();
   const batch = join(output, "batch.json");
   await writeAtomicJson(batch, jobs);
-  return { batch, jobs, expected, reference: task.plan_reference_manifest, assignments, reader };
+  return {
+    batch,
+    jobs,
+    expected,
+    reference: task.plan_reference_manifest,
+    referenceSource,
+    assignments,
+    reader,
+  };
 }
