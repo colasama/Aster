@@ -206,7 +206,14 @@ impl NativeProjectExport {
         request.validate(&self.mux_limits)?;
         let backend = FfmpegExportBackend::with_limits(self.ffmpeg, self.mux_limits);
         let cancel = self.control.cancellation.clone();
-        let mux = std::thread::spawn(move || backend.mux_h264(&request, receiver, &cancel));
+        let mux = std::thread::spawn(move || {
+            let result = backend.mux_h264(&request, receiver, &cancel);
+            // Release a producer paused at a safe boundary when the consumer has already failed.
+            if result.is_err() {
+                cancel.cancel();
+            }
+            result
+        });
         let mut sink = PacketSink {
             sender,
             rate: video.frame_rate,
@@ -302,8 +309,20 @@ impl NativeProjectExport {
         let mux = mux
             .join()
             .map_err(|_| ProjectRenderError::Invalid("mux worker panicked".into()))?;
-        produce?;
-        let mux = mux?;
+        let mux = match (produce, mux) {
+            // Preserve the consumer's cause instead of reporting its cooperative shutdown as
+            // a user cancellation. Independent producer errors retain their original cause.
+            (_, Err(error @ aster_video::ExportError::TimedOut { .. }))
+            | (
+                Err(
+                    ProjectRenderError::Audio(aster_video::FfmpegError::Cancelled)
+                    | ProjectRenderError::Encode(aster_encode::EncodeError::Cancelled),
+                ),
+                Err(error),
+            ) => return Err(error.into()),
+            (Err(error), _) => return Err(error),
+            (Ok(()), result) => result?,
+        };
         Ok(ProjectExportReport {
             output: mux.output_path,
             frames: count,

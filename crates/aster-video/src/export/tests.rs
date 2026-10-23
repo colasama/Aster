@@ -382,10 +382,39 @@ fn zero_timeout_terminates_a_spawned_process() -> Result<(), Box<dyn std::error:
         .spawn()?;
     let mut child = MediaProcess { child };
     assert_eq!(
-        child.monitor(Duration::ZERO, &CancellationToken::default(), None),
+        child.monitor(Some(Duration::ZERO), &CancellationToken::default(), None),
         Err(crate::FfmpegError::TimedOut { timeout_ms: 0 })
     );
     assert!(child.child.try_wait()?.is_some());
+    Ok(())
+}
+
+#[test]
+fn optional_deadline_preserves_exit_cancellation_and_writer_failure()
+-> Result<(), Box<dyn std::error::Error>> {
+    for mode in 0..3 {
+        let child = Command::new(std::env::current_exe()?)
+            .arg("--list")
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()?;
+        let mut child = MediaProcess { child };
+        let cancellation = CancellationToken::default();
+        let (sender, receiver) = mpsc::channel();
+        if mode == 1 {
+            cancellation.cancel();
+        } else if mode == 2 {
+            sender.send(())?;
+        }
+        let result = child.monitor(None, &cancellation, Some(&receiver));
+        match mode {
+            0 => assert!(result?.success()),
+            1 => assert_eq!(result, Err(crate::FfmpegError::Cancelled)),
+            _ => assert!(matches!(result, Err(crate::FfmpegError::ProcessIo(_)))),
+        }
+        assert!(child.child.try_wait()?.is_some());
+    }
     Ok(())
 }
 

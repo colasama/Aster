@@ -226,8 +226,9 @@ pub struct ExportLimits {
     pub frame_poll_ms: u64,
     #[arg(long = "export-max-frame-error-bytes", default_value_t = Self::default().max_frame_error_bytes)]
     pub max_frame_error_bytes: usize,
-    #[arg(long = "export-timeout-seconds", default_value = "14400", value_parser = |value: &str| value.parse::<u64>().map(Duration::from_secs))]
-    pub timeout: Duration,
+    /// Optional wall-clock deadline, including time paused. Omit for long-lived queue jobs.
+    #[arg(long = "export-timeout-seconds", value_parser = |value: &str| value.parse::<u64>().map(Duration::from_secs))]
+    pub timeout: Option<Duration>,
     #[arg(long = "export-encoder-probe-timeout-seconds", default_value = "15", value_parser = |value: &str| value.parse::<u64>().map(Duration::from_secs))]
     pub encoder_probe_timeout: Duration,
     #[arg(long = "export-max-stderr-bytes", default_value_t = Self::default().max_stderr_bytes)]
@@ -257,7 +258,7 @@ impl Default for ExportLimits {
             max_frame_queue_capacity: 64,
             frame_poll_ms: 5,
             max_frame_error_bytes: 1024,
-            timeout: Duration::from_secs(4 * 60 * 60),
+            timeout: None,
             encoder_probe_timeout: Duration::from_secs(15),
             max_stderr_bytes: 1024 * 1024,
             max_width: 16_384,

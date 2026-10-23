@@ -6,6 +6,7 @@ import { join, relative, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { captureAssignments } from "../parity/provenance.mjs";
 import { runProjectImageLifecycle } from "./native-project-image-lifecycle.mjs";
+import { runProjectTimeoutLifecycle } from "./native-project-timeout-lifecycle.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile, sourceProvenance } from "./source.mjs";
 export async function runProjectExportLifecycle(context, prepared) {
@@ -346,6 +347,10 @@ export async function runProjectExportLifecycle(context, prepared) {
       acknowledgments: settledPauses,
       receipt: paused.rows.at(-1),
     });
+    await runProjectTimeoutLifecycle({ output, cli, run, argumentsFor, report });
+    context.print?.(
+      "Optional deadline passed: long pause/resume, explicit expiry and paused failure cleanup",
+    );
     for (const action of ["cancel", "disconnect", "malformed"]) {
       const name = `paused-${action}`;
       const args = await argumentsFor("minimal-golden", name, 100);

@@ -215,3 +215,8 @@ Native file admission and encoded-video snapshots share the application's 2 GiB 
 budget. Video source reuse allows an additional eight bounded 16 MiB presentation indices; encoded
 snapshots stay on disk. This does not increase inline grants, decoded pixels, or lookahead memory
 budgets. Caller-selected lower source/cache limits still reject or evict deterministically.
+
+Native MP4 exports have no implicit wall-clock deadline. CLI callers can set
+`--export-timeout-seconds` to bound the entire mux operation, including pauses; zero expires
+immediately. Decoder, GPU and individual operation timeouts remain bounded. Mux failure cancels
+the producer even while paused, retains the failure cause and removes unpublished output.

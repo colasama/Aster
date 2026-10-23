@@ -56,7 +56,7 @@ impl BoundedRead {
 impl MediaProcess {
     pub(crate) fn monitor(
         &mut self,
-        timeout: Duration,
+        timeout: Option<Duration>,
         cancellation: &CancellationToken,
         writer: Option<&mpsc::Receiver<()>>,
     ) -> Result<ExitStatus, FfmpegError> {
@@ -64,7 +64,7 @@ impl MediaProcess {
         loop {
             let failure = if cancellation.is_cancelled() {
                 Some(FfmpegError::Cancelled)
-            } else if started.elapsed() >= timeout {
+            } else if let Some(timeout) = timeout.filter(|limit| started.elapsed() >= *limit) {
                 Some(FfmpegError::TimedOut {
                     timeout_ms: u64::try_from(timeout.as_millis()).unwrap_or(u64::MAX),
                 })
@@ -107,7 +107,7 @@ impl MediaProcess {
             .ok_or_else(|| FfmpegError::ProcessIo("stderr pipe unavailable".into()))?;
         let stdout_reader = BoundedRead::spawn(stdout, max_stdout_bytes);
         let stderr_reader = BoundedRead::spawn(stderr, max_stderr_bytes);
-        let status = self.monitor(timeout, cancellation, None);
+        let status = self.monitor(Some(timeout), cancellation, None);
         // Join both readers even when either reports a failure.
         let stdout = BoundedRead::join(stdout_reader);
         let stderr = BoundedRead::join(stderr_reader);
