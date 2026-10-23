@@ -44,6 +44,12 @@ reads and validates shaders for exactly the requested IDs, and the renderer regi
 those validated payloads. Missing or disabled project plugins remain preserved as isolated no-op
 nodes until their runtime becomes available.
 
+Production preview synchronizes admitted plugin packages and lifecycle changes through the native
+preview broker; Rust evaluates generator plans and executes their WGSL. Queue preparation freezes
+the selected packages with the immutable job and validates their identities before output. Missing,
+disabled and safe-mode plugins retain their declared isolation behavior. This renderer migration
+does not change manifest versions, shader bindings or the plugin ABI.
+
 ## Minimal manifest
 
 ```toml

@@ -2,21 +2,24 @@
 
 ## Status and scope
 
-This document describes both the current bounded compatibility paths and the remaining native-media
-plan. Browser video may use hardware decoding internally, but decoded pixels still pass through a
-persistent canvas and `GPUQueue.writeTexture`. `aster-video` owns backend-independent stream selection,
+This document distinguishes the current native production path from proposed platform extensions.
+Rust evaluates and renders production preview and queued outputs. `aster-video` owns stream selection,
 exact timestamps, color metadata, bounded caches, process-isolated FFprobe/software decode, and a
 typed FFmpeg H.264/H.265 export backend.
 
-The Electron MVP exposes SDR H.264/AAC MP4 export. It keeps at most three WebGPU readbacks in
-flight, sends packed BGRA/RGBA frames over a dedicated binary IPC method, probes a real NVENC frame,
-falls back to `libx264`, mixes bounded Float32 stereo chunks through a separate FFmpeg pipe, and
-applies the requested bitrate as bounded VBR before atomically publishing the completed MP4. The PCM sample count derives from the same rational frame
-range as video; shared source decodes are cached instead of repeated per layer instance. It deliberately does not claim
-zero-copy: the display-referred frame travels from GPU memory to CPU memory and is uploaded again for
-hardware encoding. Preview artifacts bundle checksum-pinned FFmpeg and FFprobe with build provenance
-and upstream notices. HDR/10-bit delivery, alpha video,
-native platform decode/encode surfaces, and zero-copy interop remain future work.
+The desktop exposes still PNG, PNG sequence and SDR H.264/AAC MP4 through native project workers.
+PNG preserves RGBA in Rust. Video converts to BT.709 limited-range NV12 on the renderer GPU and
+qualifies a Media Foundation hardware encoder on that adapter. Shared surfaces are used when
+qualified; bounded native NV12 readback is the explicit alternative. Unsupported hardware fails
+the job without selecting TS rendering or software video encoding. Native audio mixing derives its
+PCM count from the same rational range and supplies bounded chunks to FFmpeg's AAC mux path.
+Complete receipts and process shutdown precede atomic output publication. Bundled FFmpeg/FFprobe
+retain checksum-pinned provenance and notices. HDR/10-bit delivery, alpha video and portable platform
+surface import remain future work; the current decode path does not claim zero-copy.
+
+The frozen TS reference runtime retains browser video upload and its original NVENC/libx264 export
+selection solely for comparisons. Those renderer and browser MP4 entry points are absent from normal
+production bundles. See [Production Render Contract](PRODUCTION_RENDER_CONTRACT.md).
 
 The MVP keeps one project model and one rendering contract. Media backends are replaceable adapters;
 codec, platform, and driver details must not leak into layer evaluation.
@@ -42,13 +45,13 @@ textures. Input files may contain one flat RGB layer with optional alpha, full-r
 channels, matching zero-origin data/display windows and BT.709/sRGB primaries. Associated RGB is
 unassociated before sampling; negative and HDR values remain linear. Deep/multipart data, unsupported
 primaries and non-finite or half-float-overflowing samples reject explicitly. Header lengths and offset
-tables are checked before decode; reads observe cancellation and timeout. This path currently serves
-headless frame-plan rendering. Production preview/export still use TS. The shipped FFmpeg build and
-encoding backend selection are unchanged.
+tables are checked before decode; reads observe cancellation and timeout. Native authored-project
+preview/export and diagnostic supplied-plan rendering share these media contracts. This does not
+add HDR video delivery or change the shipped FFmpeg dependency.
 
 ## Native video snapshots
 
-The headless frame-plan path accepts authorized SDR BT.709 H.264 4:2:0 in MP4/MOV with explicit
+Native rendering accepts authorized SDR BT.709 H.264 4:2:0 in MP4/MOV with explicit
 `--ffmpeg` and `--ffprobe` executables. Source SHA-256 and imported content identity are checked before
 creating a private, seekable snapshot. FFprobe indexes ordered presentation timestamps and positive
 durations; rational and binary-rational requests select an exact presentation interval without a
@@ -70,10 +73,11 @@ removed when the operation ends. A native batch keeps immutable grants and a dec
 for its lifetime. The full content-addressed frame identity keys reuse, including the source, sample,
 format and extent. The default limits are 64 MiB of retained pixels and 256 entries; zero disables
 retention, oversized frames bypass it, and least-recently-used entries are evicted before insertion.
-Cancellation precedes cache lookup. A hit reuses already-verified bytes without reopening a source;
-an eviction requires a new authorized snapshot and decode. Receipts expose hits, misses, actual
-decodes, evictions and retained pixel bytes. Distinct uncached video frames still probe and decode
-individually; streaming codec state and production integration remain separate work.
+Cancellation precedes cache lookup. Current grants are authenticated before private snapshot/index
+reuse. A bounded sequential window retains up to eight frames and 16 MiB by default; seeks outside
+that window replace it. Receipts expose hits, misses, decodes, evictions and retained bytes.
+Native file admission and snapshot copies stream in bounded chunks instead of retaining complete
+encoded videos. Platform hardware decode surfaces remain separate work.
 
 ## Required backend contract
 
@@ -154,6 +158,10 @@ double-premultiplication.
 
 ## Export codec strategy
 
+The table below is the cross-platform roadmap. Current Windows production H.264 requires the
+qualified native hardware path above; H.265, ProRes and software encoder fallback are not enabled by
+this roadmap. PNG sequences restart through a fresh atomic job, not an in-place partial append.
+
 | Target | Baseline path | Hardware path | Policy |
 | --- | --- | --- | --- |
 | H.264 | FFmpeg LGPL-compatible native encoder when available; otherwise a separately distributed, legally reviewed software encoder | D3D11/D3D12, VideoToolbox, VAAPI | 8-bit 4:2:0 SDR delivery; no alpha |
@@ -167,15 +175,16 @@ P010, 4:4:4, or BGRA surfaces. Rate control mode, bitrate/quality, GOP, B-frame 
 pixel format, color tags, and codec implementation are written into the export report.
 
 H.264 and H.265 output are product capabilities only after muxing, audio synchronization, cancellation,
-and conformance gates pass. Merely constructing an FFmpeg command is not implementation. Hardware
-encoding is optional optimization: software output remains the correctness fallback, and differences
-in rate control or bitstream are expected while decoded visual conformance remains required.
+and conformance gates pass. Merely constructing an FFmpeg command is not implementation. A future
+software fallback requires its own explicit capability and distribution approval. Differences in
+rate control or bitstream never replace decoded visual conformance.
 
 ## Background export architecture
 
 Background export runs in a dedicated worker process, not a renderer thread or the UI process. The UI
-creates an immutable project snapshot, resolves asset identities, and submits a versioned job manifest
-over length-prefixed local IPC. The worker validates the manifest and paths again, creates its own GPU
+creates an immutable project snapshot and resolves asset identities. Electron prepares authenticated
+project/request files and launches a native worker with bounded JSON control/progress lines.
+The worker validates inputs and paths again, creates its own GPU
 device and media sessions, and reports structured progress, diagnostics, and heartbeats.
 
 The job has bounded queues between evaluation, GPU rendering/readback or interop, encode, mux, and disk
@@ -185,11 +194,12 @@ outputs, and leaves source assets untouched. The final container is published by
 only after encoder flush, mux trailer, file sync, and validation succeed.
 
 Jobs record project/content hash, Aster build, backend capability snapshot, adapter/driver, export
-settings, completed frame, and errors. PNG sequences can resume only when hashes and settings match.
+settings, completed frame, and errors. Current interrupted PNG jobs restart a complete transaction
+from their immutable snapshot; they do not resume from a partially published sequence.
 Inter-frame video starts a new temporary encode after interruption; appending to a partial MP4/MOV is
-not treated as safe resume. Device loss permits one clean worker/device restart before deterministic
-fallback or failure. Interactive preview has scheduling priority; concurrent background GPU work uses
-explicit memory and in-flight-frame budgets.
+not treated as safe resume. Failed export workers leave unpublished output and require an explicit
+queue retry. Preview owns its separate device-loss recovery. Concurrent background GPU work uses
+explicit memory and in-flight-frame budgets; no renderer fallback changes a job's output contract.
 
 ## Platform decode and encode paths
 

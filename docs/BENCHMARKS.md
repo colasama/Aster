@@ -26,15 +26,30 @@ requires equivalent visible output and quality, rotating application order, thre
 metric sources, published fixtures and raw data, and explicit unsupported results. It forbids
 substituting an easier workload or using unmatched timing sources in one performance ratio.
 
-Renderer migration checks use `pnpm migrate:verify --milestone M0`. The full run executes the
+Renderer migration checks use `pnpm migrate:verify --milestone <id>`. The full run executes the
 static checks through lefthook, rebuilds the application, and exercises preview and render-queue
 export in both foreground and background application sessions. It preserves the staged FFmpeg
 binaries and checks their packaged hashes. Reports and step logs live under `artifacts/migration/`,
 with source hashes and timings to identify the exact checked working tree. `--quick` omits the
-application checks and some static checks; its result is incomplete and cannot authorize a commit.
+application checks and some static checks; it cannot establish full G0 or milestone completion.
+Development commits require full G0 plus affected-scope checks under the approved layered policy.
 Passing these gates does not establish a performance baseline or complete the migration milestone:
 the corpus, reference captures, pixel oracle, and measured baselines remain separate requirements in
 [the migration specification](migration/RUST_RENDERER_MIGRATION.md).
+
+Final M12 verification combines authored-project Rust exports and production native preview. Export
+performance uses four balanced TS/Rust pairs over all five declared workloads, ten completed
+same-session warm-up frames per observation and complete-export timing. It includes native audio
+mixing, encoder creation, evaluation, rendering, encoding, mux and publication; initial loading,
+audio decode, warm-up and subsequent probing are excluded. The native raster cache uses the
+production 64 MiB setting. Preview uses three balanced pairs over seven scenarios and independently
+checks input-to-present latency. Every native median FPS must exceed contemporary retained TS;
+native p95 input latency must not exceed TS. Historical baseline percentages do not replace these
+comparisons. Full output quality, audio and lifecycle acceptance remain independent gates.
+
+The TS baseline and retained comparison harness described below are isolated reference programs.
+Their RenderHost, browser readback and encoder-selection behavior do not describe the current
+production renderer. Reports identify which path and source snapshot produced each observation.
 
 `pnpm migrate:benchmark` builds an isolated production Electron benchmark bundle and measures the
 existing `ProductionBeautyFramePipeline` through `runRenderHostFrameLoop`. This migration baseline
@@ -55,7 +70,7 @@ probing and subsequent FFprobe validation are outside it. Video synchronization 
 readback concurrency follow the production assignment, including a single in-flight frame for
 the owner project's reachable video layers. Frames keep the native BGRA/RGBA format.
 
-Current readback benchmark sessions use the production RenderHost `renderFrameInto` path and its
+Retained readback benchmark sessions use the original RenderHost `renderFrameInto` path and its
 lazy CPU destination pool. Capacity is the clamped pipeline depth plus one writer-owned frame;
 all pixels are still copied, and buffers remain leased until every PNG/MP4 output acknowledges
 the frame. Initial pool allocations occur inside the measured interval. Warm-up, frame counts,
@@ -154,8 +169,10 @@ are checked again afterward. This is a reference execution component, not native
 The native job now provides a preparation-only `warm` operation on the same retained device and
 selected NV12 transport. Ten wrapping frame addresses execute without advancing the encoder or
 input admission or compressed storage; completed GPU work is acknowledged with an authenticated plan proof.
-`node scripts/migration/native-benchmark-export.mjs --out <fresh-artifact-directory>` now executes
-the candidate through the production RenderHost frame loop and whole-job native export route.
+The earlier supplied-plan diagnostic
+`node scripts/migration/native-benchmark-export.mjs --out <fresh-artifact-directory>` executes
+the candidate through the retained RenderHost frame loop and whole-job native export route.
+M12 measures authored-project exports instead; this older observation cannot substitute for them.
 It builds the performance HTML entry explicitly, preserves and executes its web/Electron/bridge/
 native binaries, and rejects TS fallback. The browser captures production plans and immutable media
 identities; the main process grants only paths authorized by the assigned project. Ten same-device

@@ -25,11 +25,17 @@ Heavy import state never enters project operations or undo snapshots. PSD pixel 
 `File` handles, sequence frame URLs, and sanitized SVG parse state live in the media import runtime
 registry and are referenced by source ID.
 
-The WebGPU path uploads PSD crop rows directly from the decoded plane without padding the complete
+The retained SVG/PSD raster service uploads PSD crop rows directly from the decoded plane without padding the complete
 document or producing PNG/base64 intermediates. Sequence frames use a bounded LRU decode cache,
 deduplicate concurrent work, and preload neighboring frames with bounded concurrency. SVG rasters
 use a separate bounded LRU. A ready texture remains bound until its replacement has decoded and
 uploaded, preventing playback flashes during frame changes.
+
+Production preview and exports evaluate media in Rust. Native still, sequence and video decoders
+receive authenticated content and exact frame addresses; the SVG/PSD service returns bounded raster
+resources only. Queue jobs freeze linked files and advanced import payloads into job-owned snapshots
+before native preparation. Import/editing registries and the unchanged Canvas compatibility path
+remain frontend concerns; they cannot substitute mutable editor media into a queued export.
 
 Canvas 2D fallback consumes the same source timing and policies. PSD crops use `putImageData` dirty
 rectangles over the original decoded buffer, and SVG uses object URLs that are revoked when the

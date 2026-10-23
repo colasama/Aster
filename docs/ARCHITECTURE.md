@@ -16,6 +16,12 @@ through a context-isolated preload API, a main-process command allowlist, and th
 bridge. Local media uses a dedicated protocol whose path set is populated only by validated bridge
 responses.
 
+Production preview and all queued still, sequence and video exports use Rust project evaluation and
+rendering. The production bundle excludes the TS WebGPU renderer and hidden RenderHost; frozen TS
+modules are built only into the reference runtime. Canvas 2D remains an interactive compatibility
+backend. Missing native export capabilities fail explicitly. The current ownership and delivery
+boundaries are summarized in [Production Render Contract](PRODUCTION_RENDER_CONTRACT.md).
+
 The desktop window uses renderer-owned chrome so the project menu and window controls share one
 visual system. The frameless window exposes only minimize, maximize/restore, and close through the
 context-isolated preload boundary; the renderer has no direct Electron access. The sandboxed preload
@@ -64,7 +70,8 @@ structure, layers, text, sources, effects, and numeric/keyframe values without i
 `operations.ts` applies transactions; operation types, property access, and mutation guards live in
 separate modules. Existing document fields, effect identifiers, and operation names remain stable.
 
-`WebGpuRenderer` coordinates frame evaluation, passes, and lifecycle. `RendererResources` owns
+In the frozen reference runtime, `WebGpuRenderer` coordinates frame evaluation, passes and lifecycle.
+Its `RendererResources` owns
 allocation, resizing helpers, and disposal of its GPU resources and media/surface caches; scene batch
 submission has its own module. Frame buffers remain GPU-resident until an explicit readback.
 
@@ -77,7 +84,8 @@ mattes, feathering, exposure and inversion through the shared post shader. Fixed
 isolated output once; adjustment passes snapshot the accumulated scene and replace it after processing.
 Child-first precomposition surfaces use the shared premultiplied surface shader and the same scene
 executor, including nested adjustments, the complete registered effect/style catalog, LUTs and
-blur/glow pyramids. Production preview/export still use TS until their integration milestones.
+blur/glow pyramids. Production preview and exports use the native project renderer; frozen TS
+execution remains available only in the independent reference runtime.
 
 Surface routing is checked against the graph, geometry mappings and exact resource closure before
 GPU execution. Child scene/effect headers retain their own time and composition identity. Cached
@@ -926,12 +934,12 @@ property order and number formatting before hashing material IDs. JSON parsing e
 round trips; the shared scalar formatter uses pure-Rust Ryū-js for ECMAScript shortest-decimal
 rounding, including halfway values. Allocation state is an explicit
 input; unavailable, cleared and drawn outcomes retain the existing texture and attribute budgets.
-Component checks compare production TS plans with mocked allocation handles, including material
+Component checks compare retained TS plans with mocked allocation handles, including material
 ordering and budget boundaries; complete project resource assembly remains separate.
 
 Native depth and surface post producers preserve the existing camera-optics scaling, bounded uniform
 packing, attachment fallback roles and ready/skipped outcomes. Their component oracle invokes the
-production TS post-effect classes with allocation handles supplied by the harness, so Rust output
+retained TS post-effect classes with allocation handles supplied by the harness, so Rust output
 is checked against the existing input-selection logic without running a second GPU pipeline.
 
 Native bundle assembly admits immutable content proofs under the existing 65,536-resource and
@@ -947,7 +955,7 @@ time, preserves map insertion order, and uses the enclosing render target's pixe
 generator plans snapshot admitted shader sources into bounded content resources, translate the
 validated plugin graph, and pack context, parameters, indirect commands and optional root-time audio.
 Temporal raster passes preserve binary64 exposure weights and bind distinct supplied sample/output
-identities. These producers are compared with production TS. Native project sessions coordinate frame
+identities. These producers are compared with retained TS. Native project sessions coordinate frame
 assembly and authorize headless resources; the bounded retained raster provider supplies text/SVG/PSD pixels.
 
 Material planning evaluates normal strength, environment intensity and wrapped rotation before
@@ -969,7 +977,7 @@ current scene. Camera optics, layer motion eligibility and visualization determi
 samples and output stages are needed. Raster bounds and text layouts remain explicit supplied inputs.
 The output coordinator derives shutter timing from the project, observes auxiliary allocation and
 motion readiness, and preserves depth-source fallback, generator exclusion during beauty motion,
-selection IDs and final route consistency. Production TS coordinator comparisons cover all output
+selection IDs and final route consistency. Retained TS coordinator comparisons cover all output
 modes and unavailable/cleared/drawn resources; complete frame/resource admission remains separate.
 
 The project-frame coordinator now joins scene evaluation, recursive surfaces, effect and material
@@ -1139,7 +1147,8 @@ the next acquisition boundary without changing the schedule. A pause control may
 safe boundary, including audio staging. Controllers must match that identifier to their outstanding
 pause request and ignore stale receipts after resume or cancellation. Notifications run outside the
 control lock, and cancellation releases a paused worker without publishing an unfinished MP4.
-The production application's export selection remains capability-gated separately.
+The production application invokes this authored-project export path through `NativeQueueHostFactory`.
+Native capability failures fail the job; the queue does not select a retained TS renderer.
 `--format png` exports one frame (the default frame count is one); `--format png-sequence` exports
 the selected range into a new directory with zero-based `frame_000000.png` member names. Both reuse
 one native project session and the same pause/cancel controls. Image output preserves RGBA and accepts
@@ -1162,7 +1171,7 @@ Surface cache generations are independent of the root project revision: a newly 
 renderer starts at generation one, even when the root snapshot revision is zero. Native recursive
 surface plans carry the admitted surface generation while root plans retain the snapshot revision.
 
-The diagnostic `pnpm parity:capture --plan-references` mode captures the production TS evaluator at
+The diagnostic `pnpm parity:capture --plan-references` mode captures the retained TS evaluator at
 all declared case frames and 64 deterministic subframe times per case. A SHA-256-derived schedule
 binds the case and authored project, with sample indices kept separate from exact evaluation times.
 The capture uses the existing production export-plan path, including its resource readiness barrier,
@@ -1597,8 +1606,8 @@ the job; codec property readback before and after media-type negotiation rejects
 Asynchronous MFT events use `BeginGetEvent`/`EndGetEvent`, with one pending notification and
 only the event type or error crossing into the render thread. Qualification and production share
 one streaming lifetime; the first sample after drain declares a discontinuity.
-This preparatory capability is separate from production export
-routing; complete Electron mux integration remains pending.
+The authored-project export worker uses this encoder qualification before native delivery.
+Electron validates complete output receipts and publishes the job's output set atomically.
 
 `NativeRenderer::prepare_nv12` reserves a fixed-size conversion slot before export frames are
 rendered. The shared WGSL conversion reads display BGRA on the renderer device and packs BT.709
@@ -1628,7 +1637,7 @@ one preparation slot in addition to the configured in-flight bound. GPU probe sa
 until explicit transform shutdown and have a separate total byte limit. Both the transform's
 `IMFShutdown` and activation shutdown are invoked before releasing input/device ownership.
 
-The opt-in sidecar export stream connects supplied-plan rendering, packed NV12 and a retained
+The diagnostic sidecar export stream connects supplied-plan rendering, packed NV12 and a retained
 hardware H.264 transform. `aster-encode` owns asynchronous input credits, bounded in-flight frames,
 bounded packet batches, ordered timestamps, drain and cancellation. Frame durations are differences
 of absolute rational timestamps, avoiding cumulative drift for fractional frame rates. Hardware
@@ -1639,17 +1648,16 @@ Only metadata and compressed Annex-B packets leave Rust. Electron's `NativeRende
 one bounded request/reply transaction at a time; child failure, timeout or disposal releases
 blocked writes and terminates the worker. `NativeExportSession` checks packet order, rational
 timestamps and drain before the existing MP4 session stream-copies H.264 with the audio pipe.
-Clean sidecar shutdown precedes atomic publication. The render queue's native broker verifies the
+Clean sidecar shutdown precedes atomic publication. The retained diagnostic broker verifies the
 actual shared transport before selecting native; a startup failure allows one fresh-process
 hardware qualification with native NV12 readback and a recorded transport reason. The final video
 submission drains tail packets before waiting for PCM, breaking the video-EOF/audio-pipe wait cycle.
 The broker verifies the
 actual retained encoder before selecting native, then admits and seals every frame before opening
 the MP4 mux. Immutable scope, revision, composition, exact time, size, AA and color pipeline are
-checked against each native admission response. One H.264 MP4 output is currently supported;
-other output sets and failed admission use the complete retained TS path with a logged reason.
-Native selection never mixes final TS frames into a native stream. Full application, encoded
-quality and performance acceptance remain required before M8 closes.
+checked against each native admission response. This supplied-plan comparison route supports one
+H.264 MP4 output and retains its historical whole-job TS fallback. It is excluded from production
+bundles. Production jobs use authored-project Rust evaluation for every supported output module.
 `planExportFrame` stops TS execution after bundle construction and media/raster preparation,
 without recording the final scene/output graph or reserving its readback. It shares the exact
 resource barrier and retained media ownership with diagnostic capture, but captures only raster
@@ -1694,7 +1702,7 @@ replay with bounded, deduplicated storage. `NativeResourceWindow` retains only t
 up to 64 ordered operations per bounded transaction; each acknowledgement keeps its own request
 identity. Video decoding retains private source snapshots and presentation indices under separate
 byte and entry limits, while rechecking source grants and content digests before reuse.
-Queue admission renders and encodes once, then binds the encoded reply's typed plan hash/header
+Retained supplied-plan admission renders and encodes once, then binds the reply's typed plan hash/header
 proof to the immutable job. Cumulative admitted input is bounded to 31 GiB, with at most 262144
 distinct resource identities and 64 MiB per owned frame. Private compressed packets are bounded to
 1 GiB. Whole-job sealing requires every frame, valid rational packet
@@ -1717,6 +1725,6 @@ has an aggregate materialization budget; sequence grants retain member frame ide
 broker owns these files, bounded spool, sidecar and mux through finish or cancellation. Pause stops
 preflight/replay at frame boundaries, and cancel interrupts pending native calls out of band.
 The packaged build includes `aster-render-cli`; Windows uses Electron's adjacent DXC compiler.
-Production bundling keeps the shared shader manifest and raw WGSL fragments in the GPU chunk.
+The retained reference bundle keeps the shared shader manifest and raw WGSL fragments in its GPU chunk.
 Its eager catalog must not read shader inputs from an application chunk that imports the catalog
 through a cycle; both editor and hidden RenderHost startup depend on this initialization order.

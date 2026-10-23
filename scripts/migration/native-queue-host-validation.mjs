@@ -31,9 +31,9 @@ export async function validateNativeQueueHost(context, preparedRuntime, processR
   };
   const report = { status: "failed", source: preparedRuntime.source, cases: [] };
   const sessions = [];
-  const create = async (name, holdAuthorization = false) => {
+  const create = async (name, holdAuthorization = false, restore = false) => {
     const directory = join(output, name);
-    await mkdir(directory);
+    if (!restore) await mkdir(directory);
     const jobs = join(directory, "jobs"),
       errors = [],
       states = [];
@@ -51,7 +51,7 @@ export async function validateNativeQueueHost(context, preparedRuntime, processR
         destination: join(directory, basename(item.destination)),
       })),
     };
-    for (const item of manifest.outputs) {
+    for (const item of restore ? [] : manifest.outputs) {
       if (item.kind === "pngSequence") {
         await mkdir(item.destination);
         await writeFile(join(item.destination, "old.txt"), "old");
@@ -225,6 +225,45 @@ export async function validateNativeQueueHost(context, preparedRuntime, processR
       status: "passed",
       states: cancel.states,
       lease_releases: cancel.releases,
+    });
+    const interrupted = await create("restart");
+    await interrupted.manager.enqueue(interrupted.manifest);
+    await wait(interrupted, () => item(interrupted)?.status === "rendering", "restart start");
+    await interrupted.manager.command({ type: "pause", jobId: interrupted.manifest.id });
+    await wait(interrupted, () => item(interrupted).status === "paused", "restart pause");
+    const previousLease = item(interrupted).workerLeaseId,
+      capturedManifest = item(interrupted).manifest;
+    await interrupted.manager.shutdown();
+    await interrupted.factory.dispose();
+    assert.equal(interrupted.releases, 1);
+    assert.equal(item(interrupted).status, "failed");
+    await oldOutputs(interrupted);
+    assert.deepEqual(await readdir(interrupted.jobs), []);
+    const restored = await create("restart", false, true);
+    assert.equal(item(restored).status, "failed");
+    assert.deepEqual(item(restored).manifest, capturedManifest);
+    await restored.manager.command({ type: "retry", jobId: restored.manifest.id });
+    await wait(restored, () => item(restored).status === "rendering", "restart retry");
+    assert.notEqual(item(restored).workerLeaseId, previousLease);
+    await wait(
+      restored,
+      () => item(restored).status === "completed" && restored.manager.activeHostCount === 0,
+      "restart completion",
+    );
+    assert.equal(restored.releases, 1);
+    assert.deepEqual(await readdir(restored.jobs), []);
+    assert.equal(
+      await hashFile(restored.manifest.outputs[0].destination),
+      processReport.cases[0].images[0].png_sha256,
+    );
+    report.cases.push({
+      id: "restart-failed-job-retries-immutable-snapshot",
+      status: "passed",
+      original_states: interrupted.states,
+      restored_states: restored.states,
+      original_lease: previousLease,
+      lease_releases: interrupted.releases + restored.releases,
+      images_exact: true,
     });
     const held = await create("authorization", true);
     await held.manager.enqueue(held.manifest);

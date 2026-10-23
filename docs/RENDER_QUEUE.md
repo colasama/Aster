@@ -149,6 +149,12 @@ while the same immutable project and plugin receipts bind every process. Main-pr
 carry the lease identity; renderer windows receive only queue state and control acknowledgements.
 The production frontend contains neither the TS GPU renderer nor its hidden RenderHost entry.
 
+Delivery qualification exercises mixed native outputs, pause/resume, cancellation while paused or
+awaiting authorization, and shutdown followed by reopening the durable queue and explicit retry.
+The retry retains the captured manifest, receives a new lease and publishes a fresh transaction.
+Existing destinations remain intact until that transaction completes. Application-level validation
+also checks actual foreground/background packages, renderer retirement and persisted native outputs.
+
 Rust evaluates exact rational frame addresses and acquires authorized visual media on demand.
 The retained raster service handles explicitly retained SVG/PSD browser rasterization only. Native
 PNG output is lossless RGBA; H.264 output uses the native NV12 conversion and BT.709 limited-range

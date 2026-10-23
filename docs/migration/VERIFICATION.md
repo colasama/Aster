@@ -4,6 +4,15 @@ The progress ledger identifies the active task and approved reference source. Ru
 repository root on `feature/rust-renderer`. Preserve an existing `ASTER_PERF_PROJECT`; otherwise set it
 to the owner's project directory (`D:\code\SD04PV` on the authorized local Windows host).
 
+Current final delivery uses `pnpm migrate:verify --milestone M12`. G1/G2 execute authored projects
+in Rust; G3 requires both complete project and native preview pixels; G4 combines four balanced
+export pairs with three preview pairs and independent latency; G5 checks complete project exports;
+G6 exercises production-default packaged applications and verifies renderer retirement. The exit
+audit runs when M12-T9 is active and requires T1–T8 complete, current full G0–G6, authenticated
+self-reviews and hash-pinned delivery documentation. Development commits use full G0 plus affected
+checks and cannot establish this final result. The earlier milestone procedures below preserve their
+historical boundaries; references to TS production capture describe the retained reference program.
+
 `pnpm migrate:verify --milestone M0` runs the complete static and Electron application checks. During
 the M0 exit task it also audits the reference corpus, deliberately rejected oracle probe, committed
 performance baseline, and whole-corpus TS exact comparison. A failed exit audit returns a nonzero
