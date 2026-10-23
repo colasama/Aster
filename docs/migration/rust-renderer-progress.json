@@ -393,89 +393,118 @@
     }
   },
   "last_cycle": {
-    "id": 169,
-    "time": "2026-10-23T07:21:32.587Z",
-    "updated_at": "2026-10-23T07:21:32.587Z",
+    "id": 170,
+    "time": "2026-10-23T07:39:05.736Z",
+    "updated_at": "2026-10-23T07:39:05.736Z",
     "milestone": "M12",
     "task": "M12-T6",
-    "increment": "align-streamed-video-source-budgets",
-    "outcome": "progress",
-    "commit": "e693631835a251337797e37255db1b5a7ae4b8ae",
+    "increment": "optional-export-deadlines-and-paused-mux-failure",
+    "outcome": "task-complete",
+    "commit": "85b2e138804d355ecb8557d598fbde91ebbf9fd5",
     "validation": {
-      "path": "artifacts/migration/cycle169b-validation/report.json",
-      "sha256": "745293161c94afe54c16ed59ef42a1f7fc46e67987281abdbc9523e84417d2a7"
+      "path": "artifacts/migration/cycle170-validation/report.json",
+      "sha256": "6bb1e492b5f33dbc41f942711bcb76dbb15cefe4ea911481157fc3d4a44228f0"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
-        "id": "queue-project-targeted",
+        "id": "frontend-production",
         "status": "passed",
-        "duration_ms": 2217
+        "duration_ms": 3651
+      },
+      {
+        "id": "frontend-reference",
+        "status": "passed",
+        "duration_ms": 1046
+      },
+      {
+        "id": "native-queue-application",
+        "status": "passed",
+        "duration_ms": 8951
       },
       {
         "id": "project-native-build",
         "status": "passed",
-        "duration_ms": 1363
+        "duration_ms": 158614
       },
       {
         "id": "project-electron-build",
         "status": "passed",
-        "duration_ms": 969
+        "duration_ms": 1031
       },
       {
         "id": "project-raster-build",
         "status": "passed",
-        "duration_ms": 348
+        "duration_ms": 347
       },
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 339321
+        "duration_ms": 354146
       }
     ],
-    "queue": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle169b-validation\\queue\\report.json",
-      "sha256": "ebed282d6b880c4a15b3dbf5ca0cf75277d61af38f3f9961640eb56412169910",
-      "exact_cases": 15,
-      "disabled_plugin_cases": 2,
-      "historical_receipt_match": {
-        "path": "artifacts/migration/cycle154b-validation/queue/report.json",
-        "sha256": "0e4c0bd1499bb3499da9b037ad30d4b24403aebe7ebe2ff66792c9034a9a4db4",
-        "cases": 15
-      }
+    "lifecycle": {
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle170-validation\\lifecycle\\report.json",
+      "sha256": "38003311475b3edd77ad92554ea679567dd48615e37cd9237204340f46e59027",
+      "cases": [
+        "minimal-golden",
+        "audio-selection-preserves-reactive-visuals",
+        "native-png-outputs"
+      ],
+      "controls": [
+        "png-failed-cancel",
+        "png-failed-budget",
+        "png-failed-count",
+        "pause-resume",
+        "optional-deadline",
+        "paused-deadline",
+        "zero-deadline",
+        "paused-cancel",
+        "paused-disconnect",
+        "paused-malformed",
+        "cancel",
+        "cancel-owner-audio",
+        "existing-output-preserved",
+        "witness-budget-abort-preserves-no-output"
+      ],
+      "optional_deadline_exact_frames": 4,
+      "pause_ms": 3506.3729999999923,
+      "expired_pause_exits_without_resume": true
     },
-    "video": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle169b-validation\\video\\report.json",
-      "sha256": "c87d4be2d7de6da3142274eb6b2e98c01caf74e6132b8b64c98941761ac43cb0",
-      "exact_comparisons": 24,
-      "cache_modes": 4,
-      "private_files_cleaned": true,
-      "chunk_bytes": 65536,
-      "whole_encoded_file_vector": false,
-      "reauthenticate_on_cache_hit": true
+    "application": {
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle170-validation\\application\\report.json",
+      "sha256": "fdcc8c5a9be2eff2a14facea3e84c9b52670d16cdf9aa4256c31094bafb8652d",
+      "native_outputs": 3,
+      "legacy_ipc_registered": 0,
+      "hidden_ts_host_calls": 0,
+      "temporary_jobs_cleaned": true
     },
-    "budgets": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle169b-validation\\budgets\\report.json",
-      "sha256": "d4cfe9cd9f4788e77d5a0633cfd009264b9eb56951c4eebee6dc2d6e5a34b3eb",
-      "source_bytes": 536870913,
-      "exact_frames": 4,
-      "lower_limits_rejected": true,
-      "oversized_queue_rejected": true,
-      "cleanup": true
+    "renderer_boundary": {
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle170-validation\\renderer-boundary.json",
+      "sha256": "6256246885e93a6f039bc11a1bbb87f59b8b97534d75ffcab69359c091aceb23",
+      "production_retained_modules": 0,
+      "reference_retained_modules": 4,
+      "frozen_producers": [
+        {
+          "path": "src/renderer/webgpu-renderer.ts",
+          "sha256": "75692769fbfe30ca8f8b5201ebc7586c0c234d5784ee8ddd76b2cf8281c79ba2"
+        },
+        {
+          "path": "src/renderer/compositing/beauty-frame.ts",
+          "sha256": "29477ef9a95cf876413cf51b3e6272253375403d097e35a37424525b75a80ee6"
+        },
+        {
+          "path": "src/core/rendering/render-export.ts",
+          "sha256": "402fc18cf34453b6ea9089680f5bae7e83fc85532897ed4ec5ea3c588c0f9734"
+        }
+      ]
     },
-    "retained_failed_attempts": [
-      {
-        "path": "artifacts/migration/cycle169-validation/budgets/native-large.log",
-        "reason": "Validation fixture used SHA-256 in the persisted FNV byteIdentity field; corrected the fixture without changing runtime authentication."
-      }
-    ],
     "quota": {
-      "remaining_percent": 66
+      "remaining_percent": 65
     },
     "self_review": {
       "result": "exact",
-      "compared_frames": 43,
-      "scope": "Four padded-file frames, twenty-four video cache comparisons and fifteen paired queue outputs have identical RGBA hashes and unchanged receipts; disabled-plugin checks assert intended feature omission rather than pixel parity."
+      "scope": "The new optional-deadline pause witness matches four prior pause/resume RGB and NV12 frames exactly. Existing audio-selection and PNG image comparisons also pass without any non-exact acceptance."
     },
     "deferred_gates": [
       "G1",
@@ -486,7 +515,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Continue M12-T6 with long-job timeout handling and close the routing audit, then compose final gates and qualify packaged delivery."
+    "next_step": "Start M12-T7: compose current native IR, project corpus/pixels, preview/export performance, encoded quality, application and retirement evidence into the full M12 verifier; then complete M12-T8 delivery and M12-T9 final acceptance."
   },
   "milestones": [
     {
@@ -27769,7 +27798,7 @@
           "id": "M12-T6",
           "title": "Retire every production TS render entry point",
           "scope": "Route foreground/background queue, automation, capture and supported output types through native project rendering; remove silent TS GPU fallbacks.",
-          "status": "in_progress",
+          "status": "done",
           "estimated_implementation_hours": 3,
           "required_gates": [
             "G0",
@@ -27780,14 +27809,15 @@
             "G5",
             "G6"
           ],
-          "remaining_qualification": "Qualify long-job total timeouts and close the production entry-point audit; foreground/packaged workflows remain delivery qualification in M12-T8, with complete gates owned by M12-T7/T9.",
-          "progress": "Production TS entry points are retired; native file and video source limits now accept the application 2 GiB private-media budget. Encoded snapshot cache capacity includes eight bounded presentation indices without changing decoded pixel, inline grant or lookahead memory budgets. A real 512 MiB plus one byte MP4 passes direct native and immutable queue exports with four exact frames; the retained executable and explicit lower limits reject it, oversized queue input is rejected before copying, and no temporary output remains. Twenty-four cache comparisons and fifteen existing queue outputs remain exact; full G0 passes. Long-job timeout handling and final delivery qualification remain pending.",
+          "progress": "Production preview, foreground/background queue, automation and capture route through native project rendering with no silent TS GPU fallback. Old browser export IPC is retired and normal bundles exclude all four retained reference entry modules. Streamed media, optional PNG disk budgets and aligned 2 GiB video limits are qualified. MP4 total deadlines are optional; explicit deadlines release paused producers on mux failure while preserving the failure cause and atomic cleanup. Current real native lifecycle, repeated controls, exact pause witnesses, three actual application outputs and full G0 pass. Packaged/foreground delivery qualification remains M12-T8 and complete current-source gate acceptance remains M12-T7/T9.",
           "started_at": "2026-10-23T06:07:55.277Z",
-          "commit": "e693631835a251337797e37255db1b5a7ae4b8ae",
+          "commit": "85b2e138804d355ecb8557d598fbde91ebbf9fd5",
           "validation": {
-            "path": "artifacts/migration/cycle169b-validation/report.json",
-            "sha256": "745293161c94afe54c16ed59ef42a1f7fc46e67987281abdbc9523e84417d2a7"
-          }
+            "path": "artifacts/migration/cycle170-validation/report.json",
+            "sha256": "6bb1e492b5f33dbc41f942711bcb76dbb15cefe4ea911481157fc3d4a44228f0"
+          },
+          "completed_at": "2026-10-23T07:39:05.736Z",
+          "delivery_qualification": "Implementation complete under layered-development-verification-v1; not a milestone exit. M12-T8 owns packaged/foreground workflows and synchronized delivery documentation; M12-T9 requires the full M12 verifier."
         },
         {
           "id": "M12-T7",
@@ -2681372,6 +2681402,132 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Continue M12-T6 with long-job timeout handling and close the routing audit, then compose final gates and qualify packaged delivery."
+    },
+    {
+      "cycle": 170,
+      "id": 170,
+      "time": "2026-10-23T07:39:05.736Z",
+      "updated_at": "2026-10-23T07:39:05.736Z",
+      "milestone": "M12",
+      "task": "M12-T6",
+      "increment": "optional-export-deadlines-and-paused-mux-failure",
+      "outcome": "task-complete",
+      "commit": "85b2e138804d355ecb8557d598fbde91ebbf9fd5",
+      "validation": {
+        "path": "artifacts/migration/cycle170-validation/report.json",
+        "sha256": "6bb1e492b5f33dbc41f942711bcb76dbb15cefe4ea911481157fc3d4a44228f0"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "frontend-production",
+          "status": "passed",
+          "duration_ms": 3651
+        },
+        {
+          "id": "frontend-reference",
+          "status": "passed",
+          "duration_ms": 1046
+        },
+        {
+          "id": "native-queue-application",
+          "status": "passed",
+          "duration_ms": 8951
+        },
+        {
+          "id": "project-native-build",
+          "status": "passed",
+          "duration_ms": 158614
+        },
+        {
+          "id": "project-electron-build",
+          "status": "passed",
+          "duration_ms": 1031
+        },
+        {
+          "id": "project-raster-build",
+          "status": "passed",
+          "duration_ms": 347
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 354146
+        }
+      ],
+      "lifecycle": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle170-validation\\lifecycle\\report.json",
+        "sha256": "38003311475b3edd77ad92554ea679567dd48615e37cd9237204340f46e59027",
+        "cases": [
+          "minimal-golden",
+          "audio-selection-preserves-reactive-visuals",
+          "native-png-outputs"
+        ],
+        "controls": [
+          "png-failed-cancel",
+          "png-failed-budget",
+          "png-failed-count",
+          "pause-resume",
+          "optional-deadline",
+          "paused-deadline",
+          "zero-deadline",
+          "paused-cancel",
+          "paused-disconnect",
+          "paused-malformed",
+          "cancel",
+          "cancel-owner-audio",
+          "existing-output-preserved",
+          "witness-budget-abort-preserves-no-output"
+        ],
+        "optional_deadline_exact_frames": 4,
+        "pause_ms": 3506.3729999999923,
+        "expired_pause_exits_without_resume": true
+      },
+      "application": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle170-validation\\application\\report.json",
+        "sha256": "fdcc8c5a9be2eff2a14facea3e84c9b52670d16cdf9aa4256c31094bafb8652d",
+        "native_outputs": 3,
+        "legacy_ipc_registered": 0,
+        "hidden_ts_host_calls": 0,
+        "temporary_jobs_cleaned": true
+      },
+      "renderer_boundary": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle170-validation\\renderer-boundary.json",
+        "sha256": "6256246885e93a6f039bc11a1bbb87f59b8b97534d75ffcab69359c091aceb23",
+        "production_retained_modules": 0,
+        "reference_retained_modules": 4,
+        "frozen_producers": [
+          {
+            "path": "src/renderer/webgpu-renderer.ts",
+            "sha256": "75692769fbfe30ca8f8b5201ebc7586c0c234d5784ee8ddd76b2cf8281c79ba2"
+          },
+          {
+            "path": "src/renderer/compositing/beauty-frame.ts",
+            "sha256": "29477ef9a95cf876413cf51b3e6272253375403d097e35a37424525b75a80ee6"
+          },
+          {
+            "path": "src/core/rendering/render-export.ts",
+            "sha256": "402fc18cf34453b6ea9089680f5bae7e83fc85532897ed4ec5ea3c588c0f9734"
+          }
+        ]
+      },
+      "quota": {
+        "remaining_percent": 65
+      },
+      "self_review": {
+        "result": "exact",
+        "scope": "The new optional-deadline pause witness matches four prior pause/resume RGB and NV12 frames exactly. Existing audio-selection and PNG image comparisons also pass without any non-exact acceptance."
+      },
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Start M12-T7: compose current native IR, project corpus/pixels, preview/export performance, encoded quality, application and retirement evidence into the full M12 verifier; then complete M12-T8 delivery and M12-T9 final acceptance."
     }
   ],
   "known_boundaries": [
