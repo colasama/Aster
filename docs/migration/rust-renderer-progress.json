@@ -2682297,7 +2682297,14 @@
       }
     }
   ],
-  "active_cycle": null,
+  "active_cycle": {
+    "id": 178,
+    "started_at": "2026-10-23T10:28:11.419Z",
+    "milestone": "M12",
+    "task": "M12-T7",
+    "increment": "bind-complete-m12-exit-evidence",
+    "validation_policy": "layered-development-verification-v1"
+  },
   "execution_pause": {
     "requested_by": "owner",
     "reason": "current_goal_quota_remaining_at_or_below_15_percent",
