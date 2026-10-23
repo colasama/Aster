@@ -18,6 +18,7 @@ import { auditM8Exit } from "./m8-exit.mjs";
 import { auditM9Exit } from "./m9-exit.mjs";
 import { auditM10Exit } from "./m10-exit.mjs";
 import { auditM11Exit } from "./m11-exit.mjs";
+import { auditM12Exit } from "./m12-exit.mjs";
 import { runNativeAppGate } from "./native-app-gate.mjs";
 import { runNativeCoreGate } from "./native-core-gate.mjs";
 import { runNativeExportGate } from "./native-export-gate.mjs";
@@ -692,6 +693,25 @@ export async function verifyMigration(options, dependencies = {}) {
           throw new Error("M11 production preview audit failed");
         report.milestone_exit_reason =
           "Current native preview corpus, editor lifecycle, paired throughput and input latency audited";
+      } catch (error) {
+        report.milestone_exit = { status: "failed", error: error.message };
+        report.milestone_exit_reason = error.message;
+      }
+    }
+    const productionExit = milestone.tasks.find((task) => task.id === "M12-T9");
+    if (
+      milestone.id === "M12" &&
+      !quick &&
+      (milestone.status === "done" || ["in_progress", "done"].includes(productionExit?.status))
+    ) {
+      try {
+        if (report.gates.some((gate) => gate.status !== "passed"))
+          throw new Error("M12 exit requires every current full gate");
+        report.milestone_exit = await (dependencies.auditM12Exit ?? auditM12Exit)(root, report);
+        if (report.milestone_exit.status !== "passed")
+          throw new Error("M12 production migration audit failed");
+        report.milestone_exit_reason =
+          "Complete project and preview coverage, reviewed pixels, paired performance, production retirement and delivery documentation audited";
       } catch (error) {
         report.milestone_exit = { status: "failed", error: error.message };
         report.milestone_exit_reason = error.message;

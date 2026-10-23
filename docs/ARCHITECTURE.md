@@ -729,6 +729,14 @@ workers, with persisted completion, released temporary jobs and no retired rende
 MP4 IPC. Reports, output hashes, packaged binaries and source identities remain bound through the
 aggregate; missing current preview latency evidence leaves this gate incomplete.
 
+Final migration acceptance binds all seven full gates and their child reports to one current
+invocation. It reconstructs complete project/sample/export coverage, authenticates admitted pixel
+reviews, recomputes paired export and preview performance, and checks independent input latency.
+Image decoding and numerical pixel checks already completed by those gates are not repeated.
+The packaged renderer must match the measured export renderer; completed delivery review pins the
+affected documents so later edits invalidate that review. Partial checks and unfinished delivery
+tasks cannot establish final acceptance.
+
 Native preview transport reserves one to three lossless BGRA sharing surfaces before rendering.
 Each surface remains immutable while a consumer owns its lease. DX12 completion precedes publication,
 and an owned duplicate NT handle is bound to the importing process identity. An independent bounded

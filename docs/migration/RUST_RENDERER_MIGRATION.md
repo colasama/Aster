@@ -519,6 +519,12 @@ before attempting another complete exit run. The section 11 completion criteria,
 quality limits and performance acceptance are unchanged. This approval changes verification frequency,
 not acceptance thresholds or the checkpoint authentication rules below.
 
+The M12 exit audit requires all seven full gates from the current invocation, including complete
+project and preview coverage, authenticated pixel self-reviews, paired performance, independent
+latency and production package retirement. It reuses numerical image checks already performed by
+those gates rather than decoding the corpus again. Delivery tasks must be complete and their
+reviewed documentation hashes current. Partial development runs cannot satisfy final acceptance.
+
 Checkpoint reuse after the diagnostic-verifier repair requires complete before/after file inventories
 whose digests reproduce the original and current execution identities. Only the explicitly enumerated
 verification files may differ; any runtime, shader, fixture, dependency or tolerance-catalog change

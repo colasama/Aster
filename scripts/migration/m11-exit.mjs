@@ -52,12 +52,36 @@ export async function auditM11Exit(root, report) {
   const source = await sourceProvenance(root);
   for (const key of ["source_sha256", "execution_sha256"])
     assert.equal(source[key], report.source[key]);
-  const { gates, pins, base } = await bindM11Gates(reader, report);
+  const { gates, pins } = await bindM11Gates(reader, report);
   const corpus = await reader.json("tests/parity/corpus.json");
-  const frameCount = assertM11PixelCoverage(corpus, gates.G3, ledger);
-  const preview = gates.G3.corpus;
+  const accepted = await auditPreviewExitEvidence(reader, root, {
+    corpus,
+    ledger,
+    gate: gates.G3,
+    performance: gates.G4,
+    app: gates.G6,
+    performancePin: pins.G4,
+  });
+  const checkedFiles = await reader.stable();
+  const after = await sourceProvenance(root);
+  for (const key of ["source_sha256", "execution_sha256"]) assert.equal(after[key], source[key]);
+  return {
+    ...accepted,
+    gate_reports: pins,
+    checked_files: checkedFiles,
+    production_export_acceptance: false,
+  };
+}
+
+/** The caller binds these complete child reports to the current invocation before auditing them. */
+export async function auditPreviewExitEvidence(
+  reader,
+  root,
+  { corpus, ledger, gate, performance, app, performancePin },
+) {
+  const frameCount = assertM11PixelCoverage(corpus, gate, ledger);
+  const preview = gate.corpus;
   // The just-completed pixel gate authenticated every image and review; do not decode them again.
-  const performance = gates.G4;
   assert.equal(performance.native_preview_acceptance, true);
   assert.equal(performance.throughput_passed, true);
   assert.equal(performance.arms.length, 6);
@@ -91,11 +115,9 @@ export async function auditM11Exit(root, report) {
   const latency = await auditPreviewLatency(root, performance.arms, owner.composition);
   assert.equal(latency.status, "passed");
   assert.deepEqual(latency, performance.latency);
-  const app = gates.G6;
   assert.equal(app.application.status, "passed");
   assert.deepEqual(app.latency, latency);
-  assert.equal(app.performance_evidence.path, `${base}/G4/report.json`);
-  assert.equal(app.performance_evidence.sha256, pins.G4.sha256);
+  assert.deepEqual(app.performance_evidence, performancePin);
   assert.deepEqual(
     app.interactions.frames.map((f) => f.id),
     [
@@ -173,13 +195,9 @@ export async function auditM11Exit(root, report) {
     app.packaged_renderer.sha256,
     performance.binaries.find((b) => b.path === "target/release/aster-render-cli.exe").sha256,
   );
-  const checkedFiles = await reader.stable();
-  const after = await sourceProvenance(root);
-  for (const key of ["source_sha256", "execution_sha256"]) assert.equal(after[key], source[key]);
   return {
     status: "passed",
     production_preview_acceptance: true,
-    gate_reports: pins,
     coverage: {
       cases: corpus.cases.length,
       frames: frameCount,
@@ -187,7 +205,5 @@ export async function auditM11Exit(root, report) {
       plugin_lifecycle: app.plugins.frames.length,
     },
     performance: { comparisons, latency },
-    checked_files: checkedFiles,
-    production_export_acceptance: false,
   };
 }
