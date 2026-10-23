@@ -80,6 +80,15 @@ cancelled copy removes only its incomplete staging file. Mixed PNG/video outputs
 until every module is complete. Interrupted rollback preserves original backup files for recovery;
 backup deletion after successful publication cannot trigger a destructive second rollback.
 
+`NativeQueueHostFactory` composes immutable input preparation, native output processes and atomic
+publication behind the queue host interface. It keeps one report in flight and one latest progress
+value, and acknowledges pauses only at native or file-operation boundaries. Each worker owns its
+private directory and media authorization until process and staging cleanup finish. Execution settles
+before terminal callbacks, allowing the scheduler to dispose a worker from inside its completion
+report without a circular wait. Cancellation while authorization is pending retains the scheduler
+slot until the returned lease is released. Production route selection remains separate while long-job
+admission is qualified.
+
 Each job pairs the persistence-safe project document with a versioned `RenderMediaManifest` keyed by
 source ID and content identity. Embedded still/video/audio data remains in the document. At enqueue,
 every linked local source is copied and SHA-256 verified into a content-addressed, job-owned snapshot
