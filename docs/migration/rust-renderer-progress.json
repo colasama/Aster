@@ -393,86 +393,124 @@
     }
   },
   "last_cycle": {
-    "id": 186,
-    "time": "2026-10-23T13:22:22.659Z",
-    "updated_at": "2026-10-23T13:22:22.659Z",
+    "id": 187,
+    "time": "2026-10-23T13:41:35.578Z",
+    "updated_at": "2026-10-23T13:41:35.578Z",
     "milestone": "M12",
     "task": "M12-T9",
-    "increment": "balanced-current-project-export-acceptance",
-    "outcome": "measured-gap",
-    "commit": "4ba3428d29eaa6a908f036f09ffceecf02d451d5",
+    "increment": "overlap-next-frame-file-media-with-submitted-gpu-work",
+    "outcome": "progress",
+    "commit": "5b11d51fba434d1f88f0544695fa3c68aefffea7",
     "validation": {
-      "path": "artifacts/migration/cycle186-validation/report.json",
-      "sha256": "5066b033d506487e7b6a7d51551306f45e9349a464f5041fc8bcd4a4854108ca"
+      "path": "artifacts/migration/cycle187-validation/report.json",
+      "sha256": "ca671f436ab8f2391db84ecf637292b16ef7c37efd4035ef315172323b11e104"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
-        "id": "G4-export",
-        "status": "failed",
-        "scope": "All five full-range workloads; four balanced TS/native pairs; current source and receipts authenticated",
-        "evidence": {
-          "path": "D:\\code\\Aster\\artifacts\\migration\\cycle186-validation\\export\\report.json",
-          "sha256": "93283c3519914ec3ca01dc3c1b65c11d9a05bf98138a2b9a098a707ad5f265d7"
-        }
+        "id": "project-library-and-cli",
+        "status": "passed",
+        "scope": "Project/CLI cargo check and 13 project library tests; one unrelated explicit RF64 qualification ignored"
+      },
+      {
+        "id": "exact-early-late-and-reactive-history",
+        "status": "passed",
+        "scope": "Eight early owner cache-toggle frames, eight later serial/prefetch frames and eight reactive audio-selection frames"
+      },
+      {
+        "id": "native-export-lifecycle",
+        "status": "passed"
       },
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 260522
+        "duration_ms": 320786
       }
     ],
     "measurements": [
       {
         "id": "owner-opening",
-        "ts_median_fps": 15.933962826401103,
-        "rust_median_fps": 15.916430227817832,
-        "ratio": 0.9988996711756964,
-        "passed": false
+        "frames": 714,
+        "fps": 16.16225637775313,
+        "per_frame_ms": {
+          "total_ms": 28.633334033613444,
+          "file_media_ms": 4.8529861344537775,
+          "raster_text_ms": 13.15000266106442,
+          "raster_exchange_ms": 12.184268487394968,
+          "materials_ms": 0.2623990196078429,
+          "audio_ms": 0.0001261904761904775,
+          "gpu_setup_ms": 0.05862226890756298,
+          "plan_inputs_ms": 0.23495196078431344,
+          "plan_ms": 8.977609523809525,
+          "admission_ms": 1.0960134453781516
+        },
+        "output_completion_ms_per_frame": 22.215655462184866
       },
       {
         "id": "owner-main",
-        "ts_median_fps": 30.05947221814032,
-        "rust_median_fps": 29.546594291955522,
-        "ratio": 0.982937893171814,
-        "passed": false
+        "frames": 300,
+        "fps": 30.543677458766034,
+        "per_frame_ms": {
+          "total_ms": 23.38556433333336,
+          "file_media_ms": 1.7197310000000001,
+          "raster_text_ms": 15.848503000000004,
+          "raster_exchange_ms": 14.634259666666667,
+          "materials_ms": 0.293542,
+          "audio_ms": 0.0001476666666666669,
+          "gpu_setup_ms": 0.10560333333333331,
+          "plan_inputs_ms": 0.24396133333333345,
+          "plan_ms": 3.9603639999999998,
+          "admission_ms": 1.213122666666666
+        },
+        "output_completion_ms_per_frame": 4.768932333333334
       },
       {
         "id": "composite-1080p",
-        "ts_median_fps": 50.359918179872096,
-        "rust_median_fps": 163.24309919833004,
-        "ratio": 3.2415282847614955,
-        "passed": true
-      },
-      {
-        "id": "composite-4k",
-        "ts_median_fps": 11.879024782275554,
-        "rust_median_fps": 54.15662527169865,
-        "ratio": 4.559012735835405,
-        "passed": true
-      },
-      {
-        "id": "effect-chain-1080p",
-        "ts_median_fps": 52.892566061989655,
-        "rust_median_fps": 82.06689830001476,
-        "ratio": 1.5515771763433264,
-        "passed": true
+        "frames": 600,
+        "fps": 160.6425702811245,
+        "per_frame_ms": {
+          "total_ms": 0.6585220000000003,
+          "file_media_ms": 0.038194833333333345,
+          "raster_text_ms": 0.0021669999999999992,
+          "raster_exchange_ms": 0.0002991666666666672,
+          "materials_ms": 0.03962566666666668,
+          "audio_ms": 0.00009133333333333358,
+          "gpu_setup_ms": 0.012298333333333324,
+          "plan_inputs_ms": 0.0021218333333333315,
+          "plan_ms": 0.48902366666666663,
+          "admission_ms": 0.07452650000000001
+        },
+        "output_completion_ms_per_frame": 3.142770666666668
       }
     ],
+    "observation": {
+      "path": "artifacts/migration/cycle187-validation/observation/report.json",
+      "sha256": "5f77eea97365875dd26815d56c985bcd8d150305a1d0a705295bf59599f0a096"
+    },
+    "late_witnesses": {
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle187-validation\\late-witnesses.json",
+      "sha256": "d9a8404a4878c33df397d7e9abb6b8bc3b2d2ba06f95e1f9e32aedeac257a03b",
+      "exact_frames": 8
+    },
+    "audio_reactive_history": {
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle185-validation\\lifecycle\\report.json",
+      "sha256": "a05e1e06a6a66e53d7a3e614780964c28fc0f6ea7a1fa174697433f4ce660a70",
+      "exact_frames": 8
+    },
     "self_review": {
-      "result": "not-applicable",
-      "scope": "No source, reference, tolerance or visual-path changes; performance-only cycle."
+      "result": "exact",
+      "scope": "Original and prefetched owner frame clocks, plans, RGB and NV12 agree exactly, including later source positions. Reactive audio, controls and lifecycle remain accepted. No reference or tolerance changes."
     },
     "deferred_gates": [
       "G1",
       "G2",
       "G3",
+      "G4",
       "G5",
-      "G6",
-      "G4-preview"
+      "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Prefetch only one next-frame file-media acquisition while the preceding native GPU frame runs. Keep GPU leases, render/encoder order, bounded resources, cancellation and pause acknowledgments intact; verify against exact cycle 185 owner and reactive witnesses before remeasuring."
+    "next_step": "Run pnpm migrate:verify --milestone M12 with full current-source G0-G6, including balanced export/preview performance, independent latency, pixel self-reviews and final production delivery audit. Single observations do not establish exit acceptance."
   },
   "milestones": [
     {
@@ -27828,7 +27866,7 @@
             "files": [
               {
                 "path": "docs/ARCHITECTURE.md",
-                "sha256": "5f047897ba5e4a7259dd0824baab68dfd76ca0dd91b6a2c28650e4e57048c410"
+                "sha256": "91e355ba2f8a95f1c07862615370bdb2c5fe9227c538f158a796e646313ddf64"
               },
               {
                 "path": "docs/RENDER_QUEUE.md",
@@ -27844,7 +27882,7 @@
               },
               {
                 "path": "docs/BENCHMARKS.md",
-                "sha256": "dfa9418cd67cbfb3fc7252671efeb5bebad0e53df285a7e97ed7460b2096c141"
+                "sha256": "d2b56deaf14dbd148bbeb61e9ec7b89bd5af78cf33a439ed809ae83c4fb79de0"
               },
               {
                 "path": "docs/PRODUCTION_RENDER_CONTRACT.md",
@@ -27863,8 +27901,8 @@
                 "sha256": "aac78a611e01df31ef2368a15a2ed9c9cd502b4bd0d1238d7e6134761f515360"
               }
             ],
-            "review": "Reviewed against native production routing, immutable queue/media ownership, codec and raster boundaries, restart/control behavior and current paired performance policy. Advanced-rendering roadmap remains explicitly future scope; project format and plugin ABI are unchanged. Resource-proof ownership/accounting paragraph re-reviewed after cycle 180; current hash pinned. Native nested-plan ownership and boundary validation paragraph re-reviewed after cycle 181; current hash pinned. Identical-limit native validation reuse reviewed after cycle 182; current hash pinned. Canonical JSON ownership and byte stability reviewed after cycle 183; current hash pinned. Native host-phase timing methodology reviewed after cycle 184; current hash pinned. Snapshot-wide conservative generator demand and typed nested-plan admission documentation reviewed after cycle 185; current hash pinned.",
-            "updated_at": "2026-10-23T12:54:56.151Z"
+            "review": "Reviewed against native production routing, immutable queue/media ownership, codec and raster boundaries, restart/control behavior and current paired performance policy. Advanced-rendering roadmap remains explicitly future scope; project format and plugin ABI are unchanged. Resource-proof ownership/accounting paragraph re-reviewed after cycle 180; current hash pinned. Native nested-plan ownership and boundary validation paragraph re-reviewed after cycle 181; current hash pinned. Identical-limit native validation reuse reviewed after cycle 182; current hash pinned. Canonical JSON ownership and byte stability reviewed after cycle 183; current hash pinned. Native host-phase timing methodology reviewed after cycle 184; current hash pinned. Snapshot-wide conservative generator demand and typed nested-plan admission documentation reviewed after cycle 185; current hash pinned. One-frame CPU acquisition ownership, bounded lifetime and accounting reviewed after cycle 187; current hashes pinned.",
+            "updated_at": "2026-10-23T13:41:35.578Z"
           },
           "delivery_evidence": {
             "process": {
@@ -27906,12 +27944,12 @@
             "G6"
           ],
           "started_at": "2026-10-23T11:03:56.171Z",
-          "commit": "4ba3428d29eaa6a908f036f09ffceecf02d451d5",
+          "commit": "5b11d51fba434d1f88f0544695fa3c68aefffea7",
           "validation": {
-            "path": "artifacts/migration/cycle186-validation/report.json",
-            "sha256": "5066b033d506487e7b6a7d51551306f45e9349a464f5041fc8bcd4a4854108ca"
+            "path": "artifacts/migration/cycle187-validation/report.json",
+            "sha256": "ca671f436ab8f2391db84ecf637292b16ef7c37efd4035ef315172323b11e104"
           },
-          "progress": "Four balanced current-source full-range TS/native export pairs are complete. Native median opening 15.9164 versus TS 15.9340 FPS (0.11% below); main 29.5466 versus 30.0595 (1.71% below). Composite 1080p, composite 4K and effect chain exceed TS by factors 3.24, 4.56 and 1.55. G4 export remains failed; full G0 passes. Next targeted increment overlaps bounded next-frame file-media acquisition with the preceding submitted GPU frame, preserving output/encoder order and exact witnesses."
+          "progress": "Beauty video exports prefetch one next-frame file-media acquisition while the previous submitted frame executes. The acquisition owns its original request/settings and session/generation proof; GPU leases and output/encoder order remain unchanged. Full-range owner observations reach 16.16 and 30.54 FPS, above cycle 186 contemporaneous TS medians 15.934 and 30.059. Sixteen early/late owner frames and eight reactive history witnesses preserve exact plans, RGB and NV12. Lifecycle and G0 pass. Full current-source M12 acceptance remains required."
         }
       ],
       "started_at": "2026-10-23T00:52:32.391Z"
@@ -2683016,6 +2683054,127 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Prefetch only one next-frame file-media acquisition while the preceding native GPU frame runs. Keep GPU leases, render/encoder order, bounded resources, cancellation and pause acknowledgments intact; verify against exact cycle 185 owner and reactive witnesses before remeasuring."
+    },
+    {
+      "cycle": 187,
+      "id": 187,
+      "time": "2026-10-23T13:41:35.578Z",
+      "updated_at": "2026-10-23T13:41:35.578Z",
+      "milestone": "M12",
+      "task": "M12-T9",
+      "increment": "overlap-next-frame-file-media-with-submitted-gpu-work",
+      "outcome": "progress",
+      "commit": "5b11d51fba434d1f88f0544695fa3c68aefffea7",
+      "validation": {
+        "path": "artifacts/migration/cycle187-validation/report.json",
+        "sha256": "ca671f436ab8f2391db84ecf637292b16ef7c37efd4035ef315172323b11e104"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "project-library-and-cli",
+          "status": "passed",
+          "scope": "Project/CLI cargo check and 13 project library tests; one unrelated explicit RF64 qualification ignored"
+        },
+        {
+          "id": "exact-early-late-and-reactive-history",
+          "status": "passed",
+          "scope": "Eight early owner cache-toggle frames, eight later serial/prefetch frames and eight reactive audio-selection frames"
+        },
+        {
+          "id": "native-export-lifecycle",
+          "status": "passed"
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 320786
+        }
+      ],
+      "measurements": [
+        {
+          "id": "owner-opening",
+          "frames": 714,
+          "fps": 16.16225637775313,
+          "per_frame_ms": {
+            "total_ms": 28.633334033613444,
+            "file_media_ms": 4.8529861344537775,
+            "raster_text_ms": 13.15000266106442,
+            "raster_exchange_ms": 12.184268487394968,
+            "materials_ms": 0.2623990196078429,
+            "audio_ms": 0.0001261904761904775,
+            "gpu_setup_ms": 0.05862226890756298,
+            "plan_inputs_ms": 0.23495196078431344,
+            "plan_ms": 8.977609523809525,
+            "admission_ms": 1.0960134453781516
+          },
+          "output_completion_ms_per_frame": 22.215655462184866
+        },
+        {
+          "id": "owner-main",
+          "frames": 300,
+          "fps": 30.543677458766034,
+          "per_frame_ms": {
+            "total_ms": 23.38556433333336,
+            "file_media_ms": 1.7197310000000001,
+            "raster_text_ms": 15.848503000000004,
+            "raster_exchange_ms": 14.634259666666667,
+            "materials_ms": 0.293542,
+            "audio_ms": 0.0001476666666666669,
+            "gpu_setup_ms": 0.10560333333333331,
+            "plan_inputs_ms": 0.24396133333333345,
+            "plan_ms": 3.9603639999999998,
+            "admission_ms": 1.213122666666666
+          },
+          "output_completion_ms_per_frame": 4.768932333333334
+        },
+        {
+          "id": "composite-1080p",
+          "frames": 600,
+          "fps": 160.6425702811245,
+          "per_frame_ms": {
+            "total_ms": 0.6585220000000003,
+            "file_media_ms": 0.038194833333333345,
+            "raster_text_ms": 0.0021669999999999992,
+            "raster_exchange_ms": 0.0002991666666666672,
+            "materials_ms": 0.03962566666666668,
+            "audio_ms": 0.00009133333333333358,
+            "gpu_setup_ms": 0.012298333333333324,
+            "plan_inputs_ms": 0.0021218333333333315,
+            "plan_ms": 0.48902366666666663,
+            "admission_ms": 0.07452650000000001
+          },
+          "output_completion_ms_per_frame": 3.142770666666668
+        }
+      ],
+      "observation": {
+        "path": "artifacts/migration/cycle187-validation/observation/report.json",
+        "sha256": "5f77eea97365875dd26815d56c985bcd8d150305a1d0a705295bf59599f0a096"
+      },
+      "late_witnesses": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle187-validation\\late-witnesses.json",
+        "sha256": "d9a8404a4878c33df397d7e9abb6b8bc3b2d2ba06f95e1f9e32aedeac257a03b",
+        "exact_frames": 8
+      },
+      "audio_reactive_history": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle185-validation\\lifecycle\\report.json",
+        "sha256": "a05e1e06a6a66e53d7a3e614780964c28fc0f6ea7a1fa174697433f4ce660a70",
+        "exact_frames": 8
+      },
+      "self_review": {
+        "result": "exact",
+        "scope": "Original and prefetched owner frame clocks, plans, RGB and NV12 agree exactly, including later source positions. Reactive audio, controls and lifecycle remain accepted. No reference or tolerance changes."
+      },
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Run pnpm migrate:verify --milestone M12 with full current-source G0-G6, including balanced export/preview performance, independent latency, pixel self-reviews and final production delivery audit. Single observations do not establish exit acceptance."
     }
   ],
   "known_boundaries": [
