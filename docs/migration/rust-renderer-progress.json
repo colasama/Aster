@@ -393,28 +393,35 @@
     }
   },
   "last_cycle": {
-    "id": 149,
-    "time": "2026-10-23T01:19:56.738Z",
-    "updated_at": "2026-10-23T01:19:56.738Z",
+    "id": 150,
+    "time": "2026-10-23T01:42:17.175Z",
+    "updated_at": "2026-10-23T01:42:17.175Z",
     "milestone": "M12",
-    "task": "M12-T1",
-    "increment": "native-export-pause-acknowledgment",
+    "task": "M12-T2",
+    "increment": "native-png-output",
     "outcome": "task_completed_development_verification",
-    "commit": "ab8cfbc08435a8418b7d4b0d47e658278d8fc5d9",
+    "commit": "94cfb5482deb32fcf21b38b54bddb11b35ec7a5a",
     "validation": {
-      "path": "artifacts/migration/cycle149-validation/report.json",
-      "sha256": "e73e296dce850bc50597c36fe56296545316a918bec3374668125b829183d250"
+      "path": "artifacts/migration/cycle150b-validation/report.json",
+      "sha256": "37d8aa1b449e5844258f6ede158f19d0be713287d3ab30f90aefd3b0fd04bae6"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 333065
+        "duration_ms": 248437
       },
       {
         "id": "targeted-native-export-lifecycle",
         "status": "passed"
+      }
+    ],
+    "failed_attempts": [
+      {
+        "path": "artifacts/migration/cycle150-validation/G0/static-results.json",
+        "sha256": "112afdc0f21a701fa6c8058fecd6ffdb9e53456a8b302d98df2e20e2f1531357",
+        "reason": "Biome import ordering; repaired and complete G0 rerun passed. Original failed evidence retained."
       }
     ],
     "deferred_gates": [
@@ -426,7 +433,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Implement native PNG still/sequence output with one retained project session, bounded lossless output, safe-boundary controls and atomic publication."
+    "next_step": "Materialize immutable native queue projects from authored snapshots and separately captured authorized media; preserve M5 raster inputs and trusted plugin availability. Then integrate production workers and retain existing queue bounds through bounded native scheduling."
   },
   "milestones": [
     {
@@ -27613,7 +27620,7 @@
           "id": "M12-T2",
           "title": "Render native PNG stills and sequences",
           "scope": "Reuse one native project session for bounded time-addressed PNG outputs, with control, progress and complete-output receipts.",
-          "status": "pending",
+          "status": "done",
           "estimated_implementation_hours": 3,
           "required_gates": [
             "G0",
@@ -27623,7 +27630,15 @@
             "G4",
             "G5",
             "G6"
-          ]
+          ],
+          "started_at": "2026-10-23T01:20:55.161Z",
+          "completed_at": "2026-10-23T01:42:17.175Z",
+          "progress": "Native PNG still and sequence outputs reuse one project session, preserve RGBA and odd dimensions, bind rational frame times and hashes, and support acknowledged pause/cancel with atomic bounded publication. Real spectrum PNG frames exactly match video-path pre-encode RGBA; 321x181 text at 30000/1001, default still count, lifecycle cleanup and existing-output preservation pass. Production queue integration remains M12-T4.",
+          "validation": {
+            "path": "artifacts/migration/cycle150b-validation/report.json",
+            "sha256": "37d8aa1b449e5844258f6ede158f19d0be713287d3ab30f90aefd3b0fd04bae6"
+          },
+          "commit": "94cfb5482deb32fcf21b38b54bddb11b35ec7a5a"
         },
         {
           "id": "M12-T3",
@@ -2679553,6 +2679568,50 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Implement native PNG still/sequence output with one retained project session, bounded lossless output, safe-boundary controls and atomic publication."
+    },
+    {
+      "cycle": 150,
+      "id": 150,
+      "time": "2026-10-23T01:42:17.175Z",
+      "updated_at": "2026-10-23T01:42:17.175Z",
+      "milestone": "M12",
+      "task": "M12-T2",
+      "increment": "native-png-output",
+      "outcome": "task_completed_development_verification",
+      "commit": "94cfb5482deb32fcf21b38b54bddb11b35ec7a5a",
+      "validation": {
+        "path": "artifacts/migration/cycle150b-validation/report.json",
+        "sha256": "37d8aa1b449e5844258f6ede158f19d0be713287d3ab30f90aefd3b0fd04bae6"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 248437
+        },
+        {
+          "id": "targeted-native-export-lifecycle",
+          "status": "passed"
+        }
+      ],
+      "failed_attempts": [
+        {
+          "path": "artifacts/migration/cycle150-validation/G0/static-results.json",
+          "sha256": "112afdc0f21a701fa6c8058fecd6ffdb9e53456a8b302d98df2e20e2f1531357",
+          "reason": "Biome import ordering; repaired and complete G0 rerun passed. Original failed evidence retained."
+        }
+      ],
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Materialize immutable native queue projects from authored snapshots and separately captured authorized media; preserve M5 raster inputs and trusted plugin availability. Then integrate production workers and retain existing queue bounds through bounded native scheduling."
     }
   ],
   "known_boundaries": [
