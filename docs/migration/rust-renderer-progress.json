@@ -393,75 +393,97 @@
     }
   },
   "last_cycle": {
-    "id": 163,
-    "time": "2026-10-23T05:48:38.612Z",
-    "updated_at": "2026-10-23T05:48:38.612Z",
+    "id": 164,
+    "time": "2026-10-23T06:01:13.308Z",
+    "updated_at": "2026-10-23T06:01:13.308Z",
     "milestone": "M12",
     "task": "M12-T5",
-    "increment": "default-native-preview-and-explicit-reference-build",
-    "outcome": "development_increment_passed",
-    "commit": "eee01adaea6e894151d768fc2b7624a79d8101e0",
+    "increment": "production-renderer-dependency-retirement",
+    "outcome": "task_implementation_completed",
+    "commit": "8ee3f916eb97a3f71855e6c88bc7da7036e9c1c8",
     "validation": {
-      "path": "artifacts/migration/cycle163b-validation/report.json",
-      "sha256": "575e135f9c341edc7552d7dba5dc5d97b76bccfa1f6bc7cc1228563f8ac9a88c"
+      "path": "artifacts/migration/cycle164-validation/report.json",
+      "sha256": "29698fc4ed942c5c94efdda496c05f6af25315990dd531e9d6070406909a31d5"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
         "id": "frontend-build",
         "status": "passed",
-        "duration_ms": 1002
+        "duration_ms": 959
       },
       {
         "id": "project-native-build",
         "status": "passed",
-        "duration_ms": 541
+        "duration_ms": 555
       },
       {
         "id": "project-electron-build",
         "status": "passed",
-        "duration_ms": 1009
+        "duration_ms": 994
       },
       {
         "id": "project-raster-build",
         "status": "passed",
-        "duration_ms": 328
+        "duration_ms": 335
       },
       {
         "id": "canvas-compatibility",
         "status": "passed",
-        "duration_ms": 1627
+        "duration_ms": 1716
+      },
+      {
+        "id": "native-queue-application",
+        "status": "passed",
+        "duration_ms": 8269
       },
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 259974
+        "duration_ms": 249845
       }
     ],
     "editor": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle163b-validation\\interaction\\report.json",
-      "sha256": "c2863b41e35d5f7e3857f52ee8cb4dd7af3f5f02ab976fe1e344d0caadba5cf1",
-      "exact_frames": 18,
-      "default_native_enabled": true,
-      "separate_reference_bundle": true
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle164-validation\\interaction\\report.json",
+      "sha256": "35b894040c6006135c53325dd8c206609acde20a116381f4f5f0f963c42d7419",
+      "exact_frames": 18
     },
     "compatibility": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle163b-validation\\canvas\\report.json",
-      "sha256": "f012d1fdf916472d504d7745f6423bbc47adbe40c83dc6b26f52c1f279a1665d",
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle164-validation\\canvas\\report.json",
+      "sha256": "b38e857ef1268e927d60d1462697da630bf944359c634492ae5d6909d605ec99",
       "frames": 3,
       "native_calls": 0,
       "resize": true
     },
-    "failed_attempts": [
+    "application": {
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle164-validation\\application\\report.json",
+      "sha256": "4260c67aa7c233be137b107cfc0bbd84116c4663146b14564879037fb7a9d3aa",
+      "native_jobs": 3,
+      "hidden_host_calls": 0,
+      "default_routing": true,
+      "temporary_jobs_cleaned": true
+    },
+    "production_graph": {
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle164-validation\\renderer-boundary.json",
+      "sha256": "120cf881dcddd2ad4de31693e2cef60f706f9fd08510512a25823fefaeab3499",
+      "retained_production_modules": 0,
+      "retained_reference_modules": 3
+    },
+    "reference_producer_files": [
       {
-        "path": "artifacts/migration/cycle163-validation/G0/static-results.json",
-        "sha256": "d11b6acbe378fdbc7ece9ae215563e505783444b54115fda7f3bff43e3b49505",
-        "cause": "Reference build output needed the same Biome exclusion as dist; two Canvas viewport tests still expected a TS constructor attempt. Updated generated-file scope and assertions, retained failed evidence, and reran targeted witnesses plus full G0."
+        "path": "src/renderer/webgpu-renderer.ts",
+        "sha256": "75692769fbfe30ca8f8b5201ebc7586c0c234d5784ee8ddd76b2cf8281c79ba2",
+        "baseline_commit": "eee01adaea6e894151d768fc2b7624a79d8101e0"
+      },
+      {
+        "path": "src/renderer/compositing/beauty-frame.ts",
+        "sha256": "29477ef9a95cf876413cf51b3e6272253375403d097e35a37424525b75a80ee6",
+        "baseline_commit": "eee01adaea6e894151d768fc2b7624a79d8101e0"
       }
     ],
     "self_review": {
       "result": "exact",
-      "scope": "All 18 paired editor controls have identical RGBA hashes; compatibility checks retain unchanged Canvas behavior"
+      "scope": "All 18 paired editor controls have identical RGBA hashes; still output equals sequence first frame; no non-exact comparison"
     },
     "deferred_gates": [
       "G1",
@@ -472,7 +494,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Continue M12-T5 by isolating shared beauty/presentation dependencies from the immutable TS reference renderer. Remove the legacy production host entry together with default native queue selection where required; complete production graph qualification before marking retirement done."
+    "next_step": "Start M12-T6: finish the production entry-point and media/output capability audit now that default queue and preview run natively and the production frontend excludes TS GPU entry modules. Then compose final migration gates and delivery qualification."
   },
   "milestones": [
     {
@@ -27731,7 +27753,7 @@
           "id": "M12-T5",
           "title": "Select native preview and isolate the TS oracle",
           "scope": "Make production preview native by default, preserve Canvas2D compatibility behavior and isolate the retained TS GPU renderer to explicit reference tooling.",
-          "status": "in_progress",
+          "status": "done",
           "estimated_implementation_hours": 3,
           "required_gates": [
             "G0",
@@ -27743,12 +27765,13 @@
             "G6"
           ],
           "started_at": "2026-10-23T05:35:06.459296+00:00",
-          "progress": "Native preview is now enabled by default. Disabling it selects the unchanged Canvas 2D compatibility path instead of silently creating a TS GPU renderer. TS viewport creation requires an explicit reference-mode frontend build and development-only application route; packaged applications ignore that route. Paired editor qualification prepares separate production/reference bundles before sampling. Eighteen editor diagnostic/move/drag witnesses match exactly, and Canvas capture/resize passes with no native calls. G0 passes. TS renderer dependencies in shared beauty modules and the legacy RenderHost entry still need isolation before this task and production retirement can complete.",
+          "progress": "Native preview selection and TS reference isolation are implemented. Production uses an independent presentation beauty contract and unchanged Canvas compatibility adapter; reference sessions explicitly import the immutable TS renderer and original beauty adapter. Ordinary Vite builds reject those modules and the old RenderHost in emitted chunks; separate reference builds must retain the TS constructor. Application startup no longer registers or launches hidden TS hosts, and queue exports default to native project workers. Eighteen editor diagnostic/move/drag witnesses remain exact, Canvas capture/resize passes, and the actual application completes still/sequence/H.264-AAC jobs without native enable flags or hidden-host IPC. Full G0 passes. Final packaged workflows, capability limits and complete milestone gates remain pending.",
           "validation": {
-            "path": "artifacts/migration/cycle163b-validation/report.json",
-            "sha256": "575e135f9c341edc7552d7dba5dc5d97b76bccfa1f6bc7cc1228563f8ac9a88c"
+            "path": "artifacts/migration/cycle164-validation/report.json",
+            "sha256": "29698fc4ed942c5c94efdda496c05f6af25315990dd531e9d6070406909a31d5"
           },
-          "commit": "eee01adaea6e894151d768fc2b7624a79d8101e0"
+          "commit": "8ee3f916eb97a3f71855e6c88bc7da7036e9c1c8",
+          "completed_at": "2026-10-23T06:01:13.308Z"
         },
         {
           "id": "M12-T6",
@@ -27765,7 +27788,8 @@
             "G5",
             "G6"
           ],
-          "remaining_qualification": "Switch the default queue route, remove production hidden TS hosts, qualify supported media/output dimensions, byte budgets and timeouts, and document explicit capability failures. Current opt-in native queue is qualified for the recorded targeted application cases; final full corpus/export/application gates remain required."
+          "remaining_qualification": "Switch the default queue route, remove production hidden TS hosts, qualify supported media/output dimensions, byte budgets and timeouts, and document explicit capability failures. Current opt-in native queue is qualified for the recorded targeted application cases; final full corpus/export/application gates remain required.",
+          "progress": "Default queue selection and removal of application hidden TS host registration were required to isolate the production frontend and are implemented in cycle 164. Production build and actual background application export witnesses pass. Continue auditing remaining foreground/automation/capture entry points and supported media/output capability limits; final packaged and full corpus acceptance remains deferred."
         },
         {
           "id": "M12-T7",
@@ -2680798,6 +2680822,111 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Continue M12-T5 by isolating shared beauty/presentation dependencies from the immutable TS reference renderer. Remove the legacy production host entry together with default native queue selection where required; complete production graph qualification before marking retirement done."
+    },
+    {
+      "cycle": 164,
+      "id": 164,
+      "time": "2026-10-23T06:01:13.308Z",
+      "updated_at": "2026-10-23T06:01:13.308Z",
+      "milestone": "M12",
+      "task": "M12-T5",
+      "increment": "production-renderer-dependency-retirement",
+      "outcome": "task_implementation_completed",
+      "commit": "8ee3f916eb97a3f71855e6c88bc7da7036e9c1c8",
+      "validation": {
+        "path": "artifacts/migration/cycle164-validation/report.json",
+        "sha256": "29698fc4ed942c5c94efdda496c05f6af25315990dd531e9d6070406909a31d5"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "frontend-build",
+          "status": "passed",
+          "duration_ms": 959
+        },
+        {
+          "id": "project-native-build",
+          "status": "passed",
+          "duration_ms": 555
+        },
+        {
+          "id": "project-electron-build",
+          "status": "passed",
+          "duration_ms": 994
+        },
+        {
+          "id": "project-raster-build",
+          "status": "passed",
+          "duration_ms": 335
+        },
+        {
+          "id": "canvas-compatibility",
+          "status": "passed",
+          "duration_ms": 1716
+        },
+        {
+          "id": "native-queue-application",
+          "status": "passed",
+          "duration_ms": 8269
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 249845
+        }
+      ],
+      "editor": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle164-validation\\interaction\\report.json",
+        "sha256": "35b894040c6006135c53325dd8c206609acde20a116381f4f5f0f963c42d7419",
+        "exact_frames": 18
+      },
+      "compatibility": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle164-validation\\canvas\\report.json",
+        "sha256": "b38e857ef1268e927d60d1462697da630bf944359c634492ae5d6909d605ec99",
+        "frames": 3,
+        "native_calls": 0,
+        "resize": true
+      },
+      "application": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle164-validation\\application\\report.json",
+        "sha256": "4260c67aa7c233be137b107cfc0bbd84116c4663146b14564879037fb7a9d3aa",
+        "native_jobs": 3,
+        "hidden_host_calls": 0,
+        "default_routing": true,
+        "temporary_jobs_cleaned": true
+      },
+      "production_graph": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle164-validation\\renderer-boundary.json",
+        "sha256": "120cf881dcddd2ad4de31693e2cef60f706f9fd08510512a25823fefaeab3499",
+        "retained_production_modules": 0,
+        "retained_reference_modules": 3
+      },
+      "reference_producer_files": [
+        {
+          "path": "src/renderer/webgpu-renderer.ts",
+          "sha256": "75692769fbfe30ca8f8b5201ebc7586c0c234d5784ee8ddd76b2cf8281c79ba2",
+          "baseline_commit": "eee01adaea6e894151d768fc2b7624a79d8101e0"
+        },
+        {
+          "path": "src/renderer/compositing/beauty-frame.ts",
+          "sha256": "29477ef9a95cf876413cf51b3e6272253375403d097e35a37424525b75a80ee6",
+          "baseline_commit": "eee01adaea6e894151d768fc2b7624a79d8101e0"
+        }
+      ],
+      "self_review": {
+        "result": "exact",
+        "scope": "All 18 paired editor controls have identical RGBA hashes; still output equals sequence first frame; no non-exact comparison"
+      },
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Start M12-T6: finish the production entry-point and media/output capability audit now that default queue and preview run natively and the production frontend excludes TS GPU entry modules. Then compose final migration gates and delivery qualification."
     }
   ],
   "known_boundaries": [
