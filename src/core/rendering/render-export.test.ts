@@ -5,6 +5,7 @@ import { mediaImportRuntime } from "../../importers/media-import-runtime";
 import { sharedAudioPlaybackEngine } from "../audio/audio-playback-engine";
 import { createLayerForComposition } from "../layers/layer-factory";
 import { createBlankProject } from "../project/project";
+import { openFrameRenderSession as openProductionSession } from "./frame-session";
 import {
   captureForegroundRenderProjectSnapshot,
   captureRenderProjectSnapshot,
@@ -17,31 +18,34 @@ import {
 } from "./render-export";
 
 describe("MP4 frame pipeline", () => {
-  it("requires explicit-project identity and captures it before asynchronous session opening", async () => {
-    const project = createBlankProject();
-    await expect(openFrameRenderSession({ project })).rejects.toThrow("snapshot identity");
-    const snapshot = { snapshotScope: "agent:workspace", projectRevision: 3 };
-    let received: FrameRenderSessionOpenRequest | undefined;
-    const listener = (event: Event) => {
-      received = (event as CustomEvent<FrameRenderSessionOpenRequest>).detail;
-      snapshot.projectRevision = 7;
-      snapshot.snapshotScope = "unrelated-editor";
-      received.reject(new Error("Expected test rejection"));
-    };
-    window.addEventListener("aster:open-render-session", listener);
-    try {
-      await expect(openFrameRenderSession({ project, snapshot })).rejects.toThrow(
-        "Expected test rejection",
-      );
-      expect(received?.options.project).toBe(project);
-      expect(received?.options.snapshot).toEqual({
-        snapshotScope: "agent:workspace",
-        projectRevision: 3,
-      });
-    } finally {
-      window.removeEventListener("aster:open-render-session", listener);
-    }
-  });
+  it.each([openFrameRenderSession, openProductionSession])(
+    "requires explicit-project identity and captures it before asynchronous session opening",
+    async (openFrameRenderSession) => {
+      const project = createBlankProject();
+      await expect(openFrameRenderSession({ project })).rejects.toThrow("snapshot identity");
+      const snapshot = { snapshotScope: "agent:workspace", projectRevision: 3 };
+      let received: FrameRenderSessionOpenRequest | undefined;
+      const listener = (event: Event) => {
+        received = (event as CustomEvent<FrameRenderSessionOpenRequest>).detail;
+        snapshot.projectRevision = 7;
+        snapshot.snapshotScope = "unrelated-editor";
+        received.reject(new Error("Expected test rejection"));
+      };
+      window.addEventListener("aster:open-render-session", listener);
+      try {
+        await expect(openFrameRenderSession({ project, snapshot })).rejects.toThrow(
+          "Expected test rejection",
+        );
+        expect(received?.options.project).toBe(project);
+        expect(received?.options.snapshot).toEqual({
+          snapshotScope: "agent:workspace",
+          projectRevision: 3,
+        });
+      } finally {
+        window.removeEventListener("aster:open-render-session", listener);
+      }
+    },
+  );
 
   it("captures one immutable project/composition document for picture and audio", () => {
     const project = createBlankProject();

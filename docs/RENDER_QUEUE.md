@@ -190,3 +190,8 @@ Adobe behavior references:
 - <https://helpx.adobe.com/after-effects/desktop/render-and-export/basics-of-rendering-and-exporting/basics-rendering-exporting.html>
 - <https://helpx.adobe.com/after-effects/desktop/render-and-export/automate-rendering/automated-rendering-network-rendering.html>
 - <https://helpx.adobe.com/after-effects/desktop/render-and-export/multi-frame-rendering/multi-frame-rendering.html>
+
+Production preload and main IPC do not expose the legacy browser raw-frame MP4 encoder.
+Foreground and automation exports use the native queue. AI preview captures use a separate
+frame-session contract backed by the active native preview; the retained browser export module
+is restricted to reference tooling and rejected by the production bundle boundary.

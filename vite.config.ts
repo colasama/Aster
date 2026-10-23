@@ -19,6 +19,7 @@ export function rendererBoundary(reference: boolean): Plugin {
             "src/renderer/webgpu-renderer.ts",
             "src/renderer/compositing/beauty-frame.ts",
             "src/components/render-host/RenderHost.tsx",
+            "src/core/rendering/render-export.ts",
           ])
             if (path.endsWith(`/${source}`)) retained.add(source);
         }

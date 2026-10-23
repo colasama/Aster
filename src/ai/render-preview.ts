@@ -1,7 +1,7 @@
 import {
   type FrameRenderSessionOptions,
   openFrameRenderSession,
-} from "../core/rendering/render-export";
+} from "../core/rendering/frame-session";
 import {
   copyRenderSnapshotIdentity,
   type RenderSnapshotIdentity,

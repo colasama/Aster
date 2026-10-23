@@ -26,6 +26,9 @@ it("rejects retained renderer modules in production and requires them in referen
   expect(() => run(false, ["/workspace/src/components/render-host/RenderHost.tsx"])).toThrow(
     "TS renderer entered production",
   );
+  expect(() => run(false, ["/workspace/src/core/rendering/render-export.ts"])).toThrow(
+    "TS renderer entered production",
+  );
   expect(() => run(true, [])).toThrow("Reference renderer is absent");
   expect(run(false, ["/workspace/src/renderer/presentation/beauty-frame.ts"])).toHaveLength(1);
   expect(run(true, [renderer])).toHaveLength(1);

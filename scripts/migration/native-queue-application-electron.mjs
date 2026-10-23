@@ -17,14 +17,18 @@ const report = {
   scope: "actual application native queue routing",
   launches: [],
   host_ipc: [],
+  retired_ipc_registrations: [],
   outputs: [],
 };
 const register = ipcMain.handle.bind(ipcMain);
-ipcMain.handle = (channel, handler) =>
-  register(channel, (...args) => {
+ipcMain.handle = (channel, handler) => {
+  if (channel.startsWith("aster:mp4-") || channel.startsWith("aster:render-host-"))
+    report.retired_ipc_registrations.push(channel);
+  return register(channel, (...args) => {
     if (channel.startsWith("aster:render-host-")) report.host_ipc.push(channel);
     return handler(...args);
   });
+};
 const { NativeQueueHostFactory } = await import(
   pathToFileURL(join(root, "dist-electron/electron/native-queue-host.js"))
 );
@@ -75,6 +79,23 @@ async function main() {
       assert(Date.now() < deadline, "Application automation startup timed out");
       await delay(250);
     }
+    assert.deepEqual(report.retired_ipc_registrations, []);
+    const editor = BrowserWindow.getAllWindows().find((window) =>
+      window.webContents.getURL().includes("index.html"),
+    );
+    assert(editor, "Application editor is unavailable");
+    report.preload_exports = await editor.webContents.executeJavaScript(
+      "Object.keys(window.asterDesktop)",
+    );
+    for (const name of [
+      "startMp4Export",
+      "writeMp4Frame",
+      "writeMp4Audio",
+      "finishMp4Export",
+      "cancelMp4Export",
+      "renderHost",
+    ])
+      assert(!report.preload_exports.includes(name), `Retired preload export: ${name}`);
     const call = async (name, args = {}) => {
       const response = await fetch(`http://127.0.0.1:${port}/call`, {
         method: "POST",

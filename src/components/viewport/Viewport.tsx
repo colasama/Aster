@@ -14,8 +14,8 @@ import {
   compositionFrameIndex,
   compositionFrameTime,
 } from "../../core/rendering/frame-cache-policy";
+import type { FrameRenderSessionOpenRequest } from "../../core/rendering/frame-session";
 import { previewFrameCache } from "../../core/rendering/preview-frame-cache";
-import type { FrameRenderSessionOpenRequest } from "../../core/rendering/render-export";
 import {
   BoundedRenderSessionController,
   ExclusiveRenderSessionGuard,

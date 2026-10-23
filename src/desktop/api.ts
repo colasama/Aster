@@ -241,13 +241,17 @@ export interface AsterDesktopApi {
   onProjectOpenAvailable(listener: () => void): () => void;
   documentLifecycle: DesktopDocumentLifecycle;
   exportDiagnostics(): Promise<string | undefined>;
+  log(entry: DesktopLogEntry): void;
+  windowControls: DesktopWindowControls;
+}
+
+// Retained browser export tests supply this adapter; production preload does not expose it.
+interface ReferenceMp4DesktopApi {
   startMp4Export(options: Mp4ExportStartOptions): Promise<Mp4ExportStarted>;
   writeMp4Frame(jobId: string, pixels: ArrayBuffer): Promise<void>;
   writeMp4Audio(jobId: string, samples: ArrayBuffer): Promise<void>;
   finishMp4Export(jobId: string): Promise<Mp4ExportReport>;
   cancelMp4Export(jobId: string): Promise<void>;
-  log(entry: DesktopLogEntry): void;
-  windowControls: DesktopWindowControls;
 }
 
 export function isDesktopRuntime(): boolean {
@@ -361,26 +365,35 @@ export function exportDiagnostics(): Promise<string | undefined> {
 }
 
 export function startMp4Export(options: Mp4ExportStartOptions): Promise<Mp4ExportStarted> {
-  return desktopApi().startMp4Export(options);
+  return referenceMp4Api("startMp4Export")(options);
 }
 
 export function writeMp4Frame(jobId: string, pixels: ArrayBuffer): Promise<void> {
-  return desktopApi().writeMp4Frame(jobId, pixels);
+  return referenceMp4Api("writeMp4Frame")(jobId, pixels);
 }
 
 export function writeMp4Audio(jobId: string, samples: ArrayBuffer): Promise<void> {
-  return desktopApi().writeMp4Audio(jobId, samples);
+  return referenceMp4Api("writeMp4Audio")(jobId, samples);
 }
 
 export function finishMp4Export(jobId: string): Promise<Mp4ExportReport> {
-  return desktopApi().finishMp4Export(jobId);
+  return referenceMp4Api("finishMp4Export")(jobId);
 }
 
 export function cancelMp4Export(jobId: string): Promise<void> {
-  return desktopApi().cancelMp4Export(jobId);
+  return referenceMp4Api("cancelMp4Export")(jobId);
 }
 
 function desktopApi(): AsterDesktopApi {
   if (!window.asterDesktop) throw new Error("Aster desktop API is unavailable");
   return window.asterDesktop;
+}
+
+function referenceMp4Api<K extends keyof ReferenceMp4DesktopApi>(
+  key: K,
+): ReferenceMp4DesktopApi[K] {
+  const api = desktopApi() as AsterDesktopApi & Partial<ReferenceMp4DesktopApi>;
+  const method = api[key];
+  if (!method) throw new Error("Browser frame export is unavailable; use the native render queue");
+  return method.bind(api) as ReferenceMp4DesktopApi[K];
 }

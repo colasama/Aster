@@ -49,7 +49,6 @@ import { startupGpuSwitch } from "./gpu-preference.js";
 import { fetchLocalAsset } from "./local-file-response.js";
 import { AsterLogger, isRendererLogPayload, type LogLevel, parseLogLevel } from "./logger.js";
 import { discoverDesktopImageSequence } from "./media-import.js";
-import { Mp4ExportManager } from "./mp4-export.js";
 import { materializePreviewAssets } from "./native-preview-assets.js";
 import { NativePreviewHost } from "./native-preview-host.js";
 import type { ResolvePreviewPlugins } from "./native-preview-plugins.js";
@@ -251,7 +250,6 @@ class DesktopBridge {
 
 let desktopBridge: DesktopBridge | undefined;
 let piAgentHost: PiAgentHost | undefined;
-let mp4ExportManager: Mp4ExportManager | undefined;
 let applicationLogger: AsterLogger | undefined;
 let appPreferences: AppPreferencesStore | undefined;
 let renderQueueManager: RenderQueueManager | undefined;
@@ -855,7 +853,6 @@ function registerIpc(
     if (typeof grantId === "string") fullAccessGrants.revoke(event.sender.id, grantId);
     piAgentHost?.cancelOwner(event.sender.id);
     fullAccessTools.abortOwner(event.sender.id);
-    void mp4ExportManager?.cancelOwner(event.sender.id);
     logger.warn("agent", "emergency_stop", { sessionId, rendererId: event.sender.id });
   });
 
@@ -922,63 +919,6 @@ function registerIpc(
     logger.debug("dialog", "save_completed", { cancelled: result.canceled });
     if (!result.canceled && result.filePath) grantPath(result.filePath);
     return result.canceled ? null : (result.filePath ?? null);
-  });
-
-  ipcMain.handle("aster:mp4-start", async (event, value: unknown) => {
-    if (!mp4ExportManager) throw new Error("MP4 export is unavailable");
-    if (!value || typeof value !== "object" || Array.isArray(value))
-      throw new Error("MP4 export options must be an object");
-    const outputPath = (value as Record<string, unknown>).outputPath;
-    if (typeof outputPath !== "string" || !grantedPaths.has(normalizeAssetPath(outputPath)))
-      throw new Error("MP4 output path was not selected by the user");
-    const started = await mp4ExportManager.start(value, event.sender.id);
-    logger.info("export", "mp4_started", {
-      jobId: started.jobId,
-      encoder: started.encoder,
-      rendererId: event.sender.id,
-      width: (value as Record<string, unknown>).width,
-      height: (value as Record<string, unknown>).height,
-      frameCount: (value as Record<string, unknown>).frameCount,
-    });
-    return started;
-  });
-
-  ipcMain.handle("aster:mp4-frame", (event, jobId: unknown, pixels: unknown) => {
-    if (!mp4ExportManager) throw new Error("MP4 export is unavailable");
-    return mp4ExportManager.write(jobId, pixels, event.sender.id);
-  });
-
-  ipcMain.handle("aster:mp4-audio", (event, jobId: unknown, samples: unknown) => {
-    if (!mp4ExportManager) throw new Error("MP4 export is unavailable");
-    return mp4ExportManager.writeAudio(jobId, samples, event.sender.id);
-  });
-
-  ipcMain.handle("aster:mp4-finish", async (event, jobId: unknown) => {
-    if (!mp4ExportManager) throw new Error("MP4 export is unavailable");
-    try {
-      const report = await mp4ExportManager.finish(jobId, event.sender.id);
-      logger.info("export", "mp4_completed", {
-        jobId: report.jobId,
-        encoder: report.encoder,
-        frameCount: report.frameCount,
-        bytesWritten: report.bytesWritten,
-        elapsedMs: report.elapsedMs,
-      });
-      return report;
-    } catch (error) {
-      logger.error("export", "mp4_failed", error, {
-        jobId: typeof jobId === "string" ? jobId : "invalid",
-      });
-      throw error;
-    }
-  });
-
-  ipcMain.handle("aster:mp4-cancel", async (event, jobId: unknown) => {
-    if (!mp4ExportManager) throw new Error("MP4 export is unavailable");
-    await mp4ExportManager.cancel(jobId, event.sender.id);
-    logger.info("export", "mp4_cancelled", {
-      jobId: typeof jobId === "string" ? jobId : "invalid",
-    });
   });
 
   ipcMain.handle("aster:window-minimize", (event) => {
@@ -1167,7 +1107,6 @@ async function createWindow(
       reason: details.reason,
       exitCode: details.exitCode,
     });
-    void mp4ExportManager?.cancelOwner(window.webContents.id);
     piAgentHost?.cancelOwner(window.webContents.id);
     fullAccessGrants.revokeOwner(window.webContents.id);
     fullAccessTools.abortOwner(window.webContents.id);
@@ -1357,7 +1296,6 @@ if (hasSingleInstanceLock)
           }
         },
       );
-      mp4ExportManager = new Mp4ExportManager(ffmpegExecutable());
       Menu.setApplicationMenu(null);
       registerAssetProtocol();
       registerIpc(logger, preferences, renderQueueManager, renderMediaSnapshots);
@@ -1506,11 +1444,7 @@ app.on("will-quit", (event) => {
     await nativeQueueHost?.dispose();
     await nativePreviewHost?.dispose();
     desktopBridge?.dispose();
-    await Promise.all([
-      mp4ExportManager?.dispose(),
-      appPreferences?.flush(),
-      applicationLogger?.flush(),
-    ]);
+    await Promise.all([appPreferences?.flush(), applicationLogger?.flush()]);
   })().finally(() => app.exit(0));
 });
 app.on("window-all-closed", () => {

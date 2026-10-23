@@ -129,14 +129,6 @@ contextBridge.exposeInMainWorld(
       },
     }),
     exportDiagnostics: () => ipcRenderer.invoke("aster:diagnostics-export"),
-    startMp4Export: (options: Record<string, unknown>) =>
-      ipcRenderer.invoke("aster:mp4-start", options),
-    writeMp4Frame: (jobId: string, pixels: ArrayBuffer) =>
-      ipcRenderer.invoke("aster:mp4-frame", jobId, pixels),
-    writeMp4Audio: (jobId: string, samples: ArrayBuffer) =>
-      ipcRenderer.invoke("aster:mp4-audio", jobId, samples),
-    finishMp4Export: (jobId: string) => ipcRenderer.invoke("aster:mp4-finish", jobId),
-    cancelMp4Export: (jobId: string) => ipcRenderer.invoke("aster:mp4-cancel", jobId),
     log: (entry: Record<string, unknown>) => ipcRenderer.send("aster:log", entry),
     windowControls: Object.freeze({
       platform: process.platform,
