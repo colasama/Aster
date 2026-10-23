@@ -1029,6 +1029,10 @@ texture boundary, and converts Radiance environments to the retained RGBA16-floa
 Content hashes and per-frame budgets remain authoritative before GPU upload.
 Serialized plans retain media frame identities; native file-decoder pixels are attached separately
 at the existing execution boundary, while retained raster derivations remain in the plan bundle.
+In-process native producers retain the encoder's validated metadata and blob ranges when executing
+their own root and generator plans. This avoids an immediate JSON decode and canonical re-encode;
+the same encoder still checks all caller limits and typed blob invariants and produces identical
+FPLN bytes. External containers and nested resource plans continue through the strict decoder.
 
 Native audio acquisition selects audible root-composition sources independently of visual
 visibility, authenticates source bytes, and decodes bounded PCM into a job-owned cache. The mixer

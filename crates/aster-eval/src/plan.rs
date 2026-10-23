@@ -19,7 +19,7 @@ pub use root::{RootItemKind, RootSceneInput, RootStackItem};
 use crate::EvaluationError;
 use aster_render_ir::{
     BlobDescriptor, ContractLevel, DecodeLimits, ElementType, FplnCodec, FrameHeaderSlice,
-    FramePlanSliceV1, PlanKind, PlanSlice, ResourceHash,
+    FramePlanSliceV1, OwnedFpln, PlanKind, PlanSlice, ResourceHash,
 };
 pub use header::FramePlanRequest;
 use serde::Serialize;
@@ -32,6 +32,15 @@ pub struct NativePlan {
 }
 
 impl NativePlan {
+    pub fn encode_owned(&self, limits: &DecodeLimits) -> Result<OwnedFpln, EvaluationError> {
+        FplnCodec::encode_owned(
+            self.metadata.clone(),
+            &self.blobs.iter().map(Vec::as_slice).collect::<Vec<_>>(),
+            limits,
+        )
+        .map_err(|e| EvaluationError::InvalidScene(e.to_string()))
+    }
+
     pub fn encode(&self, limits: &DecodeLimits) -> Result<Vec<u8>, EvaluationError> {
         FplnCodec::encode(
             self.metadata.clone(),

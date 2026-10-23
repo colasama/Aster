@@ -5,7 +5,7 @@ use aster_eval::{
     ResourcePreparationOperation, SceneFramePlans,
 };
 use aster_render_ir::{
-    CompositionIdentity, DecodeLimits, Extent2d, FplnCodec, FrameHeaderSlice, PlanSlice,
+    CompositionIdentity, DecodeLimits, Extent2d, FrameHeaderSlice, PlanSlice,
     PrecompositionGeneratorExecution, ResourceRegistry,
 };
 use aster_renderer::{NativeRenderer, ProjectOutputRequest, ProjectSurfaceTarget};
@@ -135,8 +135,7 @@ impl ProjectFrameAllocator for &mut NativeProjectGpu {
                 .map_err(|error| EvaluationError::InvalidScene(error.to_string()))?;
         }
         let limits = DecodeLimits::default();
-        let plan = FplnCodec::decode(generator.plan.encode(&limits)?, &limits)
-            .map_err(|error| EvaluationError::InvalidScene(error.to_string()))?;
+        let plan = generator.plan.encode_owned(&limits)?;
         self.renderer
             .prepare_project_generator(&plan, &registry, self.frame_audio.as_deref())
             .map_err(|error| {

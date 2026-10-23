@@ -81,10 +81,20 @@ pub struct FplnCodec;
 
 impl FplnCodec {
     pub fn encode(
-        mut metadata: FramePlanSliceV1,
+        metadata: FramePlanSliceV1,
         blobs: &[&[u8]],
         limits: &DecodeLimits,
     ) -> Result<Vec<u8>, IrError> {
+        let plan = Self::encode_owned(metadata, blobs, limits)?;
+        Ok(plan.bytes)
+    }
+
+    /// Keep the validated typed metadata when an in-process producer needs the plan immediately.
+    pub fn encode_owned(
+        mut metadata: FramePlanSliceV1,
+        blobs: &[&[u8]],
+        limits: &DecodeLimits,
+    ) -> Result<OwnedFpln, IrError> {
         metadata.validate(limits)?;
         if metadata.blobs.len() != blobs.len() {
             return Err(IrError::BlobCountMismatch);
@@ -129,6 +139,7 @@ impl FplnCodec {
         let mut output = vec![0; total as usize];
         header.write(&mut output)?;
         output[32..32 + json.len()].copy_from_slice(&json);
+        let mut ranges = Vec::with_capacity(blobs.len());
         for (descriptor, bytes) in metadata.blobs.iter().zip(blobs) {
             let start = blob_start
                 .checked_add(descriptor.byte_offset)
@@ -140,8 +151,13 @@ impl FplnCodec {
                 .get_mut(start..end)
                 .ok_or(IrError::BlobRangeOutOfBounds)?
                 .copy_from_slice(bytes);
+            ranges.push(start..end);
         }
-        Ok(output)
+        Ok(OwnedFpln {
+            metadata,
+            bytes: output,
+            ranges,
+        })
     }
 
     pub fn decode(bytes: Vec<u8>, limits: &DecodeLimits) -> Result<OwnedFpln, IrError> {

@@ -8,8 +8,7 @@ use aster_eval::{
     ProjectResourceRequests, ResourceRequestContext,
 };
 use aster_render_ir::{
-    DecodeLimits, FplnCodec, PrecompositionMediaPixels, ResourceKind, ResourceLimits,
-    ResourceRegistry,
+    DecodeLimits, PrecompositionMediaPixels, ResourceKind, ResourceLimits, ResourceRegistry,
 };
 use aster_renderer::{DecodedTexturePixels, RenderedFrame, SuppliedFrame};
 use aster_video::CancellationToken;
@@ -315,7 +314,7 @@ impl NativeProjectSession {
             }
         }
         let decode_limits = DecodeLimits::default();
-        let plan = FplnCodec::decode(bundle.plan.encode(&decode_limits)?, &decode_limits)?;
+        let plan = bundle.plan.encode_owned(&decode_limits)?;
         let supplied = SuppliedFrame::with_native_glyphs(
             plan,
             &registry,

@@ -6,6 +6,68 @@ use crate::{
 use super::Fixture;
 
 #[test]
+fn owned_encoding_matches_wire_decode_and_preserves_validation() -> Result<(), IrError> {
+    let mut fixture = Fixture::new()?;
+    let limits = DecodeLimits::default();
+    let borrowed = fixture.blobs.iter().map(Vec::as_slice).collect::<Vec<_>>();
+    let original = fixture.encode()?;
+    let decoded = FplnCodec::decode(original.clone(), &limits)?;
+    // The encoder normalizes producer offsets while preserving exact container contents.
+    fixture.metadata.blobs[1].byte_offset = 0;
+    let owned = FplnCodec::encode_owned(fixture.metadata.clone(), &borrowed, &limits)?;
+    assert_eq!(owned.metadata, decoded.metadata);
+    assert_eq!(owned.reencode(&limits)?, original);
+    for index in 0..borrowed.len() {
+        assert_eq!(owned.blob(index)?, decoded.blob(index)?);
+    }
+    for restricted in [
+        DecodeLimits {
+            max_metadata_bytes: 1,
+            ..limits.clone()
+        },
+        DecodeLimits {
+            max_container_bytes: original.len() - 1,
+            max_metadata_bytes: original.len() - 1,
+            ..limits.clone()
+        },
+        DecodeLimits {
+            max_blobs: 1,
+            ..limits.clone()
+        },
+        DecodeLimits {
+            max_slices: 1,
+            ..limits.clone()
+        },
+        DecodeLimits {
+            max_resource_references: 0,
+            ..limits.clone()
+        },
+        DecodeLimits {
+            max_dimension: 1,
+            ..limits.clone()
+        },
+        DecodeLimits {
+            max_pixels: 1,
+            ..limits.clone()
+        },
+        DecodeLimits {
+            max_container_bytes: 0,
+            ..limits.clone()
+        },
+    ] {
+        assert!(FplnCodec::encode_owned(fixture.metadata.clone(), &borrowed, &restricted).is_err());
+    }
+    assert!(FplnCodec::encode_owned(fixture.metadata.clone(), &borrowed[..1], &limits).is_err());
+    let mut invalid = fixture.metadata.clone();
+    invalid.plan_version = 2;
+    assert!(FplnCodec::encode_owned(invalid, &borrowed, &limits).is_err());
+    fixture.blobs[1][12..16].copy_from_slice(&f32::NAN.to_le_bytes());
+    let borrowed = fixture.blobs.iter().map(Vec::as_slice).collect::<Vec<_>>();
+    assert!(FplnCodec::encode_owned(fixture.metadata, &borrowed, &limits).is_err());
+    Ok(())
+}
+
+#[test]
 fn accepted_byte_mutations_still_have_exact_canonical_roundtrips() -> Result<(), IrError> {
     let bytes = Fixture::new()?.encode()?;
     let limits = DecodeLimits::default();
