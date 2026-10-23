@@ -393,39 +393,60 @@
     }
   },
   "last_cycle": {
-    "id": 151,
-    "time": "2026-10-23T01:57:37.137Z",
-    "updated_at": "2026-10-23T01:57:37.137Z",
+    "id": 152,
+    "time": "2026-10-23T02:25:01.715Z",
+    "updated_at": "2026-10-23T02:25:01.715Z",
     "milestone": "M12",
     "task": "M12-T3",
-    "increment": "immutable-native-queue-project-inputs",
+    "increment": "native-queue-project-assembly-and-retained-inputs",
     "outcome": "development_increment_passed",
-    "commit": "91b6208a3e2bb850eb5b817ef9a929c0fa47530d",
+    "commit": "523f09bf2900f682d5dc88775c15eb13ec7f924c",
     "validation": {
-      "path": "artifacts/migration/cycle151-validation/report.json",
-      "sha256": "ecdedab2c72ee11cf83f64682ab9353b8dd3727ec5eccf269f4ca139f2f66154"
+      "path": "artifacts/migration/cycle152c-validation/report.json",
+      "sha256": "316431aaa122fec890699c1d2f07ce20ff67b2506d155dd9b6b708a61eee15ee"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
-        "id": "queue-media-targeted",
+        "id": "queue-project-targeted",
         "status": "passed",
-        "duration_ms": 2198
+        "duration_ms": 2194
       },
       {
-        "id": "electron-build",
+        "id": "project-native-build",
         "status": "passed",
-        "duration_ms": 1071
+        "duration_ms": 3096
       },
       {
-        "id": "node-import",
+        "id": "project-electron-build",
         "status": "passed",
-        "duration_ms": 66
+        "duration_ms": 997
+      },
+      {
+        "id": "project-raster-build",
+        "status": "passed",
+        "duration_ms": 351
       },
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 246525
+        "duration_ms": 250718
+      }
+    ],
+    "targeted_queue": {
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle152c-validation\\queue\\report.json",
+      "sha256": "f581d0eed7fe93f48cfaed5bf47c2dd438a2ba80974c7dd86e8f0a2410b0d4ce",
+      "exact_cases": 7,
+      "disabled_generator": true
+    },
+    "retained_failed_attempts": [
+      {
+        "path": "artifacts/migration/cycle152-validation/queue/report.json",
+        "reason": "Retained sidecar I/O yielded before Electron privileged protocol registration; corrected startup ordering."
+      },
+      {
+        "path": "artifacts/migration/cycle152b-validation/G0/static-results.json",
+        "reason": "In-process Vite parser build changed NODE_ENV for subsequent tests; moved build to an isolated subprocess."
       }
     ],
     "deferred_gates": [
@@ -437,7 +458,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Assemble native queue project documents from authored snapshots and validated media manifests using the new asset store. Preserve PSD RGBA fallback through an authenticated retained-raster sidecar; freeze trusted plugins and carry explicit unavailable-generator states into native export admission. Keep M12-T3 open until real prepared projects render correctly."
+    "next_step": "Continue M12-T3: qualify legacy snapshot media, fonts/material paths and input-size/sequence budgets against existing queue capabilities. Preserve supported queue behavior before selecting the native production worker in M12-T4."
   },
   "milestones": [
     {
@@ -27660,12 +27681,12 @@
             "G6"
           ],
           "started_at": "2026-10-23T01:43:41.553Z",
-          "progress": "Browser-independent media manifest codec and leased native asset store are implemented. Buffer/stream identities agree; explicit authorization, immutable inline capture, deduplication, aggregate budgets, tamper rejection and existing-file preservation pass targeted tests. The actual PSD compositionRetainLayerSizes mode is admitted. Native project assembly, retained PSD pixel fallback and plugin availability integration remain open.",
+          "progress": "Native queue project assembly materializes captured media, selects the composition dependency graph, freezes trusted plugin packages and carries unavailable-generator states into native export. Authenticated job-local PSD pixel fallback reaches the retained raster service. Seven real prepared exports (PNG, SVG, compressed PSD, PSD pixel fallback, image sequence, video, audio spectrum) are pixel-exact against original native exports; disabled generator execution, admission and cleanup checks pass. Legacy input compatibility and queue-vs-native input limits remain to qualify before task completion; production worker routing belongs to M12-T4.",
           "validation": {
-            "path": "artifacts/migration/cycle151-validation/report.json",
-            "sha256": "ecdedab2c72ee11cf83f64682ab9353b8dd3727ec5eccf269f4ca139f2f66154"
+            "path": "artifacts/migration/cycle152c-validation/report.json",
+            "sha256": "316431aaa122fec890699c1d2f07ce20ff67b2506d155dd9b6b708a61eee15ee"
           },
-          "commit": "91b6208a3e2bb850eb5b817ef9a929c0fa47530d"
+          "commit": "523f09bf2900f682d5dc88775c15eb13ec7f924c"
         },
         {
           "id": "M12-T4",
@@ -2679671,6 +2679692,75 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Assemble native queue project documents from authored snapshots and validated media manifests using the new asset store. Preserve PSD RGBA fallback through an authenticated retained-raster sidecar; freeze trusted plugins and carry explicit unavailable-generator states into native export admission. Keep M12-T3 open until real prepared projects render correctly."
+    },
+    {
+      "cycle": 152,
+      "id": 152,
+      "time": "2026-10-23T02:25:01.715Z",
+      "updated_at": "2026-10-23T02:25:01.715Z",
+      "milestone": "M12",
+      "task": "M12-T3",
+      "increment": "native-queue-project-assembly-and-retained-inputs",
+      "outcome": "development_increment_passed",
+      "commit": "523f09bf2900f682d5dc88775c15eb13ec7f924c",
+      "validation": {
+        "path": "artifacts/migration/cycle152c-validation/report.json",
+        "sha256": "316431aaa122fec890699c1d2f07ce20ff67b2506d155dd9b6b708a61eee15ee"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "queue-project-targeted",
+          "status": "passed",
+          "duration_ms": 2194
+        },
+        {
+          "id": "project-native-build",
+          "status": "passed",
+          "duration_ms": 3096
+        },
+        {
+          "id": "project-electron-build",
+          "status": "passed",
+          "duration_ms": 997
+        },
+        {
+          "id": "project-raster-build",
+          "status": "passed",
+          "duration_ms": 351
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 250718
+        }
+      ],
+      "targeted_queue": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle152c-validation\\queue\\report.json",
+        "sha256": "f581d0eed7fe93f48cfaed5bf47c2dd438a2ba80974c7dd86e8f0a2410b0d4ce",
+        "exact_cases": 7,
+        "disabled_generator": true
+      },
+      "retained_failed_attempts": [
+        {
+          "path": "artifacts/migration/cycle152-validation/queue/report.json",
+          "reason": "Retained sidecar I/O yielded before Electron privileged protocol registration; corrected startup ordering."
+        },
+        {
+          "path": "artifacts/migration/cycle152b-validation/G0/static-results.json",
+          "reason": "In-process Vite parser build changed NODE_ENV for subsequent tests; moved build to an isolated subprocess."
+        }
+      ],
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Continue M12-T3: qualify legacy snapshot media, fonts/material paths and input-size/sequence budgets against existing queue capabilities. Preserve supported queue behavior before selecting the native production worker in M12-T4."
     }
   ],
   "known_boundaries": [
