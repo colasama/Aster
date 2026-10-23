@@ -1,13 +1,28 @@
 export function mediaBytesIdentity(bytes: Uint8Array): string {
-  let left = 0x811c9dc5;
-  let right = 0x9e3779b9;
-  for (const byte of bytes) {
-    left = Math.imul(left ^ byte, 0x01000193);
-    right = Math.imul(right ^ byte, 0x85ebca6b);
+  return new MediaBytesIdentity().update(bytes).digest();
+}
+
+/** The same persisted byte identity for buffers and bounded streaming file copies. */
+export class MediaBytesIdentity {
+  #left = 0x811c9dc5;
+  #right = 0x9e3779b9;
+  #bytes = 0;
+
+  update(bytes: Uint8Array): this {
+    this.#bytes += bytes.byteLength;
+    if (!Number.isSafeInteger(this.#bytes)) throw new Error("Media identity byte count overflow");
+    for (const byte of bytes) {
+      this.#left = Math.imul(this.#left ^ byte, 0x01000193);
+      this.#right = Math.imul(this.#right ^ byte, 0x85ebca6b);
+    }
+    return this;
   }
-  return `fnv64:${(left >>> 0).toString(16).padStart(8, "0")}${(right >>> 0)
-    .toString(16)
-    .padStart(8, "0")}:${bytes.byteLength}`;
+
+  digest(): string {
+    return `fnv64:${(this.#left >>> 0).toString(16).padStart(8, "0")}${(this.#right >>> 0)
+      .toString(16)
+      .padStart(8, "0")}:${this.#bytes}`;
+  }
 }
 
 export function mediaTextIdentity(value: string): string {

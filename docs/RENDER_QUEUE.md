@@ -40,6 +40,14 @@ the metadata-only progress path and bounded checkpoints, the same burst measured
 throughput or foreground preview FPS. A gated slow-storage regression also verifies that several
 checkpoint intervals retain only one in-flight write and the newest waiting revision.
 
+The media manifest codec is independent of browser hydration, so the main process can validate the
+same captured data before native project preparation. `NativeQueueAssetStore` provides job-private,
+content-addressed copies from explicitly leased local paths or bounded inline payloads. Streaming
+hashes retain the existing persisted byte-identity format; copies are rehashed before use, and
+duplicate payloads share a verified file. Byte/file budgets, path admission and exclusive writes
+prevent the preparation layer from resolving arbitrary locators or overwriting existing data.
+Native project assembly and queue-worker selection consume this preparation boundary separately.
+
 Each job pairs the persistence-safe project document with a versioned `RenderMediaManifest` keyed by
 source ID and content identity. Embedded still/video/audio data remains in the document. At enqueue,
 every linked local source is copied and SHA-256 verified into a content-addressed, job-owned snapshot
