@@ -393,49 +393,49 @@
     }
   },
   "last_cycle": {
-    "id": 168,
-    "time": "2026-10-23T07:00:36.347Z",
-    "updated_at": "2026-10-23T07:00:36.347Z",
+    "id": 169,
+    "time": "2026-10-23T07:21:32.587Z",
+    "updated_at": "2026-10-23T07:21:32.587Z",
     "milestone": "M12",
     "task": "M12-T6",
-    "increment": "streaming-video-decoder-snapshots",
+    "increment": "align-streamed-video-source-budgets",
     "outcome": "progress",
-    "commit": "f7fe106f2b9267bf8c8d4bfa8a39ecd13c62e251",
+    "commit": "e693631835a251337797e37255db1b5a7ae4b8ae",
     "validation": {
-      "path": "artifacts/migration/cycle168-validation/report.json",
-      "sha256": "81368593b00e0c654f033ba50b09acd3ce586ddcd42544b176501d05dead1375"
+      "path": "artifacts/migration/cycle169b-validation/report.json",
+      "sha256": "745293161c94afe54c16ed59ef42a1f7fc46e67987281abdbc9523e84417d2a7"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
         "id": "queue-project-targeted",
         "status": "passed",
-        "duration_ms": 2313
+        "duration_ms": 2217
       },
       {
         "id": "project-native-build",
         "status": "passed",
-        "duration_ms": 151619
+        "duration_ms": 1363
       },
       {
         "id": "project-electron-build",
         "status": "passed",
-        "duration_ms": 1046
+        "duration_ms": 969
       },
       {
         "id": "project-raster-build",
         "status": "passed",
-        "duration_ms": 391
+        "duration_ms": 348
       },
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 336044
+        "duration_ms": 339321
       }
     ],
     "queue": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle168-validation\\queue\\report.json",
-      "sha256": "1fe1c98b1f74160b4c732f1ffc8cea4ad91424b4fadbbdd95c76a03b3fed37df",
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle169b-validation\\queue\\report.json",
+      "sha256": "ebed282d6b880c4a15b3dbf5ca0cf75277d61af38f3f9961640eb56412169910",
       "exact_cases": 15,
       "disabled_plugin_cases": 2,
       "historical_receipt_match": {
@@ -445,8 +445,8 @@
       }
     },
     "video": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle168-validation\\video\\report.json",
-      "sha256": "1c8aee195a9d443a12657c6675de502054b14edafcab04ac4987f06af0007f06",
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle169b-validation\\video\\report.json",
+      "sha256": "c87d4be2d7de6da3142274eb6b2e98c01caf74e6132b8b64c98941761ac43cb0",
       "exact_comparisons": 24,
       "cache_modes": 4,
       "private_files_cleaned": true,
@@ -454,13 +454,28 @@
       "whole_encoded_file_vector": false,
       "reauthenticate_on_cache_hit": true
     },
+    "budgets": {
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle169b-validation\\budgets\\report.json",
+      "sha256": "d4cfe9cd9f4788e77d5a0633cfd009264b9eb56951c4eebee6dc2d6e5a34b3eb",
+      "source_bytes": 536870913,
+      "exact_frames": 4,
+      "lower_limits_rejected": true,
+      "oversized_queue_rejected": true,
+      "cleanup": true
+    },
+    "retained_failed_attempts": [
+      {
+        "path": "artifacts/migration/cycle169-validation/budgets/native-large.log",
+        "reason": "Validation fixture used SHA-256 in the persisted FNV byteIdentity field; corrected the fixture without changing runtime authentication."
+      }
+    ],
     "quota": {
-      "remaining_percent": 68
+      "remaining_percent": 66
     },
     "self_review": {
       "result": "exact",
-      "compared_frames": 39,
-      "scope": "Twenty-four video cache comparisons and fifteen paired queue outputs have identical RGBA hashes and unchanged receipts; disabled-plugin checks assert intended feature omission rather than pixel parity."
+      "compared_frames": 43,
+      "scope": "Four padded-file frames, twenty-four video cache comparisons and fifteen paired queue outputs have identical RGBA hashes and unchanged receipts; disabled-plugin checks assert intended feature omission rather than pixel parity."
     },
     "deferred_gates": [
       "G1",
@@ -471,7 +486,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Continue M12-T6 by qualifying source limits and timeouts against the documented production media contract, then foreground/packaged workflows and final gate composition."
+    "next_step": "Continue M12-T6 with long-job timeout handling and close the routing audit, then compose final gates and qualify packaged delivery."
   },
   "milestones": [
     {
@@ -27765,13 +27780,13 @@
             "G5",
             "G6"
           ],
-          "remaining_qualification": "Review the documented production media contract, qualify source limits and timeouts now that file/video input streams, and finish foreground/packaged workflows before final complete corpus/export/application gates.",
-          "progress": "Production entry-point retirement, optional PNG disk budgets and streamed file admission are implemented. Video decoders now authenticate granted file/inline input in 64 KiB chunks while writing private seekable snapshots; cache hits reauthenticate into a discard sink before reuse. No whole encoded-file vector is required by video decoding. Budget, cancellation, identity and destination failures are tested; staging closes its writer before cleanup. Twenty-four real video cache comparisons preserve exact pixels, frame receipts and cache statistics with no temporary residue; fifteen queue comparisons, two disabled-plugin checks and full G0 pass. Source limits/timeouts, documented capability coverage, foreground/packaged workflows and final gates remain open.",
+          "remaining_qualification": "Qualify long-job total timeouts and close the production entry-point audit; foreground/packaged workflows remain delivery qualification in M12-T8, with complete gates owned by M12-T7/T9.",
+          "progress": "Production TS entry points are retired; native file and video source limits now accept the application 2 GiB private-media budget. Encoded snapshot cache capacity includes eight bounded presentation indices without changing decoded pixel, inline grant or lookahead memory budgets. A real 512 MiB plus one byte MP4 passes direct native and immutable queue exports with four exact frames; the retained executable and explicit lower limits reject it, oversized queue input is rejected before copying, and no temporary output remains. Twenty-four cache comparisons and fifteen existing queue outputs remain exact; full G0 passes. Long-job timeout handling and final delivery qualification remain pending.",
           "started_at": "2026-10-23T06:07:55.277Z",
-          "commit": "f7fe106f2b9267bf8c8d4bfa8a39ecd13c62e251",
+          "commit": "e693631835a251337797e37255db1b5a7ae4b8ae",
           "validation": {
-            "path": "artifacts/migration/cycle168-validation/report.json",
-            "sha256": "81368593b00e0c654f033ba50b09acd3ce586ddcd42544b176501d05dead1375"
+            "path": "artifacts/migration/cycle169b-validation/report.json",
+            "sha256": "745293161c94afe54c16ed59ef42a1f7fc46e67987281abdbc9523e84417d2a7"
           }
         },
         {
@@ -2681260,6 +2681275,103 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Continue M12-T6 by qualifying source limits and timeouts against the documented production media contract, then foreground/packaged workflows and final gate composition."
+    },
+    {
+      "cycle": 169,
+      "id": 169,
+      "time": "2026-10-23T07:21:32.587Z",
+      "updated_at": "2026-10-23T07:21:32.587Z",
+      "milestone": "M12",
+      "task": "M12-T6",
+      "increment": "align-streamed-video-source-budgets",
+      "outcome": "progress",
+      "commit": "e693631835a251337797e37255db1b5a7ae4b8ae",
+      "validation": {
+        "path": "artifacts/migration/cycle169b-validation/report.json",
+        "sha256": "745293161c94afe54c16ed59ef42a1f7fc46e67987281abdbc9523e84417d2a7"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "queue-project-targeted",
+          "status": "passed",
+          "duration_ms": 2217
+        },
+        {
+          "id": "project-native-build",
+          "status": "passed",
+          "duration_ms": 1363
+        },
+        {
+          "id": "project-electron-build",
+          "status": "passed",
+          "duration_ms": 969
+        },
+        {
+          "id": "project-raster-build",
+          "status": "passed",
+          "duration_ms": 348
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 339321
+        }
+      ],
+      "queue": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle169b-validation\\queue\\report.json",
+        "sha256": "ebed282d6b880c4a15b3dbf5ca0cf75277d61af38f3f9961640eb56412169910",
+        "exact_cases": 15,
+        "disabled_plugin_cases": 2,
+        "historical_receipt_match": {
+          "path": "artifacts/migration/cycle154b-validation/queue/report.json",
+          "sha256": "0e4c0bd1499bb3499da9b037ad30d4b24403aebe7ebe2ff66792c9034a9a4db4",
+          "cases": 15
+        }
+      },
+      "video": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle169b-validation\\video\\report.json",
+        "sha256": "c87d4be2d7de6da3142274eb6b2e98c01caf74e6132b8b64c98941761ac43cb0",
+        "exact_comparisons": 24,
+        "cache_modes": 4,
+        "private_files_cleaned": true,
+        "chunk_bytes": 65536,
+        "whole_encoded_file_vector": false,
+        "reauthenticate_on_cache_hit": true
+      },
+      "budgets": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle169b-validation\\budgets\\report.json",
+        "sha256": "d4cfe9cd9f4788e77d5a0633cfd009264b9eb56951c4eebee6dc2d6e5a34b3eb",
+        "source_bytes": 536870913,
+        "exact_frames": 4,
+        "lower_limits_rejected": true,
+        "oversized_queue_rejected": true,
+        "cleanup": true
+      },
+      "retained_failed_attempts": [
+        {
+          "path": "artifacts/migration/cycle169-validation/budgets/native-large.log",
+          "reason": "Validation fixture used SHA-256 in the persisted FNV byteIdentity field; corrected the fixture without changing runtime authentication."
+        }
+      ],
+      "quota": {
+        "remaining_percent": 66
+      },
+      "self_review": {
+        "result": "exact",
+        "compared_frames": 43,
+        "scope": "Four padded-file frames, twenty-four video cache comparisons and fifteen paired queue outputs have identical RGBA hashes and unchanged receipts; disabled-plugin checks assert intended feature omission rather than pixel parity."
+      },
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Continue M12-T6 with long-job timeout handling and close the routing audit, then compose final gates and qualify packaged delivery."
     }
   ],
   "known_boundaries": [
