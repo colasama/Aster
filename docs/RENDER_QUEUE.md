@@ -108,8 +108,11 @@ value, and acknowledges pauses only at native or file-operation boundaries. Each
 private directory and media authorization until process and staging cleanup finish. Execution settles
 before terminal callbacks, allowing the scheduler to dispose a worker from inside its completion
 report without a circular wait. Cancellation while authorization is pending retains the scheduler
-slot until the returned lease is released. Production route selection remains separate while long-job
-admission is qualified.
+slot until the returned lease is released. `ASTER_NATIVE_QUEUE=1` selects this host in application
+startup for both interactive and background automation exports. It uses the application-owned native
+runtime, raster service and bridge plugin resolver, and acquires the same verified media leases as
+the existing queue. An unavailable native runtime fails explicitly. The default route remains the
+hidden host until final production retirement; selected native jobs never fall back to that host.
 
 Each job pairs the persistence-safe project document with a versioned `RenderMediaManifest` keyed by
 source ID and content identity. Embedded still/video/audio data remains in the document. At enqueue,

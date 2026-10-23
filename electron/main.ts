@@ -52,6 +52,8 @@ import { discoverDesktopImageSequence } from "./media-import.js";
 import { Mp4ExportManager } from "./mp4-export.js";
 import { materializePreviewAssets } from "./native-preview-assets.js";
 import { NativePreviewHost } from "./native-preview-host.js";
+import type { ResolvePreviewPlugins } from "./native-preview-plugins.js";
+import { NativeQueueHostFactory } from "./native-queue-host.js";
 import { nativeRenderRuntime } from "./native-render-runtime.js";
 import { developmentProfileDirectory } from "./profile-paths.js";
 import { authorizeProjectMediaExternalPaths } from "./project-media-authorization.js";
@@ -253,6 +255,7 @@ let applicationLogger: AsterLogger | undefined;
 let appPreferences: AppPreferencesStore | undefined;
 let renderQueueManager: RenderQueueManager | undefined;
 let renderHostController: ElectronRenderHostController | undefined;
+let nativeQueueHost: NativeQueueHostFactory | undefined;
 let nativePreviewHost: NativePreviewHost | undefined;
 let automationSettings: AutomationSettingsController | undefined;
 let primaryWindow: BrowserWindow | undefined;
@@ -1393,6 +1396,39 @@ if (hasSingleInstanceLock)
         temporaryDirectory: app.getPath("temp"),
         ffmpeg: previewFfmpeg,
       });
+      const rasterRuntime = {
+        executable: process.execPath,
+        host: join(dirname(fileURLToPath(import.meta.url)), "native-raster-host.js"),
+        bundle: app.isPackaged
+          ? join(process.resourcesPath, "native-raster/native-raster.html")
+          : join(app.getAppPath(), "dist/native-raster/native-raster.html"),
+        bridge: bridgeExecutable(),
+      };
+      const resolveNativePlugins: ResolvePreviewPlugins = async (references) => {
+        if (!desktopBridge) throw new Error("Aster desktop bridge is unavailable");
+        return desktopBridge.invoke("prepare_native_preview_plugins", { references });
+      };
+      if (process.env.ASTER_NATIVE_QUEUE === "1") {
+        if (!previewRuntime) throw new Error("Native render queue runtime is unavailable");
+        nativeQueueHost = new NativeQueueHostFactory({
+          temporaryRoot: previewRuntime.temporaryRoot,
+          runtime: {
+            ...rasterRuntime,
+            renderer: previewRuntime.binary,
+            compiler: previewRuntime.compiler,
+            ffmpeg: previewFfmpeg,
+            ffprobe: previewRuntime.ffprobe,
+          },
+          authorizeMedia: (manifest) =>
+            renderMediaSnapshots.authorizeLaunch(
+              manifest.id,
+              manifest.renderMediaSnapshot ?? '{"version":1,"entries":[],"payloads":[]}',
+              { allowedAssets },
+            ),
+          resolvePlugins: resolveNativePlugins,
+          onError: (error) => logger.error("render_queue", "native_worker_failed", error),
+        });
+      }
       if (previewRuntime) {
         nativePreviewHost = new NativePreviewHost({
           // Enable explicitly selected sessions until complete editor acceptance.
@@ -1402,19 +1438,9 @@ if (hasSingleInstanceLock)
           compiler: previewRuntime.compiler,
           ffmpeg: previewFfmpeg,
           ffprobe: previewRuntime.ffprobe,
-          raster: {
-            executable: process.execPath,
-            host: join(dirname(fileURLToPath(import.meta.url)), "native-raster-host.js"),
-            bundle: app.isPackaged
-              ? join(process.resourcesPath, "native-raster/native-raster.html")
-              : join(app.getAppPath(), "dist/native-raster/native-raster.html"),
-            bridge: bridgeExecutable(),
-          },
+          raster: rasterRuntime,
           trusted: (contents) => contents === primaryWindow?.webContents,
-          resolvePlugins: async (references) => {
-            if (!desktopBridge) throw new Error("Aster desktop bridge is unavailable");
-            return desktopBridge.invoke("prepare_native_preview_plugins", { references });
-          },
+          resolvePlugins: resolveNativePlugins,
           save: async (directory, document, assets) => {
             if (!desktopBridge) throw new Error("Aster desktop bridge is unavailable");
             authorizeProjectMediaExternalPaths(document, { allowedAssets });
@@ -1426,7 +1452,7 @@ if (hasSingleInstanceLock)
       }
       registerFontAccess(() => primaryWindow);
       registerEditorPermissions(session.defaultSession, () => primaryWindow);
-      await renderQueueManager.startScheduler(renderHostController, 1);
+      await renderQueueManager.startScheduler(nativeQueueHost ?? renderHostController, 1);
       await createWindow(logger, preferences);
       automationSettings = new AutomationSettingsController({
         userData: app.getPath("userData"),
@@ -1496,6 +1522,7 @@ app.on("will-quit", (event) => {
   void (async () => {
     await automationSettings?.close();
     await renderQueueManager?.shutdown();
+    await nativeQueueHost?.dispose();
     await renderHostController?.dispose();
     await nativePreviewHost?.dispose();
     desktopBridge?.dispose();
