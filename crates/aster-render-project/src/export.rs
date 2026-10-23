@@ -28,6 +28,7 @@ pub struct NativeProjectExport {
     pub schedule: ProjectExportSchedule,
     pub settings: ProjectFrameSettings,
     pub raster_provider: Option<NativeRasterProvider>,
+    pub include_audio: bool,
     pub encoder_options: EncoderOptions,
     pub mux_limits: ExportLimits,
     pub ffmpeg: PathBuf,
@@ -139,6 +140,7 @@ impl NativeProjectExport {
             &self.schedule,
             &self.control,
             self.mux_limits.max_audio_source_bytes,
+            self.include_audio,
         )?;
         progress(ProjectExportProgress {
             stage: "encoder",

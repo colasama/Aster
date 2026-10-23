@@ -74,7 +74,7 @@ export async function runProjectExportLifecycle(context, prepared) {
       provider = prepared.rasterProvider;
     const jobs = await captureAssignments(
       root,
-      ["minimal-golden", "layer-text", "owner-opening"].map((id) =>
+      ["minimal-golden", "layer-text", "owner-opening", "scene-audio-spectrum-bars"].map((id) =>
         corpus.cases.find((c) => c.id === id),
       ),
       context.env,
@@ -222,6 +222,73 @@ export async function runProjectExportLifecycle(context, prepared) {
       });
       context.print?.(`${id} lifecycle export passed ${receipt.report.transport}`);
     }
+    const audioExports = [];
+    for (const includeAudio of [true, false]) {
+      const name = includeAudio ? "audio-included" : "audio-omitted";
+      const args = await argumentsFor("scene-audio-spectrum-bars", name);
+      if (!includeAudio) args.push("--no-audio");
+      const result = await run(name, cli, args);
+      assert.equal(result.code, 0, result.stdout + result.stderr);
+      const receipt = result.rows.at(-1);
+      assert.equal(receipt.status, "passed");
+      assert.equal(receipt.report.frames, 12);
+      assert.equal(receipt.report.audio_frames > 0, includeAudio);
+      assert(receipt.report.encoder.drain_completed);
+      assert.equal(receipt.report.encoder.encoded_frames, 12);
+      const probed = await run(`${name}-probe`, ffprobe, [
+        "-v",
+        "error",
+        "-count_frames",
+        "-show_streams",
+        "-of",
+        "json",
+        join(output, `${name}.mp4`),
+      ]);
+      assert.equal(probed.code, 0, probed.stderr);
+      const probe = JSON.parse(probed.stdout);
+      assert.equal(
+        probe.streams.filter((s) => s.codec_type === "audio").length,
+        includeAudio ? 1 : 0,
+      );
+      const video = probe.streams.find((s) => s.codec_type === "video");
+      assert.equal(Number(video.nb_read_frames), 12);
+      assert.equal(
+        video.avg_frame_rate,
+        `${receipt.video.frame_rate.numerator}/${receipt.video.frame_rate.denominator}`,
+      );
+      const witness = await json(receipt.witness.path);
+      assert.equal(await hashFile(receipt.witness.path), receipt.witness.report_sha256);
+      assert.equal(witness.output_sha256, await hashFile(join(output, `${name}.mp4`)));
+      assert.deepEqual(
+        witness.frames.map((f) => f.index),
+        [0, 1, 5, 11],
+      );
+      for (const frame of witness.frames) {
+        const base = join(output, `${name}-witness`, String(frame.index));
+        assert.equal(await hashFile(join(base, "candidate.png")), frame.rgb.png_sha256);
+        assert.equal(await hashFile(join(base, "plan.fpln")), frame.rgb.plan_sha256);
+        assert.equal(await hashFile(join(base, "input.nv12")), frame.nv12_sha256);
+      }
+      audioExports.push({ include_audio: includeAudio, receipt, probe, witness });
+    }
+    const [audible, muted] = audioExports;
+    assert.equal(audible.witness.project_authored_sha256, muted.witness.project_authored_sha256);
+    assert.deepEqual(audible.witness.video, muted.witness.video);
+    for (const [index, frame] of audible.witness.frames.entries()) {
+      const other = muted.witness.frames[index];
+      assert.equal(frame.time_bits, other.time_bits);
+      assert.equal(frame.rgb.png_sha256, other.rgb.png_sha256, "muting changed audio-reactive RGB");
+      assert.equal(
+        frame.rgb.plan_sha256,
+        other.rgb.plan_sha256,
+        "muting changed visual evaluation",
+      );
+      assert.equal(frame.nv12_sha256, other.nv12_sha256, "muting changed encoder video input");
+    }
+    report.cases.push({ id: "audio-selection-preserves-reactive-visuals", exports: audioExports });
+    context.print?.(
+      "Audio selection passed: identical reactive plans, RGB and NV12; selected mux tracks",
+    );
     let pausePromise, pauseError;
     const pauseArgs = await argumentsFor("minimal-golden", "pause-resume", 100);
     const paused = await run("pause-resume", cli, pauseArgs, (value, child, rows) => {

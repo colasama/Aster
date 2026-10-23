@@ -1083,6 +1083,8 @@ existing destination and removes the owned temporary on failure.
 from the native project and optional output size, rational rate and range overrides. Native audio
 mixing uses 48 kHz stereo chunks with the existing limiter and pads the final rational frame interval
 with silence. A job-owned float WAV supplies the muxer and is removed after completion or failure.
+`--no-audio` omits that WAV and the output audio track without removing audio inputs from native
+evaluation, so audio-reactive visuals retain the same frame results.
 Rendering and encoding use shared GPU NV12 surfaces when available, with an explicit in-process
 NV12 readback fallback. Packet indices, timestamps, durations and encoder drain receipts are checked
 before the producer can finish the mux stream. Optional newline-delimited stdin controls pause,

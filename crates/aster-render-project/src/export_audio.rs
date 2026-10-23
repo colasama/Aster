@@ -16,6 +16,7 @@ impl ExportAudio {
         schedule: &ProjectExportSchedule,
         control: &ProjectExportControl,
         maximum_bytes: u64,
+        enabled: bool,
     ) -> Result<Self, ProjectRenderError> {
         let mut output = Self {
             directory: std::env::temp_dir()
@@ -24,7 +25,7 @@ impl ExportAudio {
             frames: 0,
             owned: false,
         };
-        if audio.receipts.is_empty() {
+        if !enabled || audio.receipts.is_empty() {
             return Ok(output);
         }
         let rate = schedule.video.frame_rate;

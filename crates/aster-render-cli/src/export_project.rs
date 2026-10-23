@@ -43,6 +43,9 @@ pub(crate) struct ExportProjectArgs {
     fps_denominator: Option<u32>,
     #[arg(long, default_value_t = 20_000_000)]
     bitrate: u32,
+    /// Omit the output audio track while retaining audio inputs for visual evaluation.
+    #[arg(long)]
+    no_audio: bool,
     #[arg(long,default_value="off",value_parser=["off","fxaa","ssaa2x","ssaa4x"])]
     aa: String,
     /// Receive bounded newline-delimited {"action":"pause"|"resume"|"cancel"} controls.
@@ -235,6 +238,7 @@ impl ExportProjectArgs {
             schedule,
             settings,
             raster_provider: provider,
+            include_audio: !self.no_audio,
             encoder_options: self.encoder,
             mux_limits: self.mux,
             ffmpeg: self.runtime.ffmpeg,
