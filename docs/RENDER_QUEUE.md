@@ -46,7 +46,12 @@ content-addressed copies from explicitly leased local paths or bounded inline pa
 hashes retain the existing persisted byte-identity format; copies are rehashed before use, and
 duplicate payloads share a verified file. Byte/file budgets, path admission and exclusive writes
 prevent the preparation layer from resolving arbitrary locators or overwriting existing data.
-Native project assembly and queue-worker selection consume this preparation boundary separately.
+`prepareNativeQueueProject` selects the captured composition dependency graph and materializes
+still/video/audio, SVG, PSD documents and image sequences through this boundary. PSD pixel-only
+captures stay in a bounded, SHA-256-authenticated job-local sidecar, admitted by the retained raster
+service without granting additional file access. Trusted installed plugin packages are frozen;
+disabled, missing and safe-mode generators are explicitly classified in native export admission.
+The authored queue snapshot remains unchanged. Production queue-worker selection is a separate step.
 
 Each job pairs the persistence-safe project document with a versioned `RenderMediaManifest` keyed by
 source ID and content identity. Embedded still/video/audio data remains in the document. At enqueue,

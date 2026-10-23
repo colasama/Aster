@@ -27,6 +27,15 @@ pub struct RasterProviderOptions {
     pub timeout_ms: u64,
     #[serde(default)]
     pub cache_bytes: usize,
+    #[serde(default)]
+    pub retained_media: Option<RetainedMediaInput>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct RetainedMediaInput {
+    pub path: PathBuf,
+    pub sha256: String,
 }
 
 #[derive(Serialize)]
@@ -41,6 +50,8 @@ struct HostConfiguration {
     profile: PathBuf,
     maximum_json_bytes: usize,
     maximum_pixel_bytes: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    retained_media: Option<RetainedMediaInput>,
 }
 
 #[derive(Deserialize)]
@@ -162,6 +173,7 @@ impl NativeRasterProvider {
             profile: directory,
             maximum_json_bytes: limits.render_project_input_bytes,
             maximum_pixel_bytes: limits.render_project_pixel_bytes,
+            retained_media: options.retained_media,
         };
         let mut command = Command::new(executable);
         command

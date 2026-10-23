@@ -24,7 +24,7 @@ export interface RasterServiceFrame {
 }
 
 export interface RasterServiceApi {
-  open(): Promise<{ projectPath: string }>;
+  open(): Promise<{ projectPath: string; retainedMediaSnapshot?: string }>;
   ready(value: RasterServiceReady): Promise<void>;
   take(): Promise<RasterServiceWork | null>;
   frame(value: RasterServiceFrame): Promise<void>;

@@ -79,6 +79,8 @@ struct ExportConfiguration {
     raster_provider: Option<RasterProviderOptions>,
     #[serde(default)]
     plugins: Vec<PathBuf>,
+    #[serde(default)]
+    unavailable_generators: Vec<aster_eval::UnavailableGenerator>,
 }
 
 #[derive(Deserialize)]
@@ -264,9 +266,12 @@ impl ExportProjectArgs {
                 .min(provider.ready.maximum_dimension);
         }
         control.wait()?;
-        let (session, identity) = self.runtime.open(
+        let (session, identity) = self.runtime.open_schedule(
             document,
-            &schedule.frames,
+            crate::project_runtime::ProjectScheduleAdmission {
+                frames: schedule.frames.clone(),
+                unavailable_generators: configuration.unavailable_generators,
+            },
             &settings,
             &configuration.plugins,
             None,

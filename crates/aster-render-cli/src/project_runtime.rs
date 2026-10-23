@@ -51,9 +51,14 @@ pub(crate) struct ProjectIdentity {
 }
 
 enum ProjectAdmission {
-    Schedule(Vec<FramePlanRequest>),
+    Schedule(ProjectScheduleAdmission),
     #[cfg(windows)]
     Preview(ProjectPreviewAdmission),
+}
+
+pub(crate) struct ProjectScheduleAdmission {
+    pub frames: Vec<FramePlanRequest>,
+    pub unavailable_generators: Vec<aster_eval::UnavailableGenerator>,
 }
 
 #[cfg(windows)]
@@ -74,7 +79,29 @@ impl ProjectRuntimeArgs {
     ) -> Result<(NativeProjectSession, ProjectIdentity), Box<dyn std::error::Error>> {
         self.open_admitted(
             document,
-            ProjectAdmission::Schedule(frames.to_vec()),
+            ProjectAdmission::Schedule(ProjectScheduleAdmission {
+                frames: frames.to_vec(),
+                unavailable_generators: Vec::new(),
+            }),
+            settings,
+            plugins,
+            renderer,
+            cancellation,
+        )
+    }
+
+    pub fn open_schedule(
+        &self,
+        document: NativeProjectDocument,
+        admission: ProjectScheduleAdmission,
+        settings: &ProjectFrameSettings,
+        plugins: &[PathBuf],
+        renderer: Option<NativeRenderer>,
+        cancellation: &CancellationToken,
+    ) -> Result<(NativeProjectSession, ProjectIdentity), Box<dyn std::error::Error>> {
+        self.open_admitted(
+            document,
+            ProjectAdmission::Schedule(admission),
             settings,
             plugins,
             renderer,
@@ -112,7 +139,7 @@ impl ProjectRuntimeArgs {
         cancellation: &CancellationToken,
     ) -> Result<(NativeProjectSession, ProjectIdentity), Box<dyn std::error::Error>> {
         let frames = match &admission {
-            ProjectAdmission::Schedule(frames) => frames.as_slice(),
+            ProjectAdmission::Schedule(admission) => admission.frames.as_slice(),
             #[cfg(windows)]
             ProjectAdmission::Preview(admission) => std::slice::from_ref(&admission.frame),
         };
@@ -173,12 +200,14 @@ impl ProjectRuntimeArgs {
             &self.project.bundle,
         )?;
         let catalog = NativeProjectGenerators::catalog(installed, self.project.bundle.clone())?;
-        #[cfg(windows)]
         let catalog = match &admission {
+            #[cfg(windows)]
             ProjectAdmission::Preview(preview) => {
                 catalog.with_unavailable(preview.unavailable_generators.clone())?
             }
-            ProjectAdmission::Schedule(_) => catalog,
+            ProjectAdmission::Schedule(schedule) => {
+                catalog.with_unavailable(schedule.unavailable_generators.clone())?
+            }
         };
         let renderer = match renderer {
             Some(renderer) => renderer,

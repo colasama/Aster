@@ -15,6 +15,7 @@ import {
 import { fetchLocalAsset } from "./local-file-response.js";
 import { NativeRasterPayloads } from "./native-raster-payloads.js";
 import { NativeRasterProject } from "./native-raster-project.js";
+import { readRetainedQueueMedia } from "./native-raster-retained-media.js";
 import { NativeRasterWire } from "./native-raster-wire.js";
 
 interface Configuration {
@@ -27,6 +28,7 @@ interface Configuration {
   profile: string;
   maximumJsonBytes: number;
   maximumPixelBytes: number;
+  retainedMedia?: { path: string; sha256: string };
 }
 
 async function main() {
@@ -146,6 +148,9 @@ async function main() {
   ])
     app.commandLine.appendSwitch(flag);
   await app.whenReady();
+  const retainedMediaSnapshot = config.retainedMedia
+    ? await readRetainedQueueMedia(config.project, config.retainedMedia)
+    : undefined;
   protocol.handle(
     ASSET_SCHEME,
     createAssetProtocolHandler({
@@ -165,7 +170,7 @@ async function main() {
   handle("desktop", (command: string, args: Record<string, unknown>) =>
     project.invoke(command, args),
   );
-  handle("open", () => ({ projectPath: config.project }));
+  handle("open", () => ({ projectPath: config.project, retainedMediaSnapshot }));
   handle("ready", async (value: RasterServiceReady) => {
     assert(!ready);
     ready = true;

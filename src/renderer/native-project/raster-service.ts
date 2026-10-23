@@ -2,6 +2,7 @@ import { segmentTextLayoutUnits } from "../../core/animation/text-animator-stack
 import { activateProjectFonts, prepareProjectFonts } from "../../core/media/project-font-runtime";
 import { loadProjectFromPath } from "../../core/project/project-file";
 import { mediaImportRuntime } from "../../importers/media-import-runtime";
+import { hydrateRenderMediaSnapshot } from "../../render-queue/render-media-manifest";
 import type { FrameHeaderSlice } from "../frame-plan/types";
 import { VerifiedMediaPixels } from "../media/verified-media-pixels";
 import type {} from "./raster-service-protocol";
@@ -10,7 +11,7 @@ import type { RetainedRasterRequest } from "./retained-raster-types";
 
 async function run() {
   const api = window.asterRasterService;
-  const { projectPath } = await api.open();
+  const { projectPath, retainedMediaSnapshot } = await api.open();
   const { project } = await loadProjectFromPath(projectPath);
   await prepareProjectFonts(project);
   activateProjectFonts(project);
@@ -29,7 +30,10 @@ async function run() {
   });
   const sampler = device.createSampler({ minFilter: "linear", magFilter: "linear" });
   const provider = new RetainedRasterProvider(device, layout, sampler);
+  let retainedMedia: Awaited<ReturnType<typeof hydrateRenderMediaSnapshot>> | undefined;
   try {
+    if (retainedMediaSnapshot)
+      retainedMedia = await hydrateRenderMediaSnapshot(project, retainedMediaSnapshot);
     await api.ready({
       locale: new Intl.Collator().resolvedOptions().locale,
       maximumDimension: Math.min(8192, device.limits.maxTextureDimension2D),
@@ -69,6 +73,7 @@ async function run() {
   } finally {
     await device.queue.onSubmittedWorkDone();
     provider.destroy();
+    retainedMedia?.dispose();
     mediaImportRuntime.clear();
     activateProjectFonts({ fonts: [] });
     device.destroy();
