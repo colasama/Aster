@@ -73,6 +73,13 @@ are correlated with the latest request; resume and cancel invalidate stale ackno
 Cancellation keeps the process lease until its pipes close, with bounded forced process-tree cleanup
 if cooperative shutdown stalls. Queue-wide scheduling and publication own the surrounding output set.
 
+Native output admission streams completed encoded files into the existing publication transaction.
+PNG receipts bind every frame, hash and extent; sequence members retain the queue's captured naming
+pattern and absolute frame numbering. All admitted files are rehashed before publication, and a
+cancelled copy removes only its incomplete staging file. Mixed PNG/video outputs remain unpublished
+until every module is complete. Interrupted rollback preserves original backup files for recovery;
+backup deletion after successful publication cannot trigger a destructive second rollback.
+
 Each job pairs the persistence-safe project document with a versioned `RenderMediaManifest` keyed by
 source ID and content identity. Embedded still/video/audio data remains in the document. At enqueue,
 every linked local source is copied and SHA-256 verified into a content-addressed, job-owned snapshot

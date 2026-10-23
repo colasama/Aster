@@ -1,5 +1,6 @@
 // @vitest-environment node
 
+import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -60,6 +61,19 @@ async function context(): Promise<{ root: string; manifest: RenderJobManifest }>
 }
 
 describe("atomic render output publisher", () => {
+  it("retains a recovery backup from an interrupted publication", async () => {
+    const { root, manifest } = await context();
+    const token = createHash("sha256")
+      .update(`${manifest.id}:lease:still`)
+      .digest("hex")
+      .slice(0, 20);
+    const backup = join(root, `.poster.png.aster-${token}.backup`);
+    await writeFile(backup, "original recovery bytes");
+    const publisher = new AtomicRenderOutputPublisher(manifest, "lease");
+    await expect(publisher.prepare()).rejects.toThrow("recovery backup");
+    await publisher.cleanup();
+    expect(await readFile(backup, "utf8")).toBe("original recovery bytes");
+  });
   it("publishes still, sequence, and MP4 only after every staged module completes", async () => {
     const { root, manifest } = await context();
     const publisher = new AtomicRenderOutputPublisher(manifest, "lease");

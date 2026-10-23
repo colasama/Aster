@@ -2,6 +2,11 @@ import { createHash } from "node:crypto";
 import { lstat, mkdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, isAbsolute, join, parse, resolve } from "node:path";
 import type { RenderJobManifest, RenderOutputModule } from "../src/core/rendering/render-queue.js";
+import { admitNativeOutputFile, type NativeOutputFileIdentity } from "./native-output-file.js";
+import {
+  type NativeProjectExportReceipt,
+  parseNativeProjectReceipt,
+} from "./native-project-export-protocol.js";
 
 const MAX_PNG_BYTES = 512 * 1024 * 1024;
 const PNG_SIGNATURE = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10]);
@@ -12,6 +17,7 @@ interface OutputTarget {
   stagingPath: string;
   backupPath: string;
   writtenFrames: Set<number>;
+  nativeFiles?: Array<NativeOutputFileIdentity & { path: string }>;
 }
 
 /** Stages every module beside its destination and publishes only after all modules are complete. */
@@ -20,6 +26,9 @@ export class AtomicRenderOutputPublisher {
   readonly #targets: Map<string, OutputTarget>;
   #prepared = false;
   #published = false;
+  #admission?: Promise<void>;
+  readonly #recoveryBackups = new Set<string>();
+  readonly #ownedBackups = new Set<string>();
 
   constructor(manifest: RenderJobManifest, leaseId: string) {
     this.#manifest = structuredClone(manifest);
@@ -64,7 +73,10 @@ export class AtomicRenderOutputPublisher {
         const parent = await stat(dirname(target.destination)).catch(() => undefined);
         if (!parent?.isDirectory()) throw new Error("Render output parent must exist");
         await rm(target.stagingPath, { recursive: true, force: true });
-        await rm(target.backupPath, { recursive: true, force: true });
+        if (await lstat(target.backupPath).catch(() => undefined)) {
+          this.#recoveryBackups.add(target.backupPath);
+          throw new Error("Render output recovery backup already exists");
+        }
         if (target.output.kind === "pngSequence")
           await mkdir(target.stagingPath, { recursive: false });
       }
@@ -82,6 +94,7 @@ export class AtomicRenderOutputPublisher {
 
   async writePng(outputId: string, frame: number, value: ArrayBuffer): Promise<void> {
     this.#requirePrepared();
+    if (this.#admission) throw new Error("Native output admission is in progress");
     const target = this.#targets.get(outputId);
     if (!target || (target.output.kind !== "pngSequence" && target.output.kind !== "still"))
       throw new Error("Render PNG output is invalid");
@@ -106,10 +119,96 @@ export class AtomicRenderOutputPublisher {
     target.writtenFrames.add(frame);
   }
 
+  /** Accept closed native outputs into the existing all-modules publication transaction. */
+  async importNativeOutput(
+    outputId: string,
+    source: string,
+    receipt: NativeProjectExportReceipt,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    this.#requirePrepared();
+    if (this.#admission) throw new Error("Native output admission is in progress");
+    const pending = this.#importNativeOutput(outputId, source, structuredClone(receipt), signal);
+    this.#admission = pending;
+    try {
+      await pending;
+    } finally {
+      this.#admission = undefined;
+    }
+  }
+
+  async #importNativeOutput(
+    outputId: string,
+    source: string,
+    receipt: NativeProjectExportReceipt,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    const target = this.#targets.get(outputId),
+      manifest = this.#manifest;
+    if (!target || target.nativeFiles || target.writtenFrames.size)
+      throw new Error("Native output is missing or already admitted");
+    const output = target.output;
+    const parsed = parseNativeProjectReceipt(receipt, {
+      format: output.kind === "mp4" ? "mp4" : output.kind === "still" ? "png" : "png-sequence",
+      projectSha256: receipt.project.authored_sha256,
+      output: source,
+      width: manifest.width,
+      height: manifest.height,
+      frameRate: manifest.frameRate,
+      startFrame: output.kind === "still" ? output.frame : manifest.startFrame,
+      frames: output.kind === "still" ? 1 : manifest.endFrameExclusive - manifest.startFrame,
+      bitrate: output.kind === "mp4" ? Math.round(output.bitrateMbps * 1000000) : 20000000,
+      includeAudio: output.kind === "mp4" && output.includeAudio,
+    });
+    if (output.kind === "pngSequence") {
+      const directory = await lstat(source);
+      if (!directory.isDirectory() || directory.isSymbolicLink())
+        throw new Error("Native sequence directory is invalid");
+    }
+    const files: Array<NativeOutputFileIdentity & { path: string }> = [];
+    const frames: number[] = [];
+    try {
+      if (output.kind === "mp4") {
+        const identity = await admitNativeOutputFile({
+          source,
+          destination: target.stagingPath,
+          bytes: Number(parsed.report.output_bytes),
+          signal,
+        });
+        files.push({ ...identity, path: target.stagingPath });
+      } else {
+        for (const image of parsed.images ?? []) {
+          const frame = output.kind === "still" ? output.frame : manifest.startFrame + image.index;
+          const path =
+            output.kind === "still"
+              ? target.stagingPath
+              : join(target.stagingPath, sequenceFileName(output.fileNamePattern, frame));
+          const identity = await admitNativeOutputFile({
+            source: image.member ? join(source, image.member) : source,
+            destination: path,
+            bytes: image.bytes,
+            sha256: image.png_sha256,
+            size: { width: manifest.width, height: manifest.height },
+            signal,
+          });
+          files.push({ ...identity, path });
+          frames.push(frame);
+        }
+      }
+      signal?.throwIfAborted();
+      target.nativeFiles = files;
+      for (const frame of frames) target.writtenFrames.add(frame);
+    } catch (error) {
+      await Promise.all(files.map((file) => rm(file.path, { force: true })));
+      throw error;
+    }
+  }
+
   async publish(aborted: () => boolean = () => false): Promise<void> {
     this.#requirePrepared();
+    if (this.#admission) throw new Error("Native output admission is in progress");
     if (this.#published) throw new Error("Render outputs are already published");
-    await this.#verifyComplete();
+    await this.#verifyComplete(aborted);
     assertPublishActive(aborted);
     const backedUp: OutputTarget[] = [];
     const published: OutputTarget[] = [];
@@ -122,6 +221,7 @@ export class AtomicRenderOutputPublisher {
           if (existing.isSymbolicLink() || existing.isDirectory() !== expectedDirectory)
             throw new Error("Existing render destination has an incompatible type");
           await rename(target.destination, target.backupPath);
+          this.#ownedBackups.add(target.backupPath);
           backedUp.push(target);
         }
         assertPublishActive(aborted);
@@ -133,29 +233,51 @@ export class AtomicRenderOutputPublisher {
         assertPublishActive(aborted);
       }
       this.#published = true;
-      await Promise.all(
-        backedUp.map((target) => rm(target.backupPath, { recursive: true, force: true })),
-      );
     } catch (error) {
+      const recoveryErrors: unknown[] = [];
       for (const target of published.reverse())
-        await rm(target.destination, { recursive: true, force: true }).catch(() => undefined);
-      for (const target of backedUp.reverse())
-        await rename(target.backupPath, target.destination).catch(() => undefined);
+        await rm(target.destination, { recursive: true, force: true }).catch((error) =>
+          recoveryErrors.push(error),
+        );
+      for (const target of backedUp.reverse()) {
+        await rename(target.backupPath, target.destination).catch((error) => {
+          this.#recoveryBackups.add(target.backupPath);
+          recoveryErrors.push(error);
+        });
+      }
+      if (recoveryErrors.length)
+        throw new AggregateError(
+          [error, ...recoveryErrors],
+          "Render output rollback requires recovery; original backups retained",
+        );
       throw error;
     }
+    // Publication is committed. A failed backup deletion must never roll back valid outputs.
+    await Promise.all(
+      backedUp.map((target) =>
+        rm(target.backupPath, { recursive: true, force: true }).catch(() => {}),
+      ),
+    );
   }
 
   async cleanup(): Promise<void> {
+    await this.#admission?.catch(() => {});
     await Promise.all(
       [...this.#targets.values()].flatMap((target) => [
         rm(target.stagingPath, { recursive: true, force: true }),
-        rm(target.backupPath, { recursive: true, force: true }),
+        ...(!this.#ownedBackups.has(target.backupPath) ||
+        this.#recoveryBackups.has(target.backupPath)
+          ? []
+          : [rm(target.backupPath, { recursive: true, force: true })]),
       ]),
     );
   }
 
-  async #verifyComplete(): Promise<void> {
+  async #verifyComplete(aborted: () => boolean): Promise<void> {
     for (const target of this.#targets.values()) {
+      for (const file of target.nativeFiles ?? []) {
+        await admitNativeOutputFile({ source: file.path, ...file, isCancelled: aborted });
+      }
       if (target.output.kind === "pngSequence") {
         const expected = this.#manifest.endFrameExclusive - this.#manifest.startFrame;
         if (target.writtenFrames.size !== expected)

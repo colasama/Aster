@@ -86,6 +86,7 @@ export async function validateNativeQueueProcesses(context, preparedRuntime) {
     compiler: join(root, "node_modules/electron/dist/dxcompiler.dll"),
   };
   const report = {
+    manifest,
     status: "failed",
     scope:
       "Native queue process adapter; complete queue scheduling and publication remain separate",
