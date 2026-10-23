@@ -2,6 +2,7 @@ mod bundle;
 mod compare;
 #[cfg(all(test, windows))]
 mod encoder_qualification;
+mod export_image_receipts;
 mod export_images;
 mod export_project;
 mod export_witness;

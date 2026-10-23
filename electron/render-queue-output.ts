@@ -2,11 +2,8 @@ import { createHash } from "node:crypto";
 import { lstat, mkdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, isAbsolute, join, parse, resolve } from "node:path";
 import type { RenderJobManifest, RenderOutputModule } from "../src/core/rendering/render-queue.js";
-import { admitNativeOutputFile, type NativeOutputFileIdentity } from "./native-output-file.js";
-import {
-  type NativeProjectExportReceipt,
-  parseNativeProjectReceipt,
-} from "./native-project-export-protocol.js";
+import { NativeOutputAdmission } from "./native-output-admission.js";
+import type { NativeProjectExportReceipt } from "./native-project-export-protocol.js";
 
 const MAX_PNG_BYTES = 512 * 1024 * 1024;
 const PNG_SIGNATURE = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10]);
@@ -17,7 +14,7 @@ interface OutputTarget {
   stagingPath: string;
   backupPath: string;
   writtenFrames: Set<number>;
-  nativeFiles?: Array<NativeOutputFileIdentity & { path: string }>;
+  nativeAdmission?: NativeOutputAdmission;
 }
 
 /** Stages every module beside its destination and publishes only after all modules are complete. */
@@ -110,6 +107,7 @@ export class AtomicRenderOutputPublisher {
         throw new Error("Render still frame does not match output");
     } else if (frame < this.#manifest.startFrame || frame >= this.#manifest.endFrameExclusive)
       throw new Error("Render sequence frame is outside the manifest range");
+    if (target.nativeAdmission) throw new Error("Native output already admitted");
     if (target.writtenFrames.has(frame)) throw new Error("Render PNG frame was written twice");
     const path =
       target.output.kind === "still"
@@ -145,61 +143,37 @@ export class AtomicRenderOutputPublisher {
   ): Promise<void> {
     const target = this.#targets.get(outputId),
       manifest = this.#manifest;
-    if (!target || target.nativeFiles || target.writtenFrames.size)
+    if (!target || target.nativeAdmission || target.writtenFrames.size)
       throw new Error("Native output is missing or already admitted");
     const output = target.output;
-    const parsed = parseNativeProjectReceipt(receipt, {
-      format: output.kind === "mp4" ? "mp4" : output.kind === "still" ? "png" : "png-sequence",
-      projectSha256: receipt.project.authored_sha256,
-      output: source,
-      width: manifest.width,
-      height: manifest.height,
-      frameRate: manifest.frameRate,
-      startFrame: output.kind === "still" ? output.frame : manifest.startFrame,
-      frames: output.kind === "still" ? 1 : manifest.endFrameExclusive - manifest.startFrame,
-      bitrate: output.kind === "mp4" ? Math.round(output.bitrateMbps * 1000000) : 20000000,
-      includeAudio: output.kind === "mp4" && output.includeAudio,
+    const admission = new NativeOutputAdmission({
+      receipt,
+      expected: {
+        format: output.kind === "mp4" ? "mp4" : output.kind === "still" ? "png" : "png-sequence",
+        projectSha256: receipt.project.authored_sha256,
+        output: source,
+        width: manifest.width,
+        height: manifest.height,
+        frameRate: manifest.frameRate,
+        startFrame: output.kind === "still" ? output.frame : manifest.startFrame,
+        frames: output.kind === "still" ? 1 : manifest.endFrameExclusive - manifest.startFrame,
+        bitrate: output.kind === "mp4" ? Math.round(output.bitrateMbps * 1000000) : 20000000,
+        includeAudio: output.kind === "mp4" && output.includeAudio,
+      },
+      path: (index) =>
+        output.kind === "pngSequence"
+          ? join(
+              target.stagingPath,
+              sequenceFileName(output.fileNamePattern, manifest.startFrame + index),
+            )
+          : target.stagingPath,
     });
-    if (output.kind === "pngSequence") {
-      const directory = await lstat(source);
-      if (!directory.isDirectory() || directory.isSymbolicLink())
-        throw new Error("Native sequence directory is invalid");
-    }
-    const files: Array<NativeOutputFileIdentity & { path: string }> = [];
-    const frames: number[] = [];
     try {
-      if (output.kind === "mp4") {
-        const identity = await admitNativeOutputFile({
-          source,
-          destination: target.stagingPath,
-          bytes: Number(parsed.report.output_bytes),
-          signal,
-        });
-        files.push({ ...identity, path: target.stagingPath });
-      } else {
-        for (const image of parsed.images ?? []) {
-          const frame = output.kind === "still" ? output.frame : manifest.startFrame + image.index;
-          const path =
-            output.kind === "still"
-              ? target.stagingPath
-              : join(target.stagingPath, sequenceFileName(output.fileNamePattern, frame));
-          const identity = await admitNativeOutputFile({
-            source: image.member ? join(source, image.member) : source,
-            destination: path,
-            bytes: image.bytes,
-            sha256: image.png_sha256,
-            size: { width: manifest.width, height: manifest.height },
-            signal,
-          });
-          files.push({ ...identity, path });
-          frames.push(frame);
-        }
-      }
-      signal?.throwIfAborted();
-      target.nativeFiles = files;
-      for (const frame of frames) target.writtenFrames.add(frame);
+      await admission.copy(signal);
+      target.nativeAdmission = admission;
     } catch (error) {
-      await Promise.all(files.map((file) => rm(file.path, { force: true })));
+      await rm(target.stagingPath, { recursive: true, force: true });
+      if (output.kind === "pngSequence") await mkdir(target.stagingPath);
       throw error;
     }
   }
@@ -275,8 +249,9 @@ export class AtomicRenderOutputPublisher {
 
   async #verifyComplete(aborted: () => boolean): Promise<void> {
     for (const target of this.#targets.values()) {
-      for (const file of target.nativeFiles ?? []) {
-        await admitNativeOutputFile({ source: file.path, ...file, isCancelled: aborted });
+      if (target.nativeAdmission) {
+        await target.nativeAdmission.verify(aborted);
+        continue;
       }
       if (target.output.kind === "pngSequence") {
         const expected = this.#manifest.endFrameExclusive - this.#manifest.startFrame;

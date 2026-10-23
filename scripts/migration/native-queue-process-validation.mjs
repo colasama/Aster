@@ -20,6 +20,9 @@ export async function validateNativeQueueProcesses(context, preparedRuntime) {
   const { NativeProjectExportCancelled } = await import(
     pathToFileURL(join(root, "dist-electron/electron/native-project-export-process.js"))
   );
+  const { readNativeProjectImages } = await import(
+    pathToFileURL(join(root, "dist-electron/electron/native-project-image-receipts.js"))
+  );
   const corpus = JSON.parse(await readFile(join(root, "tests/parity/corpus.json")));
   const fixture = corpus.cases.find((c) => c.id === "scene-audio-spectrum-bars");
   const document = JSON.parse(await readFile(join(root, fixture.project)));
@@ -85,6 +88,25 @@ export async function validateNativeQueueProcesses(context, preparedRuntime) {
     ffprobe: join(root, "build/ffmpeg/ffprobe.exe"),
     compiler: join(root, "node_modules/electron/dist/dxcompiler.dll"),
   };
+  const images = async (receipt, item, destination) => {
+    if (item.kind === "mp4") return undefined;
+    const expected = {
+      format: item.kind === "still" ? "png" : "png-sequence",
+      projectSha256: receipt.project.authored_sha256,
+      output: destination,
+      width: manifest.width,
+      height: manifest.height,
+      frameRate: manifest.frameRate,
+      startFrame: item.kind === "still" ? item.frame : manifest.startFrame,
+      frames: item.kind === "still" ? 1 : manifest.endFrameExclusive - manifest.startFrame,
+      bitrate: 20000000,
+      includeAudio: false,
+    };
+    assert(expected.frames <= 1000, "Validation receipt capture must stay bounded");
+    const captured = [];
+    for await (const row of readNativeProjectImages(receipt, expected)) captured.push(row);
+    return captured;
+  };
   const report = {
     manifest,
     status: "failed",
@@ -135,8 +157,9 @@ export async function validateNativeQueueProcesses(context, preparedRuntime) {
       const events = [];
       const child = await start(item.id, item.destination, (event) => events.push(event));
       const receipt = await child.completion;
-      if (receipt.images)
-        for (const image of receipt.images) {
+      const captured = await images(receipt, item, item.destination);
+      if (captured)
+        for (const image of captured) {
           const path = image.member ? join(item.destination, image.member) : item.destination;
           assert.equal(await hashFile(path), image.png_sha256);
           assert.equal((await stat(path)).size, image.bytes);
@@ -160,12 +183,9 @@ export async function validateNativeQueueProcesses(context, preparedRuntime) {
           item.includeAudio,
         );
       }
-      report.cases.push({ id: item.id, status: "passed", receipt, events });
+      report.cases.push({ id: item.id, status: "passed", receipt, images: captured, events });
     }
-    assert.equal(
-      report.cases[0].receipt.images[0].rgba_sha256,
-      report.cases[1].receipt.images[0].rgba_sha256,
-    );
+    assert.equal(report.cases[0].images[0].rgba_sha256, report.cases[1].images[0].rgba_sha256);
     const controls = [],
       pending = [];
     let child,
@@ -195,7 +215,10 @@ export async function validateNativeQueueProcesses(context, preparedRuntime) {
     const resumed = await child.completion;
     await Promise.all(pending);
     assert.equal(controls.filter((e) => e.stage === "paused").length, 2);
-    assert.deepEqual(resumed.images, report.cases[1].receipt.images);
+    assert.deepEqual(
+      await images(resumed, manifest.outputs[1], join(output, "paused-sequence")),
+      report.cases[1].images,
+    );
     report.cases.push({ id: "pause-resume", status: "passed", controls, exact: true });
     const cancelOutput = join(output, "cancelled");
     const cancelEvents = [];
@@ -207,6 +230,7 @@ export async function validateNativeQueueProcesses(context, preparedRuntime) {
     await assert.rejects(child.completion, NativeProjectExportCancelled);
     await child.dispose();
     await assert.rejects(stat(cancelOutput));
+    await assert.rejects(stat(`${cancelOutput}.receipts.jsonl`));
     assert.equal(cancelEvents.filter((e) => e.stage === "paused").length, 1);
     report.cases.push({ id: "cancel-after-pause", status: "passed", events: cancelEvents });
     const originalRequest = await readFile(project.request);

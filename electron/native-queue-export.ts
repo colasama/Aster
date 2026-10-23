@@ -115,6 +115,9 @@ export async function startNativeQueueExport(options: {
       String(Math.max(4096, expected.frames)),
       "--max-encoder-frames",
       String(Math.max(1_000_000, expected.frames)),
+      ...(expected.format === "mp4"
+        ? []
+        : ["--image-receipts", `${expected.output}.receipts.jsonl`]),
       ...(runtime.compiler ? ["--dxcompiler", runtime.compiler] : []),
       ...(expected.includeAudio ? [] : ["--no-audio"]),
       ...prepared.runtimeArguments,

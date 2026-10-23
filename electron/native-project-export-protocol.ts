@@ -36,6 +36,7 @@ export interface NativeProjectExportReceipt {
   project: { authored_sha256: string; runtime_sha256: string };
   report: { frames: number; elapsed_ms: number; output_bytes?: number; audio_frames?: number };
   images?: NativeProjectImageReceipt[];
+  image_receipts?: { path: string; sha256: string; bytes: number; frames: number };
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -129,32 +130,54 @@ export function parseNativeProjectReceipt(
     )
       throw new Error("Native encoder did not complete the requested output");
   } else {
-    if (
-      row.format !== expected.format ||
-      !Array.isArray(row.images) ||
-      row.images.length !== expected.frames
-    )
-      throw new Error("Native image output is incomplete");
-    for (const [index, value] of row.images.entries()) {
-      const image = record(value);
-      const time =
-        ((expected.startFrame + index) * expected.frameRate.denominator) /
-        expected.frameRate.numerator;
-      const bits = Buffer.alloc(8);
-      bits.writeDoubleBE(time);
-      const member =
-        expected.format === "png" ? null : `frame_${String(index).padStart(6, "0")}.png`;
+    if (row.format !== expected.format) throw new Error("Native image format differs");
+    if (row.image_receipts !== undefined) {
+      const file = record(row.image_receipts);
       if (
-        image.index !== index ||
-        image.member !== member ||
-        image.time !== time ||
-        image.time_bits !== bits.toString("hex") ||
-        !hash(image.rgba_sha256) ||
-        !hash(image.png_sha256) ||
-        !integer(image.bytes, 1)
+        row.images !== undefined ||
+        typeof file.path !== "string" ||
+        resolve(file.path) !== resolve(`${expected.output}.receipts.jsonl`) ||
+        !hash(file.sha256) ||
+        !integer(file.bytes, 1) ||
+        file.bytes > expected.frames * 1024 ||
+        file.frames !== expected.frames
       )
-        throw new Error("Native image receipt has a different frame identity");
+        throw new Error("Native image receipt file differs from its job");
+    } else {
+      if (
+        !Array.isArray(row.images) ||
+        row.images.length !== expected.frames ||
+        expected.frames > 65536
+      )
+        throw new Error("Native image output is incomplete");
+      for (const [index, image] of row.images.entries())
+        parseNativeProjectImage(image, index, expected);
     }
   }
   return row as unknown as NativeProjectExportReceipt;
+}
+
+export function parseNativeProjectImage(
+  value: unknown,
+  index: number,
+  expected: NativeProjectExportExpectation,
+): NativeProjectImageReceipt {
+  const image = record(value);
+  const time =
+    ((expected.startFrame + index) * expected.frameRate.denominator) / expected.frameRate.numerator;
+  const bits = Buffer.alloc(8);
+  bits.writeDoubleBE(time);
+  const member = expected.format === "png" ? null : `frame_${String(index).padStart(6, "0")}.png`;
+  if (
+    index >= expected.frames ||
+    image.index !== index ||
+    image.member !== member ||
+    image.time !== time ||
+    image.time_bits !== bits.toString("hex") ||
+    !hash(image.rgba_sha256) ||
+    !hash(image.png_sha256) ||
+    !integer(image.bytes, 1)
+  )
+    throw new Error("Native image receipt has a different frame identity");
+  return image as unknown as NativeProjectImageReceipt;
 }

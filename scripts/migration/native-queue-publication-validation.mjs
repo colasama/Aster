@@ -61,9 +61,8 @@ export async function validateNativeQueuePublication(context, processReport) {
     await success.publisher.publish();
     for (const item of success.manifest.outputs) {
       const native = original.outputs.find((o) => o.id === item.id);
-      const receipt = processReport.cases.find((c) => c.id === item.id).receipt;
       if (item.kind === "pngSequence") {
-        for (const image of receipt.images) {
+        for (const image of processReport.cases.find((c) => c.id === item.id).images) {
           const name = `frame_${String(original.startFrame + image.index + 1).padStart(6, "0")}.png`;
           assert.equal(await hashFile(join(item.destination, name)), image.png_sha256);
         }

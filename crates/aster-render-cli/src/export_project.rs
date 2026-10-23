@@ -29,6 +29,9 @@ pub(crate) struct ExportProjectArgs {
     /// Aggregate PNG output bound; a sequence is published only after every frame succeeds.
     #[arg(long, default_value_t = 4_294_967_296)]
     image_output_bytes: u64,
+    /// Stream PNG frame identities to an exclusive private JSONL file instead of stdout arrays.
+    #[arg(long)]
+    image_receipts: Option<PathBuf>,
     /// Optional raster-provider, font/surface settings and installed plugin paths; no frame plans.
     #[arg(long)]
     request: Option<PathBuf>,
@@ -122,13 +125,19 @@ struct ImageExportReceipt {
     frame_rate: RationalFrameRate,
     output: PathBuf,
     report: aster_render_project::ProjectImageExportReport,
-    images: Vec<crate::export_images::PngFrameReceipt>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    images: Option<Vec<crate::export_images::PngFrameReceipt>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    image_receipts: Option<crate::export_image_receipts::ImageReceiptFile>,
 }
 
 impl ExportProjectArgs {
     pub fn run(self) -> Result<ExitCode, Box<dyn std::error::Error>> {
         if self.out.try_exists()? {
             return Err("export destination already exists".into());
+        }
+        if self.format == ProjectExportFormat::Mp4 && self.image_receipts.is_some() {
+            return Err("video exports do not use image receipts".into());
         }
         if self.format != ProjectExportFormat::Mp4 && self.witness.is_some() {
             return Err("PNG exports do not use video encoder witnesses".into());
@@ -220,6 +229,7 @@ impl ExportProjectArgs {
                 schedule.video.size,
                 schedule.frames.len() as u64,
                 self.image_output_bytes,
+                self.image_receipts.clone(),
             )?)
         } else {
             None
@@ -305,7 +315,11 @@ impl ExportProjectArgs {
                     frame_rate: video.frame_rate,
                     output: self.out,
                     report,
-                    images: std::mem::take(&mut output.frames),
+                    images: output
+                        .receipt_file
+                        .is_none()
+                        .then(|| std::mem::take(&mut output.frames)),
+                    image_receipts: output.receipt_file.take(),
                 })?
             );
             return Ok(ExitCode::SUCCESS);

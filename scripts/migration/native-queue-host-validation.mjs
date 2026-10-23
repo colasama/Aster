@@ -171,7 +171,7 @@ export async function validateNativeQueueHost(context, preparedRuntime, processR
     assert.equal(complete.releases, 1);
     assert.deepEqual(await readdir(complete.jobs), []);
     for (const output of complete.manifest.outputs) {
-      const baseline = processReport.cases.find((c) => c.id === output.id).receipt;
+      const baseline = processReport.cases.find((c) => c.id === output.id);
       if (output.kind === "still")
         assert.equal(await hashFile(output.destination), baseline.images[0].png_sha256);
       else if (output.kind === "pngSequence")
@@ -252,7 +252,7 @@ export async function validateNativeQueueHost(context, preparedRuntime, processR
     assert.deepEqual(await readdir(held.jobs), []);
     assert.equal(
       await hashFile(next.outputs[0].destination),
-      processReport.cases[0].receipt.images[0].png_sha256,
+      processReport.cases[0].images[0].png_sha256,
     );
     report.cases.push({
       id: "cancel-authorization-retains-slot-until-cleanup",

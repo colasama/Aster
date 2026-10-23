@@ -50,6 +50,7 @@ fn sequence_preserves_odd_dimensions_and_alpha_until_atomic_publication()
         fixture.frame.target,
         2,
         4096,
+        None,
     )?;
     output.write_frame(0, &fixture.frame, fixture.rgba.clone())?;
     assert!(!destination.try_exists()?);
@@ -87,8 +88,14 @@ fn failed_images_remove_staging_and_preserve_racing_destinations()
     for format in [ProjectExportFormat::Png, ProjectExportFormat::PngSequence] {
         let destination = fixture.root.join("output");
         {
-            let mut output =
-                PngOutput::new(destination.clone(), format, fixture.frame.target, 1, 1)?;
+            let mut output = PngOutput::new(
+                destination.clone(),
+                format,
+                fixture.frame.target,
+                1,
+                1,
+                None,
+            )?;
             assert!(
                 output
                     .write_frame(0, &fixture.frame, fixture.rgba.clone())
@@ -98,8 +105,14 @@ fn failed_images_remove_staging_and_preserve_racing_destinations()
         }
         assert_eq!(fs::read_dir(&fixture.root)?.count(), 0);
         {
-            let mut output =
-                PngOutput::new(destination.clone(), format, fixture.frame.target, 1, 4096)?;
+            let mut output = PngOutput::new(
+                destination.clone(),
+                format,
+                fixture.frame.target,
+                1,
+                4096,
+                None,
+            )?;
             output.write_frame(0, &fixture.frame, fixture.rgba.clone())?;
             fs::write(&destination, b"owner-output")?;
             assert!(output.finish().is_err());
@@ -107,9 +120,65 @@ fn failed_images_remove_staging_and_preserve_racing_destinations()
         assert_eq!(fs::read(&destination)?, b"owner-output");
         assert_eq!(fs::read_dir(&fixture.root)?.count(), 1);
         assert!(
-            PngOutput::new(destination.clone(), format, fixture.frame.target, 1, 4096).is_err()
+            PngOutput::new(
+                destination.clone(),
+                format,
+                fixture.frame.target,
+                1,
+                4096,
+                None
+            )
+            .is_err()
         );
         fs::remove_file(&destination)?;
     }
+    Ok(())
+}
+
+#[test]
+fn streamed_receipts_bind_complete_images_and_clean_failed_long_jobs()
+-> Result<(), Box<dyn std::error::Error>> {
+    let fixture = Fixture::new()?;
+    let receipt_path = fixture.root.join("sequence.receipts.jsonl");
+    let destination = fixture.root.join("sequence");
+    {
+        let mut output = PngOutput::new(
+            destination.clone(),
+            ProjectExportFormat::PngSequence,
+            fixture.frame.target,
+            10_000_000,
+            4096,
+            Some(receipt_path.clone()),
+        )?;
+        output.write_frame(0, &fixture.frame, fixture.rgba.clone())?;
+        assert!(output.frames.is_empty());
+        assert!(output.finish().is_err());
+    }
+    assert!(!receipt_path.try_exists()?);
+    assert!(!destination.try_exists()?);
+    let mut output = PngOutput::new(
+        destination.clone(),
+        ProjectExportFormat::PngSequence,
+        fixture.frame.target,
+        2,
+        4096,
+        Some(receipt_path.clone()),
+    )?;
+    for index in 0..2 {
+        output.write_frame(index, &fixture.frame, fixture.rgba.clone())?;
+    }
+    output.finish()?;
+    assert!(output.frames.is_empty());
+    let receipt = output
+        .receipt_file
+        .as_ref()
+        .ok_or("missing image receipt file")?;
+    let bytes = fs::read(&receipt.path)?;
+    assert_eq!(receipt.sha256, format!("{:x}", Sha256::digest(&bytes)));
+    assert_eq!(receipt.bytes, bytes.len() as u64);
+    assert_eq!(receipt.frames, 2);
+    assert_eq!(bytes.iter().filter(|b| **b == b'\n').count(), 2);
+    drop(output);
+    assert!(receipt_path.try_exists()?);
     Ok(())
 }

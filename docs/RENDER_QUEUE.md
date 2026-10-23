@@ -76,7 +76,13 @@ Export schedules generate frame requests by index with constant resident clock s
 queue's 10,000,000-frame bound; explicit diagnostic schedules retain their separate smaller limit.
 Media preflight streams those requests and checks pause/cancel between evaluations, preserving exact
 absolute frame times and admitting only sources selected in the requested range. Preflight time still
-scales with frame count; image receipt storage and long-output delivery require separate qualification.
+scales with frame count; complete long-output delivery requires separate qualification.
+Production queue PNG exports stream frame identities into an exclusive private JSONL file. A compact
+completion receipt binds its path, hash, byte count and frame count. Electron consumes bounded lines,
+validates every frame clock and PNG identity, and retains only the receipt handle while copying.
+Publication streams the same authenticated journal again to recheck staged files. It never retains a
+per-frame file list or frame set for native outputs. Legacy diagnostic stdout image arrays remain
+bounded to 65,536 frames; queue exports always select the streamed protocol.
 
 Native output admission streams completed encoded files into the existing publication transaction.
 PNG receipts bind every frame, hash and extent; sequence members retain the queue's captured naming
