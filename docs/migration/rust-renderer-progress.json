@@ -393,68 +393,77 @@
     }
   },
   "last_cycle": {
-    "id": 156,
-    "time": "2026-10-23T03:47:19.593Z",
-    "updated_at": "2026-10-23T03:47:19.593Z",
+    "id": 157,
+    "time": "2026-10-23T04:02:46.823Z",
+    "updated_at": "2026-10-23T04:02:46.823Z",
     "milestone": "M12",
     "task": "M12-T4",
-    "increment": "native-output-file-admission-and-atomic-publication",
+    "increment": "native-queue-host-orchestration-and-media-lease-lifecycle",
     "outcome": "development_increment_passed",
-    "commit": "342f5ab36448875ebddc28f5a2864b20fe0a3b9f",
+    "commit": "120388cd267a6700e1ef29b83090d34d7efd66d2",
     "validation": {
-      "path": "artifacts/migration/cycle156-validation/report.json",
-      "sha256": "3dff4443dc61f9de2904374452029da04de4d0932102b3b074f32d847e8d5d48"
+      "path": "artifacts/migration/cycle157-validation/report.json",
+      "sha256": "3d71e6de8d37e17232144c3192085afb2268dae61ea464398dcb37442eacaa7b"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
         "id": "queue-process-targeted",
         "status": "passed",
-        "duration_ms": 1732
+        "duration_ms": 1779
       },
       {
         "id": "project-native-build",
         "status": "passed",
-        "duration_ms": 1096
+        "duration_ms": 1093
       },
       {
         "id": "project-electron-build",
         "status": "passed",
-        "duration_ms": 1041
+        "duration_ms": 1078
       },
       {
         "id": "project-raster-build",
         "status": "passed",
-        "duration_ms": 342
+        "duration_ms": 358
       },
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 248319
+        "duration_ms": 247735
       }
     ],
     "targeted_process": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle156-validation\\process\\report.json",
-      "sha256": "9f40837e1dfcbcde2fa6d350025633e8b803745d3fa00a7dd66370de6efff559",
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle157-validation\\process\\report.json",
+      "sha256": "ba5e410d30ce0af6a32f9c110bea1d81c741282ff326f4bda2d5d64062f04955",
       "cases": 8
     },
     "targeted_publication": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle156-validation\\publication\\report.json",
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle157-validation\\publication\\report.json",
       "sha256": "83a6c8082f58067de4cf77156bc40a2f40d03c54744fe51408b17a7b31fdc627",
+      "cases": 3
+    },
+    "targeted_host": {
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle157-validation\\host\\report.json",
+      "sha256": "c703f821069f831792f693ba9cec34bae9f3d16974823338d22df1c66a591e42",
       "cases": [
         {
-          "id": "atomic-mixed-native-outputs",
+          "id": "durable-mixed-queue-pause-resume",
           "status": "passed",
-          "incomplete_publish_rejected": true,
-          "exact": true
+          "lease_releases": 1,
+          "images_exact": true
         },
         {
-          "id": "cancel-during-native-publication-restores-all-originals",
-          "status": "passed"
+          "id": "cancel-paused-queue-preserves-destinations",
+          "status": "passed",
+          "lease_releases": 1,
+          "images_exact": false
         },
         {
-          "id": "changed-staged-video-rejected",
-          "status": "passed"
+          "id": "cancel-authorization-retains-slot-until-cleanup",
+          "status": "passed",
+          "lease_releases": 2,
+          "images_exact": false
         }
       ]
     },
@@ -467,7 +476,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Continue M12-T4: compose a native queue host worker from immutable project preparation, verified output processes and atomic mixed-output publication. Integrate bounded progress, pause/resume/cancel through preparation and publication, preserve media leases until cleanup, and qualify long-job scheduling before production routing."
+    "next_step": "Continue M12-T4: preserve the existing 10,000,000-frame queue range with bounded native scheduling/admission and output receipts rather than raising an unbounded frame-vector limit or silently narrowing support. Qualify media admission limits, then complete native queue routing during the production retirement steps."
   },
   "milestones": [
     {
@@ -27714,12 +27723,12 @@
             "G6"
           ],
           "started_at": "2026-10-23T03:16:09.417Z",
-          "progress": "The native output process adapter and atomic file publication boundary are implemented. Closed native PNG/video outputs stream into private staging with receipt, hash, extent and sequence-number validation; admitted files are rehashed before publishing the complete output set. Cancellation during copy or publication preserves existing destinations. Failed rollback retains original backups, and backup cleanup cannot roll back committed outputs. Eight real process checks, three real mixed-output publication checks and full G0 pass. Queue host orchestration, media-lease lifecycle and bounded long-job scheduling remain open before production routing.",
+          "progress": "NativeQueueHostFactory now composes immutable preparation, verified native output processes and atomic publication through the real queue host interface. One in-flight report and one latest progress value bound persistence; pause acknowledgements are emitted at safe boundaries. Process/private-directory cleanup precedes media-lease release, while execution is separated from terminal delivery to avoid scheduler-disposal deadlocks. Real durable queue tests pass for mixed PNG/H.264 outputs with exact PNGs, audio selection, pause/resume, cancelled destination preservation, and pending-authorization cancellation retaining the slot until the next job can start. Existing process/publication checks and full G0 pass. Production route selection and supported long-job/media admission bounds remain to qualify before T4 completion.",
           "validation": {
-            "path": "artifacts/migration/cycle156-validation/report.json",
-            "sha256": "3dff4443dc61f9de2904374452029da04de4d0932102b3b074f32d847e8d5d48"
+            "path": "artifacts/migration/cycle157-validation/report.json",
+            "sha256": "3d71e6de8d37e17232144c3192085afb2268dae61ea464398dcb37442eacaa7b"
           },
-          "commit": "342f5ab36448875ebddc28f5a2864b20fe0a3b9f"
+          "commit": "120388cd267a6700e1ef29b83090d34d7efd66d2"
         },
         {
           "id": "M12-T5",
@@ -2680090,6 +2680099,93 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Continue M12-T4: compose a native queue host worker from immutable project preparation, verified output processes and atomic mixed-output publication. Integrate bounded progress, pause/resume/cancel through preparation and publication, preserve media leases until cleanup, and qualify long-job scheduling before production routing."
+    },
+    {
+      "cycle": 157,
+      "id": 157,
+      "time": "2026-10-23T04:02:46.823Z",
+      "updated_at": "2026-10-23T04:02:46.823Z",
+      "milestone": "M12",
+      "task": "M12-T4",
+      "increment": "native-queue-host-orchestration-and-media-lease-lifecycle",
+      "outcome": "development_increment_passed",
+      "commit": "120388cd267a6700e1ef29b83090d34d7efd66d2",
+      "validation": {
+        "path": "artifacts/migration/cycle157-validation/report.json",
+        "sha256": "3d71e6de8d37e17232144c3192085afb2268dae61ea464398dcb37442eacaa7b"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "queue-process-targeted",
+          "status": "passed",
+          "duration_ms": 1779
+        },
+        {
+          "id": "project-native-build",
+          "status": "passed",
+          "duration_ms": 1093
+        },
+        {
+          "id": "project-electron-build",
+          "status": "passed",
+          "duration_ms": 1078
+        },
+        {
+          "id": "project-raster-build",
+          "status": "passed",
+          "duration_ms": 358
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 247735
+        }
+      ],
+      "targeted_process": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle157-validation\\process\\report.json",
+        "sha256": "ba5e410d30ce0af6a32f9c110bea1d81c741282ff326f4bda2d5d64062f04955",
+        "cases": 8
+      },
+      "targeted_publication": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle157-validation\\publication\\report.json",
+        "sha256": "83a6c8082f58067de4cf77156bc40a2f40d03c54744fe51408b17a7b31fdc627",
+        "cases": 3
+      },
+      "targeted_host": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle157-validation\\host\\report.json",
+        "sha256": "c703f821069f831792f693ba9cec34bae9f3d16974823338d22df1c66a591e42",
+        "cases": [
+          {
+            "id": "durable-mixed-queue-pause-resume",
+            "status": "passed",
+            "lease_releases": 1,
+            "images_exact": true
+          },
+          {
+            "id": "cancel-paused-queue-preserves-destinations",
+            "status": "passed",
+            "lease_releases": 1,
+            "images_exact": false
+          },
+          {
+            "id": "cancel-authorization-retains-slot-until-cleanup",
+            "status": "passed",
+            "lease_releases": 2,
+            "images_exact": false
+          }
+        ]
+      },
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Continue M12-T4: preserve the existing 10,000,000-frame queue range with bounded native scheduling/admission and output receipts rather than raising an unbounded frame-vector limit or silently narrowing support. Qualify media admission limits, then complete native queue routing during the production retirement steps."
     }
   ],
   "known_boundaries": [
