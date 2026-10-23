@@ -393,92 +393,99 @@
     }
   },
   "last_cycle": {
-    "id": 164,
-    "time": "2026-10-23T06:01:13.308Z",
-    "updated_at": "2026-10-23T06:01:13.308Z",
+    "id": 165,
+    "time": "2026-10-23T06:14:41.701Z",
+    "updated_at": "2026-10-23T06:14:41.701Z",
     "milestone": "M12",
-    "task": "M12-T5",
-    "increment": "production-renderer-dependency-retirement",
-    "outcome": "task_implementation_completed",
-    "commit": "8ee3f916eb97a3f71855e6c88bc7da7036e9c1c8",
+    "task": "M12-T6",
+    "increment": "retire-browser-export-ipc",
+    "outcome": "progress",
+    "commit": "b48f5b96274799fe40d460bbecf0b4a9ce154707",
     "validation": {
-      "path": "artifacts/migration/cycle164-validation/report.json",
-      "sha256": "29698fc4ed942c5c94efdda496c05f6af25315990dd531e9d6070406909a31d5"
+      "path": "artifacts/migration/cycle165-validation/report.json",
+      "sha256": "df2f9c3a5ba0130cc1f43d4763f53c5c3011e71b85e0685cab18976edf62015b"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
         "id": "frontend-build",
         "status": "passed",
-        "duration_ms": 959
+        "duration_ms": 976
       },
       {
         "id": "project-native-build",
         "status": "passed",
-        "duration_ms": 555
+        "duration_ms": 755
       },
       {
         "id": "project-electron-build",
         "status": "passed",
-        "duration_ms": 994
+        "duration_ms": 1011
       },
       {
         "id": "project-raster-build",
         "status": "passed",
-        "duration_ms": 335
+        "duration_ms": 333
       },
       {
         "id": "canvas-compatibility",
         "status": "passed",
-        "duration_ms": 1716
+        "duration_ms": 1648
       },
       {
         "id": "native-queue-application",
         "status": "passed",
-        "duration_ms": 8269
+        "duration_ms": 8397
       },
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 249845
+        "duration_ms": 248806
       }
     ],
     "editor": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle164-validation\\interaction\\report.json",
-      "sha256": "35b894040c6006135c53325dd8c206609acde20a116381f4f5f0f963c42d7419",
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle165-validation\\interaction\\report.json",
+      "sha256": "2d4054eaa8fdd227ce4c3d6e8f4e63da16dc4d1f617200d880631958ca690990",
       "exact_frames": 18
     },
     "compatibility": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle164-validation\\canvas\\report.json",
-      "sha256": "b38e857ef1268e927d60d1462697da630bf944359c634492ae5d6909d605ec99",
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle165-validation\\canvas\\report.json",
+      "sha256": "23fd62c7e62ef05397f4d05918ade2fe1037d412f09da2530aca8b86c67117e8",
       "frames": 3,
       "native_calls": 0,
       "resize": true
     },
     "application": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle164-validation\\application\\report.json",
-      "sha256": "4260c67aa7c233be137b107cfc0bbd84116c4663146b14564879037fb7a9d3aa",
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle165-validation\\application\\report.json",
+      "sha256": "c94712e466875a9fd1b77086ed43b413b1e34e4bdaaa5d465e457a833af7e24b",
       "native_jobs": 3,
       "hidden_host_calls": 0,
+      "retired_ipc_registrations": 0,
+      "retired_preload_methods": 0,
       "default_routing": true,
       "temporary_jobs_cleaned": true
     },
     "production_graph": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle164-validation\\renderer-boundary.json",
-      "sha256": "120cf881dcddd2ad4de31693e2cef60f706f9fd08510512a25823fefaeab3499",
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle165-validation\\renderer-boundary.json",
+      "sha256": "6256246885e93a6f039bc11a1bbb87f59b8b97534d75ffcab69359c091aceb23",
       "retained_production_modules": 0,
-      "retained_reference_modules": 3
+      "retained_reference_modules": 4
     },
     "reference_producer_files": [
       {
         "path": "src/renderer/webgpu-renderer.ts",
         "sha256": "75692769fbfe30ca8f8b5201ebc7586c0c234d5784ee8ddd76b2cf8281c79ba2",
-        "baseline_commit": "eee01adaea6e894151d768fc2b7624a79d8101e0"
+        "baseline_commit": "8ee3f916eb97a3f71855e6c88bc7da7036e9c1c8"
       },
       {
         "path": "src/renderer/compositing/beauty-frame.ts",
         "sha256": "29477ef9a95cf876413cf51b3e6272253375403d097e35a37424525b75a80ee6",
-        "baseline_commit": "eee01adaea6e894151d768fc2b7624a79d8101e0"
+        "baseline_commit": "8ee3f916eb97a3f71855e6c88bc7da7036e9c1c8"
+      },
+      {
+        "path": "src/core/rendering/render-export.ts",
+        "sha256": "402fc18cf34453b6ea9089680f5bae7e83fc85532897ed4ec5ea3c588c0f9734",
+        "baseline_commit": "8ee3f916eb97a3f71855e6c88bc7da7036e9c1c8"
       }
     ],
     "self_review": {
@@ -494,7 +501,10 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Start M12-T6: finish the production entry-point and media/output capability audit now that default queue and preview run natively and the production frontend excludes TS GPU entry modules. Then compose final migration gates and delivery qualification."
+    "quota": {
+      "remaining_percent": 70
+    },
+    "next_step": "Continue M12-T6 with supported media/output budget and timeout qualification, then foreground/packaged workflow checks and final gate composition."
   },
   "milestones": [
     {
@@ -27777,7 +27787,7 @@
           "id": "M12-T6",
           "title": "Retire every production TS render entry point",
           "scope": "Route foreground/background queue, automation, capture and supported output types through native project rendering; remove silent TS GPU fallbacks.",
-          "status": "pending",
+          "status": "in_progress",
           "estimated_implementation_hours": 3,
           "required_gates": [
             "G0",
@@ -27788,8 +27798,14 @@
             "G5",
             "G6"
           ],
-          "remaining_qualification": "Switch the default queue route, remove production hidden TS hosts, qualify supported media/output dimensions, byte budgets and timeouts, and document explicit capability failures. Current opt-in native queue is qualified for the recorded targeted application cases; final full corpus/export/application gates remain required.",
-          "progress": "Default queue selection and removal of application hidden TS host registration were required to isolate the production frontend and are implemented in cycle 164. Production build and actual background application export witnesses pass. Continue auditing remaining foreground/automation/capture entry points and supported media/output capability limits; final packaged and full corpus acceptance remains deferred."
+          "remaining_qualification": "Audit native file/output budgets, dimensions and timeouts against the retained production contract; qualify foreground and packaged workflows and compose the final complete corpus/export/application gates.",
+          "progress": "Default preview and queue use native rendering. Production main/preload no longer register or expose browser raw-frame MP4 APIs or hidden render hosts. AI captures use an independent frame-session contract; production builds also reject the unchanged retained browser export module. Eighteen editor witnesses remain exact, Canvas capture/resize passes, and the actual application completes native still/sequence/H.264-AAC exports with zero retired IPC registrations or preload methods. Full G0 passes. Remaining work includes supported media/output budgets and timeouts, foreground/packaged workflows and full migration gates.",
+          "started_at": "2026-10-23T06:07:55.277Z",
+          "commit": "b48f5b96274799fe40d460bbecf0b4a9ce154707",
+          "validation": {
+            "path": "artifacts/migration/cycle165-validation/report.json",
+            "sha256": "df2f9c3a5ba0130cc1f43d4763f53c5c3011e71b85e0685cab18976edf62015b"
+          }
         },
         {
           "id": "M12-T7",
@@ -2680927,6 +2680943,121 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Start M12-T6: finish the production entry-point and media/output capability audit now that default queue and preview run natively and the production frontend excludes TS GPU entry modules. Then compose final migration gates and delivery qualification."
+    },
+    {
+      "cycle": 165,
+      "id": 165,
+      "time": "2026-10-23T06:14:41.701Z",
+      "updated_at": "2026-10-23T06:14:41.701Z",
+      "milestone": "M12",
+      "task": "M12-T6",
+      "increment": "retire-browser-export-ipc",
+      "outcome": "progress",
+      "commit": "b48f5b96274799fe40d460bbecf0b4a9ce154707",
+      "validation": {
+        "path": "artifacts/migration/cycle165-validation/report.json",
+        "sha256": "df2f9c3a5ba0130cc1f43d4763f53c5c3011e71b85e0685cab18976edf62015b"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "frontend-build",
+          "status": "passed",
+          "duration_ms": 976
+        },
+        {
+          "id": "project-native-build",
+          "status": "passed",
+          "duration_ms": 755
+        },
+        {
+          "id": "project-electron-build",
+          "status": "passed",
+          "duration_ms": 1011
+        },
+        {
+          "id": "project-raster-build",
+          "status": "passed",
+          "duration_ms": 333
+        },
+        {
+          "id": "canvas-compatibility",
+          "status": "passed",
+          "duration_ms": 1648
+        },
+        {
+          "id": "native-queue-application",
+          "status": "passed",
+          "duration_ms": 8397
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 248806
+        }
+      ],
+      "editor": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle165-validation\\interaction\\report.json",
+        "sha256": "2d4054eaa8fdd227ce4c3d6e8f4e63da16dc4d1f617200d880631958ca690990",
+        "exact_frames": 18
+      },
+      "compatibility": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle165-validation\\canvas\\report.json",
+        "sha256": "23fd62c7e62ef05397f4d05918ade2fe1037d412f09da2530aca8b86c67117e8",
+        "frames": 3,
+        "native_calls": 0,
+        "resize": true
+      },
+      "application": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle165-validation\\application\\report.json",
+        "sha256": "c94712e466875a9fd1b77086ed43b413b1e34e4bdaaa5d465e457a833af7e24b",
+        "native_jobs": 3,
+        "hidden_host_calls": 0,
+        "retired_ipc_registrations": 0,
+        "retired_preload_methods": 0,
+        "default_routing": true,
+        "temporary_jobs_cleaned": true
+      },
+      "production_graph": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle165-validation\\renderer-boundary.json",
+        "sha256": "6256246885e93a6f039bc11a1bbb87f59b8b97534d75ffcab69359c091aceb23",
+        "retained_production_modules": 0,
+        "retained_reference_modules": 4
+      },
+      "reference_producer_files": [
+        {
+          "path": "src/renderer/webgpu-renderer.ts",
+          "sha256": "75692769fbfe30ca8f8b5201ebc7586c0c234d5784ee8ddd76b2cf8281c79ba2",
+          "baseline_commit": "8ee3f916eb97a3f71855e6c88bc7da7036e9c1c8"
+        },
+        {
+          "path": "src/renderer/compositing/beauty-frame.ts",
+          "sha256": "29477ef9a95cf876413cf51b3e6272253375403d097e35a37424525b75a80ee6",
+          "baseline_commit": "8ee3f916eb97a3f71855e6c88bc7da7036e9c1c8"
+        },
+        {
+          "path": "src/core/rendering/render-export.ts",
+          "sha256": "402fc18cf34453b6ea9089680f5bae7e83fc85532897ed4ec5ea3c588c0f9734",
+          "baseline_commit": "8ee3f916eb97a3f71855e6c88bc7da7036e9c1c8"
+        }
+      ],
+      "self_review": {
+        "result": "exact",
+        "scope": "All 18 paired editor controls have identical RGBA hashes; still output equals sequence first frame; no non-exact comparison"
+      },
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "quota": {
+        "remaining_percent": 70
+      },
+      "next_step": "Continue M12-T6 with supported media/output budget and timeout qualification, then foreground/packaged workflow checks and final gate composition."
     }
   ],
   "known_boundaries": [
