@@ -393,64 +393,64 @@
     }
   },
   "last_cycle": {
-    "id": 159,
-    "time": "2026-10-23T04:39:01.212Z",
-    "updated_at": "2026-10-23T04:39:01.212Z",
+    "id": 160,
+    "time": "2026-10-23T05:03:12.032Z",
+    "updated_at": "2026-10-23T05:03:12.032Z",
     "milestone": "M12",
     "task": "M12-T4",
-    "increment": "streamed-native-image-receipts-and-publication",
+    "increment": "on-demand-native-export-media-admission",
     "outcome": "development_increment_passed",
-    "commit": "0eed8e3ea73525c963363e99bcd802c4ddd9acde",
+    "commit": "39e00dcd3c59a82895a3bba7e315c8c059884e02",
     "validation": {
-      "path": "artifacts/migration/cycle159-validation/report.json",
-      "sha256": "35a6441b3f239abc572ccab19c41a4bc9374ebe3a88f7812210e45cbe4c09cc5"
+      "path": "artifacts/migration/cycle160b-validation/report.json",
+      "sha256": "822f2e2d896b36adc85ca29df2875ea30815790fdaa69f85cbc63c389ba75fc6"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
         "id": "queue-process-targeted",
         "status": "passed",
-        "duration_ms": 2549
+        "duration_ms": 1917
       },
       {
-        "id": "native-image-receipts-unit",
+        "id": "incremental-media-unit",
         "status": "passed",
-        "duration_ms": 1757
+        "duration_ms": 6385
       },
       {
         "id": "project-native-build",
         "status": "passed",
-        "duration_ms": 153792
+        "duration_ms": 205265
       },
       {
         "id": "project-electron-build",
         "status": "passed",
-        "duration_ms": 1074
+        "duration_ms": 1009
       },
       {
         "id": "project-raster-build",
         "status": "passed",
-        "duration_ms": 369
+        "duration_ms": 354
       },
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 266552
+        "duration_ms": 354169
       }
     ],
     "targeted_process": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle159-validation\\process\\report.json",
-      "sha256": "9aba6ac63ddb9f3936576f49651638778703d69bf0daa57db0b053b5cdf8c37a",
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle160b-validation\\process\\report.json",
+      "sha256": "958614e8c9207a20b1264aaed52c582489c13e63bb120c21af566c885d3c1618",
       "cases": 8
     },
     "targeted_publication": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle159-validation\\publication\\report.json",
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle160b-validation\\publication\\report.json",
       "sha256": "83a6c8082f58067de4cf77156bc40a2f40d03c54744fe51408b17a7b31fdc627",
       "cases": 3
     },
     "targeted_host": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle159-validation\\host\\report.json",
-      "sha256": "b357543df5e3b5dd706938dfa54491799dbf69c90bee6a1516b6f0398655e48f",
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle160b-validation\\host\\report.json",
+      "sha256": "2b444b339e05de3362dbbadec190637e2293d911df643a0367a0bc5d6bf6828d",
       "cases": [
         {
           "id": "durable-mixed-queue-pause-resume",
@@ -472,6 +472,59 @@
         }
       ]
     },
+    "targeted_admission": {
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle160b-validation\\admission\\report.json",
+      "sha256": "25e9447aa089b3b552edfa1a45af7974a871b341ee146b6f1a223995cca9d750",
+      "cases": [
+        {
+          "id": "delayed-source",
+          "status": "passed",
+          "exact": true
+        },
+        {
+          "id": "failed-late-source-leaves-no-output",
+          "status": "passed",
+          "exact": false
+        },
+        {
+          "id": "unused-offline-source",
+          "status": "passed",
+          "exact": true
+        }
+      ]
+    },
+    "targeted_media_pixels": {
+      "path": "artifacts/migration/cycle160b-validation/media-pixels/report.json",
+      "sha256": "9714412c3a7713fa2e5fb1377cf43a29395535487de9c9d2088f8cd807ddd22e",
+      "cases": [
+        {
+          "id": "video-24000-1001",
+          "exact": true,
+          "frames": 6
+        },
+        {
+          "id": "media-image-sequence",
+          "exact": true,
+          "frames": 6
+        }
+      ]
+    },
+    "targeted_long_control": {
+      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle160b-validation\\long-control\\report.json",
+      "sha256": "2492fc4d5811c721868d8e29c51319d37ab083736784e26c21a818b75e3ecb3d",
+      "frames": 10000000,
+      "first_frame_ms": 2074.1083000000217,
+      "pause_latency_ms": 2.924799999978859,
+      "cancel_latency_ms": 410.7837999999756,
+      "scope": "10,000,000-frame first render, safe pause and cancellation; not complete delivery"
+    },
+    "failed_attempts": [
+      {
+        "path": "artifacts/migration/cycle160-validation/long-control/report.json",
+        "sha256": "dacb3b1e588879d832951dee86338bef234c95c6e3c4a33d63e35d7159e1a305",
+        "cause": "Mux default 24-hour duration limit closed the producer channel; repaired by job-bound duration limits and validation before frame production"
+      }
+    ],
     "deferred_gates": [
       "G1",
       "G2",
@@ -481,7 +534,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Continue M12-T4: remove whole-schedule startup scanning through authenticated on-demand media admission, qualify existing media/output byte limits, then switch the production queue route with lifecycle checks. Long frame clocks and streamed receipts are implemented; final milestone gates remain deferred."
+    "next_step": "Continue M12-T4: qualify native media/output byte, dimension and timeout limits against the existing queue contract, then wire production queue routing and finish lifecycle qualification. Whole-schedule scanning, frame-vector growth and per-frame receipt residency have been removed; final milestone gates remain deferred."
   },
   "milestones": [
     {
@@ -27728,12 +27781,12 @@
             "G6"
           ],
           "started_at": "2026-10-23T03:16:09.417Z",
-          "progress": "Native queue outputs now use streamed authenticated PNG receipt journals. Rust writes one frame identity at a time and returns a compact path/hash/byte/frame summary; interrupted jobs remove uncommitted journals. Electron validates bounded lines and exact clocks, copies private outputs, then rechecks journal integrity and staged bytes before atomic publication. Native publication retains one receipt handle rather than per-frame file arrays or sets. Legacy diagnostic stdout receipts remain bounded and compatible. Checks pass for 70000 streamed identities, malformed/duplicate/truncated/changed/cancelled journals, cleanup and retry after a bad final digest, 8 real native processes, 3 publication cases, 3 durable queue lifecycle cases, and full G0. Complete 10000000-frame delivery is not claimed. Whole-schedule preflight, media/output byte limits and production route selection remain open.",
+          "progress": "Native exports now admit visual sources on first actual frame use instead of evaluating the complete schedule before rendering. Incremental grants preserve shared decoded-frame caches and video clocks, enforce cumulative snapshot/source budgets, reject duplicate grants and poison failed sessions. Explicit diagnostics and preview retain their existing preflight contracts. Delayed-source and unused-offline-source exports exactly match the prior verified native renderer; late missing-source failures leave no output or journal. Video and sequence comparisons add 12 exact frames. A 10000000-frame job reaches its first rendered frame in about 2.07 seconds, then acknowledges pause and cleans cancellation. The first long-start check exposed the mux 24-hour ceiling; queue duration now binds to captured count/rate and native requests validate before frame production. The original failed evidence is retained. Real queue process/publication/lifecycle checks and full G0 pass. Full long-output delivery, source/output byte and timeout limits, and production route selection remain to qualify.",
           "validation": {
-            "path": "artifacts/migration/cycle159-validation/report.json",
-            "sha256": "35a6441b3f239abc572ccab19c41a4bc9374ebe3a88f7812210e45cbe4c09cc5"
+            "path": "artifacts/migration/cycle160b-validation/report.json",
+            "sha256": "822f2e2d896b36adc85ca29df2875ea30815790fdaa69f85cbc63c389ba75fc6"
           },
-          "commit": "0eed8e3ea73525c963363e99bcd802c4ddd9acde"
+          "commit": "39e00dcd3c59a82895a3bba7e315c8c059884e02"
         },
         {
           "id": "M12-T5",
@@ -2680399,6 +2680452,151 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Continue M12-T4: remove whole-schedule startup scanning through authenticated on-demand media admission, qualify existing media/output byte limits, then switch the production queue route with lifecycle checks. Long frame clocks and streamed receipts are implemented; final milestone gates remain deferred."
+    },
+    {
+      "cycle": 160,
+      "id": 160,
+      "time": "2026-10-23T05:03:12.032Z",
+      "updated_at": "2026-10-23T05:03:12.032Z",
+      "milestone": "M12",
+      "task": "M12-T4",
+      "increment": "on-demand-native-export-media-admission",
+      "outcome": "development_increment_passed",
+      "commit": "39e00dcd3c59a82895a3bba7e315c8c059884e02",
+      "validation": {
+        "path": "artifacts/migration/cycle160b-validation/report.json",
+        "sha256": "822f2e2d896b36adc85ca29df2875ea30815790fdaa69f85cbc63c389ba75fc6"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "queue-process-targeted",
+          "status": "passed",
+          "duration_ms": 1917
+        },
+        {
+          "id": "incremental-media-unit",
+          "status": "passed",
+          "duration_ms": 6385
+        },
+        {
+          "id": "project-native-build",
+          "status": "passed",
+          "duration_ms": 205265
+        },
+        {
+          "id": "project-electron-build",
+          "status": "passed",
+          "duration_ms": 1009
+        },
+        {
+          "id": "project-raster-build",
+          "status": "passed",
+          "duration_ms": 354
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 354169
+        }
+      ],
+      "targeted_process": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle160b-validation\\process\\report.json",
+        "sha256": "958614e8c9207a20b1264aaed52c582489c13e63bb120c21af566c885d3c1618",
+        "cases": 8
+      },
+      "targeted_publication": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle160b-validation\\publication\\report.json",
+        "sha256": "83a6c8082f58067de4cf77156bc40a2f40d03c54744fe51408b17a7b31fdc627",
+        "cases": 3
+      },
+      "targeted_host": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle160b-validation\\host\\report.json",
+        "sha256": "2b444b339e05de3362dbbadec190637e2293d911df643a0367a0bc5d6bf6828d",
+        "cases": [
+          {
+            "id": "durable-mixed-queue-pause-resume",
+            "status": "passed",
+            "lease_releases": 1,
+            "images_exact": true
+          },
+          {
+            "id": "cancel-paused-queue-preserves-destinations",
+            "status": "passed",
+            "lease_releases": 1,
+            "images_exact": false
+          },
+          {
+            "id": "cancel-authorization-retains-slot-until-cleanup",
+            "status": "passed",
+            "lease_releases": 2,
+            "images_exact": false
+          }
+        ]
+      },
+      "targeted_admission": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle160b-validation\\admission\\report.json",
+        "sha256": "25e9447aa089b3b552edfa1a45af7974a871b341ee146b6f1a223995cca9d750",
+        "cases": [
+          {
+            "id": "delayed-source",
+            "status": "passed",
+            "exact": true
+          },
+          {
+            "id": "failed-late-source-leaves-no-output",
+            "status": "passed",
+            "exact": false
+          },
+          {
+            "id": "unused-offline-source",
+            "status": "passed",
+            "exact": true
+          }
+        ]
+      },
+      "targeted_media_pixels": {
+        "path": "artifacts/migration/cycle160b-validation/media-pixels/report.json",
+        "sha256": "9714412c3a7713fa2e5fb1377cf43a29395535487de9c9d2088f8cd807ddd22e",
+        "cases": [
+          {
+            "id": "video-24000-1001",
+            "exact": true,
+            "frames": 6
+          },
+          {
+            "id": "media-image-sequence",
+            "exact": true,
+            "frames": 6
+          }
+        ]
+      },
+      "targeted_long_control": {
+        "path": "D:\\code\\Aster\\artifacts\\migration\\cycle160b-validation\\long-control\\report.json",
+        "sha256": "2492fc4d5811c721868d8e29c51319d37ab083736784e26c21a818b75e3ecb3d",
+        "frames": 10000000,
+        "first_frame_ms": 2074.1083000000217,
+        "pause_latency_ms": 2.924799999978859,
+        "cancel_latency_ms": 410.7837999999756,
+        "scope": "10,000,000-frame first render, safe pause and cancellation; not complete delivery"
+      },
+      "failed_attempts": [
+        {
+          "path": "artifacts/migration/cycle160-validation/long-control/report.json",
+          "sha256": "dacb3b1e588879d832951dee86338bef234c95c6e3c4a33d63e35d7159e1a305",
+          "cause": "Mux default 24-hour duration limit closed the producer channel; repaired by job-bound duration limits and validation before frame production"
+        }
+      ],
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Continue M12-T4: qualify native media/output byte, dimension and timeout limits against the existing queue contract, then wire production queue routing and finish lifecycle qualification. Whole-schedule scanning, frame-vector growth and per-frame receipt residency have been removed; final milestone gates remain deferred."
     }
   ],
   "known_boundaries": [
