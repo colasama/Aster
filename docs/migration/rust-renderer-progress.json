@@ -393,35 +393,39 @@
     }
   },
   "last_cycle": {
-    "id": 150,
-    "time": "2026-10-23T01:42:17.175Z",
-    "updated_at": "2026-10-23T01:42:17.175Z",
+    "id": 151,
+    "time": "2026-10-23T01:57:37.137Z",
+    "updated_at": "2026-10-23T01:57:37.137Z",
     "milestone": "M12",
-    "task": "M12-T2",
-    "increment": "native-png-output",
-    "outcome": "task_completed_development_verification",
-    "commit": "94cfb5482deb32fcf21b38b54bddb11b35ec7a5a",
+    "task": "M12-T3",
+    "increment": "immutable-native-queue-project-inputs",
+    "outcome": "development_increment_passed",
+    "commit": "91b6208a3e2bb850eb5b817ef9a929c0fa47530d",
     "validation": {
-      "path": "artifacts/migration/cycle150b-validation/report.json",
-      "sha256": "37d8aa1b449e5844258f6ede158f19d0be713287d3ab30f90aefd3b0fd04bae6"
+      "path": "artifacts/migration/cycle151-validation/report.json",
+      "sha256": "ecdedab2c72ee11cf83f64682ab9353b8dd3727ec5eccf269f4ca139f2f66154"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
-        "id": "G0",
+        "id": "queue-media-targeted",
         "status": "passed",
-        "duration_ms": 248437
+        "duration_ms": 2198
       },
       {
-        "id": "targeted-native-export-lifecycle",
-        "status": "passed"
-      }
-    ],
-    "failed_attempts": [
+        "id": "electron-build",
+        "status": "passed",
+        "duration_ms": 1071
+      },
       {
-        "path": "artifacts/migration/cycle150-validation/G0/static-results.json",
-        "sha256": "112afdc0f21a701fa6c8058fecd6ffdb9e53456a8b302d98df2e20e2f1531357",
-        "reason": "Biome import ordering; repaired and complete G0 rerun passed. Original failed evidence retained."
+        "id": "node-import",
+        "status": "passed",
+        "duration_ms": 66
+      },
+      {
+        "id": "lefthook-G0",
+        "status": "passed",
+        "duration_ms": 246525
       }
     ],
     "deferred_gates": [
@@ -433,7 +437,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Materialize immutable native queue projects from authored snapshots and separately captured authorized media; preserve M5 raster inputs and trusted plugin availability. Then integrate production workers and retain existing queue bounds through bounded native scheduling."
+    "next_step": "Assemble native queue project documents from authored snapshots and validated media manifests using the new asset store. Preserve PSD RGBA fallback through an authenticated retained-raster sidecar; freeze trusted plugins and carry explicit unavailable-generator states into native export admission. Keep M12-T3 open until real prepared projects render correctly."
   },
   "milestones": [
     {
@@ -27644,7 +27648,7 @@
           "id": "M12-T3",
           "title": "Materialize immutable native queue projects",
           "scope": "Bind queue project snapshots to authorized immutable media, retained raster capabilities and trusted installed-plugin packages.",
-          "status": "pending",
+          "status": "in_progress",
           "estimated_implementation_hours": 3,
           "required_gates": [
             "G0",
@@ -27654,7 +27658,14 @@
             "G4",
             "G5",
             "G6"
-          ]
+          ],
+          "started_at": "2026-10-23T01:43:41.553Z",
+          "progress": "Browser-independent media manifest codec and leased native asset store are implemented. Buffer/stream identities agree; explicit authorization, immutable inline capture, deduplication, aggregate budgets, tamper rejection and existing-file preservation pass targeted tests. The actual PSD compositionRetainLayerSizes mode is admitted. Native project assembly, retained PSD pixel fallback and plugin availability integration remain open.",
+          "validation": {
+            "path": "artifacts/migration/cycle151-validation/report.json",
+            "sha256": "ecdedab2c72ee11cf83f64682ab9353b8dd3727ec5eccf269f4ca139f2f66154"
+          },
+          "commit": "91b6208a3e2bb850eb5b817ef9a929c0fa47530d"
         },
         {
           "id": "M12-T4",
@@ -2679612,6 +2679623,54 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Materialize immutable native queue projects from authored snapshots and separately captured authorized media; preserve M5 raster inputs and trusted plugin availability. Then integrate production workers and retain existing queue bounds through bounded native scheduling."
+    },
+    {
+      "cycle": 151,
+      "id": 151,
+      "time": "2026-10-23T01:57:37.137Z",
+      "updated_at": "2026-10-23T01:57:37.137Z",
+      "milestone": "M12",
+      "task": "M12-T3",
+      "increment": "immutable-native-queue-project-inputs",
+      "outcome": "development_increment_passed",
+      "commit": "91b6208a3e2bb850eb5b817ef9a929c0fa47530d",
+      "validation": {
+        "path": "artifacts/migration/cycle151-validation/report.json",
+        "sha256": "ecdedab2c72ee11cf83f64682ab9353b8dd3727ec5eccf269f4ca139f2f66154"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "queue-media-targeted",
+          "status": "passed",
+          "duration_ms": 2198
+        },
+        {
+          "id": "electron-build",
+          "status": "passed",
+          "duration_ms": 1071
+        },
+        {
+          "id": "node-import",
+          "status": "passed",
+          "duration_ms": 66
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 246525
+        }
+      ],
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Assemble native queue project documents from authored snapshots and validated media manifests using the new asset store. Preserve PSD RGBA fallback through an authenticated retained-raster sidecar; freeze trusted plugins and carry explicit unavailable-generator states into native export admission. Keep M12-T3 open until real prepared projects render correctly."
     }
   ],
   "known_boundaries": [
