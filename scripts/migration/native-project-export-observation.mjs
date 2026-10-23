@@ -28,6 +28,7 @@ export async function runNativeProjectExportObservation(
     renderer: "rust-project",
     smoke,
     run,
+    raster_cache_bytes: 67108864,
     cases: [],
     measurement_scope:
       "Ten completed RGBA warm-ups on the same native project session, matching retained TS readback warm-up. Export timing starts before audio mixing and includes encoder creation, media admission not already warmed, all project evaluation/rendering, encoding, mux and atomic publication. Initial project loading, audio decode and warm-up are excluded; no work is subtracted. FFprobe and artifact authentication run afterward. Millisecond native monotonic receipts determine FPS; full paired quality-matched acceptance is separate.",
@@ -84,7 +85,7 @@ export async function runNativeProjectExportObservation(
           shadowMapSize: 1024,
         },
         plugins: (workload.case.plugins ?? []).map((p) => join(root, p, "plugin.toml")),
-        rasterProvider: prepared.rasterProvider,
+        rasterProvider: { ...prepared.rasterProvider, cacheBytes: report.raster_cache_bytes },
       });
       const requestHash = await hashFile(request);
       const step = await runStep(

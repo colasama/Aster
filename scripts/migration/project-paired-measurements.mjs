@@ -44,6 +44,7 @@ export function summarizeProjectPairs(observations, workloads, smoke = false) {
       continue;
     }
     assert.equal(report.kind, "native-project-export-observation");
+    assert.equal(report.raster_cache_bytes, 67108864, "Production raster cache is required");
     assert.equal(report.run, expected.run);
     assert.equal(report.source_unchanged, true);
     assert(report.execution_artifacts);

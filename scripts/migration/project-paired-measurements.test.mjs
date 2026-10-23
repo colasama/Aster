@@ -150,6 +150,7 @@ function fixture(smoke = false) {
       report: {
         ...common,
         kind: "native-project-export-observation",
+        raster_cache_bytes: 67108864,
         renderer: "rust-project",
         run,
         source_unchanged: true,
@@ -194,6 +195,9 @@ test("project pairs reject reordered, incomplete and mismatched evidence", () =>
     },
     (values) => {
       values[1].report.run = 2;
+    },
+    (values) => {
+      values[1].report.raster_cache_bytes = 0;
     },
     (values) => {
       values[1].report.source = { source_sha256: "changed" };

@@ -577,7 +577,9 @@ rather than a manifest-qualified baseline or cross-machine limit.
 
 `export --benchmark-warmup-frames 10` completes ten RGBA readbacks using the same native project
 session, device and caches used for the subsequent export. Ordinary exports use zero warm-up
-frames. The observation runner authenticates the same fixed workloads as retained TS, then measures
+frames. The observation runner authenticates the same fixed workloads as retained TS and enables
+the production queue's 64 MiB retained-raster payload cache. Omitting this setting disables
+payload reuse and does not represent the production queue. The measured interval runs
 from the native export start through atomic publication. This includes audio mixing, encoder
 creation, project evaluation, rendering, encoding and mux work. Initial project loading, audio
 decoding and the completed warm-up are excluded; no measured work is subtracted. GPU readback

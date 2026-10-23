@@ -85,6 +85,8 @@ export async function runProjectPerformanceGate(context, execute = runStep, opti
       } else {
         observations.push({ report: measured });
         for (const entry of measured.cases) {
+          const request = JSON.parse(await readFile(join(root, entry.request.path), "utf8"));
+          assert.equal(request.rasterProvider.cacheBytes, 67108864);
           assert.equal(entry.step.status, "passed");
           assert.equal(entry.step.command[0], native.binary);
           const log = join(root, entry.step.log),
