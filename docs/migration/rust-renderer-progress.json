@@ -393,97 +393,88 @@
     }
   },
   "last_cycle": {
-    "id": 174,
-    "time": "2026-10-23T09:03:36.348Z",
-    "updated_at": "2026-10-23T09:03:36.348Z",
+    "id": 175,
+    "time": "2026-10-23T09:37:29.710Z",
+    "updated_at": "2026-10-23T09:37:29.710Z",
     "milestone": "M12",
     "task": "M12-T7",
-    "increment": "qualify-full-range-project-export-throughput",
+    "increment": "reduce-owner-project-raster-preparation-cost",
     "outcome": "progress",
-    "commit": "4e361f5be3130ef7a5fc04b083725c02721f52e4",
+    "commit": "6a3fa67915748765d286237da213f8f12fe84510",
     "validation": {
-      "path": "artifacts/migration/cycle174b-validation/report.json",
-      "sha256": "7facfd6c033935d5d0fbe2059b8c0f8698dd8ea2297b364a7d44d9ed037692f4"
+      "path": "artifacts/migration/cycle175-validation/report.json",
+      "sha256": "fa81e3d27ca33286eeb1b61e90e8b0551649ca05d7f13e3c1f0820d696bbb7fc"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
         "id": "owner-opening-0",
         "status": "passed",
-        "duration_ms": 18605
+        "duration_ms": 13065
       },
       {
         "id": "owner-opening-67108864",
         "status": "passed",
-        "duration_ms": 17531
+        "duration_ms": 12061
       },
       {
         "id": "owner-main-0",
         "status": "passed",
-        "duration_ms": 14662
+        "duration_ms": 14860
       },
       {
         "id": "owner-main-67108864",
         "status": "passed",
-        "duration_ms": 13819
+        "duration_ms": 13769
       },
       {
-        "id": "paired-measurement-tests",
+        "id": "resident-resource-tests",
         "status": "passed",
-        "duration_ms": 614
+        "duration_ms": 1342
       },
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 329768
+        "duration_ms": 319370
       }
     ],
     "observations": [
       {
         "id": "owner-opening",
         "frames": 714,
-        "fps": 12.572857419570692,
-        "elapsed_ms": 56789
+        "fps": 13.938506588579795,
+        "elapsed_ms": 51225
       },
       {
         "id": "owner-main",
         "frames": 300,
-        "fps": 18.793459875963165,
-        "elapsed_ms": 15963
+        "fps": 22.988505747126435,
+        "elapsed_ms": 13050
       },
       {
         "id": "composite-1080p",
         "frames": 600,
-        "fps": 155.23932729624838,
-        "elapsed_ms": 3865
+        "fps": 155.8846453624318,
+        "elapsed_ms": 3849
       }
     ],
     "diagnostics": [
       {
-        "path": "artifacts/migration/cycle174-diagnostic/report.json",
-        "sha256": "5adf45c90cf0e6c4c93b19bce92244ff46c2f0e885dd4cb6665322c42d67cb44"
+        "path": "artifacts/migration/cycle175-profile/report.json",
+        "sha256": "5b205900b9ee06e8864407f40eb98c5ce754f2ddebce0bfe9bb12679ff3bdce6"
       },
       {
-        "path": "artifacts/migration/cycle174-profile/report.json",
-        "sha256": "e092447f49b2bcc5b50d60f9686db9318ee4f42d86f6eaf5b59c15971a887ff6"
+        "path": "artifacts/migration/cycle175-profile-js-b/report.json",
+        "sha256": "cab9ab57c403110d8f6be7a72203601a50b9d511ee4515a8b3b7ec4dbcf3167d"
       },
       {
-        "path": "artifacts/migration/cycle174-profile-cached/report.json",
-        "sha256": "cb00abcb75a5af15ba417582a3e10bbd27711b75c10f1e69a2e12acd9df23bd2"
-      }
-    ],
-    "failed_attempts": [
-      {
-        "path": "artifacts/migration/cycle174-validation/observation/report.json",
-        "reason": "Restoring source with Copy-Item preserved old mtimes and Cargo reused the temporary diagnostic binary. Strict progress event counts rejected the run. Source mtimes were refreshed, normal native code rebuilt, and a new output directory passed."
+        "path": "artifacts/migration/cycle175-profile-wire/report.json",
+        "sha256": "85cf609085992dd1d1923e01c9d750b2e6e95072e461cc6221facf0aeb1d85cd"
       }
     ],
     "self_review": {
       "result": "exact",
-      "scope": "Eight full-resolution cached/uncached owner opening/main RGB and NV12 frames match byte-for-byte. Runtime source unchanged; diagnostic instrumentation removed. No tolerance changes."
-    },
-    "quota": {
-      "remaining_percent": 55
+      "scope": "Eight full-resolution owner opening/main RGB and NV12 frames match cached/uncached and authenticated cycle 174 historical witnesses byte-for-byte. Cache-enabled full lifecycle passes. Diagnostic instrumentation removed; no tolerance changes."
     },
     "deferred_gates": [
       "G1",
@@ -494,7 +485,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Continue M12-T7: profile remaining native text routing/raster IPC phases, reduce real owner per-frame overhead without changing pixels, and compose G6 delivery/retirement plus final M12 exit."
+    "next_step": "Continue M12-T7: reduce measured owner preparation overhead and complete G6 delivery/retirement plus final M12 exit composition."
   },
   "milestones": [
     {
@@ -27814,13 +27805,13 @@
             "G6"
           ],
           "started_at": "2026-10-23T07:41:38.714Z",
-          "commit": "4e361f5be3130ef7a5fc04b083725c02721f52e4",
+          "commit": "6a3fa67915748765d286237da213f8f12fe84510",
           "validation": {
-            "path": "artifacts/migration/cycle174b-validation/report.json",
-            "sha256": "7facfd6c033935d5d0fbe2059b8c0f8698dd8ea2297b364a7d44d9ed037692f4"
+            "path": "artifacts/migration/cycle175-validation/report.json",
+            "sha256": "fa81e3d27ca33286eeb1b61e90e8b0551649ca05d7f13e3c1f0820d696bbb7fc"
           },
-          "progress": "M12 G1/G2/G3/G4/G5 routing is implemented. The Rust-project observation now explicitly uses the same 64 MiB raster payload cache as production queue/preview, and paired audits reject missing cache configuration. Temporary profiling identified raster preparation as the main owner-path cost; all instrumentation was removed. Normal-build full-range observations measured owner-opening 12.573 FPS, owner-main 18.793 FPS and composite-1080p 155.239 FPS. Owner paths remain below the contemporaneous diagnostic TS observations (16.041 and 29.853 FPS); full balanced acceptance is still open. Eight cached/uncached full-resolution RGB/NV12 witness frames are exact and G0 passes. G6 delivery/retirement and M12 exit composition remain open.",
-          "remaining_qualification": "Reduce measured owner-project raster preparation overhead, then qualify all full balanced export/preview performance. Compose G6 delivery/retirement and M12 exit, complete delivery/docs tasks and run all full gates."
+          "progress": "M12 G1/G2/G3/G4/G5 routing is implemented. Rust now retains verified immutable raster descriptor proofs within one sixteenth of the existing cache budget, and readback synchronization replaces the redundant queue-wide raster wait. Current full-range observations measured owner-opening 13.939 FPS, owner-main 22.989 FPS and composite-1080p 155.885 FPS, improving owner paths over cycle 174 but still below contemporary TS diagnostic observations (16.041 and 29.853 FPS). Eight full-resolution frames match cached/uncached and historical RGB/NV12 exactly; cache-enabled export lifecycle and full G0 pass. Full balanced performance, G6 delivery/retirement and M12 exit composition remain open.",
+          "remaining_qualification": "Reduce remaining owner-project CPU preparation overhead and qualify full balanced performance. Compose G6 delivery/retirement and M12 exit, complete delivery/docs tasks and run all full gates."
         },
         {
           "id": "M12-T8",
@@ -2681830,6 +2681821,102 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Continue M12-T7: profile remaining native text routing/raster IPC phases, reduce real owner per-frame overhead without changing pixels, and compose G6 delivery/retirement plus final M12 exit."
+    },
+    {
+      "cycle": 175,
+      "id": 175,
+      "time": "2026-10-23T09:37:29.710Z",
+      "updated_at": "2026-10-23T09:37:29.710Z",
+      "milestone": "M12",
+      "task": "M12-T7",
+      "increment": "reduce-owner-project-raster-preparation-cost",
+      "outcome": "progress",
+      "commit": "6a3fa67915748765d286237da213f8f12fe84510",
+      "validation": {
+        "path": "artifacts/migration/cycle175-validation/report.json",
+        "sha256": "fa81e3d27ca33286eeb1b61e90e8b0551649ca05d7f13e3c1f0820d696bbb7fc"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "owner-opening-0",
+          "status": "passed",
+          "duration_ms": 13065
+        },
+        {
+          "id": "owner-opening-67108864",
+          "status": "passed",
+          "duration_ms": 12061
+        },
+        {
+          "id": "owner-main-0",
+          "status": "passed",
+          "duration_ms": 14860
+        },
+        {
+          "id": "owner-main-67108864",
+          "status": "passed",
+          "duration_ms": 13769
+        },
+        {
+          "id": "resident-resource-tests",
+          "status": "passed",
+          "duration_ms": 1342
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 319370
+        }
+      ],
+      "observations": [
+        {
+          "id": "owner-opening",
+          "frames": 714,
+          "fps": 13.938506588579795,
+          "elapsed_ms": 51225
+        },
+        {
+          "id": "owner-main",
+          "frames": 300,
+          "fps": 22.988505747126435,
+          "elapsed_ms": 13050
+        },
+        {
+          "id": "composite-1080p",
+          "frames": 600,
+          "fps": 155.8846453624318,
+          "elapsed_ms": 3849
+        }
+      ],
+      "diagnostics": [
+        {
+          "path": "artifacts/migration/cycle175-profile/report.json",
+          "sha256": "5b205900b9ee06e8864407f40eb98c5ce754f2ddebce0bfe9bb12679ff3bdce6"
+        },
+        {
+          "path": "artifacts/migration/cycle175-profile-js-b/report.json",
+          "sha256": "cab9ab57c403110d8f6be7a72203601a50b9d511ee4515a8b3b7ec4dbcf3167d"
+        },
+        {
+          "path": "artifacts/migration/cycle175-profile-wire/report.json",
+          "sha256": "85cf609085992dd1d1923e01c9d750b2e6e95072e461cc6221facf0aeb1d85cd"
+        }
+      ],
+      "self_review": {
+        "result": "exact",
+        "scope": "Eight full-resolution owner opening/main RGB and NV12 frames match cached/uncached and authenticated cycle 174 historical witnesses byte-for-byte. Cache-enabled full lifecycle passes. Diagnostic instrumentation removed; no tolerance changes."
+      },
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Continue M12-T7: reduce measured owner preparation overhead and complete G6 delivery/retirement plus final M12 exit composition."
     }
   ],
   "known_boundaries": [
