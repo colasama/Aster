@@ -393,24 +393,24 @@
     }
   },
   "last_cycle": {
-    "id": 181,
-    "time": "2026-10-23T11:46:53.832Z",
-    "updated_at": "2026-10-23T11:46:53.832Z",
+    "id": 182,
+    "time": "2026-10-23T12:04:30.408Z",
+    "updated_at": "2026-10-23T12:04:30.408Z",
     "milestone": "M12",
     "task": "M12-T9",
-    "increment": "retain-validated-native-nested-plans",
+    "increment": "reuse-native-plan-validation-at-identical-limits",
     "outcome": "progress",
-    "commit": "3e025f95571980a99d9e816319ce2f9b4a4dda4b",
+    "commit": "020d19354bf93a27ccff1a53869f375becbd462e",
     "validation": {
-      "path": "artifacts/migration/cycle181b-validation/report.json",
-      "sha256": "0f8f6d179d7d9e507287bbadec72737500246a80338bf2941c90d4a00a28c92f"
+      "path": "artifacts/migration/cycle182-validation/report.json",
+      "sha256": "042b1fbef17f6e0097502aa9bfea97e1d40c335dd2967a3b236cc3f08fbda7ef"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
         "id": "native-plan-proof-targeted",
         "status": "passed",
-        "tests": 50
+        "tests": 49
       },
       {
         "id": "native-export-observation",
@@ -424,40 +424,64 @@
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 409195
+        "duration_ms": 423282
       }
     ],
     "measurements": [
       {
         "id": "owner-opening",
         "frames": 714,
-        "fps": 14.826812858210815
+        "fps": 14.836363636363636
       },
       {
         "id": "owner-main",
         "frames": 300,
-        "fps": 26.08695652173913
+        "fps": 26.322716504343248
       },
       {
         "id": "composite-1080p",
         "frames": 600,
-        "fps": 163.04347826086956
+        "fps": 117.6701313983134
       }
     ],
     "observation": {
-      "path": "artifacts/migration/cycle181b-validation/observation/report.json",
-      "sha256": "afe5de56cad5c9b4a4659fc67a6c122b95ccc2d4ca96e821ed0e8dd2a08bb0f5"
+      "path": "artifacts/migration/cycle182-validation/observation/report.json",
+      "sha256": "6fcf3d01013db4c649a9f2516924374e8274160c0861ab430233eac5e60763c9"
     },
-    "resolved_failures": [
-      {
-        "path": "artifacts/migration/cycle181-validation/runtime/project-native-build.log",
-        "sha256": "5c81b6887cf8c741645a1537604fe334baa58071305d2d7e5ebc129608046272",
-        "cause": "Removed ElementType import was still used for raster pixel admission; restored before fresh successful verification."
-      }
-    ],
+    "composite_followup": {
+      "path": "artifacts/migration/cycle182-composite-recheck/report.json",
+      "sha256": "eeb1988347bf6c81fd1e3c65302519680c408f2c40b818d6785a5cc92d30d7bf",
+      "fps_ratio": 1.013920438844477,
+      "runs": [
+        {
+          "cycle": "181b",
+          "fps": 157.39769150052467,
+          "post_frame_ms": 94
+        },
+        {
+          "cycle": "182",
+          "fps": 161.50740242261102,
+          "post_frame_ms": 34
+        },
+        {
+          "cycle": "182",
+          "fps": 163.8448935008192,
+          "post_frame_ms": 33
+        },
+        {
+          "cycle": "181b",
+          "fps": 163.48773841961852,
+          "post_frame_ms": 38
+        }
+      ],
+      "scope": "Diagnostic ABBA against previous native binary; retains original slow-tail observation and does not grant final G4"
+    },
     "self_review": {
       "result": "exact",
-      "scope": "Eight owner frames have unchanged submitted plans, RGB and NV12 against cycle 180 and with raster cache disabled; lifecycle witnesses preserve exact pixels. No reference or tolerance changes."
+      "scope": "Eight owner frames preserve submitted plans, RGB and NV12 against cycle 181 with both cache settings. Lifecycle witnesses remain exact. No references or tolerances changed."
+    },
+    "quota": {
+      "remaining_percent": 43
     },
     "deferred_gates": [
       "G1",
@@ -468,7 +492,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Continue M12-T9 owner export throughput, including redundant immutable-plan metadata validation at identical admission limits. Run complete balanced/current gates once native advantage is qualified."
+    "next_step": "Continue M12-T9 by addressing larger native frame-preparation costs; inspect duplicate canonical JSON ordering and repeated scene evaluation/resource preparation before selecting the next increment. Final balanced/current G0-G6 remain required."
   },
   "milestones": [
     {
@@ -27824,7 +27848,7 @@
             "files": [
               {
                 "path": "docs/ARCHITECTURE.md",
-                "sha256": "be7fdea1838446610097ffa8fabd3c4fd766eb196427b1673c3e295e9ff025f3"
+                "sha256": "20f7c55ff51a03e871fc8afc13a428e7073928aacea3f4927d107bda35bc8d39"
               },
               {
                 "path": "docs/RENDER_QUEUE.md",
@@ -27859,8 +27883,8 @@
                 "sha256": "aac78a611e01df31ef2368a15a2ed9c9cd502b4bd0d1238d7e6134761f515360"
               }
             ],
-            "review": "Reviewed against native production routing, immutable queue/media ownership, codec and raster boundaries, restart/control behavior and current paired performance policy. Advanced-rendering roadmap remains explicitly future scope; project format and plugin ABI are unchanged. Resource-proof ownership/accounting paragraph re-reviewed after cycle 180; current hash pinned. Native nested-plan ownership and boundary validation paragraph re-reviewed after cycle 181; current hash pinned.",
-            "updated_at": "2026-10-23T11:46:53.832Z"
+            "review": "Reviewed against native production routing, immutable queue/media ownership, codec and raster boundaries, restart/control behavior and current paired performance policy. Advanced-rendering roadmap remains explicitly future scope; project format and plugin ABI are unchanged. Resource-proof ownership/accounting paragraph re-reviewed after cycle 180; current hash pinned. Native nested-plan ownership and boundary validation paragraph re-reviewed after cycle 181; current hash pinned. Identical-limit native validation reuse reviewed after cycle 182; current hash pinned.",
+            "updated_at": "2026-10-23T12:04:30.408Z"
           },
           "delivery_evidence": {
             "process": {
@@ -27902,12 +27926,12 @@
             "G6"
           ],
           "started_at": "2026-10-23T11:03:56.171Z",
-          "commit": "3e025f95571980a99d9e816319ce2f9b4a4dda4b",
+          "commit": "020d19354bf93a27ccff1a53869f375becbd462e",
           "validation": {
-            "path": "artifacts/migration/cycle181b-validation/report.json",
-            "sha256": "0f8f6d179d7d9e507287bbadec72737500246a80338bf2941c90d4a00a28c92f"
+            "path": "artifacts/migration/cycle182-validation/report.json",
+            "sha256": "042b1fbef17f6e0097502aa9bfea97e1d40c335dd2967a3b236cc3f08fbda7ef"
           },
-          "progress": "Native nested plans retain validated typed metadata with immutable resource bytes, avoiding decode on each frame traversal. Caller limits, external byte decoding, resource accounting and dependency closure remain enforced. Full-range single observations reach about 14.827/26.087 FPS for owner opening/main and 163.043 FPS for composite. Eight historical/cached/uncached plan/RGB/NV12 witnesses are exact; full export lifecycle and G0 pass. Owner still trails diagnostic TS 16.041/29.853 FPS; balanced G4 and all final M12 gates remain open."
+          "progress": "Immutable native plans now reuse constructor validation only when every caller limit is identical; changed limits revalidate. Full-range single owner observations reach 14.836/26.323 FPS. Eight historical/cached/uncached plan/RGB/NV12 witnesses remain exact; full export lifecycle and G0 pass. The initial composite run retains a 1.419 second post-frame tail (117.670 FPS); authenticated ABBA follow-up investigates this against the previous binary. Owner still trails diagnostic TS 16.041/29.853 FPS; complete balanced G4 and final M12 acceptance remain open."
         }
       ],
       "started_at": "2026-10-23T00:52:32.391Z"
@@ -2682469,6 +2682493,109 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Continue M12-T9 owner export throughput, including redundant immutable-plan metadata validation at identical admission limits. Run complete balanced/current gates once native advantage is qualified."
+    },
+    {
+      "cycle": 182,
+      "id": 182,
+      "time": "2026-10-23T12:04:30.408Z",
+      "updated_at": "2026-10-23T12:04:30.408Z",
+      "milestone": "M12",
+      "task": "M12-T9",
+      "increment": "reuse-native-plan-validation-at-identical-limits",
+      "outcome": "progress",
+      "commit": "020d19354bf93a27ccff1a53869f375becbd462e",
+      "validation": {
+        "path": "artifacts/migration/cycle182-validation/report.json",
+        "sha256": "042b1fbef17f6e0097502aa9bfea97e1d40c335dd2967a3b236cc3f08fbda7ef"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "native-plan-proof-targeted",
+          "status": "passed",
+          "tests": 49
+        },
+        {
+          "id": "native-export-observation",
+          "status": "passed",
+          "scope": "single full-range run; not full G4"
+        },
+        {
+          "id": "exact-cache-witnesses-and-export-lifecycle",
+          "status": "passed"
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 423282
+        }
+      ],
+      "measurements": [
+        {
+          "id": "owner-opening",
+          "frames": 714,
+          "fps": 14.836363636363636
+        },
+        {
+          "id": "owner-main",
+          "frames": 300,
+          "fps": 26.322716504343248
+        },
+        {
+          "id": "composite-1080p",
+          "frames": 600,
+          "fps": 117.6701313983134
+        }
+      ],
+      "observation": {
+        "path": "artifacts/migration/cycle182-validation/observation/report.json",
+        "sha256": "6fcf3d01013db4c649a9f2516924374e8274160c0861ab430233eac5e60763c9"
+      },
+      "composite_followup": {
+        "path": "artifacts/migration/cycle182-composite-recheck/report.json",
+        "sha256": "eeb1988347bf6c81fd1e3c65302519680c408f2c40b818d6785a5cc92d30d7bf",
+        "fps_ratio": 1.013920438844477,
+        "runs": [
+          {
+            "cycle": "181b",
+            "fps": 157.39769150052467,
+            "post_frame_ms": 94
+          },
+          {
+            "cycle": "182",
+            "fps": 161.50740242261102,
+            "post_frame_ms": 34
+          },
+          {
+            "cycle": "182",
+            "fps": 163.8448935008192,
+            "post_frame_ms": 33
+          },
+          {
+            "cycle": "181b",
+            "fps": 163.48773841961852,
+            "post_frame_ms": 38
+          }
+        ],
+        "scope": "Diagnostic ABBA against previous native binary; retains original slow-tail observation and does not grant final G4"
+      },
+      "self_review": {
+        "result": "exact",
+        "scope": "Eight owner frames preserve submitted plans, RGB and NV12 against cycle 181 with both cache settings. Lifecycle witnesses remain exact. No references or tolerances changed."
+      },
+      "quota": {
+        "remaining_percent": 43
+      },
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Continue M12-T9 by addressing larger native frame-preparation costs; inspect duplicate canonical JSON ordering and repeated scene evaluation/resource preparation before selecting the next increment. Final balanced/current G0-G6 remain required."
     }
   ],
   "known_boundaries": [
