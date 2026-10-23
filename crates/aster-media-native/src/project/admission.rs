@@ -68,7 +68,7 @@ impl NativeProjectMediaSession {
             let mut ordinary = if kind == MediaKind::Sequence {
                 None
             } else {
-                Some(binding.read(reader, None, maximum)?)
+                Some(binding.inspect(reader, None, maximum)?)
             };
             // The project authenticates historical locator identities before granting decoder bytes.
             let content_identity = match (binding.payload.as_deref(), ordinary.as_ref()) {
@@ -130,7 +130,7 @@ impl NativeProjectMediaSession {
                 }
                 let bytes = match ordinary.take() {
                     Some(snapshot) => snapshot,
-                    None => binding.read(reader, member, maximum)?,
+                    None => binding.inspect(reader, member, maximum)?,
                 };
                 if let Some(frame) = member {
                     identities.insert(frame, bytes.byte_identity.clone());

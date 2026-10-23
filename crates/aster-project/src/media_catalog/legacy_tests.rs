@@ -22,7 +22,12 @@ impl LegacyFixture {
         let binding = catalog.bind("image")?;
         let mut reader =
             MediaSourceReader::new(&std::env::temp_dir(), crate::MediaSourceLimits::default())?;
-        binding.read(&mut reader, frame, 1024)
+        let retained = binding.read(&mut reader, frame, 1024)?;
+        let inspected = binding.inspect(&mut reader, frame, 1024)?;
+        assert_eq!(retained.bytes, inspected.bytes);
+        assert_eq!(retained.sha256, inspected.sha256);
+        assert_eq!(retained.byte_length, inspected.byte_length);
+        Ok(inspected)
     }
 }
 

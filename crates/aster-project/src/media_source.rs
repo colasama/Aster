@@ -1,6 +1,9 @@
 use crate::ProjectError;
 use base64::Engine;
 use serde::Deserialize;
+mod digest;
+use digest::MediaByteDigest;
+#[cfg(test)]
 use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeMap,
@@ -60,6 +63,7 @@ impl Default for MediaSourceLimits {
 
 pub struct MediaSourceSnapshot {
     pub bytes: Vec<u8>,
+    pub byte_length: u64,
     pub sha256: String,
     pub byte_identity: String,
     pub path: Option<PathBuf>,
@@ -109,6 +113,26 @@ impl MediaSourceReader {
         content_identity: Option<&str>,
         max_bytes: u64,
     ) -> Result<MediaSourceSnapshot, ProjectError> {
+        self.read_retained(storage, content_identity, max_bytes, true)
+    }
+
+    /// Authenticate a file in bounded chunks without retaining its encoded bytes.
+    pub fn inspect(
+        &mut self,
+        storage: &ProjectMediaStorage,
+        content_identity: Option<&str>,
+        max_bytes: u64,
+    ) -> Result<MediaSourceSnapshot, ProjectError> {
+        self.read_retained(storage, content_identity, max_bytes, false)
+    }
+
+    pub(crate) fn read_retained(
+        &mut self,
+        storage: &ProjectMediaStorage,
+        content_identity: Option<&str>,
+        max_bytes: u64,
+        retain_file_bytes: bool,
+    ) -> Result<MediaSourceSnapshot, ProjectError> {
         if max_bytes == 0 || self.files >= self.limits.project_media_files {
             return Err(ProjectError::InvalidMedia(
                 "media file admission limit exceeded",
@@ -144,8 +168,13 @@ impl MediaSourceReader {
                 ..
             } => {
                 let resolved = self.resolve(relative_path)?;
-                let bytes = Self::read_file(&resolved, maximum)?;
-                (bytes, Some(resolved), byte_identity.as_str())
+                return self.read_file(
+                    resolved,
+                    maximum,
+                    Some(byte_identity),
+                    content_identity,
+                    retain_file_bytes,
+                );
             }
             ProjectMediaStorage::External { .. } => {
                 return Err(ProjectError::InvalidMedia(
@@ -155,7 +184,7 @@ impl MediaSourceReader {
         };
         let snapshot = Self::authenticate(bytes, path, Some(declared), content_identity)?;
         let inline_bytes = if snapshot.path.is_none() {
-            snapshot.bytes.len() as u64
+            snapshot.byte_length
         } else {
             0
         };
@@ -171,18 +200,29 @@ impl MediaSourceReader {
         content_identity: &str,
         max_bytes: u64,
     ) -> Result<MediaSourceSnapshot, ProjectError> {
+        self.read_relative_retained(relative_path, content_identity, max_bytes, true)
+    }
+
+    pub(crate) fn read_relative_retained(
+        &mut self,
+        relative_path: &str,
+        content_identity: &str,
+        max_bytes: u64,
+        retain_file_bytes: bool,
+    ) -> Result<MediaSourceSnapshot, ProjectError> {
         if max_bytes == 0 || self.files >= self.limits.project_media_files {
             return Err(ProjectError::InvalidMedia(
                 "media file admission limit exceeded",
             ));
         }
         let resolved = self.resolve(relative_path)?;
-        let bytes = Self::read_file(
-            &resolved,
+        self.read_file(
+            resolved,
             max_bytes.min(self.limits.project_media_source_bytes),
-        )?;
-        let snapshot = Self::authenticate(bytes, Some(resolved), None, Some(content_identity))?;
-        self.admit(snapshot)
+            None,
+            Some(content_identity),
+            retain_file_bytes,
+        )
     }
 
     fn resolve(&self, relative: &str) -> Result<PathBuf, ProjectError> {
@@ -209,8 +249,15 @@ impl MediaSourceReader {
         Ok(resolved)
     }
 
-    fn read_file(path: &Path, maximum: u64) -> Result<Vec<u8>, ProjectError> {
-        let file = File::open(path)?;
+    fn read_file(
+        &mut self,
+        path: PathBuf,
+        maximum: u64,
+        declared: Option<&str>,
+        content_identity: Option<&str>,
+        retain_bytes: bool,
+    ) -> Result<MediaSourceSnapshot, ProjectError> {
+        let mut file = File::open(&path)?;
         let metadata = file.metadata()?;
         if !metadata.is_file() || metadata.len() > maximum {
             return Err(ProjectError::InvalidMedia(
@@ -218,13 +265,25 @@ impl MediaSourceReader {
             ));
         }
         let mut bytes = Vec::new();
-        file.take(maximum + 1).read_to_end(&mut bytes)?;
-        if bytes.len() as u64 > maximum {
-            return Err(ProjectError::InvalidMedia(
-                "media file grew beyond source byte budget",
-            ));
+        let mut digest = MediaByteDigest::new();
+        let mut buffer = [0_u8; 65536];
+        loop {
+            let count = file.read(&mut buffer)?;
+            if count == 0 {
+                break;
+            }
+            digest.update(&buffer[..count])?;
+            if digest.length > maximum {
+                return Err(ProjectError::InvalidMedia(
+                    "media file grew beyond source byte budget",
+                ));
+            }
+            if retain_bytes {
+                bytes.extend_from_slice(&buffer[..count]);
+            }
         }
-        Ok(bytes)
+        let snapshot = digest.finish(bytes, Some(path), declared, content_identity)?;
+        self.admit(snapshot)
     }
 
     fn identity_length(identity: &str) -> Result<u64, ProjectError> {
@@ -261,26 +320,9 @@ impl MediaSourceReader {
         byte_identity: Option<&str>,
         content_identity: Option<&str>,
     ) -> Result<MediaSourceSnapshot, ProjectError> {
-        let sha256 = format!("{:x}", Sha256::digest(&bytes));
-        let (mut left, mut right) = (0x811c9dc5_u32, 0x9e3779b9_u32);
-        for byte in &bytes {
-            left = (left ^ u32::from(*byte)).wrapping_mul(0x01000193);
-            right = (right ^ u32::from(*byte)).wrapping_mul(0x85ebca6b);
-        }
-        let identity = format!("fnv64:{left:08x}{right:08x}:{}", bytes.len());
-        if byte_identity.is_some_and(|expected| expected != identity)
-            || content_identity.is_some_and(|expected| {
-                expected != identity && expected != format!("sha256:{sha256}")
-            })
-        {
-            return Err(ProjectError::InvalidMedia("media content identity differs"));
-        }
-        Ok(MediaSourceSnapshot {
-            bytes,
-            sha256,
-            byte_identity: identity,
-            path,
-        })
+        let mut digest = MediaByteDigest::new();
+        digest.update(&bytes)?;
+        digest.finish(bytes, path, byte_identity, content_identity)
     }
 
     fn admit(
@@ -290,7 +332,7 @@ impl MediaSourceReader {
         let additional = if self.admitted.contains_key(&snapshot.sha256) {
             0
         } else {
-            snapshot.bytes.len() as u64
+            snapshot.byte_length
         };
         let total = self
             .total_bytes
@@ -300,7 +342,7 @@ impl MediaSourceReader {
                 "aggregate media byte budget exceeded",
             ))?;
         self.admitted
-            .insert(snapshot.sha256.clone(), snapshot.bytes.len() as u64);
+            .insert(snapshot.sha256.clone(), snapshot.byte_length);
         self.total_bytes = total;
         self.files += 1;
         Ok(snapshot)

@@ -3,6 +3,7 @@ mod model;
 mod sequence;
 use crate::{MediaSourceReader, MediaSourceSnapshot, ProjectError};
 use aster_types::editor::Source;
+use legacy::LegacyMediaLocator;
 use model::Document;
 pub use model::{FootagePayload, MediaEntry, ProjectMediaPayload, PsdPayload, SvgPayload};
 pub use sequence::{
@@ -227,6 +228,26 @@ impl ProjectMediaBinding {
         frame: Option<i64>,
         max_bytes: u64,
     ) -> Result<MediaSourceSnapshot, ProjectError> {
+        self.read_retained(reader, frame, max_bytes, true)
+    }
+
+    /// File grants carry authenticated metadata; inline and historical inline data retain bytes.
+    pub fn inspect(
+        &self,
+        reader: &mut MediaSourceReader,
+        frame: Option<i64>,
+        max_bytes: u64,
+    ) -> Result<MediaSourceSnapshot, ProjectError> {
+        self.read_retained(reader, frame, max_bytes, false)
+    }
+
+    fn read_retained(
+        &self,
+        reader: &mut MediaSourceReader,
+        frame: Option<i64>,
+        max_bytes: u64,
+        retain_file_bytes: bool,
+    ) -> Result<MediaSourceSnapshot, ProjectError> {
         let (storage, identity) = match self.payload.as_deref() {
             Some(
                 ProjectMediaPayload::Still(p)
@@ -239,7 +260,12 @@ impl ProjectMediaBinding {
                             "ordinary payload cannot authorize a sequence member",
                         ));
                     }
-                    let snapshot = reader.read(&p.storage, None, max_bytes)?;
+                    let snapshot = reader.read_retained(
+                        &p.storage,
+                        None,
+                        max_bytes,
+                        retain_file_bytes || matches!(legacy, LegacyMediaLocator::Inline { .. }),
+                    )?;
                     legacy.verify(&self.source, &p.storage, &snapshot.bytes)?;
                     return Ok(snapshot);
                 }
@@ -258,8 +284,9 @@ impl ProjectMediaBinding {
                     .ok_or(ProjectError::InvalidMedia(
                         "sequence member is not admitted",
                     ))?;
-                let snapshot = reader.read(&member.storage, None, max_bytes)?;
-                if snapshot.bytes.len() as u64 != member.size {
+                let snapshot =
+                    reader.read_retained(&member.storage, None, max_bytes, retain_file_bytes)?;
+                if snapshot.byte_length != member.size {
                     return Err(ProjectError::InvalidMedia("sequence member size differs"));
                 }
                 return Ok(snapshot);
@@ -277,7 +304,12 @@ impl ProjectMediaBinding {
                     .ok_or(ProjectError::InvalidMedia(
                         "source has no saved bundle locator",
                     ))?;
-                return reader.read_relative_source(path, &self.source.content_identity, max_bytes);
+                return reader.read_relative_retained(
+                    path,
+                    &self.source.content_identity,
+                    max_bytes,
+                    retain_file_bytes,
+                );
             }
         };
         if frame.is_some() {
@@ -285,7 +317,7 @@ impl ProjectMediaBinding {
                 "ordinary payload cannot authorize a sequence member",
             ));
         }
-        reader.read(storage, identity, max_bytes)
+        reader.read_retained(storage, identity, max_bytes, retain_file_bytes)
     }
 }
 

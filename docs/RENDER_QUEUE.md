@@ -78,6 +78,10 @@ Queue launches bind the mux duration ceiling to the captured frame count and rat
 exports validate mux requests before starting the frame producer, preserving the original error.
 Exports open their immutable catalog without scanning the complete frame schedule. Native evaluation
 admits a selected visual source on first use through the same job-local reader and cumulative budgets.
+File admission hashes encoded data in 64 KiB chunks and retains only its canonical path, length and
+byte identities for decoder grants. Inline payloads retain authenticated bytes; historical inline
+locator validation retains the bytes it needs. Decoders still authenticate their granted input before
+use. File-source accounting uses the authenticated length even when admission retains no byte vector.
 New grants preserve the shared decoded-frame cache and video clocks; they cannot replace existing
 grants or reset snapshot byte limits. A failed admission poisons the session and leaves the private
 output unpublished. Unused sources outside the requested range are never opened by the decoder.
