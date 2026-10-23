@@ -39,12 +39,6 @@ import { useI18n } from "../../i18n/react";
 import { warmProjectRasterSources } from "../../importers/raster-image-prefetch";
 import { CanvasFallbackRenderer } from "../../renderer/canvas-fallback";
 import {
-  type BeautyFrameRequest,
-  createBeautyFrameRequest,
-  createViewportBeautyFrameBackend,
-  ProductionBeautyFramePipeline,
-} from "../../renderer/compositing/beauty-frame";
-import {
   presentWithPreviewCache,
   previewFramePlan,
 } from "../../renderer/frame-cache/cached-beauty-presenter";
@@ -59,7 +53,13 @@ import { encodeRawFramePng } from "../../renderer/gpu/raw-frame-png";
 import type { BufferVisualization } from "../../renderer/gpu/render-buffers";
 import { createNativePreviewBeautyBackend } from "../../renderer/native-project/preview-beauty-backend";
 import { NativePreviewView } from "../../renderer/native-project/preview-view";
-import { WebGpuRenderer } from "../../renderer/webgpu-renderer";
+import {
+  type BeautyFrameRequest,
+  createBeautyFrameRequest,
+  ProductionBeautyFramePipeline,
+} from "../../renderer/presentation/beauty-frame";
+import { createCanvasBeautyBackend } from "../../renderer/presentation/canvas-beauty-backend";
+import { createReferencePreview, isReferencePreview } from "../../renderer/reference/preview";
 import { useEditor } from "../../state/editor-store";
 import { isEditableShortcutTarget, isEditorShortcutBlocked } from "../../ui/keyboard-shortcuts";
 import { viewportRendererStatus } from "../../ui/viewport-renderer-status";
@@ -231,7 +231,7 @@ export function Viewport() {
       return;
     }
     const renderer = rendererRef.current;
-    if (renderer instanceof WebGpuRenderer)
+    if (isReferencePreview(renderer))
       renderer.render(
         preview.composition,
         preview.time,
@@ -312,7 +312,7 @@ export function Viewport() {
   useEffect(() => {
     if (renderSessionGuardRef.current.active) return;
     const renderer = rendererRef.current;
-    if (!(renderer instanceof WebGpuRenderer)) return;
+    if (!isReferencePreview(renderer)) return;
     try {
       const actual = renderer.setBufferVisualization(bufferView);
       if (actual !== bufferView) setBufferView(actual);
@@ -329,6 +329,10 @@ export function Viewport() {
     let cancelled = false;
     const invalidate = () => {
       if (!cancelled) setRendererRevision((revision) => revision + 1);
+    };
+    const compatibility = () => {
+      const renderer = new CanvasFallbackRenderer(canvas, invalidate);
+      return { renderer, backend: createCanvasBeautyBackend(renderer, canvas) };
     };
     (async () => {
       const api = window.asterDesktop?.nativePreview;
@@ -360,27 +364,26 @@ export function Viewport() {
         setRendererReady(true);
         return;
       }
-      if (__ASTER_TS_REFERENCE__) return WebGpuRenderer.create(canvas, invalidate);
-      return new CanvasFallbackRenderer(canvas, invalidate);
+      if (__ASTER_TS_REFERENCE__) return createReferencePreview(canvas, invalidate);
+      return compatibility();
     })()
       .catch((error: unknown) => {
-        logger.error("viewport", "webgpu_fallback_activated", error);
-        return new CanvasFallbackRenderer(canvas, invalidate);
+        logger.error("viewport", "compatibility_preview_activated", error);
+        return compatibility();
       })
-      .then((renderer) => {
-        if (!renderer) return;
+      .then((created) => {
+        if (!created) return;
+        const { renderer, backend } = created;
         if (cancelled) {
           disposeRenderer(renderer);
           return;
         }
         logger.info("viewport", "renderer_ready", {
-          backend: renderer instanceof WebGpuRenderer ? "webgpu" : "canvas2d",
+          backend: isReferencePreview(renderer) ? "webgpu" : "canvas2d",
           adapter: renderer.diagnostics.adapter,
         });
         rendererRef.current = renderer;
-        beautyPipelineRef.current = new ProductionBeautyFramePipeline(
-          createViewportBeautyFrameBackend(renderer, canvas),
-        );
+        beautyPipelineRef.current = new ProductionBeautyFramePipeline(backend);
         publishDiagnostics(renderer.diagnostics);
         resize();
         renderer.resize(canvas.width, canvas.height);
@@ -408,8 +411,7 @@ export function Viewport() {
         const renderer = rendererRef.current;
         const budget = state.gpuMemoryBudgetMb === "auto" ? undefined : state.gpuMemoryBudgetMb;
         nativePreviewRef.current?.setMemoryBudget(state.gpuMemoryBudgetMb, currentGpuMemory());
-        if (renderer instanceof WebGpuRenderer)
-          renderer.setMemoryBudget(budget, currentGpuMemory());
+        if (isReferencePreview(renderer)) renderer.setMemoryBudget(budget, currentGpuMemory());
         else renderer?.setMemoryBudget(budget);
         setRendererRevision((revision) => revision + 1);
       } catch (error) {
@@ -498,17 +500,16 @@ export function Viewport() {
           });
           const present = (beauty: BeautyFrameRequest) =>
             pipeline.present(beauty, state.selection[0], state.playing);
-          metrics =
-            renderer instanceof WebGpuRenderer
-              ? presentWithPreviewCache({
-                  cache: previewFrameCache,
-                  renderer,
-                  request,
-                  playing: state.playing,
-                  present,
-                })
-              : present(request);
-        } else if (renderer instanceof WebGpuRenderer)
+          metrics = isReferencePreview(renderer)
+            ? presentWithPreviewCache({
+                cache: previewFrameCache,
+                renderer,
+                request,
+                playing: state.playing,
+                present,
+              })
+            : present(request);
+        } else if (isReferencePreview(renderer))
           metrics = renderer.render(
             previewComposition,
             time,
@@ -579,7 +580,7 @@ export function Viewport() {
     const renderer = rendererRef.current;
     const pipeline = beautyPipelineRef.current;
     const canvas = canvasRef.current;
-    if (!(renderer instanceof WebGpuRenderer) || !pipeline || !canvas) return;
+    if (!isReferencePreview(renderer) || !pipeline || !canvas) return;
     if (!previewFrameCache.enabled) return;
     const guard = renderSessionGuardRef.current;
     const prerenderer = new PreviewPrerenderer({
@@ -709,10 +710,9 @@ export function Viewport() {
                 },
               );
             } else if (preview.bufferView !== "beauty") {
-              if (renderer instanceof WebGpuRenderer)
-                renderer.setBufferVisualization(preview.bufferView);
+              if (isReferencePreview(renderer)) renderer.setBufferVisualization(preview.bufferView);
               pipeline.resize(previewWidth, previewHeight);
-              if (renderer instanceof WebGpuRenderer)
+              if (isReferencePreview(renderer))
                 renderer.render(
                   preview.composition,
                   preview.time,

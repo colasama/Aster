@@ -10,8 +10,8 @@ and memory detection. Changes apply after application restart; platform GPU sele
 authoritative. See [desktop preferences](DESKTOP_FOUNDATIONS.md).
 
 Aster separates its portable model from platform/UI code. The Rust crates own deterministic domain
-logic and native boundaries; the React/Electron application owns interactive editing and the current
-WebGPU preview implementation. Electron's sandboxed renderer reaches native capabilities only
+logic, project evaluation and rendering; the React/Electron application owns interactive editing and
+GPU texture presentation. Electron's sandboxed renderer reaches native capabilities only
 through a context-isolated preload API, a main-process command allowlist, and the JSON-lines desktop
 bridge. Local media uses a dedicated protocol whose path set is populated only by validated bridge
 responses.
@@ -742,7 +742,11 @@ producer. This provides the GPU completion boundary without another renderer-pro
 `ASTER_NATIVE_PREVIEW=0` selects the unchanged Canvas 2D compatibility path, without an implicit TS
 GPU fallback. TS viewport creation requires a separate `vite build --mode reference` bundle in
 `dist-reference` and the development-only `ASTER_REFERENCE_RENDERER=1` application route. Packaged
-applications ignore that reference route. The legacy queue host remains a separate migration task.
+applications ignore that reference route. Queue exports use native project workers by default.
+Production presentation has an independent beauty contract and Canvas adapter; the original TS
+beauty implementation remains immutable for reference capture. The build rejects production chunks
+containing the TS renderer, its original beauty adapter or the legacy RenderHost. Reference builds
+retain those modules explicitly and emit their separate renderer-boundary report.
 Explicit pixel captures also wait for their mapped readback buffer. A replaceable foreground queue rejects
 stale edits while idle pre-rendering fills the bounded RAM cache without changing the displayed frame.
 The native idle scheduler iterates only its budgeted frame window, without allocating a list for the
@@ -1278,36 +1282,17 @@ render-stack planning, precompilation, and GPU resource ownership contain no par
    every layer and marker. Expanded property values retain the sampled clock; gestures resolve
    current handlers and snap targets when they start.
 
-Frame and sequence export open one full-resolution render session, resize the GPU surface once, and
-evaluate each frame directly from its rational timeline time. Native PNG sequences are written one
-frame at a time through a restricted filename boundary and a same-directory temporary file. The MVP
-H.264 MP4 path copies the display-transformed canvas texture into three bounded WebGPU readback
-buffers, transfers packed BGRA/RGBA frames through a dedicated binary Electron IPC surface, and
-streams them into an FFmpeg child process. Audio is decoded once per shared footage source, mixed in
-bounded one-second Float32 stereo chunks, hard-limited at the output boundary, and written to a
-separate FFmpeg pipe for AAC muxing. The PCM frame count derives from the exact rational video frame
-count so fractional rates do not accumulate A/V drift. Frames are submitted to the encoder in timeline order even
-when GPU mappings finish out of order. A real one-frame probe selects NVENC when it works and otherwise
-falls back to `libx264`; both encoders receive the requested bounded bitrate through the same typed
-export request. MP4 publication replaces the selected output only after FFmpeg writes the
-trailer successfully. Compositions containing video layers, including nested compositions, use one
-in-flight frame and wait for the browser decoder's `seeked` state before capture; graphics-only jobs
-use all three readback slots. Cancellation stops at a bounded in-flight frame and removes temporary
-output.
+Frame and sequence export use immutable native project sessions with exact rational timeline addresses.
+Electron's native queue worker prepares authorized media and plugin snapshots, then starts a Rust
+output process for each module. Rust owns evaluation, wgpu rendering, PNG output, NV12 conversion and
+FFmpeg video/audio encoding. PNG receipt journals and encoded output receipts authenticate staged
+files before atomic publication. Pause, resume, cancellation and cleanup remain correlated to the
+persistent queue lease. See [Background render queue](RENDER_QUEUE.md) for output and lifecycle details.
 
-Background RenderHosts use the same bounded frame pipeline: up to three readbacks overlap ordered
-PNG/MP4 writes within a 64 MiB raw lookahead budget, with at most one additional raw frame owned by
-the writer. Media preparation is serialized only through exact-frame submission, so asynchronous
-image-sequence/SVG generations cannot overtake each other while GPU mapping and encoding proceed
-concurrently. Pause retains the
-bounded lookahead; cancel and failure drain accepted captures before disposing the renderer.
-
-RenderHosts can opt into `renderFrameInto` with a CPU destination pool sized to the clamped
-pipeline depth plus the writer's frame. The pool allocates exact-sized buffers lazily; every
-readback still copies all mapped pixels and removes row padding before unmapping. Readback callers
-that omit a destination continue to receive a fresh owned buffer. A leased destination remains
-exclusive through media retries and all PNG/MP4 output acknowledgements. Cancellation and failure
-release the selected frame and drain and release accepted lookahead before renderer disposal.
+The former browser readback pipeline and hidden RenderHost remain available to explicit reference
+tooling. They are excluded from the normal application frontend and are not registered or launched
+by application startup. Production capture and automation use native preview readback or native queue
+exports; Canvas compatibility remains available for non-production preview.
 
 The preview has a Canvas 2D compatibility renderer. It is a functional fallback, not a performance
 target. Native wgpu and browser WebGPU share formats and graph concepts, but do not yet share shader
@@ -1463,7 +1448,7 @@ min-heaps select the earliest available compatible slot, with strict separation 
 persistent resources never enter the alias pool. Allocation output remains ordered by resource
 handle, while slot identifiers are derived compiler output. The native resource pool maintains
 exact byte and lease totals on mutation so statistics and budget checks do not scan all entries.
-These native utilities are separate from the current browser WebGPU preview implementation.
+These native utilities back the production preview and export renderer.
 
 ## External automation (0.2.1)
 

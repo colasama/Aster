@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { activeComposition, createDemoProject } from "../../core/project/project";
 import type { DesktopNativePreview } from "../../core/rendering/native-preview-protocol";
 import { previewFrameCache } from "../../core/rendering/preview-frame-cache";
-import { createBeautyFrameRequest } from "../compositing/beauty-frame";
+import { createBeautyFrameRequest } from "../presentation/beauty-frame";
 import { NativePreviewCanvas } from "./preview-canvas";
 import { NativePreviewView } from "./preview-view";
 

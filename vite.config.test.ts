@@ -1,5 +1,35 @@
 import { describe, expect, it } from "vitest";
-import { resolveBundledDev } from "./vite.config";
+import { rendererBoundary, resolveBundledDev } from "./vite.config";
+
+it("rejects retained renderer modules in production and requires them in reference builds", () => {
+  const run = (reference: boolean, modules: string[]) => {
+    const hook = rendererBoundary(reference).generateBundle;
+    if (typeof hook !== "function") throw new Error("Missing build boundary hook");
+    const evidence: unknown[] = [];
+    hook.call(
+      {
+        error: (message: string) => {
+          throw new Error(message);
+        },
+        emitFile: (value: unknown) => evidence.push(value),
+      } as never,
+      {} as never,
+      {
+        entry: { type: "chunk", modules: Object.fromEntries(modules.map((path) => [path, {}])) },
+      } as never,
+      false,
+    );
+    return evidence;
+  };
+  const renderer = "/workspace/src/renderer/webgpu-renderer.ts";
+  expect(() => run(false, [renderer])).toThrow("TS renderer entered production");
+  expect(() => run(false, ["/workspace/src/components/render-host/RenderHost.tsx"])).toThrow(
+    "TS renderer entered production",
+  );
+  expect(() => run(true, [])).toThrow("Reference renderer is absent");
+  expect(run(false, ["/workspace/src/renderer/presentation/beauty-frame.ts"])).toHaveLength(1);
+  expect(run(true, [renderer])).toHaveLength(1);
+});
 
 describe("resolveBundledDev", () => {
   it("enables full-bundle development by default", () => {

@@ -1,8 +1,8 @@
 # Background render queue
 
 Each job captures the application anti-aliasing preference at enqueue. `antiAliasing` accepts `off`,
-`fxaa`, `ssaa2x`, or `ssaa4x`; missing legacy values mean `off`. The isolated RenderHost applies this
-captured value to every Beauty request. Changing preferences affects subsequent jobs only.
+`fxaa`, `ssaa2x`, or `ssaa4x`; missing legacy values mean `off`. The native project worker applies this
+captured value to every frame. Changing preferences affects subsequent jobs only.
 
 Aster's render queue is a persistent control plane for work that must not depend on the interactive
 viewport. Enqueuing captures an immutable serialized project document, a composition and frame range,
@@ -13,9 +13,9 @@ failed, and cancelled states. Each worker claim receives a unique lease. Progres
 and failure events with a stale lease are rejected, preventing a replaced or crashed worker from
 publishing into a retried job. Progress is monotonic and bounded by the manifest frame range.
 
-The scheduler counts live hidden-host handles in addition to persistent running states. Cancelling a
+The scheduler counts live worker handles in addition to persistent running states. Cancelling a
 job changes its visible state immediately, but its slot is not reusable until the correlated host has
-drained encoder and IPC work, removed staging data, acknowledged the terminal boundary, and disposed.
+drained native process and encoder work, removed staging data, acknowledged the terminal boundary, and disposed.
 
 Runnable items are ordered by priority, creation time, and stable ID. The scheduler subtracts active
 leases from a bounded concurrency limit. Queue snapshots have strict item, output, project-document,
@@ -51,7 +51,7 @@ still/video/audio, SVG, PSD documents and image sequences through this boundary.
 captures stay in a bounded, SHA-256-authenticated job-local sidecar, admitted by the retained raster
 service without granting additional file access. Trusted installed plugin packages are frozen;
 disabled, missing and safe-mode generators are explicitly classified in native export admission.
-The authored queue snapshot remains unchanged. Production queue-worker selection is a separate step.
+The authored queue snapshot remains unchanged. The application scheduler uses the native worker.
 Preparation retains embedded fonts and material/environment textures and removes folder assignments
 only for pruned project items. Captured documents use the queue's 256 MiB input bound; prepared
 projects carry explicit native input and sequence admission arguments. The retained raster service
@@ -108,11 +108,11 @@ value, and acknowledges pauses only at native or file-operation boundaries. Each
 private directory and media authorization until process and staging cleanup finish. Execution settles
 before terminal callbacks, allowing the scheduler to dispose a worker from inside its completion
 report without a circular wait. Cancellation while authorization is pending retains the scheduler
-slot until the returned lease is released. `ASTER_NATIVE_QUEUE=1` selects this host in application
-startup for both interactive and background automation exports. It uses the application-owned native
-runtime, raster service and bridge plugin resolver, and acquires the same verified media leases as
-the existing queue. An unavailable native runtime fails explicitly. The default route remains the
-hidden host until final production retirement; selected native jobs never fall back to that host.
+slot until the returned lease is released. Application startup uses this host by default for interactive
+and background automation exports. It resolves application-owned native executables, the raster service
+and bridge plugin resolver, and acquires verified media leases. A platform without a native runtime
+keeps the editor available but fails queued exports explicitly; no TS GPU fallback is selected.
+
 
 Each job pairs the persistence-safe project document with a versioned `RenderMediaManifest` keyed by
 source ID and content identity. Embedded still/video/audio data remains in the document. At enqueue,
@@ -121,91 +121,35 @@ under application data. The queued locator is rewritten to that snapshot, so lat
 original still, video, or audio file cannot change a frame or sample during a long render. Snapshot
 roots are constrained to the job ID and reverified before launch; they survive restart and retry, and
 are pruned only after the durable queue item is removed. Asset-protocol grants are transactional and
-leased to the correlated hidden host, so a failed authorization publishes no partial grant and worker
+leased to the correlated worker, so a failed authorization publishes no partial grant and worker
 cleanup revokes snapshot URLs. SVG stores sanitized markup, one compressed PSD document payload is
 shared by all of its layer recipes, and Blob/data-URL image-sequence frames are pinned as bounded
 inline resources. Native sequence frames remain locators until Electron streams them once into the same
 job-owned snapshot, upgrades persisted FNV/metadata identity to SHA-256, and uses only that digest at
 launch. The queue never duplicates decoded PSD RGBA when original document bytes are available.
 
-The Electron job manager claims work with a fresh UUID lease and launches one sandboxed, hidden
-`BrowserWindow` per active item. The default scheduler concurrency is one and its bounded host-factory
-contract supports increasing that limit without coupling a task to an editor window. The hidden host
-uses the same context isolation, navigation denial, sandbox, and permission policy as the editor. A
-dedicated minimal preload exposes only logging and sender-authorized RenderHost IPC, through which the
-window receives its immutable assignment. Closing or hiding the editor therefore does not interrupt
-work already owned by a RenderHost.
+The Electron job manager claims work with a fresh UUID lease and starts a native project process
+for each output module. The default scheduler concurrency is one. Outputs within a job run serially,
+while the same immutable project and plugin receipts bind every process. Main-process queue reports
+carry the lease identity; renderer windows receive only queue state and control acknowledgements.
+The production frontend contains neither the TS GPU renderer nor its hidden RenderHost entry.
 
-The RenderHost parses and validates the captured project, verifies the composition dimensions and
-rational frame rate against the manifest, validates every render-media kind and identity, then
-hydrates its isolated runtime registry before creating the renderer or submitting frame one. Missing,
-changed, unauthorized, oversized, or malformed resources fail the job instead of rendering a
-placeholder. It creates the same production beauty-frame request used by the viewport/export path and
-reads the same post-processed GPU result. Debug buffer visualization is not a production preview or
-background render mode. Video sources use deterministic seek-and-await synchronization; Canvas and
-WebGPU both wait for current-generation media before accepting readback pixels.
+Rust evaluates exact rational frame addresses and acquires authorized visual media on demand.
+The retained raster service handles explicitly retained SVG/PSD browser rasterization only. Native
+PNG output is lossless RGBA; H.264 output uses the native NV12 conversion and BT.709 limited-range
+metadata. Encoder completion, image receipt authentication and atomic publication remain separate
+boundaries, so a process exit alone cannot establish a completed output.
 
-Graphics exports keep up to three beauty readbacks in flight while the preceding frame is encoded
-and written. The shared foreground/background frame pipeline accepts out-of-order readback completion
-but writes every output in manifest order. Backpressure bounds residency to three pending frames and
-the writer's current raw frame, independently of job length. Raw lookahead also has a 64 MiB budget
-(at least one frame): 1080p uses three slots, 4K uses two. Video compositions retain one pending
-seek-and-await capture while overlapping that capture with the preceding frame's encoder write.
-The renderer serializes asynchronous media preparation until the exact frame has been submitted,
-then releases the next capture without waiting for GPU mapping. This prevents an image sequence or
-resized SVG from replacing another in-flight frame's media generation.
+Pause stops at a safe native frame or bounded audio/file-operation boundary. It retains the active
+lease, immutable inputs and private staging; resume continues that job. Cancel stops the process,
+waits for cleanup and releases media authorization before another job can reuse the scheduler slot.
+Progress is correlated and bounded across all modules, and elapsed-time accounting excludes pauses.
 
-Frame preparation also reuses Bezier topology across frames (128 entries / 8 MiB estimated CPU
-cache) and evaluates shared parent chains once per composition/source time within a flattening call.
-Geometry is packed directly into Float32 storage before GPU upload. These optimizations are shared
-with the viewport and do not change frame scheduling, image quality, output formats or job manifests.
-See [the persistent-data diagnostics](BENCHMARKS.md#persistent-scene-preparation) for methodology,
-research sources and measured export results.
-
-Hidden workers never downgrade a queued job to Canvas 2D. Background output requires the WebGPU
-production beauty backend and reports `render_host_webgpu_unavailable` when it cannot initialize;
-this prevents an incomplete compatibility frame from being atomically published as a successful job.
-
-Pause and cancel controls are correlated by both job and lease and are observed before submission,
-after readback, and after all output writes for the current frame finish. Pause stops submissions
-and retains the bounded lookahead without writing it; resume consumes those same frames exactly
-once. Cancel drains accepted captures and discards unwritten lookahead before acknowledging its
-terminal boundary. Pause publishes a durable `paused` state but retains the same
-hidden host, GPU renderer, encoders, media authorization, and staged outputs. Continue releases the
-frame/audio-chunk gate under that lease, so completed still, sequence, video, and PCM writes are not
-repeated. Pause duration is excluded from elapsed time and ETA. A paused worker still consumes one
-configured concurrency slot; this bounded resource tradeoff is what makes same-process Continue exact.
-Cancel from paused state drains accepted IPC writes and disposes those resources. A renderer crash,
-unexpected close, load failure, or stale report cannot complete the item. Application shutdown
-disposes paused and running hosts, marks their leases failed, removes temporary data, and flushes the
-queue before exit.
-
-PNG stills and PNG sequences are encoded from the canonical raw beauty buffer. H.264 output receives
-that same raw RGBA/BGRA buffer and uses the manifest's rational rate and video bitrate. The strict
-RenderHost protocol carries the bitrate in integer bits per second and Electron verifies it against
-the immutable output module before applying bounded VBR `b:v`, `maxrate`, and `bufsize` controls to
-both NVENC and libx264. When an H.264 output enables
-audio, the RenderHost decodes each audible source once from the same immutable project snapshot and
-mixes stereo Float32 PCM in bounded 48,000-frame chunks. The PCM range begins at the exact rational
-manifest start time, while its total sample count is rounded once from the output video-frame count;
-FFmpeg therefore receives aligned A/V streams without accumulated frame-time drift. Audio and video
-writes run concurrently with awaited IPC backpressure. Pause holds both streams at bounded output
-boundaries without closing FFmpeg; cancel, renderer crash, decode failure, or encoder failure disposes
-both pipes and removes staged output. If the snapshot has no audible audio/video source, an
-audio-enabled module intentionally produces a video-only MP4 rather than manufacturing a silent track.
-Before a new encoder starts, its output directory is scanned through a bounded exact-name filter for
-`.aster-export` temporaries owned by terminated process IDs. Current-process and unrelated files are
-preserved, while an unclean process exit cannot accumulate abandoned frame streams indefinitely.
-
-H.264 output is limited-range BT.709 YUV420. Color parity checks decode the file with FFmpeg into
-RGB before comparison with the canonical beauty buffer; readers that ignore the matrix metadata
-can introduce a false saturation difference. The export integration test round-trips saturated
-color patches from both RGBA and BGRA inputs through a real encoder and metadata-aware decoder.
-
-The RenderHost reports Pause only after the current beauty-frame writes reach their boundary. PCM
-observes the same control generation between bounded chunks. Cancel and failure paths first stop and
-drain any PCM write already accepted by IPC; only then may Electron dispose the encoder and staged
-publisher, preventing late audio writes from racing a closed worker.
+Audio-enabled MP4 outputs use native source decoding and time-addressed mixing. Sources share decoded
+PCM by identity under the queue's aggregate budget. Mixing writes bounded one-second Float32 stereo
+chunks into a private RIFF/RF64 WAV before AAC muxing; the sample count follows the rational output
+frame count. A snapshot without audible sources produces video-only output. Existing destinations
+remain untouched until every requested output has been authenticated and staged successfully.
 
 Every output is staged beside its destination; existing destinations are backed up and all modules
 are renamed into place only after every frame, audio chunk, and encoder completes. Publish failure
@@ -233,7 +177,7 @@ and completed work can reveal its queue-owned destination in the operating-syste
 
 Adding an item captures the current project revision and composition into an immutable snapshot.
 The add action acknowledges durable enqueue without waiting for background host preparation.
-Media authorization and hidden-window startup continue under the queue scheduler; launch failures
+Media authorization and native-process startup continue under the queue scheduler; launch failures
 appear on the queued item. Both add forms show a busy state until capture and persistence finish.
 Work-area, full-composition, and current-frame ranges are converted with the composition's rational
 frame rate. H.264, PNG sequence, and PNG still modules use paths explicitly selected through the

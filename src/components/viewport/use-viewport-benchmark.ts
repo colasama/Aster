@@ -14,7 +14,7 @@ import {
 } from "../../renderer/diagnostics/gpu-benchmark";
 import { createNativePreviewBenchmark } from "../../renderer/native-project/preview-benchmark";
 import type { NativePreviewView } from "../../renderer/native-project/preview-view";
-import { WebGpuRenderer } from "../../renderer/webgpu-renderer";
+import { isReferencePreview } from "../../renderer/reference/preview";
 
 import { useEditor } from "../../state/editor-store";
 
@@ -68,22 +68,21 @@ export function useViewportBenchmark(
         request.detail.memoryBudgetMb ?? state.gpuMemoryBudgetMb,
         (native ?? renderer)?.diagnostics.gpuMemory?.device,
       );
-      const webgpu = renderer instanceof WebGpuRenderer ? renderer : undefined;
+      const webgpu = isReferencePreview(renderer) ? renderer : undefined;
       const previousVisualization = webgpu?.bufferVisualization;
       const backend = native
         ? createNativePreviewBenchmark(native, state.antiAliasing, memoryBudgetMb)
         : renderer && {
             resize: (width: number, height: number) => renderer.resize(width, height),
-            render:
-              renderer instanceof WebGpuRenderer
-                ? renderer.render.bind(renderer)
-                : (
-                    composition: Parameters<typeof renderer.render>[0],
-                    time: number,
-                    _identity: RenderSnapshotIdentity,
-                    playing?: boolean,
-                    project?: Parameters<typeof renderer.render>[3],
-                  ) => renderer.render(composition, time, playing, project),
+            render: isReferencePreview(renderer)
+              ? renderer.render.bind(renderer)
+              : (
+                  composition: Parameters<typeof renderer.render>[0],
+                  time: number,
+                  _identity: RenderSnapshotIdentity,
+                  playing?: boolean,
+                  project?: Parameters<typeof renderer.render>[3],
+                ) => renderer.render(composition, time, playing, project),
             complete: () => renderer.complete(),
           };
       if (!backend) {

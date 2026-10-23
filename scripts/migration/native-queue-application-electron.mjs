@@ -55,8 +55,8 @@ await new Promise((resolve, reject) => {
 });
 const port = server.address().port;
 await new Promise((resolve) => server.close(resolve));
-process.env.ASTER_NATIVE_QUEUE = "1";
-process.env.ASTER_NATIVE_PREVIEW = "1";
+delete process.env.ASTER_NATIVE_QUEUE;
+delete process.env.ASTER_NATIVE_PREVIEW;
 process.env.ASTER_AUTOMATION_ENABLED = "1";
 process.env.ASTER_AUTOMATION_PORT = String(port);
 process.env.ASTER_FFMPEG_PATH = join(root, "build/ffmpeg/ffmpeg.exe");

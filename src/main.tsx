@@ -1,6 +1,5 @@
 import ReactDOM from "react-dom/client";
 import App from "./App";
-import { RenderHost } from "./components/render-host/RenderHost";
 import { installGlobalErrorLogging, logger } from "./core/logger";
 import { applyBrowserUiScale } from "./ui/browser-ui-scale";
 import { applyReducedMotionPreference } from "./ui/reduced-motion";
@@ -15,6 +14,11 @@ if (!window.asterDesktop)
   applyBrowserUiScale(parseUiScale(window.localStorage.getItem("aster.uiScale")));
 
 const renderHost = new URLSearchParams(window.location.search).get("asterRenderHost") === "1";
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  renderHost ? <RenderHost /> : <App />,
-);
+const root = ReactDOM.createRoot(document.getElementById("root") as HTMLElement);
+if (renderHost) {
+  if (__ASTER_TS_REFERENCE__) {
+    void import("./components/render-host/RenderHost").then(({ RenderHost }) =>
+      root.render(<RenderHost />),
+    );
+  } else throw new Error("The TS render host is available only in reference builds");
+} else root.render(<App />);

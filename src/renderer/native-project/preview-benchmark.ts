@@ -1,7 +1,7 @@
 import type { AntiAliasingMode } from "../../core/rendering/anti-aliasing";
 import type { Composition, Project } from "../../core/types";
-import { PRODUCTION_BEAUTY_SETTINGS } from "../compositing/beauty-frame";
 import type { BenchmarkRenderer } from "../diagnostics/gpu-benchmark";
+import { PRODUCTION_BEAUTY_SETTINGS } from "../presentation/beauty-frame";
 import type { NativePreviewView } from "./preview-view";
 
 /** Synthetic scenarios become authored snapshots so Rust evaluates the same benchmark scene. */

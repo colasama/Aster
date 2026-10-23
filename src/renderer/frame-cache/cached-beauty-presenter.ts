@@ -7,7 +7,7 @@ import type {
   PreviewFrameCache,
 } from "../../core/rendering/preview-frame-cache";
 import type { RendererMetrics } from "../../core/types";
-import type { BeautyFrameRequest } from "../compositing/beauty-frame";
+import type { BeautyFrameRequest } from "../presentation/beauty-frame";
 import { previewFrameScope } from "./preview-frame-scope";
 
 export interface CachingRenderer {

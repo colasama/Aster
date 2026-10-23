@@ -15,10 +15,10 @@ import type {
 import { previewFrameCache } from "../../core/rendering/preview-frame-cache";
 import { getSceneGeneratorRegistryRevision } from "../../core/scene/scene-generator-registry";
 import type { GpuDiagnostics, Project, RendererMetrics } from "../../core/types";
-import type { BeautyFrameRequest } from "../compositing/beauty-frame";
 import { previewFramePlan } from "../frame-cache/cached-beauty-presenter";
 import { idleSlot } from "../frame-cache/preview-prerenderer";
 import type { RawVideoFrame } from "../gpu/frame-readback";
+import type { BeautyFrameRequest } from "../presentation/beauty-frame";
 import { NativePreviewCanvas } from "./preview-canvas";
 import { previewProjectClosure } from "./preview-project";
 

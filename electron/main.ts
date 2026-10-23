@@ -62,7 +62,6 @@ import {
   captureAuthorizedRenderQueueInput,
   identifyRenderQueueInput,
 } from "./render-queue-enqueue.js";
-import { ElectronRenderHostController } from "./render-queue-host.js";
 import { RenderQueueManager } from "./render-queue-manager.js";
 import {
   isRenderDestinationAuthorized,
@@ -256,7 +255,6 @@ let mp4ExportManager: Mp4ExportManager | undefined;
 let applicationLogger: AsterLogger | undefined;
 let appPreferences: AppPreferencesStore | undefined;
 let renderQueueManager: RenderQueueManager | undefined;
-let renderHostController: ElectronRenderHostController | undefined;
 let nativeQueueHost: NativeQueueHostFactory | undefined;
 let nativePreviewHost: NativePreviewHost | undefined;
 let automationSettings: AutomationSettingsController | undefined;
@@ -1005,9 +1003,7 @@ function registerIpc(
 }
 
 function applyUiScaleToAllWindows(scale: UiScale): void {
-  for (const window of BrowserWindow.getAllWindows())
-    if (!renderHostController?.isRenderHost(window.webContents.id))
-      applyUiScaleToWindow(window, scale);
+  for (const window of BrowserWindow.getAllWindows()) applyUiScaleToWindow(window, scale);
 }
 
 function applyUiScaleToWindow(window: BrowserWindow, scale: UiScale): void {
@@ -1316,8 +1312,7 @@ if (hasSingleInstanceLock)
             );
           const view = renderQueueView(state);
           for (const window of BrowserWindow.getAllWindows())
-            if (!renderHostController?.isRenderHost(window.webContents.id))
-              window.webContents.send("aster:render-queue-changed", view);
+            window.webContents.send("aster:render-queue-changed", view);
         },
         undefined,
         (error) => logger.error("render_queue", "scheduling_failed", error),
@@ -1363,32 +1358,9 @@ if (hasSingleInstanceLock)
         },
       );
       mp4ExportManager = new Mp4ExportManager(ffmpegExecutable());
-      renderHostController = new ElectronRenderHostController({
-        appPath: app.getAppPath(),
-        developmentUrl: DEVELOPMENT_URL,
-        ffmpegExecutable: ffmpegExecutable(),
-        nativeRuntime: nativeRenderRuntime({
-          appPath: app.getAppPath(),
-          resourcesPath: process.resourcesPath,
-          packaged: app.isPackaged,
-          executable: process.execPath,
-          temporaryDirectory: app.getPath("temp"),
-          ffmpeg: ffmpegExecutable(),
-        }),
-        logger,
-        // Background automation editors load bundled assets, so their RenderHosts must too.
-        packaged: app.isPackaged || backgroundAutomation,
-        authorizeMedia: (manifest) =>
-          renderMediaSnapshots.authorizeLaunch(
-            manifest.id,
-            manifest.renderMediaSnapshot ?? '{"version":1,"entries":[],"payloads":[]}',
-            { allowedAssets },
-          ),
-      });
       Menu.setApplicationMenu(null);
       registerAssetProtocol();
       registerIpc(logger, preferences, renderQueueManager, renderMediaSnapshots);
-      renderHostController.registerIpc();
       const previewFfmpeg = app.isPackaged
         ? ffmpegExecutable()
         : (process.env.ASTER_FFMPEG_PATH ?? join(app.getAppPath(), "build/ffmpeg/ffmpeg.exe"));
@@ -1412,8 +1384,7 @@ if (hasSingleInstanceLock)
         if (!desktopBridge) throw new Error("Aster desktop bridge is unavailable");
         return desktopBridge.invoke("prepare_native_preview_plugins", { references });
       };
-      if (process.env.ASTER_NATIVE_QUEUE === "1") {
-        if (!previewRuntime) throw new Error("Native render queue runtime is unavailable");
+      if (previewRuntime) {
         nativeQueueHost = new NativeQueueHostFactory({
           temporaryRoot: previewRuntime.temporaryRoot,
           runtime: {
@@ -1455,7 +1426,14 @@ if (hasSingleInstanceLock)
       }
       registerFontAccess(() => primaryWindow);
       registerEditorPermissions(session.defaultSession, () => primaryWindow);
-      await renderQueueManager.startScheduler(nativeQueueHost ?? renderHostController, 1);
+      await renderQueueManager.startScheduler(
+        nativeQueueHost ?? {
+          launch: async () => {
+            throw new Error("Native render queue runtime is unavailable on this platform");
+          },
+        },
+        1,
+      );
       await createWindow(logger, preferences);
       automationSettings = new AutomationSettingsController({
         userData: app.getPath("userData"),
@@ -1526,7 +1504,6 @@ app.on("will-quit", (event) => {
     await automationSettings?.close();
     await renderQueueManager?.shutdown();
     await nativeQueueHost?.dispose();
-    await renderHostController?.dispose();
     await nativePreviewHost?.dispose();
     desktopBridge?.dispose();
     await Promise.all([

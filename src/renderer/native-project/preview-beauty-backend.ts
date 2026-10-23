@@ -1,4 +1,4 @@
-import type { BeautyFrameBackend } from "../compositing/beauty-frame";
+import type { BeautyFrameBackend } from "../presentation/beauty-frame";
 import type { NativePreviewView } from "./preview-view";
 
 /** Explicit captures share native evaluation while keeping their pixels off the visible canvas. */

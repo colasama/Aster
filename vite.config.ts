@@ -1,10 +1,44 @@
 import react from "@vitejs/plugin-react";
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import { configDefaults } from "vitest/config";
 import { appVersion } from "./scripts/electron-builder";
 
 const DISABLED_BUNDLED_DEV_VALUES = new Set(["0", "false", "no", "off"]);
 const ENABLED_BUNDLED_DEV_VALUES = new Set(["1", "true", "yes", "on"]);
+
+export function rendererBoundary(reference: boolean): Plugin {
+  return {
+    name: "aster-renderer-boundary",
+    generateBundle(_options, bundle) {
+      const retained = new Set<string>();
+      for (const output of Object.values(bundle)) {
+        if (output.type !== "chunk") continue;
+        for (const id of Object.keys(output.modules)) {
+          const path = id.replaceAll("\\", "/");
+          for (const source of [
+            "src/renderer/webgpu-renderer.ts",
+            "src/renderer/compositing/beauty-frame.ts",
+            "src/components/render-host/RenderHost.tsx",
+          ])
+            if (path.endsWith(`/${source}`)) retained.add(source);
+        }
+      }
+      if (!reference && retained.size)
+        this.error(`TS renderer entered production: ${[...retained].join(", ")}`);
+      if (reference && !retained.has("src/renderer/webgpu-renderer.ts"))
+        this.error("Reference renderer is absent from its explicit bundle");
+      this.emitFile({
+        type: "asset",
+        fileName: "renderer-boundary.json",
+        source: JSON.stringify({
+          schema_version: 1,
+          reference,
+          retained_modules: [...retained].sort(),
+        }),
+      });
+    },
+  };
+}
 
 export function resolveBundledDev(
   command: "build" | "serve",
@@ -31,7 +65,7 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     base: "./",
-    plugins: [react()],
+    plugins: [react(), rendererBoundary(mode === "reference")],
     define: {
       __APP_VERSION__: JSON.stringify(appVersion),
       __ASTER_TS_REFERENCE__: mode === "reference",
