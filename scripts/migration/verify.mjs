@@ -31,6 +31,7 @@ import { selectRequiredGates } from "./performance-policy.mjs";
 import { runPreviewAppGate } from "./preview-app-gate.mjs";
 import { runPreviewPerformanceGate } from "./preview-performance-gate.mjs";
 import { runStep } from "./process.mjs";
+import { runProductionPerformanceGate } from "./production-performance-gate.mjs";
 import { runProductionPixelGate } from "./production-pixel-gate.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { runSharedPreviewGate } from "./shared-preview-gate.mjs";
@@ -224,6 +225,19 @@ export async function verifyMigration(options, dependencies = {}) {
                   source: report.source,
                   milestone: milestone.id,
                 },
+                execute,
+              ),
+        );
+      } else if (id === "G4" && milestone.id === "M12") {
+        report.gates.push(
+          quick
+            ? {
+                id,
+                status: "skipped",
+                reason: "Quick mode omits paired production export and preview measurements",
+              }
+            : await (dependencies.runProductionPerformanceGate ?? runProductionPerformanceGate)(
+                { ...context, output: join(output, "G4"), source: report.source },
                 execute,
               ),
         );

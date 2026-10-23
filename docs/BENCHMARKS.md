@@ -587,3 +587,11 @@ ordered frame intervals and total elapsed time; FFprobe and artifact hashing fol
 One observation, including a short smoke run, cannot establish G4. Final acceptance still requires
 contemporaneous paired retained-TS observations, complete workload coverage, matching audio/video
 parameters, stable hardware and binaries, higher native median FPS, and separate G5 quality.
+
+The production G4 composition runs authored-project exports and editor preview sequentially. Export
+uses four pairs in alternating TS-first/Rust-first order across all five canonical workloads; smoke
+uses two short pairs and always remains incomplete. Each arm retains its original protocol: the
+auditor reconstructs native timing from progress/receipts and TS timing from the retained benchmark
+records. It binds matching inputs, audio, bitrate, active GPU, runtime files and raw output hashes,
+then computes median FPS and completion-interval distributions. Preview separately requires all
+seven scenarios and input latency across three pairs. Both suites must use the same renderer binary.
