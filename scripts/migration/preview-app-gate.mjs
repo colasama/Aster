@@ -10,6 +10,16 @@ import { runStep } from "./process.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile, sourceProvenance } from "./source.mjs";
 
+export function previewApplicationEnvironment(context) {
+  const env = { ...context.env, ASTER_NATIVE_PREVIEW: "1" };
+  if (context.productionDefaults) {
+    delete env.ASTER_NATIVE_PREVIEW;
+    delete env.ASTER_NATIVE_QUEUE;
+    env.ASTER_VERIFY_NATIVE_PREVIEW = "1";
+  }
+  return env;
+}
+
 /** Qualify packaged startup and native ownership separately from interactive latency. */
 export async function runPreviewAppGate(context, execute = runStep) {
   const report = { id: "G6", status: "failed", scope: "native-preview-editor", steps: [] };
@@ -17,11 +27,12 @@ export async function runPreviewAppGate(context, execute = runStep) {
   await mkdir(context.output, { recursive: true });
   try {
     report.source = await sourceProvenance(context.root);
+    report.production_defaults = context.productionDefaults === true;
     if (context.source) assert.equal(report.source.source_sha256, context.source.source_sha256);
     report.application = await runAppChecks(
       {
         ...context,
-        env: { ...context.env, ASTER_NATIVE_PREVIEW: "1" },
+        env: previewApplicationEnvironment(context),
       },
       execute,
     );

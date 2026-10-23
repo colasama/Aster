@@ -49,6 +49,13 @@ test("M12 uses native project, combined pixels and native project export gates w
           calls.push("G4-combined");
           return { id: "G4", status: "passed" };
         },
+        runProductionAppGate: async (ctx) => {
+          assert(
+            ctx.previewPerformancePath.replaceAll("\\", "/").endsWith("G4/preview/report.json"),
+          );
+          calls.push("G6-production");
+          return { id: "G6", status: "passed" };
+        },
         runNativeProjectPixelGate: async () => {
           throw Error("M12 requires both project and preview pixels");
         },
@@ -62,10 +69,10 @@ test("M12 uses native project, combined pixels and native project export gates w
       mode === "quick"
         ? []
         : mode === "failed-corpus"
-          ? ["G1", "G2", "G4-combined"]
-          : ["G1", "G2", "G3-combined", "G4-combined", "G5"],
+          ? ["G1", "G2", "G4-combined", "G6-production"]
+          : ["G1", "G2", "G3-combined", "G4-combined", "G5", "G6-production"],
     );
-    assert.equal(result.report.required_gates_passed, false);
+    assert.equal(result.report.required_gates_passed, mode === "passed");
     assert.equal(result.report.milestone_exit_satisfied, false);
     if (mode === "failed-corpus")
       for (const id of ["G2", "G3", "G5"])
@@ -74,6 +81,9 @@ test("M12 uses native project, combined pixels and native project export gates w
       result.report.gates.find((g) => g.id === "G4").status,
       mode === "quick" ? "skipped" : "passed",
     );
-    assert.equal(result.report.gates.find((g) => g.id === "G6").status, "failed");
+    assert.equal(
+      result.report.gates.find((g) => g.id === "G6").status,
+      mode === "quick" ? "skipped" : "passed",
+    );
   }
 });

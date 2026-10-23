@@ -80,7 +80,8 @@ export async function runAppChecks(context, execute, platform = process.platform
           throw new Error(`Incomplete smoke evidence in ${reportPath}`);
         }
         if (
-          context.env?.ASTER_NATIVE_PREVIEW === "1" &&
+          (context.env?.ASTER_NATIVE_PREVIEW === "1" ||
+            context.env?.ASTER_VERIFY_NATIVE_PREVIEW === "1") &&
           (report.native_preview?.status !== "passed" ||
             report.native_preview.binary.sha256 !==
               (await hashFile(

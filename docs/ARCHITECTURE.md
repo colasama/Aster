@@ -721,6 +721,14 @@ identity and rejects partial coverage or reports changed during execution. M12 u
 corpus and project-export gates; this pixel aggregate alone does not establish performance,
 application delivery or final migration acceptance.
 
+Final application verification runs packaged foreground and background preview without native enable
+flags, then binds editor interaction/plugin/recovery evidence to the same renderer. It reads the
+actual packaged archive's production renderer boundary and rejects retained TS renderer modules.
+The live application queue must publish still PNG, PNG sequence and H.264/AAC outputs through native
+workers, with persisted completion, released temporary jobs and no retired render-host or browser
+MP4 IPC. Reports, output hashes, packaged binaries and source identities remain bound through the
+aggregate; missing current preview latency evidence leaves this gate incomplete.
+
 Native preview transport reserves one to three lossless BGRA sharing surfaces before rendering.
 Each surface remains immutable while a consumer owns its lease. DX12 completion precedes publication,
 and an owned duplicate NT handle is bound to the importing process identity. An independent bounded

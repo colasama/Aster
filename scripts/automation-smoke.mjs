@@ -134,7 +134,7 @@ try {
   );
   assert.equal(preview.frames[0].width, 320);
   report.preview = preview.frames.map(({ width, height }) => ({ width, height }));
-  if (process.env.ASTER_NATIVE_PREVIEW === "1")
+  if (process.env.ASTER_NATIVE_PREVIEW === "1" || process.env.ASTER_VERIFY_NATIVE_PREVIEW === "1")
     report.native_preview = await captureNativePreviewProcesses(
       join(dirname(binary), "resources/bin/aster-render-cli.exe"),
       app?.pid ?? transport.pid,
