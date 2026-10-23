@@ -7,6 +7,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { captureAssignments } from "../parity/provenance.mjs";
 import { runProjectImageLifecycle } from "./native-project-image-lifecycle.mjs";
 import { runProjectTimeoutLifecycle } from "./native-project-timeout-lifecycle.mjs";
+import { runProjectWarmupLifecycle } from "./native-project-warmup-lifecycle.mjs";
 import { writeAtomicJson } from "./report.mjs";
 import { hashFile, sourceProvenance } from "./source.mjs";
 export async function runProjectExportLifecycle(context, prepared) {
@@ -288,6 +289,8 @@ export async function runProjectExportLifecycle(context, prepared) {
       assert.equal(frame.nv12_sha256, other.nv12_sha256, "muting changed encoder video input");
     }
     report.cases.push({ id: "audio-selection-preserves-reactive-visuals", exports: audioExports });
+    await runProjectWarmupLifecycle({ output, cli, run, argumentsFor, report });
+    context.print?.("Same-session warm-up passed: exact RGB/NV12 and cancellation cleanup");
     context.print?.(
       "Audio selection passed: identical reactive plans, RGB and NV12; selected mux tracks",
     );

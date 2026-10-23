@@ -572,3 +572,18 @@ An initial 60-frame run on the development WebGPU adapter measured 1.11 ms media
 1080p, 4.59 / 4.92 ms at 4K, 3.47 / 3.80 ms for 20 layers, and 0.72 / 0.79 ms for the five-effect
 Blur/Glow chain. This run predates the fixed-manifest policy and remains an observational smoke result
 rather than a manifest-qualified baseline or cross-machine limit.
+
+### Native authored-project export observations
+
+`export --benchmark-warmup-frames 10` completes ten RGBA readbacks using the same native project
+session, device and caches used for the subsequent export. Ordinary exports use zero warm-up
+frames. The observation runner authenticates the same fixed workloads as retained TS, then measures
+from the native export start through atomic publication. This includes audio mixing, encoder
+creation, project evaluation, rendering, encoding and mux work. Initial project loading, audio
+decoding and the completed warm-up are excluded; no measured work is subtracted. GPU readback
+witnesses are forbidden in timed observations. Native monotonic millisecond receipts provide
+ordered frame intervals and total elapsed time; FFprobe and artifact hashing follow completion.
+
+One observation, including a short smoke run, cannot establish G4. Final acceptance still requires
+contemporaneous paired retained-TS observations, complete workload coverage, matching audio/video
+parameters, stable hardware and binaries, higher native median FPS, and separate G5 quality.

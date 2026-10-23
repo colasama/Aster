@@ -60,6 +60,9 @@ pub(crate) struct ExportProjectArgs {
     /// Receive newline-delimited pause/resume/cancel controls; pause may carry a request_id.
     #[arg(long)]
     control_stdin: bool,
+    /// Diagnostic same-session GPU warm-up; excluded from export timing and disabled by default.
+    #[arg(long, default_value_t = 0, value_parser = clap::value_parser!(u32).range(0..=128))]
+    benchmark_warmup_frames: u32,
     /// Optional atomic capture of selected native pre-encode frames for verification.
     #[arg(long, requires = "witness_frames")]
     witness: Option<PathBuf>,
@@ -141,6 +144,9 @@ impl ExportProjectArgs {
         }
         if self.format != ProjectExportFormat::Mp4 && self.witness.is_some() {
             return Err("PNG exports do not use video encoder witnesses".into());
+        }
+        if self.format != ProjectExportFormat::Mp4 && self.benchmark_warmup_frames != 0 {
+            return Err("benchmark warm-up requires MP4 export".into());
         }
         let control = ProjectExportControl::default().with_pause_observer(|request_id| {
             if let Ok(message) = serde_json::to_string(&PauseReceipt {
@@ -336,7 +342,7 @@ impl ExportProjectArgs {
                 )
             })
             .transpose()?;
-        let report = NativeProjectExport {
+        let mut export = NativeProjectExport {
             session,
             schedule,
             settings,
@@ -347,13 +353,15 @@ impl ExportProjectArgs {
             ffmpeg: self.runtime.ffmpeg,
             output: self.out,
             control,
-        }
-        .run(
-            |progress| {
-                if let Ok(message) = serde_json::to_string(&progress) {
-                    println!("{message}");
-                }
-            },
+        };
+        let mut progress = |progress: aster_render_project::ProjectExportProgress| {
+            if let Ok(message) = serde_json::to_string(&progress) {
+                println!("{message}");
+            }
+        };
+        export.warm_up(self.benchmark_warmup_frames, &mut progress)?;
+        let report = export.run(
+            &mut progress,
             witness
                 .as_mut()
                 .map(|witness| witness as &mut dyn aster_render_project::ProjectExportObserver),

@@ -9,6 +9,7 @@ mod export_control;
 mod export_frames;
 mod export_images;
 mod export_schedule;
+mod export_warmup;
 pub use audio::{NativeProjectAudio, ProjectAudioLimits, ProjectAudioReceipt};
 pub use export::{
     NativeProjectExport, ProjectExportObserver, ProjectExportProgress, ProjectExportReport,
