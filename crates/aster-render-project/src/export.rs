@@ -264,10 +264,16 @@ impl NativeProjectExport {
                 // Keep one bounded CPU acquisition ahead while this frame executes on the GPU.
                 // Its own request/settings are consumed only after this output is published.
                 if let Some(next) = self.schedule.frames.get(index + 1) {
-                    prefetched = self.session.prefetch_file_media(
+                    prefetched = self.session.prefetch_inputs(
                         &next,
                         &self.settings,
                         &self.control.cancellation,
+                        |requests| match &mut self.raster_provider {
+                            Some(provider) => {
+                                provider.acquire(requests, &self.control.cancellation)
+                            }
+                            None => Ok(ProjectRasterFrame::default()),
+                        },
                     )?;
                 }
                 let phase = Instant::now();

@@ -14,6 +14,7 @@ use aster_renderer::{DecodedTexturePixels, RenderedFrame, SuppliedFrame};
 use aster_video::CancellationToken;
 use std::{collections::BTreeSet, sync::Arc, time::Instant};
 
+mod inputs;
 mod prefetch;
 
 #[derive(Clone, serde::Deserialize)]
@@ -97,7 +98,7 @@ impl NativeProjectSession {
         &mut self,
         frame: &FramePlanRequest,
         settings: &ProjectFrameSettings,
-        files: Option<(crate::ProjectFileMediaFrame, f64)>,
+        inputs: Option<inputs::PreparedProjectInputs>,
         cancellation: &CancellationToken,
         acquire_rasters: impl FnOnce(
             &ProjectResourceRequests,
@@ -109,7 +110,7 @@ impl NativeProjectSession {
                 "native project session is not ready for this composition".into(),
             ));
         }
-        let result = self.prepare_frame(frame, settings, files, cancellation, acquire_rasters);
+        let result = self.prepare_frame(frame, settings, inputs, cancellation, acquire_rasters);
         match &result {
             Ok(prepared) => self.pending = Some(prepared.generation),
             Err(_) => self.poisoned = true,
@@ -121,7 +122,7 @@ impl NativeProjectSession {
         &mut self,
         frame: &FramePlanRequest,
         settings: &ProjectFrameSettings,
-        files: Option<(crate::ProjectFileMediaFrame, f64)>,
+        inputs: Option<inputs::PreparedProjectInputs>,
         cancellation: &CancellationToken,
         acquire_rasters: impl FnOnce(
             &ProjectResourceRequests,
@@ -150,59 +151,27 @@ impl NativeProjectSession {
                 .begin(&requests, None, context.surface.memory_budget_mb)?;
             context.visualization = self.gpu.configure_visualization(context.visualization)?;
         }
-        let (mut files, prefetched_ms) = match files {
-            Some(files) => files,
+        let (inputs, prefetched_ms) = match inputs {
+            Some(inputs) => {
+                let elapsed = inputs.timings.total_ms;
+                (inputs, elapsed)
+            }
             None => (
-                self.files.acquire(frame, &context, true, cancellation)?,
+                self.acquire_inputs(frame, &context, cancellation, acquire_rasters)?,
                 0.0,
             ),
         };
-        let mut timings = crate::ProjectPreparationTimings {
-            file_media_ms: prefetched_ms + started.elapsed().as_secs_f64() * 1000.0,
-            ..Default::default()
-        };
-        let phase = Instant::now();
-        let mut raster_exchange_ms = 0.0;
-        let acquire_rasters = |requests: &ProjectResourceRequests| {
-            let exchange = Instant::now();
-            let result = acquire_rasters(requests);
-            raster_exchange_ms = exchange.elapsed().as_secs_f64() * 1000.0;
-            result
-        };
+        let inputs::PreparedProjectInputs {
+            mut files,
+            text:
+                crate::ProjectTextFrame {
+                    rasters,
+                    native: native_text,
+                    routes: text_routes,
+                },
+            mut timings,
+        } = inputs;
         let limits = self.files.document.limits.clone();
-        let has_text = files.requests.operations.iter().any(|operation| {
-            matches!(operation,
-            aster_eval::ResourcePreparationOperation::Raster { request }
-                if matches!(request.raster, aster_eval::RetainedRasterKind::Text { .. }))
-        });
-        let (rasters, native_text, text_routes) = if has_text {
-            if self.text.is_none() {
-                let fonts = crate::NativeProjectText::discover_platform(
-                    &self.files.document,
-                    &Default::default(),
-                    Default::default(),
-                )?;
-                self.text = Some(crate::NativeProjectText::new(&self.files.document, fonts)?);
-            }
-            let text = self
-                .text
-                .as_mut()
-                .ok_or_else(|| ProjectRenderError::Invalid("native text session absent".into()))?;
-            let prepared = text.acquire(
-                &self.files.document,
-                &files.requests,
-                &context,
-                limits.render_project_pixel_bytes,
-                acquire_rasters,
-            )?;
-            (prepared.rasters, prepared.native, prepared.routes)
-        } else {
-            let rasters = acquire_rasters(&files.requests)?;
-            rasters.validate(&files.requests, limits.render_project_pixel_bytes)?;
-            (rasters, Vec::new(), Vec::new())
-        };
-        timings.raster_text_ms = phase.elapsed().as_secs_f64() * 1000.0;
-        timings.raster_exchange_ms = raster_exchange_ms;
         let phase = Instant::now();
         let materials = self.materials.acquire(
             &self.files.document,
