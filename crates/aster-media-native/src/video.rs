@@ -19,7 +19,8 @@ use crate::{
 
 #[derive(Clone, Debug, clap::Args)]
 pub struct VideoLimits {
-    #[arg(long, default_value_t = 268_435_456)]
+    /// Encoded bytes stream to disk; align with the application private-media budget.
+    #[arg(long, default_value_t = 2_147_483_648)]
     pub video_max_source_bytes: u64,
     #[arg(long, default_value_t = 67_108_864)]
     pub video_max_pixel_bytes: u64,
@@ -29,8 +30,9 @@ pub struct VideoLimits {
     pub video_timeout_ms: u64,
     #[arg(long, default_value_t = 16_777_216)]
     pub video_max_index_bytes: usize,
-    /// Aggregate retained source snapshots and presentation indices; zero disables reuse.
-    #[arg(long, default_value_t = 268_435_456)]
+    /// Disk snapshots plus bounded presentation indices: 2 GiB + eight 16 MiB indices.
+    /// Zero disables reuse; decoded pixel and lookahead budgets remain independent.
+    #[arg(long, default_value_t = 2_281_701_376)]
     pub video_snapshot_cache_bytes: u64,
     #[arg(long, default_value_t = 8)]
     pub video_snapshot_cache_entries: usize,

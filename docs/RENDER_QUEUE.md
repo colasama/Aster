@@ -210,3 +210,8 @@ Production preload and main IPC do not expose the legacy browser raw-frame MP4 e
 Foreground and automation exports use the native queue. AI preview captures use a separate
 frame-session contract backed by the active native preview; the retained browser export module
 is restricted to reference tooling and rejected by the production bundle boundary.
+
+Native file admission and encoded-video snapshots share the application's 2 GiB private-media
+budget. Video source reuse allows an additional eight bounded 16 MiB presentation indices; encoded
+snapshots stay on disk. This does not increase inline grants, decoded pixels, or lookahead memory
+budgets. Caller-selected lower source/cache limits still reject or evict deterministically.

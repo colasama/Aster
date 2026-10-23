@@ -53,7 +53,7 @@ pub struct MediaSourceLimits {
 impl Default for MediaSourceLimits {
     fn default() -> Self {
         Self {
-            project_media_source_bytes: 536_870_912,
+            project_media_source_bytes: 2_147_483_648,
             project_media_inline_bytes: 134_217_728,
             project_media_total_bytes: 2_147_483_648,
             project_media_files: 4096,
