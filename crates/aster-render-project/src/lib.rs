@@ -4,6 +4,7 @@ mod audio_resample;
 mod document;
 mod export;
 mod export_audio;
+mod export_audio_wave;
 mod export_control;
 mod export_frames;
 mod export_images;

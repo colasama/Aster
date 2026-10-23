@@ -33,14 +33,9 @@ impl ExportAudio {
             * f64::from(rate.denominator)
             * 48_000.)
             .round() as u128;
-        let bytes = frames
-            .checked_mul(8)
-            .filter(|bytes| {
-                *bytes <= u128::from(u32::MAX - 36) && *bytes + 44 <= u128::from(maximum_bytes)
-            })
-            .ok_or_else(|| {
-                ProjectRenderError::Invalid("export audio staging exceeds byte budget".into())
-            })? as u32;
+        let frames = u64::try_from(frames)
+            .map_err(|_| ProjectRenderError::Invalid("export audio frame count overflow".into()))?;
+        let wave = crate::export_audio_wave::ExportAudioWave::new(frames, maximum_bytes)?;
         fs::create_dir(&output.directory)?;
         output.owned = true;
         let path = output.directory.join("mix.wav");
@@ -48,19 +43,7 @@ impl ExportAudio {
             .create_new(true)
             .write(true)
             .open(&path)?;
-        file.write_all(b"RIFF")?;
-        file.write_all(&(bytes + 36).to_le_bytes())?;
-        file.write_all(b"WAVEfmt ")?;
-        file.write_all(&16_u32.to_le_bytes())?;
-        file.write_all(&3_u16.to_le_bytes())?;
-        file.write_all(&2_u16.to_le_bytes())?;
-        file.write_all(&48_000_u32.to_le_bytes())?;
-        file.write_all(&384_000_u32.to_le_bytes())?;
-        file.write_all(&8_u16.to_le_bytes())?;
-        file.write_all(&32_u16.to_le_bytes())?;
-        file.write_all(b"data")?;
-        file.write_all(&bytes.to_le_bytes())?;
-        let frames = frames as u64;
+        wave.write_header(&mut file)?;
         let mut done = 0_u64;
         while done < frames {
             control.wait()?;

@@ -24,7 +24,8 @@ pub struct ProjectAudioLimits {
     pub project_audio_source_bytes: u64,
     #[arg(long, default_value_t = 30_000)]
     pub project_audio_timeout_ms: u64,
-    #[arg(long, default_value_t = 300.0)]
+    /// Source duration ceiling; decoded residency is independently bounded by the PCM budget.
+    #[arg(long, default_value_t = 86_400.0)]
     pub project_audio_max_seconds: f64,
     #[command(flatten)]
     pub mix: AudioMixLimits,
@@ -67,7 +68,7 @@ impl NativeProjectAudio {
             || limits.project_audio_source_bytes > 2_147_483_648
             || !(1..=300_000).contains(&limits.project_audio_timeout_ms)
             || !limits.project_audio_max_seconds.is_finite()
-            || !(0.0..=3600.0).contains(&limits.project_audio_max_seconds)
+            || !(0.0..=86_400.0).contains(&limits.project_audio_max_seconds)
             || limits.project_audio_max_seconds == 0.
         {
             return Err(ProjectRenderError::Invalid(

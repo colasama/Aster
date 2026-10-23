@@ -111,6 +111,8 @@ export async function startNativeQueueExport(options: {
       "--ffprobe",
       runtime.ffprobe,
       "--control-stdin",
+      "--project-audio-pcm-bytes",
+      "1073741824",
       "--render-export-frames",
       String(Math.max(4096, expected.frames)),
       "--export-max-duration-seconds",

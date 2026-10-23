@@ -83,6 +83,11 @@ grants or reset snapshot byte limits. A failed admission poisons the session and
 output unpublished. Unused sources outside the requested range are never opened by the decoder.
 Explicit diagnostic schedules and preview retain their existing preflight contracts. Complete
 long-output delivery and media/output size bounds require separate qualification.
+Native queue audio admission allows sources beyond five minutes while retaining a 1 GiB aggregate
+decoded PCM budget. The source-duration ceiling is 24 hours; preview keeps its smaller PCM budget.
+Export mixing still writes bounded one-second stereo chunks. Temporary WAV files retain their
+original RIFF encoding below its size limit and use RF64 size fields above it, with the configured
+aggregate staging byte budget enforced before file creation.
 Native queue PNG exports stream frame identities into an exclusive private JSONL file. A compact
 completion receipt binds its path, hash, byte count and frame count. Electron consumes bounded lines,
 validates every frame clock and PNG identity, and retains only the receipt handle while copying.
