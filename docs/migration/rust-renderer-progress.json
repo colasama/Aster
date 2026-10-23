@@ -393,88 +393,72 @@
     }
   },
   "last_cycle": {
-    "id": 175,
-    "time": "2026-10-23T09:37:29.710Z",
-    "updated_at": "2026-10-23T09:37:29.710Z",
+    "id": 176,
+    "time": "2026-10-23T09:56:17.677Z",
+    "updated_at": "2026-10-23T09:56:17.677Z",
     "milestone": "M12",
     "task": "M12-T7",
-    "increment": "reduce-owner-project-raster-preparation-cost",
+    "increment": "avoid-native-frame-plan-wire-roundtrip",
     "outcome": "progress",
-    "commit": "6a3fa67915748765d286237da213f8f12fe84510",
+    "commit": "38e65f369a779cf4771fbdc260b0b66481e033b7",
     "validation": {
-      "path": "artifacts/migration/cycle175-validation/report.json",
-      "sha256": "fa81e3d27ca33286eeb1b61e90e8b0551649ca05d7f13e3c1f0820d696bbb7fc"
+      "path": "artifacts/migration/cycle176-validation/report.json",
+      "sha256": "d1a4f95fd1d7e4afe9ba917878fd6c965718f7fd3e1c88ae1a9f9c47e6fa8fd5"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
         "id": "owner-opening-0",
         "status": "passed",
-        "duration_ms": 13065
+        "duration_ms": 13156
       },
       {
         "id": "owner-opening-67108864",
         "status": "passed",
-        "duration_ms": 12061
+        "duration_ms": 12434
       },
       {
         "id": "owner-main-0",
         "status": "passed",
-        "duration_ms": 14860
+        "duration_ms": 14660
       },
       {
         "id": "owner-main-67108864",
         "status": "passed",
-        "duration_ms": 13769
-      },
-      {
-        "id": "resident-resource-tests",
-        "status": "passed",
-        "duration_ms": 1342
+        "duration_ms": 13843
       },
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 319370
+        "duration_ms": 428212
       }
     ],
     "observations": [
       {
         "id": "owner-opening",
         "frames": 714,
-        "fps": 13.938506588579795,
-        "elapsed_ms": 51225
+        "fps": 14.003020259271608,
+        "elapsed_ms": 50989
       },
       {
         "id": "owner-main",
         "frames": 300,
-        "fps": 22.988505747126435,
-        "elapsed_ms": 13050
+        "fps": 23.415547923821418,
+        "elapsed_ms": 12812
       },
       {
         "id": "composite-1080p",
         "frames": 600,
-        "fps": 155.8846453624318,
-        "elapsed_ms": 3849
+        "fps": 155.72281339216195,
+        "elapsed_ms": 3853
       }
     ],
-    "diagnostics": [
-      {
-        "path": "artifacts/migration/cycle175-profile/report.json",
-        "sha256": "5b205900b9ee06e8864407f40eb98c5ce754f2ddebce0bfe9bb12679ff3bdce6"
-      },
-      {
-        "path": "artifacts/migration/cycle175-profile-js-b/report.json",
-        "sha256": "cab9ab57c403110d8f6be7a72203601a50b9d511ee4515a8b3b7ec4dbcf3167d"
-      },
-      {
-        "path": "artifacts/migration/cycle175-profile-wire/report.json",
-        "sha256": "85cf609085992dd1d1923e01c9d750b2e6e95072e461cc6221facf0aeb1d85cd"
-      }
-    ],
+    "quota": {
+      "remaining_percent": 52
+    },
     "self_review": {
       "result": "exact",
-      "scope": "Eight full-resolution owner opening/main RGB and NV12 frames match cached/uncached and authenticated cycle 174 historical witnesses byte-for-byte. Cache-enabled full lifecycle passes. Diagnostic instrumentation removed; no tolerance changes."
+      "scope": "Eight full-resolution owner opening/main submitted-plan hashes, RGB and NV12 match authenticated cycle 175 witnesses exactly. Cached/uncached arms also match. Cache-enabled export lifecycle and shared caller-limit/typed-payload validation pass; no tolerance changes."
     },
     "deferred_gates": [
       "G1",
@@ -485,7 +469,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Continue M12-T7: reduce measured owner preparation overhead and complete G6 delivery/retirement plus final M12 exit composition."
+    "next_step": "Continue M12-T7: compose G6 production-default packaged preview, native queue and renderer retirement evidence, then implement the final M12 exit audit. Owner performance still requires qualification."
   },
   "milestones": [
     {
@@ -27805,12 +27789,12 @@
             "G6"
           ],
           "started_at": "2026-10-23T07:41:38.714Z",
-          "commit": "6a3fa67915748765d286237da213f8f12fe84510",
+          "commit": "38e65f369a779cf4771fbdc260b0b66481e033b7",
           "validation": {
-            "path": "artifacts/migration/cycle175-validation/report.json",
-            "sha256": "fa81e3d27ca33286eeb1b61e90e8b0551649ca05d7f13e3c1f0820d696bbb7fc"
+            "path": "artifacts/migration/cycle176-validation/report.json",
+            "sha256": "d1a4f95fd1d7e4afe9ba917878fd6c965718f7fd3e1c88ae1a9f9c47e6fa8fd5"
           },
-          "progress": "M12 G1/G2/G3/G4/G5 routing is implemented. Rust now retains verified immutable raster descriptor proofs within one sixteenth of the existing cache budget, and readback synchronization replaces the redundant queue-wide raster wait. Current full-range observations measured owner-opening 13.939 FPS, owner-main 22.989 FPS and composite-1080p 155.885 FPS, improving owner paths over cycle 174 but still below contemporary TS diagnostic observations (16.041 and 29.853 FPS). Eight full-resolution frames match cached/uncached and historical RGB/NV12 exactly; cache-enabled export lifecycle and full G0 pass. Full balanced performance, G6 delivery/retirement and M12 exit composition remain open.",
+          "progress": "M12 G1/G2/G3/G4/G5 routing is implemented. Native root and generator plans now retain validated encoder metadata and blob ranges instead of immediately decoding their own FPLN containers. Caller budgets and typed payload validation are shared with the canonical wire encoder. Full-range observations measured owner-opening 14.003 FPS, owner-main 23.416 FPS and composite-1080p 155.723 FPS; owner paths remain below contemporary TS diagnostic observations (16.041 and 29.853 FPS). Eight full-resolution frames preserve historical submitted-plan hashes, RGB and NV12 exactly; cache-enabled export lifecycle and full G0 pass. Full balanced performance, G6 delivery/retirement and M12 exit composition remain open.",
           "remaining_qualification": "Reduce remaining owner-project CPU preparation overhead and qualify full balanced performance. Compose G6 delivery/retirement and M12 exit, complete delivery/docs tasks and run all full gates."
         },
         {
@@ -2681917,6 +2681901,86 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Continue M12-T7: reduce measured owner preparation overhead and complete G6 delivery/retirement plus final M12 exit composition."
+    },
+    {
+      "cycle": 176,
+      "id": 176,
+      "time": "2026-10-23T09:56:17.677Z",
+      "updated_at": "2026-10-23T09:56:17.677Z",
+      "milestone": "M12",
+      "task": "M12-T7",
+      "increment": "avoid-native-frame-plan-wire-roundtrip",
+      "outcome": "progress",
+      "commit": "38e65f369a779cf4771fbdc260b0b66481e033b7",
+      "validation": {
+        "path": "artifacts/migration/cycle176-validation/report.json",
+        "sha256": "d1a4f95fd1d7e4afe9ba917878fd6c965718f7fd3e1c88ae1a9f9c47e6fa8fd5"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "owner-opening-0",
+          "status": "passed",
+          "duration_ms": 13156
+        },
+        {
+          "id": "owner-opening-67108864",
+          "status": "passed",
+          "duration_ms": 12434
+        },
+        {
+          "id": "owner-main-0",
+          "status": "passed",
+          "duration_ms": 14660
+        },
+        {
+          "id": "owner-main-67108864",
+          "status": "passed",
+          "duration_ms": 13843
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 428212
+        }
+      ],
+      "observations": [
+        {
+          "id": "owner-opening",
+          "frames": 714,
+          "fps": 14.003020259271608,
+          "elapsed_ms": 50989
+        },
+        {
+          "id": "owner-main",
+          "frames": 300,
+          "fps": 23.415547923821418,
+          "elapsed_ms": 12812
+        },
+        {
+          "id": "composite-1080p",
+          "frames": 600,
+          "fps": 155.72281339216195,
+          "elapsed_ms": 3853
+        }
+      ],
+      "quota": {
+        "remaining_percent": 52
+      },
+      "self_review": {
+        "result": "exact",
+        "scope": "Eight full-resolution owner opening/main submitted-plan hashes, RGB and NV12 match authenticated cycle 175 witnesses exactly. Cached/uncached arms also match. Cache-enabled export lifecycle and shared caller-limit/typed-payload validation pass; no tolerance changes."
+      },
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Continue M12-T7: compose G6 production-default packaged preview, native queue and renderer retirement evidence, then implement the final M12 exit audit. Owner performance still requires qualification."
     }
   ],
   "known_boundaries": [
