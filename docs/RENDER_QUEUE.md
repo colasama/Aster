@@ -74,10 +74,16 @@ Cancellation keeps the process lease until its pipes close, with bounded forced 
 if cooperative shutdown stalls. Queue-wide scheduling and publication own the surrounding output set.
 Export schedules generate frame requests by index with constant resident clock storage, up to the
 queue's 10,000,000-frame bound; explicit diagnostic schedules retain their separate smaller limit.
-Media preflight streams those requests and checks pause/cancel between evaluations, preserving exact
-absolute frame times and admitting only sources selected in the requested range. Preflight time still
-scales with frame count; complete long-output delivery requires separate qualification.
-Production queue PNG exports stream frame identities into an exclusive private JSONL file. A compact
+Queue launches bind the mux duration ceiling to the captured frame count and rational rate. Native
+exports validate mux requests before starting the frame producer, preserving the original error.
+Exports open their immutable catalog without scanning the complete frame schedule. Native evaluation
+admits a selected visual source on first use through the same job-local reader and cumulative budgets.
+New grants preserve the shared decoded-frame cache and video clocks; they cannot replace existing
+grants or reset snapshot byte limits. A failed admission poisons the session and leaves the private
+output unpublished. Unused sources outside the requested range are never opened by the decoder.
+Explicit diagnostic schedules and preview retain their existing preflight contracts. Complete
+long-output delivery and media/output size bounds require separate qualification.
+Native queue PNG exports stream frame identities into an exclusive private JSONL file. A compact
 completion receipt binds its path, hash, byte count and frame count. Electron consumes bounded lines,
 validates every frame clock and PNG identity, and retains only the receipt handle while copying.
 Publication streams the same authenticated journal again to recheck staged files. It never retains a

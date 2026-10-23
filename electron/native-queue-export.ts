@@ -113,6 +113,15 @@ export async function startNativeQueueExport(options: {
       "--control-stdin",
       "--render-export-frames",
       String(Math.max(4096, expected.frames)),
+      "--export-max-duration-seconds",
+      String(
+        Math.max(
+          86400,
+          Math.ceil(
+            (expected.frames * expected.frameRate.denominator) / expected.frameRate.numerator,
+          ),
+        ),
+      ),
       "--max-encoder-frames",
       String(Math.max(1_000_000, expected.frames)),
       ...(expected.format === "mp4"

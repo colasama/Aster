@@ -62,7 +62,7 @@ export async function validateNativeQueueLongControl(context, preparedRuntime) {
   };
   const report = {
     status: "failed",
-    scope: "10,000,000-frame admission and pause/cancel only",
+    scope: "10,000,000-frame first render, safe pause and cancellation; not complete delivery",
     events: [],
     frames: 10000000,
   };
@@ -79,6 +79,8 @@ export async function validateNativeQueueLongControl(context, preparedRuntime) {
     const paused = new Promise((resolve) => {
       acknowledge = resolve;
     });
+    const started = performance.now();
+    let requested;
     child = await startNativeQueueExport({
       manifest,
       prepared: project,
@@ -88,6 +90,11 @@ export async function validateNativeQueueLongControl(context, preparedRuntime) {
       onEvent: (event) => {
         report.events.push(event);
         if (event.stage === "paused") acknowledge();
+        else if (event.rendered_frames > 0 && requested === undefined) {
+          report.first_frame_ms = performance.now() - started;
+          requested = performance.now();
+          child.control("pause");
+        }
       },
     });
     const completion = child.completion.then(
@@ -96,10 +103,6 @@ export async function validateNativeQueueLongControl(context, preparedRuntime) {
       },
       (error) => error,
     );
-    // Let preflight begin before asking for a safe processing boundary.
-    await delay(1500);
-    const requested = performance.now();
-    child.control("pause");
     await Promise.race([
       paused,
       completion.then((error) => {
@@ -110,6 +113,7 @@ export async function validateNativeQueueLongControl(context, preparedRuntime) {
       }),
     ]);
     clearTimeout(timer);
+    assert.notEqual(requested, undefined);
     report.pause_latency_ms = performance.now() - requested;
     const count = report.events.length;
     await delay(100);
@@ -121,7 +125,7 @@ export async function validateNativeQueueLongControl(context, preparedRuntime) {
     report.cancel_latency_ms = performance.now() - cancelled;
     await assert.rejects(stat(destination));
     assert.equal(report.events.filter((event) => event.stage === "paused").length, 1);
-    assert.equal(report.events.filter((event) => event.rendered_frames > 0).length, 0);
+    assert(report.events.some((event) => event.rendered_frames > 0));
     report.status = "passed";
   } catch (error) {
     report.error = String(error?.stack ?? error);

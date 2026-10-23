@@ -46,7 +46,7 @@ struct CachedMedia {
     age: u64,
 }
 
-/// A batch owns immutable grants. Reuse never expands source authorization or survives the job.
+/// A job owns immutable grants. New sources require explicit authenticated broker admission.
 pub struct NativeMediaSession {
     still: NativeStillDecoder,
     video: Option<NativeVideoDecoder>,
@@ -72,6 +72,36 @@ impl NativeMediaSession {
             },
             clock: 0,
         }
+    }
+
+    pub(crate) fn admit_grants(
+        &mut self,
+        files: Vec<crate::StillAuthorization>,
+        snapshots: Vec<crate::MediaSnapshotAuthorization>,
+        limits: crate::SnapshotGrantLimits,
+    ) -> Result<(), MediaError> {
+        let grants = crate::authorization::MediaGrants::with_snapshots(files, snapshots, limits)?;
+        self.still.authorizations.check_extension(&grants)?;
+        if let Some(video) = &self.video {
+            video.grants.check_extension(&grants)?;
+        }
+        self.still.authorizations.append_checked(grants.clone());
+        if let Some(video) = &mut self.video {
+            video.grants.append_checked(grants);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn inspect_source(
+        &mut self,
+        source: &ResourceHash,
+        registry: &ResourceRegistry,
+        cancellation: &CancellationToken,
+    ) -> Result<crate::NativeVideoSourceInfo, MediaError> {
+        self.video
+            .as_mut()
+            .ok_or_else(|| MediaError::Unsupported("video decoder absent".into()))?
+            .inspect_source(source, registry, cancellation)
     }
 
     pub fn statistics(&self) -> MediaCacheStatistics {

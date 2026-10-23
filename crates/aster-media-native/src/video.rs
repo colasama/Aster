@@ -90,7 +90,7 @@ pub struct NativeVideoSourceInfo {
 }
 
 pub struct NativeVideoDecoder {
-    grants: MediaGrants,
+    pub(crate) grants: MediaGrants,
     probe: FfprobeBackend,
     decoder: FfmpegBackend,
     limits: VideoLimits,

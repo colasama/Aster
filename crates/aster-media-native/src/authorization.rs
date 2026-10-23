@@ -47,6 +47,7 @@ impl Default for SnapshotGrantLimits {
     }
 }
 
+#[derive(Clone)]
 enum GrantedSource {
     File(StillAuthorization),
     Snapshot(MediaSnapshotAuthorization),
@@ -57,8 +58,12 @@ pub(crate) struct SourceSnapshot {
     pub sha256: String,
 }
 
+#[derive(Clone)]
 pub(crate) struct MediaGrants {
     grants: BTreeMap<(ResourceHash, Option<i64>), GrantedSource>,
+    limits: SnapshotGrantLimits,
+    snapshot_bytes: u64,
+    snapshot_entries: usize,
 }
 
 impl MediaGrants {
@@ -81,7 +86,12 @@ impl MediaGrants {
                 ));
             }
         }
-        Ok(Self { grants })
+        Ok(Self {
+            grants,
+            limits: SnapshotGrantLimits::default(),
+            snapshot_bytes: 0,
+            snapshot_entries: 0,
+        })
     }
 
     pub(crate) fn with_snapshots(
@@ -97,6 +107,8 @@ impl MediaGrants {
             return Err(MediaError::Limit("bounded snapshot grants required".into()));
         }
         let mut grants = Self::new(authorizations)?;
+        grants.limits = limits.clone();
+        grants.snapshot_entries = snapshots.len();
         let mut resident = 0_u64;
         for grant in snapshots {
             grant.source.validate()?;
@@ -124,7 +136,37 @@ impl MediaGrants {
                 GrantedSource::Snapshot(grant),
             );
         }
+        grants.snapshot_bytes = resident;
         Ok(grants)
+    }
+
+    pub(crate) fn check_extension(&self, other: &Self) -> Result<(), MediaError> {
+        if self
+            .snapshot_bytes
+            .checked_add(other.snapshot_bytes)
+            .is_none_or(|n| n > self.limits.snapshot_grant_bytes)
+            || self
+                .snapshot_entries
+                .checked_add(other.snapshot_entries)
+                .is_none_or(|n| n > self.limits.snapshot_grant_entries)
+        {
+            return Err(MediaError::Limit(
+                "incremental snapshot grant budget exceeded".into(),
+            ));
+        }
+        if other.grants.keys().any(|key| self.grants.contains_key(key)) {
+            return Err(MediaError::Authorization(
+                "incremental grant duplicates an existing member".into(),
+            ));
+        }
+        Ok(())
+    }
+
+    /// Both decoder grant tables are checked before either table is changed.
+    pub(crate) fn append_checked(&mut self, other: Self) {
+        self.snapshot_bytes += other.snapshot_bytes;
+        self.snapshot_entries += other.snapshot_entries;
+        self.grants.extend(other.grants);
     }
 
     pub(crate) fn read(

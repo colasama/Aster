@@ -327,3 +327,42 @@ fn oversized_batch_keeps_requested_hits_without_leaking_protection()
     }
     Ok(())
 }
+
+#[test]
+fn incremental_authorization_preserves_shared_frame_cache_and_rejects_unknown_sources()
+-> Result<(), Box<dyn std::error::Error>> {
+    let first = Fixture::new(0.25, true)?;
+    let second = Fixture::new(0.75, true)?;
+    let mut registry = ResourceRegistry::new(ResourceLimits::default())?;
+    first.install(&mut registry)?;
+    second.install(&mut registry)?;
+    let mut session = Fixture::session(vec![first.grant.clone()], 1024, 2)?;
+    let cancellation = CancellationToken::default();
+    let original = session.decode(&first.frame, &registry, &cancellation)?;
+    assert!(
+        session
+            .decode(&second.frame, &registry, &cancellation)
+            .is_err()
+    );
+    session.admit_grants(
+        vec![second.grant.clone()],
+        Vec::new(),
+        crate::SnapshotGrantLimits::default(),
+    )?;
+    session.decode(&second.frame, &registry, &cancellation)?;
+    let repeated = session.decode(&first.frame, &registry, &cancellation)?;
+    assert_eq!(original.pixels.bytes(), repeated.pixels.bytes());
+    assert_eq!(session.statistics().decodes, 2);
+    assert_eq!(session.statistics().hits, 1);
+    assert_eq!(session.statistics().entries, 2);
+    assert!(
+        session
+            .admit_grants(
+                vec![first.grant.clone()],
+                Vec::new(),
+                crate::SnapshotGrantLimits::default()
+            )
+            .is_err()
+    );
+    Ok(())
+}

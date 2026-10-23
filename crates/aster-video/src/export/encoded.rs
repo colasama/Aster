@@ -31,7 +31,8 @@ pub struct EncodedVideoExportReport {
 }
 
 impl EncodedVideoExportRequest {
-    fn validate(&self, limits: &ExportLimits) -> Result<f64, ExportError> {
+    /// Validate before starting a producer so mux rejection cannot appear as a closed channel.
+    pub fn validate(&self, limits: &ExportLimits) -> Result<f64, ExportError> {
         limits.validate_output_path(&self.output_path, ExportContainer::Mp4)?;
         if self.frame_rate_numerator == 0
             || self.frame_rate_denominator == 0

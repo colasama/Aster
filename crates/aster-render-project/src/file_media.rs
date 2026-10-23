@@ -16,12 +16,14 @@ pub struct ProjectFileMediaFrame {
     pub pixels: Vec<BundleMediaPixels>,
 }
 
-/// Preflight admits only sources selected by native evaluation of the bounded job schedule.
+/// Native evaluation selects authenticated sources; exports admit them on first use.
 pub struct NativeProjectFileMedia {
     pub(crate) document: NativeProjectDocument,
     session: NativeProjectMediaSession,
     scope: String,
     admitted: BTreeSet<String>,
+    reader: MediaSourceReader,
+    on_demand: bool,
     poisoned: bool,
 }
 
@@ -62,9 +64,21 @@ impl NativeProjectFileMedia {
                 "export frame count exceeds limit".into(),
             ));
         }
-        let (ids, scope) =
-            Self::scheduled_sources(&document, frames.iter(), context, || control.wait())?;
-        Self::from_sources(document, ids, scope, tools, limits, &control.cancellation)
+        control.wait()?;
+        let first = frames
+            .first()
+            .ok_or_else(|| ProjectRenderError::Invalid("export schedule empty".into()))?;
+        document.resource_requests(&first, context)?;
+        let mut media = Self::from_sources(
+            document,
+            BTreeSet::new(),
+            first.snapshot_scope,
+            tools,
+            limits,
+            &control.cancellation,
+        )?;
+        media.on_demand = true;
+        Ok(media)
     }
 
     fn scheduled_sources(
@@ -191,6 +205,8 @@ impl NativeProjectFileMedia {
             session,
             scope,
             admitted: ids,
+            reader,
+            on_demand: false,
             poisoned: false,
         })
     }
@@ -229,6 +245,28 @@ impl NativeProjectFileMedia {
             );
         }
         let requests = self.document.resource_requests(frame, context)?;
+        if self.on_demand {
+            let mut pending = BTreeSet::new();
+            for operation in &requests.operations {
+                if let ResourcePreparationOperation::Media {
+                    source_id: Some(id),
+                    ..
+                } = operation
+                    && !self.admitted.contains(id)
+                {
+                    pending.insert(id.clone());
+                }
+            }
+            if !pending.is_empty() {
+                let bindings = pending
+                    .iter()
+                    .map(|id| self.document.catalog.bind(id))
+                    .collect::<Result<Vec<_>, _>>()?;
+                self.session
+                    .admit(bindings, &mut self.reader, cancellation)?;
+                self.admitted.extend(pending);
+            }
+        }
         let mut budget = BundleResources::new(self.document.limits.bundle.clone())?;
         let mut resources = BTreeMap::new();
         let mut pixels = BTreeMap::new();
@@ -349,7 +387,7 @@ mod tests {
     }
 
     #[test]
-    fn export_preflight_checks_control_without_materializing_remaining_frames()
+    fn diagnostic_preflight_checks_control_without_materializing_remaining_frames()
     -> Result<(), Box<dyn std::error::Error>> {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../examples/projects/minimal-golden.aster.json");

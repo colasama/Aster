@@ -203,6 +203,7 @@ impl NativeProjectExport {
             maximum_packet_bytes: maximum_bytes,
             audio: audio.spec.clone(),
         };
+        request.validate(&self.mux_limits)?;
         let backend = FfmpegExportBackend::with_limits(self.ffmpeg, self.mux_limits);
         let cancel = self.control.cancellation.clone();
         let mux = std::thread::spawn(move || backend.mux_h264(&request, receiver, &cancel));

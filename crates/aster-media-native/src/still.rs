@@ -45,7 +45,7 @@ pub struct DecodedStill {
 }
 
 pub struct NativeStillDecoder {
-    authorizations: MediaGrants,
+    pub(crate) authorizations: MediaGrants,
     backend: FfmpegBackend,
     limits: StillLimits,
 }

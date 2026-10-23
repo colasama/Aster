@@ -115,3 +115,56 @@ fn snapshot_admission_rejects_corruption_duplicates_and_aggregate_expansion() {
         Err(MediaError::Authorization(_))
     ));
 }
+
+#[test]
+fn incremental_snapshot_grants_preserve_aggregate_limits_and_existing_members()
+-> Result<(), MediaError> {
+    let first = Fixture::grant();
+    let mut second = first.clone();
+    second.sequence_frame = Some(8);
+    let addition =
+        MediaGrants::with_snapshots(vec![], vec![second.clone()], Fixture::limits(32, 2))?;
+    for limits in [Fixture::limits(31, 2), Fixture::limits(32, 1)] {
+        let grants = MediaGrants::with_snapshots(vec![], vec![first.clone()], limits)?;
+        assert!(matches!(
+            grants.check_extension(&addition),
+            Err(MediaError::Limit(_))
+        ));
+        assert!(
+            grants
+                .read(
+                    &second.source,
+                    &second.scope,
+                    second.sequence_frame,
+                    &format!("sha256:{}", second.sha256),
+                    16,
+                    &CancellationToken::default()
+                )
+                .is_err()
+        );
+    }
+    let mut grants =
+        MediaGrants::with_snapshots(vec![], vec![first.clone()], Fixture::limits(48, 3))?;
+    grants.check_extension(&addition)?;
+    grants.append_checked(addition.clone());
+    assert!(matches!(
+        grants.check_extension(&addition),
+        Err(MediaError::Authorization(_))
+    ));
+    for grant in [first, second] {
+        assert_eq!(
+            grants
+                .read(
+                    &grant.source,
+                    &grant.scope,
+                    grant.sequence_frame,
+                    &format!("sha256:{}", grant.sha256),
+                    16,
+                    &CancellationToken::default()
+                )?
+                .bytes,
+            grant.bytes.as_ref()
+        );
+    }
+    Ok(())
+}
