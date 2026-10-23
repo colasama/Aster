@@ -17,7 +17,7 @@ pub(crate) struct RasterManifest {
     _index: usize,
     request_sha256: String,
     bindings: BTreeMap<String, Option<ResourceHash>>,
-    resources: Vec<ResourceMessage>,
+    resources: Vec<RasterResourceMessage>,
     pixels: Vec<RasterPayload>,
     temporal: Vec<TemporalRasterPass>,
     text_bounds: BTreeMap<String, TextGeometryBounds>,
@@ -37,6 +37,44 @@ struct RasterPayload {
 pub(crate) struct RasterPayloadCache {
     pub budget_bytes: usize,
     pub entries: BTreeMap<String, (VerifiedResource, String)>,
+    pub resources: BTreeMap<ResourceHash, (VerifiedResource, usize)>,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum RasterResourceMessage {
+    Complete(ResourceMessage),
+    Resident(ResidentRasterResource),
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
+enum ResidentRasterResource {
+    ResidentResource { hash: ResourceHash },
+}
+
+impl RasterResourceMessage {
+    fn verify(
+        self,
+        cache: Option<&RasterPayloadCache>,
+    ) -> Result<(VerifiedResource, usize), ProjectRenderError> {
+        match self {
+            Self::Complete(message) => {
+                let resource = RasterManifest::verify(message, Vec::new())?;
+                let bytes = serde_json::to_vec(resource.request())?.len();
+                Ok((resource, bytes))
+            }
+            Self::Resident(ResidentRasterResource::ResidentResource { hash }) => {
+                hash.validate()?;
+                cache
+                    .and_then(|cache| cache.resources.get(&hash))
+                    .cloned()
+                    .ok_or_else(|| {
+                        ProjectRenderError::Invalid("raster descriptor is not resident".into())
+                    })
+            }
+        }
+    }
 }
 
 impl RasterManifest {
@@ -146,8 +184,12 @@ impl ProjectRasterFrame {
             ));
         }
         let mut packets = BTreeMap::new();
+        let mut next_resources = BTreeMap::new();
+        let mut remaining_cache = cache.as_ref().map_or(0, |cache| cache.budget_bytes);
+        // Descriptor proofs share the existing cache budget; reserve most residency for pixels.
+        let mut descriptor_budget = remaining_cache / 16;
         for message in manifest.resources {
-            let resource = RasterManifest::verify(message, Vec::new())?;
+            let (resource, bytes) = message.verify(cache.as_deref())?;
             if !matches!(
                 resource.request().descriptor,
                 ResourceDescriptor::MediaSource(_) | ResourceDescriptor::MediaFrame(_)
@@ -156,11 +198,16 @@ impl ProjectRasterFrame {
                     "raster descriptor requires a payload".into(),
                 ));
             }
-            packets.insert(resource.request().hash.clone(), resource);
+            let hash = resource.request().hash.clone();
+            if !next_resources.contains_key(&hash) && bytes <= descriptor_budget {
+                descriptor_budget -= bytes;
+                remaining_cache -= bytes;
+                next_resources.insert(hash.clone(), (resource.clone(), bytes));
+            }
+            packets.insert(hash, resource);
         }
         let mut payloads = BTreeMap::<ResourceHash, (VerifiedResource, String)>::new();
         let mut next_cache = BTreeMap::new();
-        let mut remaining_cache = cache.as_ref().map_or(0, |cache| cache.budget_bytes);
         let mut remaining = limits.render_project_pixel_bytes;
         for item in manifest.pixels {
             if cancellation.is_cancelled() {
@@ -246,7 +293,67 @@ impl ProjectRasterFrame {
         result.validate(requests, limits.render_project_pixel_bytes)?;
         if let Some(cache) = cache.as_mut() {
             cache.entries = next_cache;
+            cache.resources = next_resources;
         }
         Ok(result)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use aster_render_ir::{CompositionIdentity, MediaKind, MediaSourceDescriptor};
+
+    #[test]
+    fn descriptor_references_require_retained_verified_ownership()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let resource = VerifiedResource::new(
+            aster_render_ir::ResourceKind::MediaSource,
+            ResourceDescriptor::MediaSource(MediaSourceDescriptor {
+                source_id: CompositionIdentity::Unicode("text".into()),
+                content_identity: "immutable text generation".into(),
+                authorization_scope: "job".into(),
+                media_kind: MediaKind::Raster,
+            }),
+            Vec::new(),
+        )?;
+        let hash = resource.request().hash.clone();
+        let reference = || {
+            RasterResourceMessage::Resident(ResidentRasterResource::ResidentResource {
+                hash: hash.clone(),
+            })
+        };
+        let mut cache = RasterPayloadCache {
+            budget_bytes: 4096,
+            entries: BTreeMap::new(),
+            resources: BTreeMap::new(),
+        };
+        assert!(reference().verify(None).is_err());
+        assert!(reference().verify(Some(&cache)).is_err());
+        let (verified, bytes) = RasterResourceMessage::Complete(ResourceMessage::PutResource(
+            resource.request().clone(),
+        ))
+        .verify(None)?;
+        cache.resources.insert(hash.clone(), (verified, bytes));
+        let (resident, resident_bytes) = reference().verify(Some(&cache))?;
+        assert_eq!(resident.request(), resource.request());
+        assert_eq!(resident_bytes, bytes);
+        let mut forged = resource.request().clone();
+        forged.hash = ResourceHash("f".repeat(64));
+        assert!(
+            RasterResourceMessage::Complete(ResourceMessage::PutResource(forged))
+                .verify(Some(&cache))
+                .is_err()
+        );
+        cache.resources.clear();
+        assert!(reference().verify(Some(&cache)).is_err());
+        assert!(
+            serde_json::from_str::<RasterResourceMessage>(
+                r#"{"type":"resident_resource","hash":"bad"}"#
+            )?
+            .verify(Some(&cache))
+            .is_err()
+        );
+        Ok(())
     }
 }

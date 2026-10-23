@@ -74,6 +74,7 @@ enum RasterRequest {
         request_sha256: String,
         preparation: ProjectResourceRequests,
         known_payloads: Vec<String>,
+        known_resources: Vec<aster_render_ir::ResourceHash>,
     },
 }
 
@@ -255,6 +256,7 @@ impl NativeRasterProvider {
             payload_cache: RasterPayloadCache {
                 budget_bytes: options.cache_bytes,
                 entries: BTreeMap::new(),
+                resources: BTreeMap::new(),
             },
         })
     }
@@ -306,6 +308,7 @@ impl NativeRasterProvider {
                 request_sha256: format!("{:x}", Sha256::digest(serde_json::to_vec(requests)?)),
                 preparation: requests.clone(),
                 known_payloads: self.payload_cache.entries.keys().cloned().collect(),
+                known_resources: self.payload_cache.resources.keys().cloned().collect(),
             },
             cancel,
         )?;

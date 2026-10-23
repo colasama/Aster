@@ -6,6 +6,24 @@ const file = `${hash}.bin`;
 const item = (bytes?: Uint8Array) => ({ frame: {}, pixels: { message: { hash }, bytes } });
 
 describe("resident raster payload transport", () => {
+  it("requires Rust residency and prior-frame presence for descriptor references", () => {
+    const cache = new NativeRasterPayloads(),
+      full = { type: "put_resource", hash },
+      reference = { type: "resident_resource", hash };
+    expect(cache.knownResources([hash])).toEqual([]);
+    expect(() => cache.prepareResources([reference], [hash])).toThrow(/not advertised/);
+    cache.commit(new Map(), cache.prepareResources([full], []));
+    expect(cache.knownResources([hash])).toEqual([hash]);
+    expect(() => cache.prepareResources([reference], [])).toThrow(/not advertised/);
+    cache.commit(new Map(), cache.prepareResources([reference], [hash]));
+    expect(cache.knownResources([hash])).toEqual([hash]);
+    cache.commit(new Map(), cache.prepareResources([], []));
+    expect(cache.knownResources([hash])).toEqual([]);
+    expect(() => cache.prepareResources([reference], [hash])).toThrow(/not advertised/);
+    expect(() =>
+      cache.prepareResources([{ type: "resident_resource", hash: "bad" }], []),
+    ).toThrow();
+  });
   it("omits bytes only for advertised identities and resends after eviction", () => {
     const cache = new NativeRasterPayloads();
     const first = cache.prepare([item(new Uint8Array([1, 2, 3, 4]))], [], 4);

@@ -59,9 +59,15 @@ async function run() {
       const error = await device.popErrorScope();
       if (error || deviceFailure) throw deviceFailure ?? new Error(error?.message);
       const known = new Set(work.knownPayloads);
+      const knownResources = new Set(work.knownResources);
       await api.frame({
         index: work.index,
         ...frame,
+        resources: frame.resources.map((resource) =>
+          knownResources.has(resource.hash)
+            ? { type: "resident_resource", hash: resource.hash }
+            : resource,
+        ),
         pixels: frame.pixels.map((item) => {
           const description = VerifiedMediaPixels.describe(item);
           return known.has(`${description.pixels.message.hash}.bin`)

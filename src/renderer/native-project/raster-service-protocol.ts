@@ -10,6 +10,7 @@ export interface RasterServiceWork {
   header: unknown;
   requests: unknown[];
   knownPayloads?: string[];
+  knownResources?: string[];
 }
 
 /** Rust authenticates these opaque descriptors against the exact native request and payloads. */

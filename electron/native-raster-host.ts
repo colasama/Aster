@@ -77,6 +77,7 @@ async function main() {
         index: number;
         requestSha256: string;
         knownPayloads?: string[];
+        knownResources?: string[];
         preparation: {
           header: RasterServiceWork["header"];
           operations: { kind: string; request?: RasterServiceWork["requests"][number] }[];
@@ -101,6 +102,7 @@ async function main() {
         header: request.preparation.header,
         requests,
         knownPayloads: rasterPayloads.known(request.knownPayloads ?? []),
+        knownResources: rasterPayloads.knownResources(request.knownResources ?? []),
       };
       await new Promise<void>((resolveFrame, reject) => {
         current = { work, resolve: resolveFrame, reject };
@@ -195,6 +197,10 @@ async function main() {
   });
   handle("frame", async (value: RasterServiceFrame) => {
     assert(current && value.index === index && current.work.index === index);
+    const resourceIdentities = rasterPayloads.prepareResources(
+      value.resources,
+      current.work.knownResources ?? [],
+    );
     const { pixels, payloads, identities } = rasterPayloads.prepare(
       value.pixels,
       current.work.knownPayloads ?? [],
@@ -215,7 +221,7 @@ async function main() {
       },
       [...payloads.values()],
     );
-    rasterPayloads.commit(identities);
+    rasterPayloads.commit(identities, resourceIdentities);
     const complete = current.resolve;
     current = undefined;
     index++;

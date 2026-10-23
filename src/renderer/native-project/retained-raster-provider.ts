@@ -193,7 +193,7 @@ export class RetainedRasterProvider {
       });
       this.#text.flush(encoder, header, temporal);
       this.device.queue.submit([encoder.finish()]);
-      await this.device.queue.onSubmittedWorkDone();
+      // A cache miss maps its readback after these writes; immutable cache hits need no GPU wait.
       const resources = [...textLease.resourceMessages, ...imageLease.resourceMessages];
       const frames = new Map(
         resources.filter((r) => r.kind === "media_frame").map((r) => [r.hash, r]),

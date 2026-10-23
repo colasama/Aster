@@ -10,6 +10,34 @@ interface PayloadIdentity {
 /** Only the immediately preceding frame's metadata survives; pixel ownership remains in Rust. */
 export class NativeRasterPayloads {
   #previous = new Map<string, PayloadIdentity>();
+  #resources = new Set<string>();
+
+  knownResources(value: unknown): string[] {
+    assert(Array.isArray(value) && value.length <= 65536);
+    return value.filter((hash) => {
+      assert(typeof hash === "string" && /^[a-f0-9]{64}$/.test(hash));
+      return this.#resources.has(hash);
+    });
+  }
+
+  prepareResources(items: unknown[], known: string[]) {
+    assert(Array.isArray(items) && items.length <= 65536);
+    const admitted = new Set(known),
+      identities = new Set<string>();
+    for (const item of items) {
+      assert(item && typeof item === "object");
+      const { type, hash } = item as { type?: unknown; hash?: unknown };
+      assert(typeof hash === "string" && /^[a-f0-9]{64}$/.test(hash));
+      assert(type === "put_resource" || type === "resident_resource");
+      if (type === "resident_resource")
+        assert(
+          admitted.has(hash) && this.#resources.has(hash),
+          "Raster descriptor was not advertised as resident",
+        );
+      identities.add(hash);
+    }
+    return identities;
+  }
 
   known(value: unknown): string[] {
     assert(Array.isArray(value) && value.length <= 65536);
@@ -56,7 +84,8 @@ export class NativeRasterPayloads {
     return { pixels, payloads, identities };
   }
 
-  commit(identities: Map<string, PayloadIdentity>) {
+  commit(identities: Map<string, PayloadIdentity>, resources = new Set<string>()) {
     this.#previous = identities;
+    this.#resources = resources;
   }
 }

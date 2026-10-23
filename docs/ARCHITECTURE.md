@@ -1087,6 +1087,12 @@ loads the same authored project identity and supplies font layouts and text/SVG/
 a nonce-authenticated loopback channel. Length-prefixed controls and separate binary payloads have
 per-frame budgets, deadlines and cancellation checks. Native admission verifies request digests,
 resource descriptors and pixel hashes before using a response; failed exchanges poison the provider.
+Within the configured raster cache budget, Rust retains immutable verified descriptors as well as
+pixels. At most one sixteenth of that budget holds descriptors. Later frames may reference only
+hashes Rust explicitly advertises as resident and the host saw in the previous frame; eviction
+requires a complete descriptor again. References resolve to the original owned verification proof,
+then undergo the same current-frame scope and closure checks. New pixel readbacks wait for preceding
+GPU submissions through their mapped buffers; immutable cache hits do not add a queue-wide wait.
 The child process and its temporary profile belong to the job and are removed when it ends. This
 boundary carries no host-authored scene plans and does not stage a complete job's raster frames.
 
