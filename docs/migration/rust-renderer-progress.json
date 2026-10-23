@@ -393,112 +393,86 @@
     }
   },
   "last_cycle": {
-    "id": 185,
-    "time": "2026-10-23T12:54:56.151Z",
-    "updated_at": "2026-10-23T12:54:56.151Z",
+    "id": 186,
+    "time": "2026-10-23T13:22:22.659Z",
+    "updated_at": "2026-10-23T13:22:22.659Z",
     "milestone": "M12",
     "task": "M12-T9",
-    "increment": "skip-audio-analysis-without-generator-consumers",
-    "outcome": "progress",
-    "commit": "6b8f99ac9341f9a5771b11d8a6074a065a3f9110",
+    "increment": "balanced-current-project-export-acceptance",
+    "outcome": "measured-gap",
+    "commit": "4ba3428d29eaa6a908f036f09ffceecf02d451d5",
     "validation": {
-      "path": "artifacts/migration/cycle185-validation/report.json",
-      "sha256": "28ef72a5f43256560e129a8af6fb618e6539e31aeb0178f7d5fc4a5c79d05a5d"
+      "path": "artifacts/migration/cycle186-validation/report.json",
+      "sha256": "5066b033d506487e7b6a7d51551306f45e9349a464f5041fc8bcd4a4854108ca"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
-        "id": "generator-demand",
-        "status": "passed",
-        "scope": "Three generator availability tests, including generator-free, hidden unreferenced and missing-instance snapshots; project and CLI cargo check"
-      },
-      {
-        "id": "exact-cache-witnesses-and-export-lifecycle",
-        "status": "passed",
-        "scope": "Eight owner frames in both cache settings and eight audio-reactive historical frames across both output audio selections"
+        "id": "G4-export",
+        "status": "failed",
+        "scope": "All five full-range workloads; four balanced TS/native pairs; current source and receipts authenticated",
+        "evidence": {
+          "path": "D:\\code\\Aster\\artifacts\\migration\\cycle186-validation\\export\\report.json",
+          "sha256": "93283c3519914ec3ca01dc3c1b65c11d9a05bf98138a2b9a098a707ad5f265d7"
+        }
       },
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 383629
+        "duration_ms": 260522
       }
     ],
     "measurements": [
       {
         "id": "owner-opening",
-        "frames": 714,
-        "fps": 15.710607960921513,
-        "per_frame_ms": {
-          "total_ms": 28.852014145658227,
-          "file_media_ms": 4.809545378151261,
-          "raster_text_ms": 13.26106022408963,
-          "raster_exchange_ms": 12.363543277310917,
-          "materials_ms": 0.2614581232492999,
-          "audio_ms": 0.00008627450980392199,
-          "gpu_setup_ms": 0.059036554621848654,
-          "plan_inputs_ms": 0.2336774509803921,
-          "plan_ms": 9.117743977591024,
-          "admission_ms": 1.108953081232493
-        }
+        "ts_median_fps": 15.933962826401103,
+        "rust_median_fps": 15.916430227817832,
+        "ratio": 0.9988996711756964,
+        "passed": false
       },
       {
         "id": "owner-main",
-        "frames": 300,
-        "fps": 29.42041776993233,
-        "per_frame_ms": {
-          "total_ms": 23.298821000000004,
-          "file_media_ms": 1.4261920000000008,
-          "raster_text_ms": 16.102276333333325,
-          "raster_exchange_ms": 14.975735666666663,
-          "materials_ms": 0.29133033333333375,
-          "audio_ms": 0.00011599999999999985,
-          "gpu_setup_ms": 0.11049399999999998,
-          "plan_inputs_ms": 0.2516090000000002,
-          "plan_ms": 3.922320333333333,
-          "admission_ms": 1.1940309999999987
-        }
+        "ts_median_fps": 30.05947221814032,
+        "rust_median_fps": 29.546594291955522,
+        "ratio": 0.982937893171814,
+        "passed": false
       },
       {
         "id": "composite-1080p",
-        "frames": 600,
-        "fps": 163.3986928104575,
-        "per_frame_ms": {
-          "total_ms": 0.6140888333333333,
-          "file_media_ms": 0.06392866666666665,
-          "raster_text_ms": 0.0022211666666666634,
-          "raster_exchange_ms": 0.0004493333333333337,
-          "materials_ms": 0.02046266666666666,
-          "audio_ms": 0.000032833333333333235,
-          "gpu_setup_ms": 0.010780166666666664,
-          "plan_inputs_ms": 0.0013344999999999952,
-          "plan_ms": 0.4473379999999999,
-          "admission_ms": 0.06754149999999996
-        }
+        "ts_median_fps": 50.359918179872096,
+        "rust_median_fps": 163.24309919833004,
+        "ratio": 3.2415282847614955,
+        "passed": true
+      },
+      {
+        "id": "composite-4k",
+        "ts_median_fps": 11.879024782275554,
+        "rust_median_fps": 54.15662527169865,
+        "ratio": 4.559012735835405,
+        "passed": true
+      },
+      {
+        "id": "effect-chain-1080p",
+        "ts_median_fps": 52.892566061989655,
+        "rust_median_fps": 82.06689830001476,
+        "ratio": 1.5515771763433264,
+        "passed": true
       }
     ],
-    "observation": {
-      "path": "artifacts/migration/cycle185-validation/observation/report.json",
-      "sha256": "90742b3ea7d1948b982f6e2c56959c58c29ab4f98148827b5a7a81be72ac3aae"
-    },
-    "audio_reactive_history": {
-      "path": "D:\\code\\Aster\\artifacts\\migration\\cycle184-validation\\lifecycle\\report.json",
-      "sha256": "4748812cde22b6fe6eed9a7e48ebc297e467697a3b665db2953d6d41c8b59779",
-      "exact_frames": 8
-    },
     "self_review": {
-      "result": "exact",
-      "scope": "Owner and reactive-audio submitted plans, RGB and NV12 remain exact against cycle 184. No references or tolerances changed."
+      "result": "not-applicable",
+      "scope": "No source, reference, tolerance or visual-path changes; performance-only cycle."
     },
     "deferred_gates": [
       "G1",
       "G2",
       "G3",
-      "G4",
       "G5",
-      "G6"
+      "G6",
+      "G4-preview"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Close the remaining small owner export throughput gap, then run balanced current-source performance and the full M12 exit. Preserve conservative generator allocation semantics and independent audio mixing/output selection."
+    "next_step": "Prefetch only one next-frame file-media acquisition while the preceding native GPU frame runs. Keep GPU leases, render/encoder order, bounded resources, cancellation and pause acknowledgments intact; verify against exact cycle 185 owner and reactive witnesses before remeasuring."
   },
   "milestones": [
     {
@@ -27932,12 +27906,12 @@
             "G6"
           ],
           "started_at": "2026-10-23T11:03:56.171Z",
-          "commit": "6b8f99ac9341f9a5771b11d8a6074a065a3f9110",
+          "commit": "4ba3428d29eaa6a908f036f09ffceecf02d451d5",
           "validation": {
-            "path": "artifacts/migration/cycle185-validation/report.json",
-            "sha256": "28ef72a5f43256560e129a8af6fb618e6539e31aeb0178f7d5fc4a5c79d05a5d"
+            "path": "artifacts/migration/cycle186-validation/report.json",
+            "sha256": "5066b033d506487e7b6a7d51551306f45e9349a464f5041fc8bcd4a4854108ca"
           },
-          "progress": "Immutable snapshots without any generator now omit per-frame audio analysis. Any generator, including hidden, nested, inactive or unavailable instances, conservatively retains the previous behavior because frame audio can affect allocation even when the declared program does not request analysis. Owner opening improves from 14.8013 to 15.7106 FPS and main from 26.4737 to 29.4204 FPS in single full-range observations. Eight owner history/cache-toggle witnesses and eight reactive history witnesses are exact; full lifecycle and G0 pass. Final balanced performance and all full M12 gates remain open."
+          "progress": "Four balanced current-source full-range TS/native export pairs are complete. Native median opening 15.9164 versus TS 15.9340 FPS (0.11% below); main 29.5466 versus 30.0595 (1.71% below). Composite 1080p, composite 4K and effect chain exceed TS by factors 3.24, 4.56 and 1.55. G4 export remains failed; full G0 passes. Next targeted increment overlaps bounded next-frame file-media acquisition with the preceding submitted GPU frame, preserving output/encoder order and exact witnesses."
         }
       ],
       "started_at": "2026-10-23T00:52:32.391Z"
@@ -2682959,6 +2682933,89 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Close the remaining small owner export throughput gap, then run balanced current-source performance and the full M12 exit. Preserve conservative generator allocation semantics and independent audio mixing/output selection."
+    },
+    {
+      "cycle": 186,
+      "id": 186,
+      "time": "2026-10-23T13:22:22.659Z",
+      "updated_at": "2026-10-23T13:22:22.659Z",
+      "milestone": "M12",
+      "task": "M12-T9",
+      "increment": "balanced-current-project-export-acceptance",
+      "outcome": "measured-gap",
+      "commit": "4ba3428d29eaa6a908f036f09ffceecf02d451d5",
+      "validation": {
+        "path": "artifacts/migration/cycle186-validation/report.json",
+        "sha256": "5066b033d506487e7b6a7d51551306f45e9349a464f5041fc8bcd4a4854108ca"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "G4-export",
+          "status": "failed",
+          "scope": "All five full-range workloads; four balanced TS/native pairs; current source and receipts authenticated",
+          "evidence": {
+            "path": "D:\\code\\Aster\\artifacts\\migration\\cycle186-validation\\export\\report.json",
+            "sha256": "93283c3519914ec3ca01dc3c1b65c11d9a05bf98138a2b9a098a707ad5f265d7"
+          }
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 260522
+        }
+      ],
+      "measurements": [
+        {
+          "id": "owner-opening",
+          "ts_median_fps": 15.933962826401103,
+          "rust_median_fps": 15.916430227817832,
+          "ratio": 0.9988996711756964,
+          "passed": false
+        },
+        {
+          "id": "owner-main",
+          "ts_median_fps": 30.05947221814032,
+          "rust_median_fps": 29.546594291955522,
+          "ratio": 0.982937893171814,
+          "passed": false
+        },
+        {
+          "id": "composite-1080p",
+          "ts_median_fps": 50.359918179872096,
+          "rust_median_fps": 163.24309919833004,
+          "ratio": 3.2415282847614955,
+          "passed": true
+        },
+        {
+          "id": "composite-4k",
+          "ts_median_fps": 11.879024782275554,
+          "rust_median_fps": 54.15662527169865,
+          "ratio": 4.559012735835405,
+          "passed": true
+        },
+        {
+          "id": "effect-chain-1080p",
+          "ts_median_fps": 52.892566061989655,
+          "rust_median_fps": 82.06689830001476,
+          "ratio": 1.5515771763433264,
+          "passed": true
+        }
+      ],
+      "self_review": {
+        "result": "not-applicable",
+        "scope": "No source, reference, tolerance or visual-path changes; performance-only cycle."
+      },
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G5",
+        "G6",
+        "G4-preview"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Prefetch only one next-frame file-media acquisition while the preceding native GPU frame runs. Keep GPU leases, render/encoder order, bounded resources, cancellation and pause acknowledgments intact; verify against exact cycle 185 owner and reactive witnesses before remeasuring."
     }
   ],
   "known_boundaries": [
