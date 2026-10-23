@@ -393,67 +393,51 @@
     }
   },
   "last_cycle": {
-    "id": 177,
-    "time": "2026-10-23T10:25:33.513Z",
-    "updated_at": "2026-10-23T10:25:33.513Z",
+    "id": 178,
+    "time": "2026-10-23T10:45:13.112Z",
+    "updated_at": "2026-10-23T10:45:13.112Z",
     "milestone": "M12",
     "task": "M12-T7",
-    "increment": "compose-production-application-and-retirement-gate",
+    "increment": "bind-complete-m12-exit-evidence",
     "outcome": "progress",
-    "commit": "4f766d2dd38790cb30882cac8756452cca67b5c7",
+    "commit": "f62b316e905d1222c815883bdd2641a49d05ff10",
     "validation": {
-      "path": "artifacts/migration/cycle177c-validation/report.json",
-      "sha256": "a15d07f7312d0188b8b830495413ee3dc5336b4656113d982a7fad0fc36dd6be"
+      "path": "artifacts/migration/cycle178-validation/report.json",
+      "sha256": "e1e27d40e6203763451ab171ef9f41be7445f1b2017aeb572625465475ef0243"
     },
     "validation_policy": "layered-development-verification-v1",
     "gates": [
       {
-        "id": "production-application-targeted",
+        "id": "exit-composition-targeted",
         "status": "passed",
-        "duration_ms": 252776
+        "duration_ms": 801
       },
       {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 251774
+        "duration_ms": 252206
       }
     ],
-    "application": {
-      "path": "artifacts/migration/cycle177b-validation/G6/report.json",
-      "sha256": "d2e15871d5c85769bccb82227af66bd20fb138f7b984c2274a3798e191acac6c",
-      "formal_gate_status": "incomplete",
-      "execution_complete": true,
-      "independent_latency_deferred": true,
-      "packaged_defaults": true,
-      "editor_frames": 18,
-      "plugin_frames": 18,
-      "recovery_frames": 24,
-      "recovery_snapshots": 2,
-      "native_queue_outputs": [
+    "retirement_reader": {
+      "status": "passed",
+      "output_kinds": [
         "still",
         "pngSequence",
         "mp4"
       ],
-      "pinned_output_files": 14
-    },
-    "failed_attempts": [
-      {
-        "path": "artifacts/migration/cycle177b-validation/G0/static-results.json",
-        "sha256": "8d379a293f30b9009ffedde64c722b57dcd021f3674879725b5e9f9dae0b68e3",
-        "reason": "The ad hoc verifier passed process.env by reference. Vite inline recovery build set NODE_ENV=production, so Vitest loaded production React and failed. A targeted 13-test normal-environment rerun passed; no tracked source changed. Fresh full G0 runs with an isolated environment while identical-source application reports and file pins are reauthenticated."
+      "native_jobs": 3,
+      "application": {
+        "path": "artifacts/migration/cycle177b-validation/G6/report.json",
+        "sha256": "d2e15871d5c85769bccb82227af66bd20fb138f7b984c2274a3798e191acac6c"
       },
-      {
-        "path": "artifacts/migration/cycle177-validation/G6/report.json",
-        "sha256": "643d8c099a788861351c107925d72bc674a38cb12a8cc25f7a8ffa80c6b21059",
-        "reason": "Electron treats app.asar as a virtual directory; the raw archive digest reader failed. The capture now hashes the archive through Electron original-fs and reads internal files through the archive-aware filesystem. The failed report is preserved; the targeted repair and fresh complete application rerun passed."
-      }
-    ],
+      "checked_files": 19
+    },
     "self_review": {
-      "result": "exact",
-      "scope": "18 editor interaction and 18 plugin lifecycle frames plus all recovery frames/snapshots match exact references. The application still and all 12 sequence frames match exactly. No tolerance changes."
+      "result": "not-applicable",
+      "scope": "Verifier-only composition; no runtime, shader, reference or tolerance changes. Existing accepted review identities are authenticated."
     },
     "quota": {
-      "remaining_percent": 50
+      "remaining_percent": 49
     },
     "deferred_gates": [
       "G1",
@@ -464,7 +448,7 @@
       "G6"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Continue M12-T7: compose a current-source M12 exit audit binding every gate and complete coverage. Then finish delivery/docs and qualify owner export performance before the full final run."
+    "next_step": "M12-T8: qualify native queue delivery and restart/control workflows, synchronize affected documentation and pin its reviewed contents; then complete full performance and final acceptance."
   },
   "milestones": [
     {
@@ -27772,7 +27756,7 @@
           "id": "M12-T7",
           "title": "Compose final production migration gates",
           "scope": "Wire current native G1/G2/G3/G4/G5/G6 evidence and a complete retirement audit into the full M12 verifier.",
-          "status": "in_progress",
+          "status": "done",
           "estimated_implementation_hours": 3,
           "required_gates": [
             "G0",
@@ -27784,13 +27768,14 @@
             "G6"
           ],
           "started_at": "2026-10-23T07:41:38.714Z",
-          "commit": "4f766d2dd38790cb30882cac8756452cca67b5c7",
+          "commit": "f62b316e905d1222c815883bdd2641a49d05ff10",
           "validation": {
-            "path": "artifacts/migration/cycle177c-validation/report.json",
-            "sha256": "a15d07f7312d0188b8b830495413ee3dc5336b4656113d982a7fad0fc36dd6be"
+            "path": "artifacts/migration/cycle178-validation/report.json",
+            "sha256": "e1e27d40e6203763451ab171ef9f41be7445f1b2017aeb572625465475ef0243"
           },
-          "progress": "All M12 G1-G6 routes are now implemented. G6 composes fresh packaged foreground/background native preview without enable flags, exact editor/plugin/recovery witnesses, actual archive renderer retirement and native queue still/sequence/H264-AAC outputs. All application checks passed with 14 pinned output files, no retired IPC and cleaned/persisted native jobs; current independent latency remains explicitly incomplete. Full G0 passes. M12 exit composition, delivery documentation/workflow qualification and full balanced owner performance remain open; the latest owner native observations remain 14.003/23.416 FPS versus diagnostic TS 16.041/29.853 FPS.",
-          "remaining_qualification": "Implement the authenticated full M12 exit audit; complete delivery/docs tasks; improve owner exports and qualify full balanced performance plus all current full gates."
+          "progress": "All production G1-G6 routes and the full M12 exit composition are implemented. The final audit binds all seven current full reports and ten child reports, reconstructs complete project/export coverage, authenticates accepted pixel reviews, recomputes paired export/preview performance, checks independent latency and production retirement, and requires completed delivery documentation review. Existing preview acceptance is shared without repeating full image decoding. Full G0, rejection-path tests and an authenticated prior real-application artifact reader qualification pass. This is implementation completion under layered-development-verification-v1, not passing full M12 acceptance.",
+          "remaining_qualification": "M12-T8 owns delivery/workflow qualification and synchronized document pins. M12-T9 owns all current full gates, pixel self-review and measured owner exports exceeding retained TS; latest diagnostic owner native FPS remains 14.003/23.416 versus TS 16.041/29.853.",
+          "completed_at": "2026-10-23T10:45:13.112Z"
         },
         {
           "id": "M12-T8",
@@ -2682051,6 +2682036,65 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Continue M12-T7: compose a current-source M12 exit audit binding every gate and complete coverage. Then finish delivery/docs and qualify owner export performance before the full final run."
+    },
+    {
+      "cycle": 178,
+      "id": 178,
+      "time": "2026-10-23T10:45:13.112Z",
+      "updated_at": "2026-10-23T10:45:13.112Z",
+      "milestone": "M12",
+      "task": "M12-T7",
+      "increment": "bind-complete-m12-exit-evidence",
+      "outcome": "progress",
+      "commit": "f62b316e905d1222c815883bdd2641a49d05ff10",
+      "validation": {
+        "path": "artifacts/migration/cycle178-validation/report.json",
+        "sha256": "e1e27d40e6203763451ab171ef9f41be7445f1b2017aeb572625465475ef0243"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "gates": [
+        {
+          "id": "exit-composition-targeted",
+          "status": "passed",
+          "duration_ms": 801
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 252206
+        }
+      ],
+      "retirement_reader": {
+        "status": "passed",
+        "output_kinds": [
+          "still",
+          "pngSequence",
+          "mp4"
+        ],
+        "native_jobs": 3,
+        "application": {
+          "path": "artifacts/migration/cycle177b-validation/G6/report.json",
+          "sha256": "d2e15871d5c85769bccb82227af66bd20fb138f7b984c2274a3798e191acac6c"
+        },
+        "checked_files": 19
+      },
+      "self_review": {
+        "result": "not-applicable",
+        "scope": "Verifier-only composition; no runtime, shader, reference or tolerance changes. Existing accepted review identities are authenticated."
+      },
+      "quota": {
+        "remaining_percent": 49
+      },
+      "deferred_gates": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G5",
+        "G6"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "M12-T8: qualify native queue delivery and restart/control workflows, synchronize affected documentation and pin its reviewed contents; then complete full performance and final acceptance."
     }
   ],
   "known_boundaries": [
@@ -2682297,14 +2682341,7 @@
       }
     }
   ],
-  "active_cycle": {
-    "id": 178,
-    "started_at": "2026-10-23T10:28:11.419Z",
-    "milestone": "M12",
-    "task": "M12-T7",
-    "increment": "bind-complete-m12-exit-evidence",
-    "validation_policy": "layered-development-verification-v1"
-  },
+  "active_cycle": null,
   "execution_pause": {
     "requested_by": "owner",
     "reason": "current_goal_quota_remaining_at_or_below_15_percent",
