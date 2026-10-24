@@ -314,6 +314,13 @@ gates must pass in a full run before committing.
 
 ## Performance evidence
 
+Current preview input latency requires `serial-compositor-copy-v1` evidence from independent main
+process compositor copies. Every sample must identify the calibrated visible frame, include a copy
+started after its single input, and preserve monotonic nonoverlapping input/arrival times. Old
+rate-limited frame-subscription reports, renderer completion, missing samples and changed quality
+are rejected. Three complete 600-sample pairs still require native p95 no worse than TS; see
+`docs/BENCHMARKS.md` for the observer and its conservative timing boundary.
+
 `pnpm migrate:benchmark` measures the full warm-up and three-run workload schedule described in
 `docs/BENCHMARKS.md`. Scope options such as `--smoke` are diagnostic and cannot replace the baseline.
 The committed local Radeon 780M series is independent of historical NVIDIA results. Missing GPU

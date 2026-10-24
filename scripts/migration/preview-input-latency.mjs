@@ -4,6 +4,7 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { preparePreviewInputFocus } from "./preview-input-focus.mjs";
+import { captureMatchingPresentation } from "./preview-presentation-observer.mjs";
 import { writeAtomicJson } from "./report.mjs";
 
 const digest = (bytes) => createHash("sha256").update(bytes).digest("hex");
@@ -130,66 +131,44 @@ export async function capturePreviewInputLatency(editor, call, output, samples) 
   const report = {
     status: "failed",
     scope: "timeline-input-to-compositor-presentation",
-    timing: "main-process monotonic input dispatch to matching frame-subscription callback",
+    timing: "main-process monotonic input dispatch to matching compositor-copy callback",
+    observer: "serial-compositor-copy-v1",
     warmup: 10,
     geometry,
     references,
     focus_readiness: focusReadiness,
     samples: [],
   };
-  let pending;
   await prepareFocus("measurement");
   let attempted = 0;
   let lastPresentation;
   let observed = 0;
-  contents.beginFrameSubscription(false, (image) => {
-    const arrived = performance.now();
-    if (!pending) return;
-    try {
-      const cropped = crop(image);
-      const hash = digest(cropped.toBitmap());
-      observed++;
-      lastPresentation = { image: cropped, hash, arrived };
-      if (hash !== pending.expected) return;
-      const work = pending;
-      pending = undefined;
-      clearTimeout(work.timer);
-      work.resolve({
-        address: work.address,
-        input_ms: work.started,
-        presentation_ms: arrived,
-        latency_ms: arrived - work.started,
-        image_sha256: hash,
-      });
-    } catch (error) {
-      const work = pending;
-      pending = undefined;
-      clearTimeout(work.timer);
-      work.reject(error);
-    }
-  });
   try {
     for (let index = 0; index < samples + 10; index++) {
       attempted = index;
       observed = 0;
       lastPresentation = undefined;
       const address = index % 2;
-      const sample = await new Promise((resolve, reject) => {
-        const timer = setTimeout(() => {
-          pending = undefined;
-          reject(new Error(`Matching compositor presentation timed out: ${address}`));
-        }, 120000);
-        pending = {
-          address,
-          expected: references[address].image_sha256,
-          started: performance.now(),
-          timer,
-          resolve,
-          reject,
-        };
-        click(geometry.points[address]);
+      const input = performance.now();
+      click(geometry.points[address]);
+      const presentation = await captureMatchingPresentation({
+        capture: () => contents.capturePage(),
+        identify: (image, arrived) => {
+          const cropped = crop(image);
+          const hash = digest(cropped.toBitmap());
+          observed++;
+          lastPresentation = { image: cropped, hash, arrived };
+          return hash;
+        },
+        expected: references[address].image_sha256,
       });
-      assert(sample.latency_ms > 0 && sample.presentation_ms >= sample.input_ms);
+      const sample = {
+        ...presentation,
+        address,
+        input_ms: input,
+        latency_ms: presentation.presentation_ms - input,
+      };
+      assert(sample.latency_ms > 0 && sample.capture_started_ms >= input);
       if (index >= 10) report.samples.push(sample);
     }
     report.status = "passed";
@@ -224,8 +203,5 @@ export async function capturePreviewInputLatency(editor, call, output, samples) 
       evidence: paths,
     });
     throw error;
-  } finally {
-    contents.endFrameSubscription();
-    if (pending) clearTimeout(pending.timer);
   }
 }

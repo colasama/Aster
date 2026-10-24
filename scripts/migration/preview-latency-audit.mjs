@@ -9,6 +9,11 @@ import { hashFile } from "./source.mjs";
 export function validatePreviewLatency(value, composition) {
   assert.equal(value.status, "passed");
   assert.equal(value.scope, "timeline-input-to-compositor-presentation");
+  assert.equal(value.observer, "serial-compositor-copy-v1");
+  assert.equal(
+    value.timing,
+    "main-process monotonic input dispatch to matching compositor-copy callback",
+  );
   assert.equal(value.warmup, 10);
   const focus = [...value.focus_readiness];
   for (const phase of ["geometry", "calibration-0", "calibration-1", "measurement"]) {
@@ -43,6 +48,11 @@ export function validatePreviewLatency(value, composition) {
     assert.equal(sample.image_sha256, value.references[sample.address].image_sha256);
     assert(Number.isFinite(sample.input_ms) && sample.input_ms > previous);
     assert(Number.isFinite(sample.presentation_ms) && sample.presentation_ms > sample.input_ms);
+    assert(
+      Number.isFinite(sample.capture_started_ms) && sample.capture_started_ms >= sample.input_ms,
+    );
+    assert(sample.capture_started_ms <= sample.presentation_ms);
+    assert(Number.isSafeInteger(sample.capture_attempts) && sample.capture_attempts > 0);
     assert.equal(sample.latency_ms, sample.presentation_ms - sample.input_ms);
     previous = sample.presentation_ms;
   }

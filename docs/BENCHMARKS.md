@@ -625,3 +625,20 @@ auditor reconstructs native timing from progress/receipts and TS timing from the
 records. It binds matching inputs, audio, bitrate, active GPU, runtime files and raw output hashes,
 then computes median FPS and completion-interval distributions. Preview separately requires all
 seven scenarios and input latency across three pairs. Both suites must use the same renderer binary.
+
+Input latency uses `serial-compositor-copy-v1`: one real timeline click alternates between 24 and
+26 seconds, then the main process issues serial `webContents.capturePage()` requests until the
+visible composition crop exactly matches its independently calibrated pixels. Timing includes the
+click, rendering, compositor copy and callback delivery; the arrival timestamp precedes image
+hashing. This is a conservative compositor-observation latency, not physical display scan-out.
+No renderer-completion callback, cached frame, replayed input or discarded sample can qualify it.
+Each sample records the matching copy's start and arrival times and the number of observations.
+The same observer, geometry, quality and disabled frame cache apply to both engines, with ten
+warm-up clicks followed by 600 samples per arm in three alternating pairs. Native p95 must remain
+no worse than contemporaneous TS.
+
+Electron 43.5.0's [frame subscriber](https://github.com/electron/electron/blob/v43.5.0/shell/browser/api/frame_subscriber.cc)
+limits capture to 30 FPS. A timeline update can consume a capture immediately before the newly
+rendered composition, delaying its observation until a refresh despite earlier compositor submission.
+Historical subscription measurements remain preserved, but cannot satisfy the current observer
+audit. Correcting the observer does not change the latency threshold or accept an earlier failed run.
