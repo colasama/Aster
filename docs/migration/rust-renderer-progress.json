@@ -393,72 +393,50 @@
     }
   },
   "last_cycle": {
-    "id": 190,
-    "time": "2026-10-23T23:49:36.435Z",
-    "updated_at": "2026-10-23T23:49:36.435Z",
+    "id": 191,
+    "time": "2026-10-24T05:52:27.970Z",
+    "updated_at": "2026-10-24T05:52:27.970Z",
     "milestone": "M12",
     "task": "M12-T9",
-    "increment": "overlap-retained-raster-and-native-glyph-preparation-with-submitted-gpu-work",
+    "increment": "remove-frame-subscriber-rate-limit-from-independent-preview-latency-observer",
     "outcome": "progress",
-    "commit": "3c738e7d42b2b39f55fb238260bd7c7fd467c20f",
+    "commit": "9ab2d3555a6990c660902787405f098c1fd207f7",
     "validation": {
-      "path": "artifacts/migration/cycle190-validation/report.json",
-      "sha256": "90024012fe1c799792ca0431cccab58cf3689055f0dd87d70a955017df6d70a9"
+      "path": "artifacts/migration/cycle191-validation/report.json",
+      "sha256": "09c6d4b5070454b4db4450bb106c8e20977bff99194c6fe80b22cc5561f90854"
     },
-    "paired_performance": {
-      "path": "artifacts/migration/cycle190-paired/report.json",
-      "sha256": "4d8ca41a7b8de6e099adf32303d80d4ecf7975b373c5b780313d3d8deb4cda50"
+    "diagnosis": {
+      "path": "artifacts/migration/cycle191-latency-diagnosis.json",
+      "sha256": "4d856b216618b47f5a7517fab88c3c3be188ec397f9589e8b5161556b0f9453b"
     },
     "validation_policy": "layered-development-verification-v1",
     "interrupted_full_run": {
-      "path": "artifacts/migration/cycle190-interrupted-full-run.json",
-      "sha256": "adb6c4b67188e0a929feab6489f13acc939eeb3fe725ee51e71d79a7faa5ad5e"
+      "path": "artifacts/migration/cycle191-interrupted-full-run.json",
+      "sha256": "527eed694686e4bb0ec1f1f3ac1d067d037ab1e56c313729f8a9ff8f212c639c"
     },
     "gates": [
       {
-        "id": "G4-owner-targeted",
+        "id": "G4-latency-targeted",
         "status": "passed",
-        "paired_runs": 4,
-        "workloads": [
-          {
-            "id": "owner-opening",
-            "ts_fps": 16.019794103744644,
-            "rust_fps": 19.455740767542082,
-            "higher_native_median_fps": true
-          },
-          {
-            "id": "owner-main",
-            "ts_fps": 29.96285324721627,
-            "rust_fps": 31.838684090713876,
-            "higher_native_median_fps": true
-          }
-        ],
+        "paired_runs": 3,
+        "samples_per_engine": 1800,
+        "native_p95_ms": 54.716789999991306,
+        "ts_p95_ms": 121.29003000000483,
         "evidence": {
-          "path": "artifacts/migration/cycle190-paired/report.json",
-          "sha256": "4d8ca41a7b8de6e099adf32303d80d4ecf7975b373c5b780313d3d8deb4cda50"
+          "path": "artifacts/migration/cycle191-validation/report.json",
+          "sha256": "09c6d4b5070454b4db4450bb106c8e20977bff99194c6fe80b22cc5561f90854"
         },
         "full_coverage": false
       },
       {
-        "id": "exact-output-and-lifecycle",
-        "status": "passed",
-        "owner_frames": 16,
-        "native_glyph_frames": 4,
-        "audio_reactive_frames": 8,
-        "evidence": {
-          "path": "artifacts/migration/cycle190-validation/report.json",
-          "sha256": "90024012fe1c799792ca0431cccab58cf3689055f0dd87d70a955017df6d70a9"
-        }
-      },
-      {
         "id": "lefthook-G0",
         "status": "passed",
-        "duration_ms": 357042
+        "duration_ms": 311690
       }
     ],
     "self_review": {
-      "result": "exact-original-output",
-      "scope": "Original plans, RGB and NV12 remain byte-identical for both owner ranges, native glyph motion blur and audio-reactive cases. No reference image, tolerance or acceptance threshold changed."
+      "result": "exact-original-calibration-pixels",
+      "scope": "All 12 calibration frames across six current arms match the original failed run in time, composition, bitmap and PNG hashes. Production renderer, reference images, tolerances and latency threshold are unchanged; two ineffective runtime experiments were reverted."
     },
     "deferred_gates": [
       "G1-full",
@@ -469,7 +447,7 @@
       "G6-full"
     ],
     "milestone_exit_satisfied": false,
-    "next_step": "Run pnpm migrate:verify --milestone M12 in full on the current committed source, then authenticate all required gates and final production delivery."
+    "next_step": "Run pnpm migrate:verify --milestone M12 in full with the corrected independent latency observer; authenticate all gates and final production delivery."
   },
   "milestones": [
     {
@@ -27841,7 +27819,7 @@
               },
               {
                 "path": "docs/BENCHMARKS.md",
-                "sha256": "d2b56deaf14dbd148bbeb61e9ec7b89bd5af78cf33a439ed809ae83c4fb79de0"
+                "sha256": "685e5a0bac660a5dcf83c87e468dc8cddccb1d4e7171f15fbcbc00df7d36b504"
               },
               {
                 "path": "docs/PRODUCTION_RENDER_CONTRACT.md",
@@ -27857,11 +27835,11 @@
               },
               {
                 "path": "docs/migration/VERIFICATION.md",
-                "sha256": "aac78a611e01df31ef2368a15a2ed9c9cd502b4bd0d1238d7e6134761f515360"
+                "sha256": "034ba50981d7987d27cf258bb0a66f39385cbe05f839f1ba65043d9647027013"
               }
             ],
-            "review": "Reviewed against native production routing, immutable queue/media ownership, codec and raster boundaries, restart/control behavior and current paired performance policy. Advanced-rendering roadmap remains explicitly future scope; project format and plugin ABI are unchanged. Resource-proof ownership/accounting paragraph re-reviewed after cycle 180; current hash pinned. Native nested-plan ownership and boundary validation paragraph re-reviewed after cycle 181; current hash pinned. Identical-limit native validation reuse reviewed after cycle 182; current hash pinned. Canonical JSON ownership and byte stability reviewed after cycle 183; current hash pinned. Native host-phase timing methodology reviewed after cycle 184; current hash pinned. Snapshot-wide conservative generator demand and typed nested-plan admission documentation reviewed after cycle 185; current hash pinned. One-frame CPU acquisition ownership, bounded lifetime and accounting reviewed after cycle 187; current hashes pinned. Historical producer archive, strict frozen runtime definitions and historical/current validator provenance reviewed in cycle 188. Exact M10 glyph-pair qualification, isolated comparison views and reconstructed checkpoint proofs reviewed in cycle 189. Bounded immutable CPU input prefetch, ordered raster history and unchanged GPU/output ownership reviewed in cycle 190.",
-            "updated_at": "2026-10-23T23:49:36.435Z"
+            "review": "Reviewed against native production routing, immutable queue/media ownership, codec and raster boundaries, restart/control behavior and current paired performance policy. Advanced-rendering roadmap remains explicitly future scope; project format and plugin ABI are unchanged. Resource-proof ownership/accounting paragraph re-reviewed after cycle 180; current hash pinned. Native nested-plan ownership and boundary validation paragraph re-reviewed after cycle 181; current hash pinned. Identical-limit native validation reuse reviewed after cycle 182; current hash pinned. Canonical JSON ownership and byte stability reviewed after cycle 183; current hash pinned. Native host-phase timing methodology reviewed after cycle 184; current hash pinned. Snapshot-wide conservative generator demand and typed nested-plan admission documentation reviewed after cycle 185; current hash pinned. One-frame CPU acquisition ownership, bounded lifetime and accounting reviewed after cycle 187; current hashes pinned. Historical producer archive, strict frozen runtime definitions and historical/current validator provenance reviewed in cycle 188. Exact M10 glyph-pair qualification, isolated comparison views and reconstructed checkpoint proofs reviewed in cycle 189. Bounded immutable CPU input prefetch, ordered raster history and unchanged GPU/output ownership reviewed in cycle 190. Independent serial compositor-copy observer, conservative timing, single-input exact visible-frame proof and unchanged paired p95 threshold reviewed in cycle 191.",
+            "updated_at": "2026-10-24T05:52:27.970Z"
           },
           "delivery_evidence": {
             "process": {
@@ -27903,15 +27881,19 @@
             "G6"
           ],
           "started_at": "2026-10-23T11:03:56.171Z",
-          "commit": "3c738e7d42b2b39f55fb238260bd7c7fd467c20f",
+          "commit": "9ab2d3555a6990c660902787405f098c1fd207f7",
           "validation": {
-            "path": "artifacts/migration/cycle190-validation/report.json",
-            "sha256": "90024012fe1c799792ca0431cccab58cf3689055f0dd87d70a955017df6d70a9"
+            "path": "artifacts/migration/cycle191-validation/report.json",
+            "sha256": "09c6d4b5070454b4db4450bb106c8e20977bff99194c6fe80b22cc5561f90854"
           },
-          "progress": "Full final run passed G0-G3, but balanced export medians remained below TS for both owner ranges. Extended the existing single-frame CPU prefetch to authenticated retained rasters and immutable native glyph recipes without advancing GPU allocation. Exact owner, motion-blur glyph and audio-reactive plans/RGB/NV12 plus lifecycle and all eight G0 checks pass. Four targeted balanced owner pairs now exceed TS. Current full G0-G6 and final production exit audit remain required.",
+          "progress": "Full G0-G3, all five paired export workloads and all seven preview throughput comparisons passed. The old 30 FPS Electron frame subscriber delayed observation of native frames already submitted to the compositor. Replaced only the latency observer with serial independent compositor copies, preserving exact visible-frame identity, real input, 600 samples and unchanged p95 criterion. Three complete targeted latency pairs and all eight G0 checks pass. Current full G0-G6 and final production exit audit remain required.",
           "paired_performance": {
             "path": "artifacts/migration/cycle190-paired/report.json",
             "sha256": "4d8ca41a7b8de6e099adf32303d80d4ecf7975b373c5b780313d3d8deb4cda50"
+          },
+          "latency_diagnosis": {
+            "path": "artifacts/migration/cycle191-latency-diagnosis.json",
+            "sha256": "4d856b216618b47f5a7517fab88c3c3be188ec397f9589e8b5161556b0f9453b"
           }
         }
       ],
@@ -2688802,6 +2688784,64 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Run pnpm migrate:verify --milestone M12 in full on the current committed source, then authenticate all required gates and final production delivery."
+    },
+    {
+      "cycle": 191,
+      "id": 191,
+      "time": "2026-10-24T05:52:27.970Z",
+      "updated_at": "2026-10-24T05:52:27.970Z",
+      "milestone": "M12",
+      "task": "M12-T9",
+      "increment": "remove-frame-subscriber-rate-limit-from-independent-preview-latency-observer",
+      "outcome": "progress",
+      "commit": "9ab2d3555a6990c660902787405f098c1fd207f7",
+      "validation": {
+        "path": "artifacts/migration/cycle191-validation/report.json",
+        "sha256": "09c6d4b5070454b4db4450bb106c8e20977bff99194c6fe80b22cc5561f90854"
+      },
+      "diagnosis": {
+        "path": "artifacts/migration/cycle191-latency-diagnosis.json",
+        "sha256": "4d856b216618b47f5a7517fab88c3c3be188ec397f9589e8b5161556b0f9453b"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "interrupted_full_run": {
+        "path": "artifacts/migration/cycle191-interrupted-full-run.json",
+        "sha256": "527eed694686e4bb0ec1f1f3ac1d067d037ab1e56c313729f8a9ff8f212c639c"
+      },
+      "gates": [
+        {
+          "id": "G4-latency-targeted",
+          "status": "passed",
+          "paired_runs": 3,
+          "samples_per_engine": 1800,
+          "native_p95_ms": 54.716789999991306,
+          "ts_p95_ms": 121.29003000000483,
+          "evidence": {
+            "path": "artifacts/migration/cycle191-validation/report.json",
+            "sha256": "09c6d4b5070454b4db4450bb106c8e20977bff99194c6fe80b22cc5561f90854"
+          },
+          "full_coverage": false
+        },
+        {
+          "id": "lefthook-G0",
+          "status": "passed",
+          "duration_ms": 311690
+        }
+      ],
+      "self_review": {
+        "result": "exact-original-calibration-pixels",
+        "scope": "All 12 calibration frames across six current arms match the original failed run in time, composition, bitmap and PNG hashes. Production renderer, reference images, tolerances and latency threshold are unchanged; two ineffective runtime experiments were reverted."
+      },
+      "deferred_gates": [
+        "G1-full",
+        "G2-full",
+        "G3-full",
+        "G4-full",
+        "G5-full",
+        "G6-full"
+      ],
+      "milestone_exit_satisfied": false,
+      "next_step": "Run pnpm migrate:verify --milestone M12 in full with the corrected independent latency observer; authenticate all gates and final production delivery."
     }
   ],
   "known_boundaries": [
