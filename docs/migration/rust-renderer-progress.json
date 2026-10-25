@@ -1,6 +1,6 @@
 {
   "spec": "docs/migration/RUST_RENDERER_MIGRATION.md",
-  "status": "running",
+  "status": "done",
   "base_branch": "main",
   "migration_branch": "feature/rust-renderer",
   "sync": {
@@ -393,33 +393,39 @@
     }
   },
   "last_cycle": {
-    "id": 192,
-    "time": "2026-10-24T22:13:16.424Z",
-    "updated_at": "2026-10-24T22:13:16.424Z",
+    "id": 193,
+    "time": "2026-10-25T06:27:43.270Z",
+    "updated_at": "2026-10-25T06:27:43.270Z",
     "milestone": "M12",
     "task": "M12-T9",
-    "increment": "authenticate-current-full-export-self-reviews-for-final-migration-acceptance",
-    "outcome": "progress",
-    "commit": "f4a421a02912946e7803cfedaf568206a5de5fd4",
+    "increment": "complete-final-migration-acceptance-with-authenticated-checkpoints",
+    "outcome": "passed",
+    "commit": "b05e17aaef59544a6e610ce755afe16f8c78311d",
     "validation": {
-      "path": "artifacts/migration/cycle192-validation/report.json",
-      "sha256": "259c989da921e4541ab1ca562dd4a9d052eeb1c4323cae39fa11e3ed0c208629"
+      "path": "artifacts/migration/verify-2026-10-24T22-14-50-963Z-1cb693cc.json",
+      "sha256": "98962d31734becf214351b37ec181139bceddaf9d10f892c9824351b23414e78"
     },
     "validation_policy": "layered-development-verification-v1",
-    "full_verification": {
-      "path": "artifacts/migration/verify-2026-10-24T05-53-09-267Z-b7dcd7cd.json",
-      "sha256": "c53a0e99050d744690b2ce1d3614e1ddd4c9dbc02001899124a5df966601ab89"
+    "checkpoints": {
+      "project_corpus": {
+        "path": "artifacts/migration/2026-10-24T05-53-09-267Z-b7dcd7cd/G2/report.json",
+        "sha256": "9e1ad872ad93b1d023c3481131fd4d597290082860699ee277467face409aeb5"
+      },
+      "export": {
+        "path": "artifacts/migration/2026-10-24T05-53-09-267Z-b7dcd7cd/G5/report.json",
+        "sha256": "b5c0cf75e25d60ea58b67b223ba445ecde6a4366c97f6f4a3255b41c5846ac5e"
+      }
     },
     "gates": [
       {
         "id": "G0",
         "status": "passed",
-        "duration_ms": 256265
+        "duration_ms": 266158
       },
       {
         "id": "G1",
         "status": "passed",
-        "duration_ms": 1802765
+        "duration_ms": 1861038
       },
       {
         "id": "G2",
@@ -428,40 +434,27 @@
       {
         "id": "G3",
         "status": "passed",
-        "duration_ms": 4162469
+        "duration_ms": 4234328
       },
       {
         "id": "G4",
         "status": "passed",
-        "duration_ms": 3533218
+        "duration_ms": 3634380
       },
       {
         "id": "G5",
-        "status": "incomplete"
+        "status": "passed"
       },
       {
         "id": "G6",
         "status": "passed",
-        "duration_ms": 390507
+        "duration_ms": 406356
       }
     ],
-    "self_review": {
-      "result": "authenticated-and-applied",
-      "cases": 268,
-      "records": 1037,
-      "accepted": 1027,
-      "rejected": 10,
-      "evidence": {
-        "path": "artifacts/migration/cycle192-self-review-audit.json",
-        "sha256": "b0611640e7b72ceaf48c826e94925f60534a8a2c7382f44829ccc0e8fa9c622f"
-      },
-      "scope": "Each pending current export contact sheet and heatmap inspected; exact raw metrics, image hashes, checkpoint and same-source/frame structural witness retained. Failed TS comparisons remain rejected and original flat failures unchanged."
-    },
-    "deferred_gates": [
-      "current-invocation-full-G0-G6-and-M12-exit"
-    ],
-    "milestone_exit_satisfied": false,
-    "next_step": "Run full pnpm migrate:verify --milestone M12 with authenticated cycle 192 G2 project-corpus and G5 export checkpoints. Reauthenticate current reviews and require every current gate plus final production exit to pass before marking done."
+    "milestone_exit_satisfied": true,
+    "production_preview_acceptance": true,
+    "production_export_acceptance": true,
+    "next_step": "Migration complete: all section 11 conditions are satisfied."
   },
   "milestones": [
     {
@@ -27609,7 +27602,7 @@
     {
       "id": "M12",
       "title": "Retire the TS GPU renderer",
-      "status": "in_progress",
+      "status": "done",
       "gates": [
         "G0",
         "G1",
@@ -27883,7 +27876,7 @@
           "id": "M12-T9",
           "title": "Complete final migration acceptance",
           "scope": "Run and audit every required gate on the primary machine, authenticate reviews and production routing, then mark M0-M12 and the ledger done only after section 11 holds.",
-          "status": "in_progress",
+          "status": "done",
           "estimated_implementation_hours": 1,
           "required_gates": [
             "G0",
@@ -27895,12 +27888,12 @@
             "G6"
           ],
           "started_at": "2026-10-23T11:03:56.171Z",
-          "commit": "f4a421a02912946e7803cfedaf568206a5de5fd4",
+          "commit": "b05e17aaef59544a6e610ce755afe16f8c78311d",
           "validation": {
-            "path": "artifacts/migration/cycle192-validation/report.json",
-            "sha256": "259c989da921e4541ab1ca562dd4a9d052eeb1c4323cae39fa11e3ed0c208629"
+            "path": "artifacts/migration/verify-2026-10-24T22-14-50-963Z-1cb693cc.json",
+            "sha256": "98962d31734becf214351b37ec181139bceddaf9d10f892c9824351b23414e78"
           },
-          "progress": "Current full G0-G4 and G6 passed. G5 completed all 337 cases with no failed case, but current-source layered reviews required explicit admission. Individually inspected every pending frame, accepted qualifying native residuals and rejected failing retained-TS comparisons without changing references or thresholds. Authenticated and applied all new review records; full post-application G0 passed. Resume authenticated G2/G5 checkpoints in the next complete M12 invocation; final current-invocation G0-G6 and section 11 exit remain required.",
+          "progress": "All seven current full gates and the final M12 production exit audit passed. Complete native project and preview coverage, authenticated export self-reviews, paired native performance, independent latency, production routing and synchronized documentation satisfy section 11. Historical failed reports and rejected comparisons remain unchanged.",
           "paired_performance": {
             "path": "artifacts/migration/cycle190-paired/report.json",
             "sha256": "4d8ca41a7b8de6e099adf32303d80d4ecf7975b373c5b780313d3d8deb4cda50"
@@ -27908,10 +27901,21 @@
           "latency_diagnosis": {
             "path": "artifacts/migration/cycle191-latency-diagnosis.json",
             "sha256": "4d856b216618b47f5a7517fab88c3c3be188ec397f9589e8b5161556b0f9453b"
-          }
+          },
+          "completed_at": "2026-10-25T06:27:43.270Z"
         }
       ],
-      "started_at": "2026-10-23T00:52:32.391Z"
+      "started_at": "2026-10-23T00:52:32.391Z",
+      "completed_at": "2026-10-25T06:27:43.270Z",
+      "commit": "b05e17aaef59544a6e610ce755afe16f8c78311d",
+      "validation": {
+        "path": "artifacts/migration/verify-2026-10-24T22-14-50-963Z-1cb693cc.json",
+        "sha256": "98962d31734becf214351b37ec181139bceddaf9d10f892c9824351b23414e78"
+      },
+      "exit_evidence": {
+        "path": "artifacts/migration/verify-2026-10-24T22-14-50-963Z-1cb693cc.json",
+        "sha256": "98962d31734becf214351b37ec181139bceddaf9d10f892c9824351b23414e78"
+      }
     }
   ],
   "tolerance_overrides": [
@@ -2852666,6 +2852670,71 @@
       ],
       "milestone_exit_satisfied": false,
       "next_step": "Run full pnpm migrate:verify --milestone M12 with authenticated cycle 192 G2 project-corpus and G5 export checkpoints. Reauthenticate current reviews and require every current gate plus final production exit to pass before marking done."
+    },
+    {
+      "cycle": 193,
+      "id": 193,
+      "time": "2026-10-25T06:27:43.270Z",
+      "updated_at": "2026-10-25T06:27:43.270Z",
+      "milestone": "M12",
+      "task": "M12-T9",
+      "increment": "complete-final-migration-acceptance-with-authenticated-checkpoints",
+      "outcome": "passed",
+      "commit": "b05e17aaef59544a6e610ce755afe16f8c78311d",
+      "validation": {
+        "path": "artifacts/migration/verify-2026-10-24T22-14-50-963Z-1cb693cc.json",
+        "sha256": "98962d31734becf214351b37ec181139bceddaf9d10f892c9824351b23414e78"
+      },
+      "validation_policy": "layered-development-verification-v1",
+      "checkpoints": {
+        "project_corpus": {
+          "path": "artifacts/migration/2026-10-24T05-53-09-267Z-b7dcd7cd/G2/report.json",
+          "sha256": "9e1ad872ad93b1d023c3481131fd4d597290082860699ee277467face409aeb5"
+        },
+        "export": {
+          "path": "artifacts/migration/2026-10-24T05-53-09-267Z-b7dcd7cd/G5/report.json",
+          "sha256": "b5c0cf75e25d60ea58b67b223ba445ecde6a4366c97f6f4a3255b41c5846ac5e"
+        }
+      },
+      "gates": [
+        {
+          "id": "G0",
+          "status": "passed",
+          "duration_ms": 266158
+        },
+        {
+          "id": "G1",
+          "status": "passed",
+          "duration_ms": 1861038
+        },
+        {
+          "id": "G2",
+          "status": "passed"
+        },
+        {
+          "id": "G3",
+          "status": "passed",
+          "duration_ms": 4234328
+        },
+        {
+          "id": "G4",
+          "status": "passed",
+          "duration_ms": 3634380
+        },
+        {
+          "id": "G5",
+          "status": "passed"
+        },
+        {
+          "id": "G6",
+          "status": "passed",
+          "duration_ms": 406356
+        }
+      ],
+      "milestone_exit_satisfied": true,
+      "production_preview_acceptance": true,
+      "production_export_acceptance": true,
+      "next_step": "Migration complete: all section 11 conditions are satisfied."
     }
   ],
   "known_boundaries": [
@@ -2853239,5 +2853308,6 @@
       "reviewed_at": "2026-10-18T07:31:07.849Z",
       "notes": "Directly inspected encoded and preencode contact sheets and heatmaps. Exact native RGB and passing raw-plane/preencode checks preserve glyph geometry. Only encoded ink bounds are substituted; measured shift is zero and every other encoded check, stream timing and relative VMAF passes. Diagnostic scope only."
     }
-  ]
+  ],
+  "completed_at": "2026-10-25T06:27:43.270Z"
 }
