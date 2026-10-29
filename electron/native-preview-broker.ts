@@ -86,7 +86,9 @@ export class NativePreviewBroker {
       texture = sharedTexture.importSharedTexture({
         textureInfo: {
           codedSize: { width: ready.width, height: ready.height },
-          handle: { ntHandle: Buffer.from(reply.nt_handle) },
+          handle: Buffer.isBuffer(reply.ioSurface)
+            ? { ioSurface: reply.ioSurface }
+            : { ntHandle: Buffer.from(reply.nt_handle ?? []) },
           pixelFormat: "bgra",
           colorSpace: { primaries: "bt709", transfer: "srgb", matrix: "rgb", range: "full" },
           timestamp: reply.sequence,

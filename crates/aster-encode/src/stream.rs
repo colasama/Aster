@@ -80,6 +80,8 @@ pub struct EncoderStatistics {
 pub struct HardwareEncoder {
     #[cfg(windows)]
     stream: crate::mf_stream::MfEncoder,
+    #[cfg(target_os = "macos")]
+    stream: crate::videotoolbox::VtEncoder,
 }
 
 impl HardwareEncoder {
@@ -147,12 +149,33 @@ impl HardwareEncoder {
         self.stream.push_shared(frame, surface, cancel)
     }
 
+    #[cfg(target_os = "macos")]
+    pub fn new_macos(
+        video: ExportVideoConfig,
+        frames: u64,
+        options: EncoderOptions,
+    ) -> Result<Self, EncodeError> {
+        Ok(Self {
+            stream: crate::videotoolbox::VtEncoder::new(video, frames, options)?,
+        })
+    }
+
+    #[cfg(target_os = "macos")]
+    pub fn push_surface(
+        &mut self,
+        frame: u64,
+        surface: &aster_macos::Surface,
+        cancel: &AtomicBool,
+    ) -> Result<Vec<EncodedPacket>, EncodeError> {
+        self.stream.push_surface(frame, surface, cancel)
+    }
+
     pub fn finish(&mut self, cancel: &AtomicBool) -> Result<Vec<EncodedPacket>, EncodeError> {
-        #[cfg(windows)]
+        #[cfg(any(windows, target_os = "macos"))]
         {
             self.stream.finish(cancel)
         }
-        #[cfg(not(windows))]
+        #[cfg(not(any(windows, target_os = "macos")))]
         {
             let _ = cancel;
             Err(EncodeError::Unsupported(
@@ -162,16 +185,16 @@ impl HardwareEncoder {
     }
 
     pub fn cancel(&mut self) {
-        #[cfg(windows)]
+        #[cfg(any(windows, target_os = "macos"))]
         self.stream.cancel();
     }
 
     pub fn statistics(&self) -> EncoderStatistics {
-        #[cfg(windows)]
+        #[cfg(any(windows, target_os = "macos"))]
         {
             self.stream.statistics.clone()
         }
-        #[cfg(not(windows))]
+        #[cfg(not(any(windows, target_os = "macos")))]
         {
             EncoderStatistics::default()
         }

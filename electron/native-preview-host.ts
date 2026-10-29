@@ -21,7 +21,7 @@ interface HostOptions {
   enabled: boolean;
   temporaryRoot: string;
   binary: string;
-  compiler: string;
+  compiler?: string;
   ffmpeg: string;
   ffprobe: string;
   raster: PreviewSnapshotRuntime;
@@ -111,12 +111,12 @@ export class NativePreviewHost {
     return (
       !this.#disposed &&
       this.options.enabled &&
-      process.platform === "win32" &&
+      (process.platform === "win32" || process.platform === "darwin") &&
       this.options.trusted(event.sender) &&
       event.senderFrame === event.sender.mainFrame &&
       [
         this.options.binary,
-        this.options.compiler,
+        ...(this.options.compiler ? [this.options.compiler] : []),
         this.options.ffmpeg,
         this.options.ffprobe,
         this.options.raster.bundle,
@@ -217,8 +217,7 @@ class PreviewHostSession {
             this.options.ffmpeg,
             "--ffprobe",
             this.options.ffprobe,
-            "--dxcompiler",
-            this.options.compiler,
+            ...(this.options.compiler ? ["--dxcompiler", this.options.compiler] : []),
             "--gpu-budget-bytes",
             String(snapshot.memoryBudgetMb * 1048576),
           ],

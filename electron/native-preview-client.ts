@@ -1,4 +1,5 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
+import { MacosPreviewSurface } from "./macos-preview-surface.js";
 
 export type NativePreviewSource =
   | { kind: "plan"; sha256: string }
@@ -25,7 +26,9 @@ export interface NativePreviewFrame {
   sequence: number;
   generation: number;
   time: number | null;
-  nt_handle: number[];
+  nt_handle?: number[];
+  surface_sequence?: number;
+  ioSurface?: Buffer;
   render_and_share_ms: number;
   timings?: { prepare_ms: number; raster_ms: number; render_ms: number; share_ms: number };
 }
@@ -44,6 +47,7 @@ interface Pending {
 export class NativePreviewClient {
   readonly ready: Promise<NativePreviewReady>;
   readonly #child: ChildProcessWithoutNullStreams;
+  readonly #macos?: MacosPreviewSurface;
   readonly #timeout: number;
   readonly #exit: Promise<void>;
   readonly #leases = new Set<number>();
@@ -63,13 +67,21 @@ export class NativePreviewClient {
     args: readonly string[];
     cwd?: string;
     timeoutMs?: number;
+    platform?: NodeJS.Platform;
   }) {
     this.#timeout = options.timeoutMs ?? 120000;
     if (!Number.isSafeInteger(this.#timeout) || this.#timeout < 1 || this.#timeout > 300000)
       throw new Error("Invalid preview timeout");
+    if ((options.platform ?? process.platform) === "darwin")
+      this.#macos = new MacosPreviewSurface();
     this.#child = spawn(
       options.executable,
-      [...options.args, "--consumer-pid", String(process.pid)],
+      [
+        ...options.args,
+        "--consumer-pid",
+        String(process.pid),
+        ...(this.#macos ? ["--mach-service", this.#macos.service] : []),
+      ],
       { cwd: options.cwd, stdio: ["pipe", "pipe", "pipe"], windowsHide: true },
     );
     this.ready = this.#receive()
@@ -108,6 +120,7 @@ export class NativePreviewClient {
     this.#exit = new Promise((resolve) =>
       this.#child.once("close", (code) => {
         this.#closed = true;
+        this.#macos?.close();
         if (!this.#stopping || code !== 0 || this.#pending)
           this.#fail(new Error(`Native preview exited (${code}): ${this.#stderr}`));
         resolve();
@@ -207,14 +220,28 @@ export class NativePreviewClient {
         reply.sequence !== sequence ||
         reply.generation !== ready.generation ||
         reply.time !== (time ?? null) ||
-        !Array.isArray(reply.nt_handle) ||
-        reply.nt_handle.length !== 8 ||
-        !reply.nt_handle.every((v) => Number.isInteger(v) && v >= 0 && v <= 255) ||
-        !reply.nt_handle.some((v) => v !== 0) ||
+        (this.#macos
+          ? reply.surface_sequence !== sequence
+          : !Array.isArray(reply.nt_handle) ||
+            reply.nt_handle.length !== 8 ||
+            !reply.nt_handle.every((v) => Number.isInteger(v) && v >= 0 && v <= 255) ||
+            !reply.nt_handle.some((v) => v !== 0)) ||
         !Number.isFinite(reply.render_and_share_ms) ||
         reply.render_and_share_ms < 0
       )
         throw this.#fail(new Error("Invalid native preview frame identity"));
+      if (this.#macos) {
+        try {
+          reply.ioSurface = this.#macos.receive(
+            this.#child.pid ?? 0,
+            sequence,
+            ready.width,
+            ready.height,
+          );
+        } catch (error) {
+          throw this.#fail(error);
+        }
+      }
       this.#leases.add(sequence);
       return reply;
     });
@@ -226,6 +253,7 @@ export class NativePreviewClient {
       const reply = await this.#exchange({ type: "release", sequence });
       if (reply.type !== "released" || reply.sequence !== sequence)
         throw this.#fail(new Error("Preview release acknowledgement differs"));
+      this.#macos?.release(sequence);
       this.#leases.delete(sequence);
     });
   }

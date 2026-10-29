@@ -155,14 +155,19 @@ impl NativeProjectExport {
             elapsed_ms: started.elapsed().as_millis(),
         });
         let renderer = &mut self.session.gpu.renderer;
+        #[cfg(not(target_os = "macos"))]
         let luid = renderer.adapter_luid().ok_or_else(|| {
             ProjectRenderError::Invalid(
                 "hardware export requires a supported adapter identity".into(),
             )
         })?;
+        #[cfg(not(target_os = "macos"))]
         renderer.prepare_nv12(video.size)?;
-        let mut shared = false;
+        let shared;
+        #[cfg(not(target_os = "macos"))]
         let mut transport_reason = None;
+        #[cfg(target_os = "macos")]
+        let transport_reason = None;
         #[cfg(windows)]
         let shared_encoder = (|| -> Result<HardwareEncoder, ProjectRenderError> {
             renderer.prepare_shared_nv12(
@@ -178,7 +183,16 @@ impl NativeProjectExport {
                 self.encoder_options.clone(),
             )?)
         })();
-        #[cfg(not(windows))]
+        #[cfg(target_os = "macos")]
+        let shared_encoder = (|| -> Result<HardwareEncoder, ProjectRenderError> {
+            renderer.prepare_shared_preview(video.size, 1)?;
+            Ok(HardwareEncoder::new_macos(
+                video.clone(),
+                count,
+                self.encoder_options.clone(),
+            )?)
+        })();
+        #[cfg(not(any(windows, target_os = "macos")))]
         let shared_encoder: Result<HardwareEncoder, ProjectRenderError> = Err(
             ProjectRenderError::Invalid("shared encoder unavailable on this platform".into()),
         );
@@ -188,9 +202,22 @@ impl NativeProjectExport {
                 encoder
             }
             Err(error) => {
-                transport_reason = Some(error.to_string());
+                #[cfg(not(target_os = "macos"))]
+                {
+                    shared = false;
+                }
+                #[cfg(not(target_os = "macos"))]
+                {
+                    transport_reason = Some(error.to_string());
+                }
                 #[cfg(windows)]
                 renderer.release_shared_nv12()?;
+                #[cfg(target_os = "macos")]
+                {
+                    renderer.release_shared_preview()?;
+                    return Err(error);
+                }
+                #[cfg(not(target_os = "macos"))]
                 HardwareEncoder::new(luid, video.clone(), count, self.encoder_options.clone())?
             }
         };
@@ -303,7 +330,32 @@ impl NativeProjectExport {
                         timings.encoder_submit_ms += phase.elapsed().as_secs_f64() * 1000.0;
                         packets
                     }
-                    #[cfg(not(windows))]
+                    #[cfg(target_os = "macos")]
+                    {
+                        let surface = self.session.gpu.renderer.share_preview(&rendered)?;
+                        timings.output_completion_ms += phase.elapsed().as_secs_f64() * 1000.0;
+                        if let Some(observer) = observer.as_deref_mut() {
+                            let phase = Instant::now();
+                            observer.observe(
+                                index as u64,
+                                &frame,
+                                &prepared,
+                                &rendered,
+                                &mut self.session.gpu.renderer,
+                                None,
+                            )?;
+                            timings.observer_ms += phase.elapsed().as_secs_f64() * 1000.0;
+                        }
+                        let phase = Instant::now();
+                        let packets = encoder.push_surface(
+                            index as u64,
+                            surface.surface(),
+                            self.control.cancellation.as_ref(),
+                        )?;
+                        timings.encoder_submit_ms += phase.elapsed().as_secs_f64() * 1000.0;
+                        packets
+                    }
+                    #[cfg(not(any(windows, target_os = "macos")))]
                     {
                         return Err(ProjectRenderError::Invalid(
                             "shared encoder unavailable".into(),
@@ -392,7 +444,11 @@ impl NativeProjectExport {
             output_bytes: mux.bytes_written,
             elapsed_ms: started.elapsed().as_millis(),
             transport: if shared {
-                "nv12-shared"
+                if cfg!(target_os = "macos") {
+                    "iosurface-shared"
+                } else {
+                    "nv12-shared"
+                }
             } else {
                 "nv12-readback"
             },

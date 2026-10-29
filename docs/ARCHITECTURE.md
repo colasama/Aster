@@ -1659,6 +1659,28 @@ one streaming lifetime; the first sample after drain declares a discontinuity.
 The authored-project export worker uses this encoder qualification before native delivery.
 Electron validates complete output receipts and publishes the job's output set atomically.
 
+On macOS, `aster-macos` owns the thin IOSurface, Mach-port and VideoToolbox platform boundary.
+Apple framework calls use the `objc2` family of Rust bindings and retained resource wrappers;
+Mach transport uses `mach2`. The optional `node-addon` feature exposes the same receiver through
+stable Node-API in a Rust `cdylib`, without a separate C++ build chain.
+`aster-renderer` wraps private BGRA IOSurfaces as Metal textures and charges their aligned
+allocation sizes to its GPU budget. Preview uses a bounded pool with the same immutable lease
+rules as Windows. Only Mach send rights cross the process boundary: a private, randomly named
+receiver checks the kernel audit-token PID, sequence, dimensions and pixel format before giving
+Electron a process-local IOSurface reference. The Node-API module lives only in the main process;
+renderer IPC receives a VideoFrame, never a native pointer. Electron's final GPU-reference release
+acknowledges the producer lease before a slot can be reused. Failed or closed sessions retire the
+receiver and all outstanding native references.
+
+Authored-project MP4 export on macOS copies completed Metal output into one reserved BGRA
+IOSurface and passes it directly to a hardware-required VideoToolbox H.264 session. No final
+pixel data is mapped to the CPU. The initial implementation drains each submitted frame before
+reusing its surface; this bounds memory and preserves ordered rational timestamps at the cost
+of encoder parallelism. Compressed samples become bounded Annex-B packets for the existing
+FFmpeg mux/audio and atomic-publication path. Receipts identify `iosurface-shared` transport
+and the VideoToolbox hardware encoder. Windows keeps its DX12/NV12/Media Foundation path;
+Linux native preview and hardware export remain unavailable.
+
 `NativeRenderer::prepare_nv12` reserves a fixed-size conversion slot before export frames are
 rendered. The shared WGSL conversion reads display BGRA on the renderer device and packs BT.709
 limited-range NV12 into GPU storage. A retained staging buffer supports the in-process readback

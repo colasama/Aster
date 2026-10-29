@@ -53,7 +53,7 @@ pub(crate) struct ProjectIdentity {
 enum ProjectAdmission {
     Schedule(ProjectScheduleAdmission),
     Export(ProjectExportAdmission),
-    #[cfg(windows)]
+    #[cfg(any(windows, target_os = "macos"))]
     Preview(ProjectPreviewAdmission),
 }
 
@@ -68,7 +68,7 @@ pub(crate) struct ProjectExportAdmission {
     pub control: ProjectExportControl,
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 pub(crate) struct ProjectPreviewAdmission {
     pub frame: FramePlanRequest,
     pub unavailable_generators: Vec<aster_eval::UnavailableGenerator>,
@@ -116,7 +116,7 @@ impl ProjectRuntimeArgs {
         )
     }
 
-    #[cfg(windows)]
+    #[cfg(any(windows, target_os = "macos"))]
     pub fn open_preview(
         &self,
         document: NativeProjectDocument,
@@ -166,7 +166,7 @@ impl ProjectRuntimeArgs {
                 .frames
                 .first()
                 .ok_or("native export schedule is empty")?,
-            #[cfg(windows)]
+            #[cfg(any(windows, target_os = "macos"))]
             ProjectAdmission::Preview(admission) => admission.frame.clone(),
         };
         let identity = ProjectIdentity {
@@ -204,7 +204,7 @@ impl ProjectRuntimeArgs {
                 self.media.clone(),
                 &admission.control,
             )?,
-            #[cfg(windows)]
+            #[cfg(any(windows, target_os = "macos"))]
             ProjectAdmission::Preview(admission) => NativeProjectFileMedia::new_preview(
                 document,
                 &admission.frame,
@@ -227,7 +227,7 @@ impl ProjectRuntimeArgs {
         )?;
         let catalog = NativeProjectGenerators::catalog(installed, self.project.bundle.clone())?;
         let catalog = match &admission {
-            #[cfg(windows)]
+            #[cfg(any(windows, target_os = "macos"))]
             ProjectAdmission::Preview(preview) => {
                 catalog.with_unavailable(preview.unavailable_generators.clone())?
             }

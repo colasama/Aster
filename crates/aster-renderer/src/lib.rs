@@ -56,7 +56,10 @@ mod shared_nv12;
 pub use shared_nv12::SharedNv12Frame;
 #[cfg(windows)]
 mod shared_preview;
-#[cfg(windows)]
+#[cfg(target_os = "macos")]
+#[path = "shared_preview_macos.rs"]
+mod shared_preview;
+#[cfg(any(windows, target_os = "macos"))]
 pub use shared_preview::SharedPreviewFrame;
 #[cfg(windows)]
 mod preview_consumer;

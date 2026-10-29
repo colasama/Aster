@@ -37,7 +37,7 @@
     "electron:bridge:build": "cargo build --release -p aster-desktop-bridge",
     "electron:renderer:build": "cargo build --release -p aster-render-cli",
     "electron:bridge:dev": "cargo build -p aster-desktop-bridge",
-    "electron:compile": "node -e \"require('node:fs').rmSync('dist-electron',{recursive:true,force:true})\" && tsc -p electron/tsconfig.json",
+    "electron:compile": "node -e \"require('node:fs').rmSync('dist-electron',{recursive:true,force:true})\" && tsc -p electron/tsconfig.json && node scripts/build-macos-surface.mjs",
     "test": "vitest run",
     "test:packaging": "node --test scripts/prepare-ffmpeg.test.mjs scripts/download-ffmpeg.test.mjs scripts/electron-download-compat.test.mjs",
     "test:migration": "node --test --test-concurrency=4 scripts/migration/*.test.mjs scripts/parity/*.test.mjs scripts/performance/*.test.mjs",
@@ -155,6 +155,9 @@
       "icon": "build/icons/icon.png",
       "category": "Graphics",
       "artifactName": "Aster-${version}-linux-${arch}.${ext}"
-    }
+    },
+    "asarUnpack": [
+      "dist-electron/native/*.node"
+    ]
   }
 }

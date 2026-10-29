@@ -21,7 +21,7 @@ export interface NativeExportJobOptions {
   temporaryRoot: string;
   outputPath: string;
   binary: string;
-  compiler: string;
+  compiler?: string;
   ffmpeg: string;
   ffprobe: string;
 }
@@ -109,8 +109,7 @@ export class NativeExportJob {
         const prepared = await prepareNativeEncoder({
           binary,
           args: [
-            "--dxcompiler",
-            compiler,
+            ...(compiler ? ["--dxcompiler", compiler] : []),
             "--media-authorizations",
             this.#media.path,
             "--ffmpeg",

@@ -1,6 +1,8 @@
 use aster_render::AdapterDiagnostics;
 use aster_render_ir::Extent2d;
-use aster_renderer::{PreviewConsumer, SharedPreviewFrame};
+#[cfg(windows)]
+use aster_renderer::PreviewConsumer;
+use aster_renderer::SharedPreviewFrame;
 use clap::Args;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -8,7 +10,7 @@ use std::{
     io::{self, BufRead, Read, Write},
     path::{Path, PathBuf},
     process::ExitCode,
-    time::{Duration, Instant},
+    time::Instant,
 };
 
 #[derive(Debug, Args)]
@@ -16,6 +18,9 @@ pub(crate) struct PreviewTransportArgs {
     /// Supplied only by the trusted main process which imports the shared texture.
     #[arg(long)]
     consumer_pid: u32,
+    #[cfg(target_os = "macos")]
+    #[arg(long)]
+    mach_service: String,
     #[arg(long, default_value_t = 2)]
     pub slots: u32,
     #[arg(long, default_value_t = 4096)]
@@ -108,7 +113,10 @@ enum PreviewReply {
         sequence: u64,
         generation: u64,
         time: Option<f64>,
+        #[cfg(windows)]
         nt_handle: Vec<u8>,
+        #[cfg(target_os = "macos")]
+        surface_sequence: u64,
         render_and_share_ms: f64,
         #[serde(skip_serializing_if = "Option::is_none")]
         timings: Option<PreviewFrameTimings>,
@@ -136,12 +144,13 @@ impl PreviewTransportArgs {
         if !(64..=65_536).contains(&self.max_control_bytes) || !(1..=3).contains(&self.slots) {
             return Err("invalid preview transport limits".into());
         }
+        #[cfg(windows)]
         let consumer = PreviewConsumer::open(
             self.consumer_pid,
             &std::env::current_exe()?,
             self.slots,
             self.max_control_bytes,
-            Duration::from_millis(self.handle_guard_timeout_ms),
+            std::time::Duration::from_millis(self.handle_guard_timeout_ms),
         )?;
         let mut output = io::BufWriter::new(io::stdout().lock());
         let mut generation = 1;
@@ -195,15 +204,26 @@ impl PreviewTransportArgs {
                     {
                         return Err("preview generation extent changed".into());
                     }
+                    #[cfg(windows)]
                     let remote = consumer.transfer(shared)?;
+                    #[cfg(windows)]
                     let nt_handle = remote.handle_bytes();
+                    #[cfg(windows)]
                     leases.insert(sequence, remote);
+                    #[cfg(target_os = "macos")]
+                    {
+                        shared.surface().send(&self.mach_service, sequence)?;
+                        leases.insert(sequence, shared);
+                    }
                     latest = sequence;
                     PreviewReply::Frame {
                         sequence,
                         generation,
                         time,
+                        #[cfg(windows)]
                         nt_handle,
+                        #[cfg(target_os = "macos")]
+                        surface_sequence: sequence,
                         render_and_share_ms: started.elapsed().as_secs_f64() * 1000.0,
                         timings: produced.timings,
                     }

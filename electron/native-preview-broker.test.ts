@@ -85,3 +85,26 @@ test("a rejected producer release fails presentation and retires the transport",
   await rejected;
   expect(client.abort).toHaveBeenCalledOnce();
 });
+
+test("IOSurface imports stay owned until Electron releases every GPU reference", async () => {
+  const { broker, client, texture, released } = fixture();
+  const pointer = Buffer.from([1, 0, 0, 0, 0, 0, 0, 0]);
+  client.present.mockResolvedValue({
+    sequence: 1,
+    generation: 1,
+    time: 0.5,
+    ioSurface: pointer,
+    render_and_share_ms: 1,
+  });
+  const pending = broker.present({} as WebFrameMain, {}, 0.5);
+  await vi.waitFor(() => expect(texture.release).toHaveBeenCalledOnce());
+  expect(sharedTexture.importSharedTexture).toHaveBeenCalledWith(
+    expect.objectContaining({
+      textureInfo: expect.objectContaining({ handle: { ioSurface: pointer } }),
+    }),
+  );
+  expect(client.release).not.toHaveBeenCalled();
+  released();
+  await pending;
+  expect(client.release).toHaveBeenCalledWith(1);
+});

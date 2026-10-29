@@ -21,7 +21,10 @@ impl NativeProjectExport {
         // Output reservations must precede render targets so the same GPU budget applies to
         // both warm-up and export. Repeated preparation in run() reuses these allocations.
         let renderer = &mut self.session.gpu.renderer;
+        #[cfg(not(target_os = "macos"))]
         renderer.prepare_nv12(self.schedule.video.size)?;
+        #[cfg(target_os = "macos")]
+        renderer.prepare_shared_preview(self.schedule.video.size, 1)?;
         #[cfg(windows)]
         if renderer
             .prepare_shared_nv12(

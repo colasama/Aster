@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { createHash } from "node:crypto";
 import { EventEmitter } from "node:events";
+import { join, resolve } from "node:path";
 import { setImmediate as nextTurn } from "node:timers/promises";
 import type { WebContents } from "electron";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
@@ -15,6 +16,7 @@ interface Deferred {
 
 const mocks = vi.hoisted(() => ({
   handlers: new Map<string, Handler>(),
+  clients: [] as Array<{ args: readonly string[] }>,
   brokers: [] as Array<{ close: ReturnType<typeof vi.fn>; drain: Deferred }>,
   nextReadyError: undefined as Error | undefined,
   nextReadyGate: undefined as Deferred | undefined,
@@ -63,7 +65,8 @@ vi.mock("./native-preview-client.js", () => ({
       },
     };
     ready: Promise<unknown>;
-    constructor() {
+    constructor(options: { args: readonly string[] }) {
+      mocks.clients.push(options);
       const failure = mocks.nextReadyError;
       const gate = mocks.nextReadyGate;
       mocks.nextReadyError = undefined;
@@ -121,6 +124,7 @@ const snapshot = {
   height: 16,
   memoryBudgetMb: 64,
 };
+const temporaryRoot = resolve("artifacts/aster-preview-capacity-test");
 let host: NativePreviewHost;
 let editor: WebContents;
 
@@ -136,6 +140,7 @@ async function open(contents = editor): Promise<{ id: string }> {
 
 beforeEach(() => {
   mocks.handlers.clear();
+  mocks.clients.length = 0;
   mocks.brokers.length = 0;
   mocks.nextReadyError = undefined;
   mocks.nextReadyGate = undefined;
@@ -146,7 +151,7 @@ beforeEach(() => {
   editor = owner();
   host = new NativePreviewHost({
     enabled: true,
-    temporaryRoot: "C:\\aster-preview-capacity-test",
+    temporaryRoot,
     binary: "renderer.exe",
     compiler: "compiler.dll",
     ffmpeg: "ffmpeg.exe",
@@ -165,118 +170,138 @@ afterEach(async () => {
   vi.clearAllMocks();
 });
 
-describe.skipIf(process.platform !== "win32")("native preview owner capacity", () => {
-  test("IPC close revokes access immediately and holds capacity until directory cleanup ends", async () => {
-    const sessions = await Promise.all(Array.from({ length: 4 }, () => open()));
-    mocks.cleanup = deferred();
-    const closing = invoke("close", editor, sessions[0].id);
-    await expect(invoke("present", editor, sessions[0].id, 0, 1)).rejects.toThrow("ownership");
-    await expect(invoke("replace", editor, sessions[0].id, snapshot)).rejects.toThrow("ownership");
-    await expect(open()).rejects.toThrow("viewer limit");
-    mocks.brokers[0].drain.resolve();
-    await Promise.resolve();
-    await expect(open()).rejects.toThrow("viewer limit");
-    mocks.cleanup.resolve();
-    await closing;
-    await expect(open()).resolves.toHaveProperty("id");
-  });
+describe.skipIf(process.platform !== "win32" && process.platform !== "darwin")(
+  "native preview owner capacity",
+  () => {
+    test.each([undefined, "compiler.dll"])(
+      "launch arguments match optional compiler %s",
+      async (compiler) => {
+        host.options.compiler = compiler;
+        await open();
+        const args = mocks.clients[0].args;
+        if (compiler)
+          expect(
+            args.slice(args.indexOf("--dxcompiler"), args.indexOf("--dxcompiler") + 2),
+          ).toEqual(["--dxcompiler", compiler]);
+        else expect(args).not.toContain("--dxcompiler");
+        expect(args).not.toContain(undefined);
+      },
+    );
 
-  test.each(["navigation", "render-process-gone", "destroyed"])(
-    "%s retains draining capacity and repeated retirement does not close twice",
-    async (reason) => {
+    test("IPC close revokes access immediately and holds capacity until directory cleanup ends", async () => {
       const sessions = await Promise.all(Array.from({ length: 4 }, () => open()));
-      const retire = () => {
-        if (reason === "navigation")
-          editor.emit("did-start-navigation", {}, "about:blank", false, true);
-        else editor.emit(reason);
-      };
-      retire();
-      retire();
-      for (const session of sessions)
-        await expect(invoke("close", editor, session.id)).rejects.toThrow("ownership");
+      mocks.cleanup = deferred();
+      const closing = invoke("close", editor, sessions[0].id);
+      await expect(invoke("present", editor, sessions[0].id, 0, 1)).rejects.toThrow("ownership");
+      await expect(invoke("replace", editor, sessions[0].id, snapshot)).rejects.toThrow(
+        "ownership",
+      );
       await expect(open()).rejects.toThrow("viewer limit");
-      for (const broker of mocks.brokers) expect(broker.close).toHaveBeenCalledOnce();
       mocks.brokers[0].drain.resolve();
-      await vi.waitFor(async () => expect(await open()).toHaveProperty("id"));
+      await Promise.resolve();
       await expect(open()).rejects.toThrow("viewer limit");
-    },
-  );
-
-  test("a failed open retains its slot throughout cleanup, then returns the original error", async () => {
-    await Promise.all(Array.from({ length: 3 }, () => open()));
-    mocks.nextReadyError = new Error("producer startup failed");
-    const failed = expect(open()).rejects.toThrow("producer startup failed");
-    await vi.waitFor(() => {
-      expect(mocks.brokers).toHaveLength(4);
-      expect(mocks.brokers[3].close).toHaveBeenCalledOnce();
+      mocks.cleanup.resolve();
+      await closing;
+      await expect(open()).resolves.toHaveProperty("id");
     });
-    await expect(open()).rejects.toThrow("viewer limit");
-    mocks.brokers[3].drain.resolve();
-    await failed;
-    await expect(open()).resolves.toHaveProperty("id");
-  });
 
-  test("retirement racing a failed open shares one cleanup and returns one capacity slot", async () => {
-    await Promise.all(Array.from({ length: 3 }, () => open()));
-    const startup = deferred();
-    mocks.nextReadyGate = startup;
-    const failed = expect(open()).rejects.toThrow("producer startup failed");
-    void failed.catch(() => undefined);
-    await vi.waitFor(() => expect(mocks.brokers).toHaveLength(4));
-    editor.emit("render-process-gone");
-    await expect(open()).rejects.toThrow("viewer limit");
-    startup.reject(new Error("producer startup failed"));
-    await vi.waitFor(() => expect(mocks.brokers[3].close).toHaveBeenCalledOnce());
-    for (const broker of mocks.brokers) expect(broker.close).toHaveBeenCalledOnce();
-    mocks.brokers[3].drain.resolve();
-    await failed;
-    await expect(open()).resolves.toHaveProperty("id");
-    await expect(open()).rejects.toThrow("viewer limit");
-  });
+    test.each(["navigation", "render-process-gone", "destroyed"])(
+      "%s retains draining capacity and repeated retirement does not close twice",
+      async (reason) => {
+        const sessions = await Promise.all(Array.from({ length: 4 }, () => open()));
+        const retire = () => {
+          if (reason === "navigation")
+            editor.emit("did-start-navigation", {}, "about:blank", false, true);
+          else editor.emit(reason);
+        };
+        retire();
+        retire();
+        for (const session of sessions)
+          await expect(invoke("close", editor, session.id)).rejects.toThrow("ownership");
+        await expect(open()).rejects.toThrow("viewer limit");
+        for (const broker of mocks.brokers) expect(broker.close).toHaveBeenCalledOnce();
+        mocks.brokers[0].drain.resolve();
+        await vi.waitFor(async () => expect(await open()).toHaveProperty("id"));
+        await expect(open()).rejects.toThrow("viewer limit");
+      },
+    );
 
-  test("a rejected close releases its capacity exactly once after cleanup settles", async () => {
-    const sessions = await Promise.all(Array.from({ length: 4 }, () => open()));
-    const closing = expect(invoke("close", editor, sessions[0].id)).rejects.toThrow("drain failed");
-    await expect(open()).rejects.toThrow("viewer limit");
-    mocks.brokers[0].drain.reject(new Error("drain failed"));
-    await closing;
-    await expect(open()).resolves.toHaveProperty("id");
-    await expect(open()).rejects.toThrow("viewer limit");
-  });
-
-  test("one owner's completed close does not free another owner's capacity", async () => {
-    const other = owner();
-    const own = await open();
-    await Promise.all(Array.from({ length: 4 }, () => open(other)));
-    const closing = invoke("close", editor, own.id);
-    mocks.brokers[0].drain.resolve();
-    await closing;
-    await expect(open(other)).rejects.toThrow("viewer limit");
-    await expect(open()).resolves.toHaveProperty("id");
-  });
-
-  test("dispose waits for an earlier IPC close and rejects admission during the drain", async () => {
-    const sessions = await Promise.all(Array.from({ length: 4 }, () => open()));
-    const closing = invoke("close", editor, sessions[0].id);
-    const disposed = vi.fn();
-    const pending = host.dispose().then(disposed);
-    await expect(invoke("available", editor)).resolves.toBe(false);
-    await expect(open()).rejects.toThrow("unavailable");
-    for (const broker of mocks.brokers.slice(1)) broker.drain.resolve();
-    await vi.waitFor(() => {
-      for (const index of [2, 3, 4]) {
-        expect(mocks.cleanedPaths).toContain(`C:\\aster-preview-capacity-test\\session-${index}`);
-        expect(mocks.cleanedPaths).toContain(
-          `C:\\aster-preview-capacity-test\\session-${index}.aster-lock`,
-        );
-      }
+    test("a failed open retains its slot throughout cleanup, then returns the original error", async () => {
+      await Promise.all(Array.from({ length: 3 }, () => open()));
+      mocks.nextReadyError = new Error("producer startup failed");
+      const failed = expect(open()).rejects.toThrow("producer startup failed");
+      await vi.waitFor(() => {
+        expect(mocks.brokers).toHaveLength(4);
+        expect(mocks.brokers[3].close).toHaveBeenCalledOnce();
+      });
+      await expect(open()).rejects.toThrow("viewer limit");
+      mocks.brokers[3].drain.resolve();
+      await failed;
+      await expect(open()).resolves.toHaveProperty("id");
     });
-    // Let all close/retire promise continuations finish before checking the earlier IPC close.
-    await nextTurn();
-    expect(mocks.cleanedPaths).not.toContain("C:\\aster-preview-capacity-test\\session-1");
-    expect(disposed).not.toHaveBeenCalled();
-    mocks.brokers[0].drain.resolve();
-    await Promise.all([closing, pending]);
-    for (const broker of mocks.brokers) expect(broker.close).toHaveBeenCalledOnce();
-  });
-});
+
+    test("retirement racing a failed open shares one cleanup and returns one capacity slot", async () => {
+      await Promise.all(Array.from({ length: 3 }, () => open()));
+      const startup = deferred();
+      mocks.nextReadyGate = startup;
+      const failed = expect(open()).rejects.toThrow("producer startup failed");
+      void failed.catch(() => undefined);
+      await vi.waitFor(() => expect(mocks.brokers).toHaveLength(4));
+      editor.emit("render-process-gone");
+      await expect(open()).rejects.toThrow("viewer limit");
+      startup.reject(new Error("producer startup failed"));
+      await vi.waitFor(() => expect(mocks.brokers[3].close).toHaveBeenCalledOnce());
+      for (const broker of mocks.brokers) expect(broker.close).toHaveBeenCalledOnce();
+      mocks.brokers[3].drain.resolve();
+      await failed;
+      await expect(open()).resolves.toHaveProperty("id");
+      await expect(open()).rejects.toThrow("viewer limit");
+    });
+
+    test("a rejected close releases its capacity exactly once after cleanup settles", async () => {
+      const sessions = await Promise.all(Array.from({ length: 4 }, () => open()));
+      const closing = expect(invoke("close", editor, sessions[0].id)).rejects.toThrow(
+        "drain failed",
+      );
+      await expect(open()).rejects.toThrow("viewer limit");
+      mocks.brokers[0].drain.reject(new Error("drain failed"));
+      await closing;
+      await expect(open()).resolves.toHaveProperty("id");
+      await expect(open()).rejects.toThrow("viewer limit");
+    });
+
+    test("one owner's completed close does not free another owner's capacity", async () => {
+      const other = owner();
+      const own = await open();
+      await Promise.all(Array.from({ length: 4 }, () => open(other)));
+      const closing = invoke("close", editor, own.id);
+      mocks.brokers[0].drain.resolve();
+      await closing;
+      await expect(open(other)).rejects.toThrow("viewer limit");
+      await expect(open()).resolves.toHaveProperty("id");
+    });
+
+    test("dispose waits for an earlier IPC close and rejects admission during the drain", async () => {
+      const sessions = await Promise.all(Array.from({ length: 4 }, () => open()));
+      const closing = invoke("close", editor, sessions[0].id);
+      const disposed = vi.fn();
+      const pending = host.dispose().then(disposed);
+      await expect(invoke("available", editor)).resolves.toBe(false);
+      await expect(open()).rejects.toThrow("unavailable");
+      for (const broker of mocks.brokers.slice(1)) broker.drain.resolve();
+      await vi.waitFor(() => {
+        for (const index of [2, 3, 4]) {
+          expect(mocks.cleanedPaths).toContain(join(temporaryRoot, `session-${index}`));
+          expect(mocks.cleanedPaths).toContain(join(temporaryRoot, `session-${index}.aster-lock`));
+        }
+      });
+      // Let all close/retire promise continuations finish before checking the earlier IPC close.
+      await nextTurn();
+      expect(mocks.cleanedPaths).not.toContain("C:\\aster-preview-capacity-test\\session-1");
+      expect(disposed).not.toHaveBeenCalled();
+      mocks.brokers[0].drain.resolve();
+      await Promise.all([closing, pending]);
+      for (const broker of mocks.brokers) expect(broker.close).toHaveBeenCalledOnce();
+    });
+  },
+);

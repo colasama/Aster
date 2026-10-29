@@ -11,6 +11,7 @@ repository = "https://github.com/aster-mograph/aster"
 rust-version = "1.97"
 
 [workspace.dependencies]
+aster-macos = { path = "crates/aster-macos", version = "0.3.5" }
 aster-types = { path = "crates/aster-types", version = "0.3.5" }
 aster-eval = { path = "crates/aster-eval", version = "0.3.5" }
 aster-storage = { path = "crates/aster-storage", version = "0.3.5" }

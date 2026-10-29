@@ -17,11 +17,11 @@ mod prepare_rasters;
 mod prepare_resources;
 #[cfg(windows)]
 mod preview_guard;
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 mod preview_plan;
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 mod preview_project;
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 mod preview_transport;
 mod project_capture;
 mod project_runtime;
@@ -62,10 +62,10 @@ enum Command {
     /// Execute a complete supplied frame on a native GPU, with optional diagnostic PNG output.
     RenderPlan(Box<render_plan::RenderPlanArgs>),
     /// Present a supplied native frame through bounded shared GPU leases to a trusted host.
-    #[cfg(windows)]
+    #[cfg(any(windows, target_os = "macos"))]
     PreviewPlan(Box<preview_plan::PreviewPlanArgs>),
     /// Evaluate a project at requested times and publish GPU-resident preview frames.
-    #[cfg(windows)]
+    #[cfg(any(windows, target_os = "macos"))]
     PreviewProject(Box<preview_project::PreviewProjectArgs>),
     /// Evaluate admitted projects and execute native frames without supplied plans.
     RenderProject(Box<render_project::RenderProjectArgs>),
@@ -99,9 +99,9 @@ impl Cli {
             Command::Compare(arguments) => arguments.run(),
             Command::Ir(arguments) => Ok(arguments.run()),
             Command::RenderPlan(arguments) => arguments.run(),
-            #[cfg(windows)]
+            #[cfg(any(windows, target_os = "macos"))]
             Command::PreviewPlan(arguments) => arguments.run(),
-            #[cfg(windows)]
+            #[cfg(any(windows, target_os = "macos"))]
             Command::PreviewProject(arguments) => arguments.run(),
             Command::RenderProject(arguments) => arguments.run(),
             Command::PlanProject(arguments) => arguments.run(),

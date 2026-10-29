@@ -168,3 +168,29 @@ the MCP client. `--background` starts a hidden editor with a temporary profile a
 The adapter and editor use a dedicated parent IPC channel for readiness and shutdown; neither
 mode requires a token. `pnpm mcp --background` uses the installed development Electron runtime
 and previously built production assets.
+
+## macOS native renderer
+
+macOS desktop builds include the Metal preview and VideoToolbox H.264 export backends.
+Xcode Command Line Tools provide the linker and Apple framework SDKs. `aster-macos` uses the
+`objc2` framework bindings for IOSurface, Metal, CoreVideo, CoreMedia and VideoToolbox, with
+`mach2` for port transport. `pnpm electron:compile` builds the same crate as a Rust `cdylib`
+with its optional `node-addon` feature and copies it into `dist-electron/native`. The stable
+Node-API symbols are resolved from Electron at module load; no Objective-C++, `cc`, node-gyp
+or Node header download is needed. The addon is unpacked and signed with the application.
+Set `ASTER_NATIVE_ARCH=arm64` or `x64` to select its Cargo target; install that Rust target first.
+
+Build and validate the native GPU sharing path on a logged-in Mac:
+
+```bash
+pnpm artifact:download-ffmpeg
+pnpm build
+pnpm exec electron scripts/macos-preview-smoke.mjs
+pnpm exec electron-builder --config scripts/electron-builder.ts --dir --mac --arm64 --publish never -c.mac.identity=- -c.mac.hardenedRuntime=false
+```
+
+The smoke test imports three Metal-rendered IOSurfaces into a real Electron renderer, checks
+stable pixels and dimensions, and drains every lease. Its canvas readback is diagnostic only;
+production preview and video export keep their final frame pixels GPU-resident. Build the
+addon and Rust binaries on the target architecture; the command above produces Apple Silicon
+output in `release/mac-arm64/Aster.app`. Use `--x64` only with matching Intel native binaries.

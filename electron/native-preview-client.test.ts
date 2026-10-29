@@ -29,6 +29,7 @@ const session = (
 `;
 const open = (script: string, timeoutMs = 2000) =>
   new NativePreviewClient({
+    platform: "win32",
     executable: process.execPath,
     args: ["-e", script, "--"],
     timeoutMs,

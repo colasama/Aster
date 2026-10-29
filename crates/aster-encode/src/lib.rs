@@ -18,6 +18,8 @@ mod mf_stream;
 mod probe_stream;
 mod stream;
 mod timing;
+#[cfg(target_os = "macos")]
+mod videotoolbox;
 
 pub use stream::{
     EncodedPacket, EncoderOptions, EncoderStatistics, HardwareEncoder, PacketMetadata,

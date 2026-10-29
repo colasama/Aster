@@ -64,7 +64,11 @@ impl PreviewPlanArgs {
             textures.as_mut(),
         )?;
         let mut renderer = NativeRenderer::new(NativeOptions {
-            backend: NativeBackend::Dx12,
+            backend: if cfg!(target_os = "macos") {
+                NativeBackend::Metal
+            } else {
+                NativeBackend::Dx12
+            },
             adapter_name: self.adapter,
             dxcompiler: self.dxcompiler,
             gpu_budget_bytes: self.gpu_budget_bytes,

@@ -31,7 +31,7 @@ mod shared_nv12_output;
 #[cfg(all(test, windows))]
 #[path = "shared_nv12_tests.rs"]
 mod shared_nv12_tests;
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 #[path = "shared_preview_output.rs"]
 mod shared_preview_output;
 #[cfg(all(test, windows))]
@@ -127,9 +127,9 @@ pub struct NativeRenderer {
     shared_nv12: Vec<Arc<crate::shared_nv12::SharedNv12Target>>,
     #[cfg(windows)]
     shared_nv12_reserved_bytes: u64,
-    #[cfg(windows)]
+    #[cfg(any(windows, target_os = "macos"))]
     shared_preview: Vec<Arc<crate::shared_preview::SharedPreviewTarget>>,
-    #[cfg(windows)]
+    #[cfg(any(windows, target_os = "macos"))]
     shared_preview_reserved_bytes: u64,
 }
 
@@ -323,9 +323,9 @@ impl NativeRenderer {
             shared_nv12: Vec::new(),
             #[cfg(windows)]
             shared_nv12_reserved_bytes: 0,
-            #[cfg(windows)]
+            #[cfg(any(windows, target_os = "macos"))]
             shared_preview: Vec::new(),
-            #[cfg(windows)]
+            #[cfg(any(windows, target_os = "macos"))]
             shared_preview_reserved_bytes: 0,
         })
     }

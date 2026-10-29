@@ -73,6 +73,7 @@ jobs:
             artifact: aster-macos-arm64
             binary_dir: release/mac-arm64/Aster.app/Contents/Resources/bin
             rust_target: aarch64-apple-darwin
+            native_arch: arm64
             ffmpeg_args: --target darwin-arm64
           - name: macOS x64
             os: macos-15
@@ -80,6 +81,7 @@ jobs:
             artifact: aster-macos-x64
             binary_dir: release/mac/Aster.app/Contents/Resources/bin
             rust_target: x86_64-apple-darwin
+            native_arch: x64
             ffmpeg_args: --target darwin-x64
             verify_args: --checksums-only
     runs-on: ${{ matrix.os }}
@@ -129,11 +131,14 @@ jobs:
         run: |
           pnpm typecheck
           pnpm exec vite build
-          pnpm electron:compile
-          cargo build --release -p aster-desktop-bridge --target ${{ matrix.rust_target }}
+          node scripts/build-native-raster.mjs
+          ASTER_NATIVE_ARCH=${{ matrix.native_arch }} pnpm electron:compile
+          cargo build --release -p aster-desktop-bridge -p aster-render-cli --target ${{ matrix.rust_target }}
           mkdir -p target/release
           cp target/${{ matrix.rust_target }}/release/aster-desktop-bridge target/release/
           cp target/${{ matrix.rust_target }}/release/aster-mcp target/release/
+          cp target/${{ matrix.rust_target }}/release/aster-render-cli target/release/
+          codesign --force --sign - target/release/aster-render-cli
           codesign --force --sign - target/release/aster-desktop-bridge
           codesign --force --sign - target/release/aster-mcp
       - name: Package desktop bundles

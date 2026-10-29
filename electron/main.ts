@@ -1301,7 +1301,12 @@ if (hasSingleInstanceLock)
       registerIpc(logger, preferences, renderQueueManager, renderMediaSnapshots);
       const previewFfmpeg = app.isPackaged
         ? ffmpegExecutable()
-        : (process.env.ASTER_FFMPEG_PATH ?? join(app.getAppPath(), "build/ffmpeg/ffmpeg.exe"));
+        : (process.env.ASTER_FFMPEG_PATH ??
+          join(
+            app.getAppPath(),
+            "build/ffmpeg",
+            process.platform === "win32" ? "ffmpeg.exe" : "ffmpeg",
+          ));
       const previewRuntime = nativeRenderRuntime({
         appPath: app.getAppPath(),
         resourcesPath: process.resourcesPath,
