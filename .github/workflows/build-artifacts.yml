@@ -22,12 +22,12 @@ jobs:
     name: Quality gates
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
           version: 10.15.0
           run_install: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -86,12 +86,12 @@ jobs:
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with:
           version: 10.15.0
           run_install: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -110,7 +110,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y libarchive-tools
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: |
             .aster-cache/ffmpeg/*.gz
@@ -141,7 +141,7 @@ jobs:
       - name: Verify packaged tools and generate checksums
         run: node scripts/verify-desktop-bundle.mjs "${{ matrix.binary_dir }}" ${{ matrix.verify_args }}
       - name: Upload desktop bundles
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}-${{ github.sha }}
           path: |

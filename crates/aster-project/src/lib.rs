@@ -175,15 +175,16 @@ assets/** -text
             let mut project_entries = 0_usize;
             for index in 0..archive.len() {
                 let mut entry = archive.by_index(index)?;
+                let entry_path = PathBuf::from(entry.name()?.as_ref());
                 if entry
                     .unix_mode()
                     .is_some_and(|mode| mode & 0o170000 == 0o120000)
                 {
-                    return Err(ProjectError::UnsafePackedPath(PathBuf::from(entry.name())));
+                    return Err(ProjectError::UnsafePackedPath(entry_path));
                 }
                 let enclosed = entry
                     .enclosed_name()
-                    .ok_or_else(|| ProjectError::UnsafePackedPath(PathBuf::from(entry.name())))?;
+                    .ok_or(ProjectError::UnsafePackedPath(entry_path))?;
                 if enclosed == Path::new(Self::PROJECT_FILE) {
                     project_entries += 1;
                 } else if !enclosed.starts_with("assets") {
