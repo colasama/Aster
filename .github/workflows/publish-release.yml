@@ -38,7 +38,7 @@ jobs:
       RELEASE_TAG: ${{ inputs.tag || github.event.workflow_run.head_branch }}
       BUILD_RUN_ID: ${{ inputs.run_id || github.event.workflow_run.id }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.tag || github.event.workflow_run.head_sha }}
       - name: Verify source and download validated artifacts
